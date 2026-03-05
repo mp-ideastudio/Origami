@@ -1284,16 +1284,19 @@
                         }
                         
                         
-                        // Apply Blue-Green Holographic Glass Material
+                        // Apply Blue-Green Holographic Glass Material (Silhouette focused)
                         const glassMat = new THREE.MeshPhysicalMaterial({
-                            color: 0x00ffff,          // Cyan/Aqua core
-                            emissive: 0x004433,       // Dark green glow
-                            emissiveIntensity: 0.7,
-                            roughness: 0.1,           // Very glossy
-                            metalness: 0.2,           // Slight metallic reflection
-                            transmission: 0.8,        // Glass-like refraction
+                            color: 0x001111,          // Almost black core so it only relies on emissive/transmission
+                            emissive: 0x004433,       // Dark green/cyan subtle glow
+                            emissiveIntensity: 0.5,   // Reduced from 0.7 to kill inner bloom
+                            roughness: 0.05,          // Incredibly sharp, glossy rim
+                            metalness: 0.1,           
+                            transmission: 1.0,        // Max glass refraction thickness
+                            ior: 1.5,                 // Standard glass Index of Refraction
+                            clearcoat: 1.0,           // Sharp rim lighting
+                            clearcoatRoughness: 0.1,
                             transparent: true,
-                            opacity: 0.85,
+                            opacity: 1.0,
                             side: THREE.DoubleSide,
                             depthWrite: false         // Prevent self-occlusion artifacts
                         });
@@ -1310,23 +1313,23 @@
                             }
                         });
 
-                        // Add swirling cinematic mist at the base (Blue-Green tint)
+                        // Add swirling cinematic mist at the base (Blue-Green tint, reduced scale)
                         const mistGroup = new THREE.Group();
                         for(let i=0; i<8; i++) {
-                            const mat = new THREE.SpriteMaterial({ map: mistTex, color: 0x00ffaa, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+                            const mat = new THREE.SpriteMaterial({ map: mistTex, color: 0x00ffaa, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
                             const sprite = new THREE.Sprite(mat);
                             const angle = (Math.PI * 2 / 8) * i;
-                            const radius = 1.0 + Math.random() * 0.5;
-                            sprite.position.set(Math.cos(angle) * radius, 0.2 + Math.random() * 0.5, Math.sin(angle) * radius);
-                            sprite.scale.set(3.5, 3.5, 3.5);
-                            sprite.userData = { angleOffset: angle, speed: 0.3 + Math.random() * 0.4 };
+                            const radius = 0.8 + Math.random() * 0.4;
+                            sprite.position.set(Math.cos(angle) * radius, 0.1 + Math.random() * 0.3, Math.sin(angle) * radius);
+                            sprite.scale.set(2.0, 2.0, 2.0); // Reduced from 3.5
+                            sprite.userData = { angleOffset: angle, speed: 0.2 + Math.random() * 0.3 };
                             mistGroup.add(sprite);
                         }
                         entityWrapper.add(mistGroup);
                         entityWrapper.userData.mistGroup = mistGroup;
                         
                         // Add a local point light inside the ghost to cast a blue-green glow on the dungeon walls
-                        const spiritGlow = new THREE.PointLight(0x00ffaa, 0.5, this.gridSize * 3.0);
+                        const spiritGlow = new THREE.PointLight(0x00ffaa, 0.15, this.gridSize * 2.0); // Dramatically reduced intensity (0.5 => 0.15)
                         spiritGlow.position.set(0, 1.0, 0); // Belly height
                         entityWrapper.add(spiritGlow);
                         
@@ -1527,7 +1530,7 @@
                             
                             let panelHasLoS = false;
                             // 180-degree frontal cone (dot > 0) and ignore walls, as requested by user
-                            if (dist > 0 && dist < 30 && dot > 0) {
+                            if (dist > 0 && dist < 1.5 && dot > 0) {
                                 panelHasLoS = true;
                                 
                                 if (dist < closestDist) {

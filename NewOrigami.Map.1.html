@@ -454,7 +454,6 @@
                     
                     // Notify AI Brain we moved
                     this.postToAI({ type: 'PLAYER_MOVE', x: this.player.x, z: this.player.z });
-                    this.checkTriggers();
                     return true;
                 } else if (dir === 1) {
                     // Auto-Corner Assist: If holding forward into a wall, check sides to automatically pan the camera
@@ -497,29 +496,6 @@
                 return true;
             },
 
-            checkTriggers() {
-                // Check adjacency to NPC or Monster
-                let distToNPC = Infinity, distToMon = Infinity;
-                
-                if (this.testNPC) {
-                    distToNPC = Math.abs(this.player.x - Math.round(this.testNPC.position.x/this.gridSize)) + Math.abs(this.player.z - Math.round(this.testNPC.position.z/this.gridSize));
-                }
-                
-                if (this.testMonster) {
-                    distToMon = Math.abs(this.player.x - Math.round(this.testMonster.position.x/this.gridSize)) + Math.abs(this.player.z - Math.round(this.testMonster.position.z/this.gridSize));
-                }
-                
-                if (distToNPC === 1) {
-                    this.activeTarget = this.testNPC;
-                    window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
-                } else if (distToMon === 1) {
-                    this.activeTarget = this.testMonster;
-                    window.parent.postMessage({ type: 'SHOW_COMBAT', health: this.testMonster.userData.hp }, '*');
-                } else {
-                    this.activeTarget = null;
-                    window.parent.postMessage({ type: 'HIDE_ALL' }, '*');
-                }
-            },
 
             initComms() {
                 // Listen to UI Panels
