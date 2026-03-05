@@ -1296,9 +1296,13 @@
                             depthWrite: false         // Prevent self-occlusion artifacts
                         });
                         
+                        // Rigged models MUST have skinning enabled on replacing materials in r128
+                        const etherealSkinnedMat = etherealMat.clone();
+                        etherealSkinnedMat.skinning = true;
+                        
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                child.material = etherealMat;
+                                child.material = child.isSkinnedMesh ? etherealSkinnedMat : etherealMat;
                                 // Fix Z-Index sorting issue against the red targeting circle
                                 child.renderOrder = 10; 
                             }
