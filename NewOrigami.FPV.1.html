@@ -1284,17 +1284,51 @@
                         }
                         
                         
-                        // FX STRIPPED FOR DEBUGGING: Model will use its inherent GLTF textures/materials
+                        // Apply Blue-Green Holographic Glass Material
+                        const glassMat = new THREE.MeshPhysicalMaterial({
+                            color: 0x00ffff,          // Cyan/Aqua core
+                            emissive: 0x004433,       // Dark green glow
+                            emissiveIntensity: 0.7,
+                            roughness: 0.1,           // Very glossy
+                            metalness: 0.2,           // Slight metallic reflection
+                            transmission: 0.8,        // Glass-like refraction
+                            transparent: true,
+                            opacity: 0.85,
+                            side: THREE.DoubleSide,
+                            depthWrite: false         // Prevent self-occlusion artifacts
+                        });
                         
-                        // Explicitly enable shadow casting for the raw mesh children
+                        // Rigged models MUST have skinning enabled when replacing materials
+                        const glassSkinnedMat = glassMat.clone();
+                        glassSkinnedMat.skinning = true;
+                        
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                child.castShadow = true;
-                                child.receiveShadow = true;
+                                child.material = child.isSkinnedMesh ? glassSkinnedMat : glassMat;
                                 // Fix Z-Index sorting issue against the red targeting circle
                                 child.renderOrder = 10; 
                             }
                         });
+
+                        // Add swirling cinematic mist at the base (Blue-Green tint)
+                        const mistGroup = new THREE.Group();
+                        for(let i=0; i<8; i++) {
+                            const mat = new THREE.SpriteMaterial({ map: mistTex, color: 0x00ffaa, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+                            const sprite = new THREE.Sprite(mat);
+                            const angle = (Math.PI * 2 / 8) * i;
+                            const radius = 1.0 + Math.random() * 0.5;
+                            sprite.position.set(Math.cos(angle) * radius, 0.2 + Math.random() * 0.5, Math.sin(angle) * radius);
+                            sprite.scale.set(3.5, 3.5, 3.5);
+                            sprite.userData = { angleOffset: angle, speed: 0.3 + Math.random() * 0.4 };
+                            mistGroup.add(sprite);
+                        }
+                        entityWrapper.add(mistGroup);
+                        entityWrapper.userData.mistGroup = mistGroup;
+                        
+                        // Add a local point light inside the ghost to cast a blue-green glow on the dungeon walls
+                        const spiritGlow = new THREE.PointLight(0x00ffaa, 0.5, this.gridSize * 3.0);
+                        spiritGlow.position.set(0, 1.0, 0); // Belly height
+                        entityWrapper.add(spiritGlow);
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
