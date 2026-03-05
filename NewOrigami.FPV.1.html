@@ -1284,49 +1284,17 @@
                         }
                         
                         
-                        // Apply Ethereal Ghost Material
-                        const etherealMat = new THREE.MeshPhongMaterial({
-                            color: 0xaaddff,          // Spectral blue core
-                            emissive: 0x2266aa,       // Inner glow
-                            emissiveIntensity: 0.8,
-                            transparent: true,
-                            opacity: 0.55,
-                            blending: THREE.AdditiveBlending,
-                            side: THREE.DoubleSide,
-                            depthWrite: false         // Prevent self-occlusion artifacts
-                        });
+                        // FX STRIPPED FOR DEBUGGING: Model will use its inherent GLTF textures/materials
                         
-                        // Rigged models MUST have skinning enabled on replacing materials in r128
-                        const etherealSkinnedMat = etherealMat.clone();
-                        etherealSkinnedMat.skinning = true;
-                        
+                        // Explicitly enable shadow casting for the raw mesh children
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                child.material = child.isSkinnedMesh ? etherealSkinnedMat : etherealMat;
+                                child.castShadow = true;
+                                child.receiveShadow = true;
                                 // Fix Z-Index sorting issue against the red targeting circle
                                 child.renderOrder = 10; 
                             }
                         });
-
-                        // Add swirling cinematic mist at the base
-                        const mistGroup = new THREE.Group();
-                        for(let i=0; i<8; i++) {
-                            const mat = new THREE.SpriteMaterial({ map: mistTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-                            const sprite = new THREE.Sprite(mat);
-                            const angle = (Math.PI * 2 / 8) * i;
-                            const radius = 1.0 + Math.random() * 0.5;
-                            sprite.position.set(Math.cos(angle) * radius, 0.2 + Math.random() * 0.5, Math.sin(angle) * radius);
-                            sprite.scale.set(3.5, 3.5, 3.5);
-                            sprite.userData = { angleOffset: angle, speed: 0.3 + Math.random() * 0.4 };
-                            mistGroup.add(sprite);
-                        }
-                        entityWrapper.add(mistGroup);
-                        entityWrapper.userData.mistGroup = mistGroup;
-                        
-                        // Add a local point light inside the ghost to cast a blue glow on the dungeon walls
-                        const spiritGlow = new THREE.PointLight(0x44aaff, 0.5, this.gridSize * 3.0);
-                        spiritGlow.position.set(0, 1.0, 0); // Belly height
-                        entityWrapper.add(spiritGlow);
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
