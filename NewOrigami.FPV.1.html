@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Origami - Core Engine</title>
+    <!-- State of the art WebGL Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- Post-Processing Pipeline -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        
+        /* Game Container: Fluid Flexbox Architecture */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* 3D WebGL Canvas Layer */
+        #fpv-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+
+
+
+
+        /* Movement Controls - Fluid Golden Placement */
+        #movement-pad {
+            position: absolute;
+            z-index: 50;
+            display: grid;
+            grid-template-areas: 
+              ". up ."
+              "left . right"  
+              ". down .";
+            gap: 1.5vmin;
+            /* Golden minor anchoring for bottom left */
+            bottom: clamp(15px, 3vh, 30px);
+            left: clamp(15px, 3vw, 30px);
+            opacity: 0.85;
+            transition: opacity 0.2s ease;
+        }
+
+        #movement-pad:hover { opacity: 1; }
+        
+        .move-btn {
+            width: clamp(44px, 12vmin, 64px); 
+            height: clamp(44px, 12vmin, 64px); 
+            border-radius: 50%; 
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(30, 35, 45, 0.95); 
+            color: #fff; 
+            font-size: clamp(18px, 5vmin, 28px); 
+            cursor: pointer;
+            box-shadow: 
+                0 6px 16px rgba(0,0,0,0.6),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+            transition: background 0.1s, transform 0.1s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .move-btn:active { 
+            transform: scale(0.92); 
+            background: rgba(50, 55, 65, 0.95); 
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5);
+        }
+        
+        #btn-up { grid-area: up; } #btn-down { grid-area: down; }
+        #btn-left { grid-area: left; } #btn-right { grid-area: right; }
+
+        /* Hidden IFrames for UI and AI */
+        .logic-frame {
+            position: absolute;
+            border: none;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* Fluid overlay for UI adhering to Golden Ratio height limit */
+        #ui-frame {
+            bottom: 0px;
+            left: 0px;
+            width: 100%;
+            height: clamp(300px, 61.8vh, 1200px); /* Primary Golden Ratio rule for UI prominence */
+        }
+
+        #ai-frame { display: none; } /* Strictly headless logic */
+
+        /* Interaction prompt (temporary center screen) */
+        #interaction-prompt {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 15px 30px; border-radius: 8px;
+            border: 1px solid #ffd700; font-weight: bold; font-size: 1.2rem;
+            z-index: 80; display: none; pointer-events: none;
+        }
+        
+        #ui-frame { pointer-events: none; display: none !important; }
+
+        /* Realtime Tuning Panel */
+        #tuning-panel {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            color: #fff;
+            font-family: monospace;
+            z-index: 1000;
+            width: 200px;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+        }
+        #tuning-panel h3 {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+        }
+        .tune-row {
+            margin-bottom: 10px;
+        }
+        .tune-row label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .tune-row input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        #fps-counter {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); color: #00ffcc; padding: 4px 12px; border-radius: 12px;
+            border: 1px solid rgba(0, 255, 204, 0.3); font-family: monospace; font-size: 0.9rem;
+            z-index: 90; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none;
+            -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 3D Scene Layer -->
+        <canvas id="fpv-canvas"></canvas>
+
+
+
+
+        <div id="interaction-prompt">Press E to Interact</div>
+        <div id="fps-counter">FPS: --/60</div>
+
+        <!-- UI Panels Layer (Loaded via Iframe to isolate CSS/JS overhead) -->
+        <iframe id="ui-frame" title="Game UI Interface" class="logic-frame" src="NewOrigami.Panels.html" sandbox="allow-scripts allow-same-origin allow-modals" allowtransparency="true"></iframe>
+        
+    <!-- Realtime Tuning Panel -->
+    <div id="tuning-panel">
+        <h3>Movement Tuning</h3>
+        <div class="tune-row">
+            <label><span>Speed (W)</span><span id="val-speed">2.56</span></label>
+            <input type="range" id="tune-speed" title="Speed" min="0.5" max="6.0" step="0.01" value="2.56">
+        </div>
+        <div class="tune-row">
+            <label><span>Down-step (Bob)</span><span id="val-bob">0.045</span></label>
+            <input type="range" id="tune-bob" title="Bob Amplitude" min="0.0" max="0.3" step="0.001" value="0.045">
+        </div>
+        <div class="tune-row">
+            <label><span>Sway (Shift)</span><span id="val-sway">0.015</span></label>
+            <input type="range" id="tune-sway" title="Sway Amplitude" min="0.0" max="0.1" step="0.001" value="0.015">
+        </div>
+    </div>
+
+    <!-- AI Brain Layer (Headless) -->
+        <iframe id="ai-frame" title="Game AI Brain" class="logic-frame" src="NewOrigamiAi.html" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+
+    <script>
+        /**
+         * CORE GAME ENGINE (Three.js integration + Application Coordinator)
+         */
+        const Engine = {
+            // State
+            player: { x: 5, z: 5, rot: 0 },
+            gridSize: 2,
+            mapData: [],
+            mapWidth: 40,   // Increased for 10 room dungeon
+            mapHeight: 40,  // Increased for 10 room dungeon
+            headlamp: null,
+            outerGlow: null,
+            clock: null,
+            mixers: [],
+            activeTarget: null, // NPC or Monster we are adjacent to
+            frameCount: 0,
+            lastFpsTime: 0,
+            currentFps: 0,
+
+            // Config
+            MOVE_SPEED: 1.82, // Reset to baseline requested by user
+            ROT_SPEED: 2.2,  // Radians per second
+            BOB_AMP: 0.045,  // Vertical bounce height
+            SWAY_AMP: 0.015, // Horizontal sway width
+            
+            keys: { w: false, a: false, s: false, d: false },
+            isMoving: false,
+            lastGridX: -1,
+            lastGridZ: -1,
+            wasIdle: true,
+            bobTimer: 0,     // Tracks head-bob animation
+            bobHeight: 0,    // Current vertical offset
+            bobSway: 0,      // Current horizontal offset
+            gameTime: 0,     // Custom accumulator for turn-based time-stop effect
+
+            init() {
+                this.generateMap();
+                this.initWebGL();
+                this.initControls();
+                this.initComms();
+                this.initTuningUI();
+                
+                this.clock = new THREE.Clock();
+                this.mixers = [];
+                
+                // Initialize layout cache
+                this.layoutData = { fpv: null };
+
+                // Expose a direct update method for the Shell to call
+                window.updateLayoutData = (data) => {
+                    this.layoutData = data;
+                };
+
+                // Start Render Loop
+                requestAnimationFrame(() => this.animate());
+            },
+            
+            // Uniformly scale an object so its total height equals targetHeight (in world units)
+            // Ported directly from Baseline.Origami..html to fix microscopic 3D model exports
+            scaleModelToHeight(object3D, targetHeight) {
+                if (!object3D) return 1;
+                object3D.updateMatrixWorld(true);
+                const box = new THREE.Box3().setFromObject(object3D);
+                const currentHeight = Math.max(1e-6, box.max.y - box.min.y);
+                const s = targetHeight / currentHeight;
+                object3D.scale.multiplyScalar(s);
+                object3D.updateMatrixWorld(true);
+                return s;
+            },
+
+            initTuningUI() {
+                const sSpeed = document.getElementById('tune-speed');
+                const vSpeed = document.getElementById('val-speed');
+                sSpeed.addEventListener('input', (e) => {
+                    this.MOVE_SPEED = parseFloat(e.target.value);
+                    vSpeed.textContent = this.MOVE_SPEED.toFixed(2);
+                });
+
+                const sBob = document.getElementById('tune-bob');
+                const vBob = document.getElementById('val-bob');
+                sBob.addEventListener('input', (e) => {
+                    this.BOB_AMP = parseFloat(e.target.value);
+                    vBob.textContent = this.BOB_AMP.toFixed(3);
+                });
+
+                const sSway = document.getElementById('tune-sway');
+                const vSway = document.getElementById('val-sway');
+                sSway.addEventListener('input', (e) => {
+                    this.SWAY_AMP = parseFloat(e.target.value);
+                    vSway.textContent = this.SWAY_AMP.toFixed(3);
+                });
+            },
+
+            generateMap() {
+                // Room definitions for future dungeon editing
+                const DUNGEON_ROOMS_SCHEMA = [
+                  {
+                    "id": 1,
+                    "name": "Large Chamber",
+                    "description": "A grand hall with multiple exits, echoing with ancient magic.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [10,5]},
+                      {"direction": "east", "position": [5,10]}
+                    ],
+                    "triggers": [
+                      {"position": [5,5], "action": "update_narrative", "value": "You enter a grand hall, its walls pulsing with arcane energy."}
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "name": "Storage Room",
+                    "description": "A cluttered room with a dusty chest in the center.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "A dusty chest sits in the center, whispering secrets."}
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "name": "Statue Room",
+                    "description": "A solemn chamber with a statue of a fallen priest.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "statue", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The statue's eyes seem to follow you."}
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "name": "Trap Room",
+                    "description": "A dangerous room with a hidden trap.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "trap", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "A trap clicks beneath your feet!"}
+                    ]
+                  },
+                  {
+                    "id": 5,
+                    "name": "Altar Room",
+                    "description": "A mystical room with a glowing altar.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "altar", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The altar hums with dark energy."}
+                    ]
+                  },
+                  {
+                    "id": 6,
+                    "name": "Library",
+                    "description": "A dusty room filled with ancient tomes.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [8,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "Ancient tomes whisper forgotten lore."}
+                    ]
+                  },
+                  {
+                    "id": 7,
+                    "name": "Throne Room",
+                    "description": "A regal hall with a crumbling throne.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "statue", "floor", "floor", "floor", "ascended", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [10,5]}
+                    ],
+                    "triggers": [
+                      {"position": [5,5], "action": "update_narrative", "value": "The throne crumbles under the weight of time."}
+                    ]
+                  },
+                  {
+                    "id": 8,
+                    "name": "Prison Cell",
+                    "description": "A dank cell with iron bars.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "wall"],
+                      ["wall", "door", "floor", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [4,2]}
+                    ],
+                    "triggers": [
+                      {"position": [2,2], "action": "update_narrative", "value": "The cell reeks of despair."}
+                    ]
+                  },
+                  {
+                    "id": 9,
+                    "name": "Garden",
+                    "description": "An overgrown garden with magical plants.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "altar", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [8,3]}
+                    ],
+                    "triggers": [
+                      {"position": [4,4], "action": "update_narrative", "value": "Magical plants sway in an eerie breeze."}
+                    ]
+                  },
+                  {
+                    "id": 10,
+                    "name": "Forge",
+                    "description": "A hot forge with glowing embers.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [7,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The forge's heat is overwhelming."}
+                    ]
+                  },
+                  {
+                    "id": 11,
+                    "name": "Straight Hallway",
+                    "description": "A long, straight corridor.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The corridor stretches endlessly."}
+                    ]
+                  },
+                  {
+                    "id": 12,
+                    "name": "L-Shaped Hallway",
+                    "description": "A corridor with a sharp bend.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "wall", "door", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,9]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The corridor turns sharply."}
+                    ]
+                  },
+                  {
+                    "id": 13,
+                    "name": "T-Shaped Hallway",
+                    "description": "A corridor splitting into three paths.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]},
+                      {"direction": "north", "position": [1,5]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "Three paths diverge ahead."}
+                    ]
+                  },
+                  {
+                    "id": 14,
+                    "name": "Crossroads Hallway",
+                    "description": "A corridor with four paths.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]},
+                      {"direction": "north", "position": [1,5]},
+                      {"direction": "south", "position": [2,5]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "A crossroads offers multiple choices."}
+                    ]
+                  },
+                  {
+                    "id": 15,
+                    "name": "Narrow Passage",
+                    "description": "A tight, claustrophobic hallway.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The walls close in tightly."}
+                    ]
+                  },
+                  {
+                    "id": 16,
+                    "name": "Wide Hallway",
+                    "description": "A spacious corridor for large groups.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The wide hall echoes with footsteps."}
+                    ]
+                  },
+                  {
+                    "id": 17,
+                    "name": "Secret Passage",
+                    "description": "A hidden corridor behind a wall.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "A secret passage reveals itself."}
+                    ]
+                  },
+                  {
+                    "id": 18,
+                    "name": "Trapped Corridor",
+                    "description": "A hallway rigged with traps.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "trap", "floor", "floor", "trap", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,3], "action": "update_narrative", "value": "A trap springs to life!"},
+                      {"position": [2,6], "action": "update_narrative", "value": "Another trap clicks nearby!"}
+                    ]
+                  },
+                  {
+                    "id": 19,
+                    "name": "Patrolled Corridor",
+                    "description": "A hallway guarded by enemies.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "You hear the footsteps of guards."}
+                    ]
+                  },
+                  {
+                    "id": 20,
+                    "name": "Collapsed Corridor",
+                    "description": "A hallway blocked by rubble.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "chest", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "Rubble blocks part of the path."}
+                    ]
+                  }
+                ];
+                
+                // Initialize rich grid map architecture [x][z]
+                // Initialize rich grid map architecture [x][z]
+                this.mapData = Array.from({ length: this.mapWidth }, () => Array.from({ length: this.mapHeight }, () => ({ type: 'wall' })));
+                this.rooms = [];
+                const roomCount = 10; // Exactly 10 rooms for NetHack style
+                const ROOM_BUFFER = 2; // Prevents rooms from touching
+                const ROOM_SIZES = [
+                    { w: 6, h: 6 },
+                    { w: 5, h: 7 },
+                    { w: 8, h: 5 },
+                    { w: 4, h: 8 }
+                ];
+                const MAX_ROOM_GAP = 6; 
+
+                // 1. Place Rooms (force 10)
+                let attempts = 0;
+                while (this.rooms.length < roomCount && attempts < 500) {
+                    attempts++;
+                    const size = ROOM_SIZES[Math.floor(Math.random() * ROOM_SIZES.length)];
+                    const w = size.w; const h = size.h;
+                    const x = 1 + Math.floor(Math.random() * (this.mapWidth - w - 2));
+                    const y = 1 + Math.floor(Math.random() * (this.mapHeight - h - 6)); 
+
+                    const newRoom = { id: this.rooms.length + 1, x, y, w, h, center: { x: x + Math.floor(w / 2), y: y + Math.floor(h / 2) } };
+                    let overlaps = false;
+                    for (let r of this.rooms) {
+                        if (x < r.x + r.w + ROOM_BUFFER && x + w + ROOM_BUFFER > r.x && y < r.y + r.h + ROOM_BUFFER && y + h + ROOM_BUFFER > r.y) {
+                            overlaps = true; break;
+                        }
+                    }
+                    if (overlaps) continue;
+
+                    let isCloseEnough = this.rooms.length === 0;
+                    if (!isCloseEnough) {
+                        for (let r of this.rooms) {
+                            const dx = Math.max(0, Math.max(r.x - (x + w), x - (r.x + r.w)));
+                            const dy = Math.max(0, Math.max(r.y - (y + h), y - (r.y + r.h)));
+                            if (Math.max(dx, dy) <= MAX_ROOM_GAP) { isCloseEnough = true; break; }
+                        }
+                    }
+                    if (!isCloseEnough) continue;
+
+                    this.rooms.push(newRoom);
+                    for (let ry = y; ry < y + h; ry++) {
+                        for (let rx = x; rx < x + w; rx++) {
+                            this.mapData[rx][ry] = { type: 'floor', room: true, roomId: newRoom.id };
+                        }
+                    }
+                }
+
+                if (this.rooms.length === 0) return; // Fallback
+
+                // 2. Entrance (7 Tiles Long)
+                const entrancePos = { x: Math.floor(this.mapWidth / 2), y: this.mapHeight - 2 };
+                this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
+                this.mapData[entrancePos.x][this.mapHeight - 1] = { type: 'wall' }; // Ensure the very bottom is a wall behind the stairs
+                
+                for (let i = 0; i <= 7; i++) {
+                    this.mapData[entrancePos.x][this.mapHeight - 2 - i] = { type: 'floor', hallway: true };
+                }
+                const hallwayEnd = { x: entrancePos.x, y: this.mapHeight - 9 };
+
+                // 3. Connect Entrance to nearest room
+                let closestRoomToEntrance = this.rooms.sort((a, b) =>
+                    Math.hypot(a.center.x - hallwayEnd.x, a.center.y - hallwayEnd.y) -
+                    Math.hypot(b.center.x - hallwayEnd.x, b.center.y - hallwayEnd.y)
+                )[0];
+                this.carveFuzzyHallway(hallwayEnd, closestRoomToEntrance.center);
+
+                // 4. Connect all rooms
+                const connectedRooms = new Set();
+                connectedRooms.add(closestRoomToEntrance);
+
+                while (connectedRooms.size < this.rooms.length) {
+                    let closestDist = Infinity;
+                    let closestPair = null;
+
+                    for (const conRoom of Array.from(connectedRooms)) {
+                        for (const unconRoom of this.rooms) {
+                            if (connectedRooms.has(unconRoom)) continue;
+                            const dist = Math.hypot(conRoom.center.x - unconRoom.center.x, conRoom.center.y - unconRoom.center.y);
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                closestPair = { from: conRoom, to: unconRoom };
+                            }
+                        }
+                    }
+
+                    if (closestPair) {
+                        this.carveFuzzyHallway(closestPair.from.center, closestPair.to.center);
+                        connectedRooms.add(closestPair.to);
+                    } else break;
+                }
+
+                // Move Player to entrance
+                this.player.x = entrancePos.x;
+                this.player.z = entrancePos.y;
+                this.player.rot = 0;
+                
+                // Parse entity spawn points
+                this.mobSpawns = [];
+                const floorTiles = [];
+                for(let x=0; x<this.mapWidth; x++) {
+                    for(let z=0; z<this.mapHeight; z++) {
+                        if(this.mapData[x][z] && this.mapData[x][z].type === 'floor') {
+                            floorTiles.push({x, z});
+                        }
+                    }
+                }
+                
+                // Spawn 1 Test Model exactly in the center of the first generated room
+                const firstRoom = this.rooms[0];
+                this.mobSpawns.push({ 
+                    type: 'goblin', 
+                    x: firstRoom.center.x, 
+                    z: firstRoom.center.y, 
+                    homeX: firstRoom.center.x, 
+                    homeZ: firstRoom.center.y, 
+                    speed: 8.0, 
+                    state: 'IDLE', searchTimer: 0 
+                });
+            },
+
+            carveFuzzyHallway(start, end) {
+                let cx = start.x;
+                let cy = start.y;
+                let lastDir = null;
+
+                while (cx !== end.x || cy !== end.y) {
+                    const dx = end.x - cx;
+                    const dy = end.y - cy;
+                    let moveHorizontal;
+                    
+                    if (dx === 0) moveHorizontal = false;
+                    else if (dy === 0) moveHorizontal = true;
+                    else {
+                        const continueChance = 0.75;
+                        if (lastDir === 'h' && Math.random() < continueChance) moveHorizontal = true;
+                        else if (lastDir === 'v' && Math.random() < continueChance) moveHorizontal = false;
+                        else moveHorizontal = Math.random() > 0.5;
+                    }
+
+                    if (moveHorizontal) {
+                        cx += Math.sign(dx); lastDir = 'h';
+                    } else {
+                        cy += Math.sign(dy); lastDir = 'v';
+                    }
+
+                    if (this.mapData[cx]?.[cy]?.type === 'wall') {
+                        this.mapData[cx][cy] = { type: 'floor', hallway: true };
+                    }
+                }
+            },
+
+            initWebGL() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a0c);
+                // Fog must remain for Shader compilation, but we set it very thin/far
+                this.scene.fog = new THREE.FogExp2(0x2a2a2a, 0.005);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+                this.camera.position.set(this.player.x * this.gridSize, 1.6, this.player.z * this.gridSize); // Eye level
+                this.camera.layers.enable(1); // Ensure FPV camera can see the ceiling (Layer 1)
+                this.camera.rotation.y = this.player.rot;
+
+                const canvas = document.getElementById('fpv-canvas');
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for perf
+                // We disabled autoClear=false and composer since bloom is removed
+                
+                // Bloom removed completely based on user feedback
+                
+                // Setup Layers
+                // Layer 0: Default (Walls, Floors, Lights)
+                // Layer 1: Ceiling (Hidden from map)
+                this.camera.layers.enable(1); // FPV sees ceiling
+                
+                // --- Baseline Lighting ---
+                // Cinematic lighting: cooler sky, warmer key, subtle rim (Darkened by 25%)
+                const hemisphereLight = new THREE.HemisphereLight(0x88aaff, 0x202228, 0.315);
+                this.scene.add(hemisphereLight);
+                
+                // Warm key directional light for depth and shadows
+                const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.498);
+                dirLight.position.set(30, 60, 10);
+                this.scene.add(dirLight);
+                
+                // Cool rim light from behind for silhouette separation
+                const rimLight = new THREE.DirectionalLight(0x99bbff, 0.183);
+                rimLight.position.set(-20, 40, -30);
+                this.scene.add(rimLight);
+                
+                // Player Flashlight
+                const headlamp = new THREE.SpotLight(0xfff8e0, 0.5, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1);
+                headlamp.position.set(0, 0, 0);
+                headlamp.target.position.set(0, 0, -1);
+                
+                const outerGlow = new THREE.SpotLight(0xffffff, 0.9, this.gridSize * 20, Math.PI / 8, 0.2, 0.8);
+                outerGlow.position.set(0, 0, 0);
+                outerGlow.target.position.set(0, 0, -1);
+                
+                this.camera.add(headlamp);
+                this.camera.add(headlamp.target);
+                this.camera.add(outerGlow);
+                this.camera.add(outerGlow.target);
+                
+                this.scene.add(this.camera); // Add camera to scene so child components render
+                
+                // Keep reference for flickering effect in animate()
+                this.headlamp = headlamp;
+                this.outerGlow = outerGlow;
+
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    if (this.renderer) {
+                        this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    }
+                });
+
+                this.clock = new THREE.Clock();
+                this.mixers = [];
+                this.raycaster = new THREE.Raycaster(); // Initialize raycaster here
+                this.buildWorldGeometry();
+            },
+
+            // --- Baseline Procedural Textures ---
+            makePaperTexture(baseColor) {
+                const c = document.createElement('canvas'); c.width = c.height = 256; const ctx = c.getContext('2d');
+                ctx.fillStyle = baseColor; ctx.fillRect(0,0,256,256);
+                for (let i=0;i<400;i++) { 
+                    const x=Math.random()*256, y=Math.random()*256, w=Math.random()*24+6; 
+                    const a=Math.random()*0.05+0.02; ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(x,y,w,1); 
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+                for (let x=0; x<256; x+=32) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,256); ctx.stroke(); }
+                for (let y=0; y<256; y+=32) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(256,y); ctx.stroke(); }
+                const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8,8); return tex;
+            },
+
+            makeWoodTexture(baseColor) {
+                const c = document.createElement('canvas'); c.width = c.height = 512; const ctx = c.getContext('2d');
+                ctx.fillStyle = baseColor; ctx.fillRect(0,0,512,512);
+                const plankH = 40;
+                for (let y=0;y<512;y+=plankH){
+                    ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(0,y,512,plankH/2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.08)'; ctx.fillRect(0,y+plankH/2,512,plankH/2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0,y+plankH-1,512,1);
+                }
+                for (let i=0;i<700;i++){
+                    const y = Math.random()*512; const len = 40+Math.random()*120; const x = Math.random()*512; const a = Math.random()*0.12;
+                    ctx.strokeStyle = `rgba(255,255,255,${a*0.5})`; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(512,x+len), y+Math.sin(y*0.05)*2); ctx.stroke();
+                    ctx.strokeStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.moveTo(x,y+2); ctx.lineTo(Math.min(512,x+len), y+2+Math.sin((y+2)*0.05)*2); ctx.stroke();
+                }
+                const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2,2); return tex;
+            },
+
+            createDungeonWallTexture() {
+                const canvas = document.createElement("canvas");
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#f5f5f5";
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.fillStyle = "rgba(0,0,0,0.03)";
+                for (let i = 0; i < 1000; i++) {
+                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+                }
+                ctx.strokeStyle = "#3a2d1e";
+                ctx.lineWidth = 24;
+                ctx.strokeRect(0, 0, 256, 256);
+                ctx.lineWidth = 10;
+                for (let i = 48; i < 256; i += 48) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 12);
+                    ctx.lineTo(i, 244);
+                    ctx.stroke();
+                }
+                for (let i = 64; i < 256; i += 64) {
+                    ctx.beginPath();
+                    ctx.moveTo(12, i);
+                    ctx.lineTo(244, i);
+                    ctx.stroke();
+                }
+                return new THREE.CanvasTexture(canvas);
+            },
+
+            createDungeonFloorTexture() {
+                const size = 512;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+
+                ctx.fillStyle = "#d2b48c"; // Tan stone color
+                ctx.fillRect(0, 0, size, size);
+
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const randomFactor = (Math.random() - 0.5) * 15;
+                    data[i]   += randomFactor; 
+                    data[i+1] += randomFactor; 
+                    data[i+2] += randomFactor;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.strokeStyle = 'rgba(139, 90, 43, 0.5)';
+                ctx.lineWidth = 2;
+                const step = size / 8;
+                for(let i = step; i < size; i += step) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+                }
+
+                ctx.strokeStyle = '#8b5a2b';
+                ctx.lineWidth = 12;
+                const inset = 6;
+                ctx.strokeRect(inset, inset, size - inset * 2, size - inset * 2);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+
+            createDarkWoodRafterTexture() {
+                const size = 512;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+
+                ctx.fillStyle = "#2B1810"; // Dark brown wood
+                ctx.fillRect(0, 0, size, size);
+
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const randomFactor = (Math.random() - 0.5) * 20;
+                    data[i]   += randomFactor;
+                    data[i+1] += randomFactor * 0.8;
+                    data[i+2] += randomFactor * 0.6;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.fillStyle = "#1A0F08"; 
+                const beamWidth = 40;
+                const beamSpacing = 80;
+                for (let y = 0; y < size; y += beamSpacing) {
+                    ctx.fillRect(0, y, size, beamWidth);
+                }
+
+                ctx.fillStyle = "#1A0F08";
+                const vertBeamWidth = 30;
+                const vertBeamSpacing = 120;
+                for (let x = 0; x < size; x += vertBeamSpacing) {
+                    ctx.fillRect(x, 0, vertBeamWidth, size);
+                }
+
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 50; i++) {
+                    const y = Math.random() * size;
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+                }
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+
+            createStatusCircleTexture(color, blink = false, splitColor = null) {
+                const size = 256;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+                
+                const center = size / 2;
+                const radius = (size / 2) - 12;
+                
+                if (splitColor) {
+                    ctx.fillStyle = color;
+                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI/2, Math.PI*1.5); ctx.fill();
+                    ctx.fillStyle = splitColor;
+                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI*1.5, Math.PI/2); ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(center, center, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = color; // Used to be black interior, but AI needs colored circles
+                    ctx.fill();
+                }
+                
+                // White border
+                ctx.lineWidth = 12;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+                
+                // Arrow pointing forward (+Z direction is towards bottom of Canvas)
+                ctx.beginPath();
+                ctx.moveTo(center, size - 25);
+                ctx.lineTo(center - 30, size - 75);
+                ctx.lineTo(center + 30, size - 75);
+                ctx.closePath();
+                ctx.fillStyle = "#ffffff";
+                ctx.fill();
+
+                if (blink && Math.floor(Date.now() / 250) % 2 === 0) {
+                    ctx.clearRect(0,0,size,size); // Blink out
+                }
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.needsUpdate = true;
+                return tex;
+            },
+            
+            getCachedCircleTexture(color, blink = false, splitColor = null) {
+                if (!this.circleTexCache) this.circleTexCache = {};
+                const key = color + (blink ? "_blink" : "") + (splitColor || "");
+                // Blink textures must be regenerated to animate, or we can just toggle opacity in the loop. 
+                // For simplicity, we cache solid ones.
+                if (!blink && this.circleTexCache[key]) return this.circleTexCache[key];
+                
+                const tex = this.createStatusCircleTexture(color, blink, splitColor);
+                if (!blink) this.circleTexCache[key] = tex;
+                return tex;
+            },
+
+            buildWorldGeometry() {
+                // Initialize geometry container to prevent "children of undefined" crashes on reset
+                if (!this.worldGroup) {
+                    this.worldGroup = new THREE.Group();
+                }
+
+                // Clear old geometry
+                while (this.worldGroup.children.length > 0) {
+                    this.worldGroup.remove(this.worldGroup.children[0]);
+                }
+
+                // Generate premium textures
+                const floorTex = this.createDungeonFloorTexture();
+                const wallTex = this.createDungeonWallTexture();
+                const ceilTex = this.createDarkWoodRafterTexture();
+                const objTex = this.makePaperTexture('#444444');
+
+                // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
+                const mats = {
+                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
+                    ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
+                    wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
+                    npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
+                    monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
+                };
+
+                // Merge geometry for insane performance (instead of 1000s of distinct meshes)
+                // NEW: Walls are 1.33 cubes high                // 1. Grid Walls
+                const wallHeight = this.gridSize * 1.53;
+                const wallGeo = new THREE.BoxGeometry(this.gridSize, wallHeight, this.gridSize);
+                
+                // 2. InstancedMesh for Insane Performance (1 draw call vs 2000+)
+                let wallCount = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type === 'wall') wallCount++;
+                    }
+                }
+
+                const instancedWalls = new THREE.InstancedMesh(wallGeo, mats.wall, wallCount);
+                instancedWalls.castShadow = true;
+                instancedWalls.receiveShadow = true;
+                // Save reference so the raycaster can find it later without filtering the scene graph
+                this.walls = [instancedWalls]; 
+
+                // Build pure mathematical AABB boxes for perfect Raycasting fallback
+                this.wallBoxes = [];
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type === 'wall') {
+                            const minX = x * this.gridSize - (this.gridSize / 2);
+                            const maxX = x * this.gridSize + (this.gridSize / 2);
+                            const minZ = z * this.gridSize - (this.gridSize / 2);
+                            const maxZ = z * this.gridSize + (this.gridSize / 2);
+                            this.wallBoxes.push(new THREE.Box3(
+                                new THREE.Vector3(minX, -1, minZ), // Floor overlap
+                                new THREE.Vector3(maxX, wallHeight + 1, maxZ)
+                            ));
+                        }
+                    }
+                }
+
+                const dummy = new THREE.Object3D();
+                let wallIdx = 0;
+
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        const cell = this.mapData[x]?.[z];
+                        if (!cell) continue;
+
+                        if (cell.type === 'wall') {
+                            dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedWalls.setMatrixAt(wallIdx++, dummy.matrix);
+                        }
+                    }
+                }
+                
+                instancedWalls.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedWalls);
+                
+                // Ceiling
+                ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
+                const ceilGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize, this.mapHeight * this.gridSize);
+                const ceiling = new THREE.Mesh(ceilGeo, mats.ceil);
+                ceiling.rotation.x = Math.PI / 2;
+                // Match the wall height exactly
+                ceiling.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, wallHeight, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
+                ceiling.layers.set(1); // Hide ceiling from the Orthographic map camera (which only renders layer 0)
+                this.worldGroup.add(ceiling);
+
+                // Floor
+                floorTex.repeat.set(this.mapWidth, this.mapHeight); // Tile floor
+                const floorGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize, this.mapHeight * this.gridSize);
+                const floor = new THREE.Mesh(floorGeo, mats.floor);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, 0, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
+                this.worldGroup.add(floor);
+
+                // Dynamic Mob Rendering
+                const mobGeo = new THREE.BoxGeometry(1, 2, 1);
+                let monCount = 0; let npcCount = 0;
+                
+                const buildEntity = (sp, isMon, mesh) => {
+                    const id = isMon ? `mon_${++monCount}` : `npc_${++npcCount}`;
+                    sp.id = id; // Keep track of ID to send to AI worker
+                    mesh.userData = { id, type: isMon ? 'enemy' : 'gambler', hp: sp.hp };
+                    
+                    if (isMon) {
+                        // Goblins have bottom origins, place flush with floor
+                        mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
+                        
+                        // Make monsters have a black selection circle base
+                        const hudTex = this.getCachedCircleTexture('#000000');
+                        const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
+                        const circleMat = new THREE.MeshBasicMaterial({ 
+                            map: hudTex,
+                            color: 0xffffff, // White overlay tints the white borders/arrows when changed
+                            transparent: true, 
+                            opacity: 0.9,
+                            depthWrite: false 
+                        });
+                        const circle = new THREE.Mesh(circleGeo, circleMat);
+                        circle.rotation.x = -Math.PI / 2;
+                        circle.position.y = 0.02; // Slightly above floor to prevent z-fighting
+                        mesh.add(circle);
+                        
+                        // Add Flashlight Cone (invisible initially)
+                        const searchLight = new THREE.SpotLight(0xff0000, 0, this.gridSize * 8, Math.PI / 4, 0.5, 1);
+                        searchLight.position.set(0, 1, 0); // Eye level
+                        searchLight.target.position.set(0, 1, 1); // Point down +Z (local forward after wrapper rotation)
+                        searchLight.name = "searchLight";
+                        mesh.add(searchLight);
+                        mesh.add(searchLight.target);
+                        
+                        mesh.userData.baseMat = circleMat; // Save reference for coloring later
+                        mesh.userData.searchLight = searchLight;
+                        
+                        this.testMonster = mesh;
+                    } else {
+                        // NPC boxes are centered, place at y=1
+                        mesh.position.set(sp.x * this.gridSize, 1, sp.z * this.gridSize);
+                        this.testNPC = mesh;
+                    }
+
+                    this.worldGroup.add(mesh);
+                };
+
+                // Load replacement monster model directly from user's remote GitHub repository
+                const TARGET_ENEMY_MODEL = 'https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb';
+                
+                const gltfLoader = new THREE.GLTFLoader();
+                gltfLoader.setCrossOrigin?.('anonymous');
+
+                // Generate Ethereal Cinematic Mist Texture
+                const mistCanvas = document.createElement('canvas');
+                mistCanvas.width = 128; mistCanvas.height = 128;
+                const mCtx = mistCanvas.getContext('2d');
+                const mGrad = mCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                mGrad.addColorStop(0, 'rgba(80, 200, 255, 0.6)');
+                mGrad.addColorStop(0.3, 'rgba(60, 150, 255, 0.2)');
+                mGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                mCtx.fillStyle = mGrad;
+                mCtx.fillRect(0, 0, 128, 128);
+                const mistTex = new THREE.CanvasTexture(mistCanvas);
+
+                this.mobSpawns.forEach((sp, idx) => {
+                    sp.type = 'monster';
+                    
+                    gltfLoader.load(TARGET_ENEMY_MODEL, (gltf) => {
+                        // We use the raw scene directly since each spawn gets its own 'load' call (cached by browser)
+                        const goblin = gltf.scene;
+                        const entityWrapper = new THREE.Group();
+                        entityWrapper.add(goblin);
+                        
+                        // Initialize Animation Pipeline
+                        if (gltf.animations && gltf.animations.length > 0) {
+                            const mixer = new THREE.AnimationMixer(goblin);
+                            let currentAnimIndex = 0;
+                            
+                            const playNext = () => {
+                                mixer.stopAllAction();
+                                const action = mixer.clipAction(gltf.animations[currentAnimIndex]);
+                                action.setLoop(THREE.LoopOnce);
+                                action.clampWhenFinished = true;
+                                action.play();
+                                currentAnimIndex = (currentAnimIndex + 1) % gltf.animations.length;
+                            };
+                            
+                            mixer.addEventListener('finished', playNext);
+                            playNext();
+                            
+                            this.mixers.push(mixer);
+                            entityWrapper.userData.mixer = mixer;
+                        }
+                        
+                        
+                        // Apply Ethereal Ghost Material
+                        const etherealMat = new THREE.MeshPhongMaterial({
+                            color: 0xaaddff,          // Spectral blue core
+                            emissive: 0x2266aa,       // Inner glow
+                            emissiveIntensity: 0.8,
+                            transparent: true,
+                            opacity: 0.55,
+                            blending: THREE.AdditiveBlending,
+                            side: THREE.DoubleSide,
+                            depthWrite: false         // Prevent self-occlusion artifacts
+                        });
+                        
+                        goblin.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material = etherealMat;
+                                // Fix Z-Index sorting issue against the red targeting circle
+                                child.renderOrder = 10; 
+                            }
+                        });
+
+                        // Add swirling cinematic mist at the base
+                        const mistGroup = new THREE.Group();
+                        for(let i=0; i<8; i++) {
+                            const mat = new THREE.SpriteMaterial({ map: mistTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+                            const sprite = new THREE.Sprite(mat);
+                            const angle = (Math.PI * 2 / 8) * i;
+                            const radius = 1.0 + Math.random() * 0.5;
+                            sprite.position.set(Math.cos(angle) * radius, 0.2 + Math.random() * 0.5, Math.sin(angle) * radius);
+                            sprite.scale.set(3.5, 3.5, 3.5);
+                            sprite.userData = { angleOffset: angle, speed: 0.3 + Math.random() * 0.4 };
+                            mistGroup.add(sprite);
+                        }
+                        entityWrapper.add(mistGroup);
+                        entityWrapper.userData.mistGroup = mistGroup;
+                        
+                        // Add a local point light inside the ghost to cast a blue glow on the dungeon walls
+                        const spiritGlow = new THREE.PointLight(0x44aaff, 0.5, this.gridSize * 3.0);
+                        spiritGlow.position.set(0, 1.0, 0); // Belly height
+                        entityWrapper.add(spiritGlow);
+                        
+                        // Adjust Y position to sit exactly on the floor (circle)
+                        goblin.updateMatrixWorld(true);
+                        const bbox = new THREE.Box3().setFromObject(goblin);
+                        if (bbox.min.y !== 0) {
+                            // Some models have meshes that hang slightly below true 0, offset them perfectly onto the floor
+                            goblin.position.y -= bbox.min.y; 
+                        }
+                        
+                        // Fix Rotation: Force to -Math.PI/2 to swing from 90 degrees Left to 90 degrees Right (facing player)
+                        goblin.rotation.y = -Math.PI / 2;
+                        
+                        buildEntity(sp, true, entityWrapper);
+                    }, undefined, (e) => {
+                        console.warn(`Failed to load Primary Model for spawn ${idx}, attempting CDN fallback:`, e?.message || e);
+                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+                            const goblin = fallbackGltf.scene.clone();
+                            const entityWrapper = new THREE.Group();
+                            entityWrapper.add(goblin);
+                            
+                            goblin.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                }
+                            });
+                            
+                            goblin.updateMatrixWorld(true);
+                            goblin.position.y = 0;
+                            goblin.rotation.y = Math.PI / 2;
+                            
+                            buildEntity(sp, true, entityWrapper);
+                        }, undefined, (fallbackErr) => {
+                            console.warn("CDN fallback also failed. Using BoxGeometry.");
+                            const mesh = new THREE.Mesh(mobGeo, mats.monster);
+                            buildEntity(sp, true, mesh);
+                        });
+                    });
+                });
+
+                this.scene.add(this.worldGroup);
+            },
+
+            initControls() {
+                // Receive keyboard polling state from the Shell
+                window.addEventListener('message', (event) => {
+                    const data = event.data;
+                    if (!data || !data.type) return;
+
+                    if (data.type === 'KEY_DOWN') {
+                        const k = data.key.toLowerCase();
+                        if (k === 'w' || data.key === 'ArrowUp') this.keys.w = true;
+                        if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = true;
+                        if (k === 's' || data.key === 'ArrowDown') this.keys.s = true;
+                        if (k === 'd' || data.key === 'ArrowRight') this.keys.d = true;
+                    } else if (data.type === 'KEY_UP') {
+                        const k = data.key.toLowerCase();
+                        if (k === 'w' || data.key === 'ArrowUp') this.keys.w = false;
+                        if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = false;
+                        if (k === 's' || data.key === 'ArrowDown') this.keys.s = false;
+                        if (k === 'd' || data.key === 'ArrowRight') this.keys.d = false;
+                    }
+                });
+
+                // Add local keyboard listeners in case the FPV iframe receives direct focus
+                window.addEventListener('keydown', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || e.key === 'ArrowUp') this.keys.w = true;
+                    if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = true;
+                    if (k === 's' || e.key === 'ArrowDown') this.keys.s = true;
+                    if (k === 'd' || e.key === 'ArrowRight') this.keys.d = true;
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || e.key === 'ArrowUp') this.keys.w = false;
+                    if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = false;
+                    if (k === 's' || e.key === 'ArrowDown') this.keys.s = false;
+                    if (k === 'd' || e.key === 'ArrowRight') this.keys.d = false;
+                });
+            },
+
+            checkCollision(gx, gz, radiusInGridUnits) {                
+                // Check 4 corners of bounding box around (gx, gz)
+                const points = [
+                    { x: gx - radiusInGridUnits, z: gz - radiusInGridUnits },
+                    { x: gx + radiusInGridUnits, z: gz - radiusInGridUnits },
+                    { x: gx - radiusInGridUnits, z: gz + radiusInGridUnits },
+                    { x: gx + radiusInGridUnits, z: gz + radiusInGridUnits },
+                ];
+                for (let p of points) {
+                    let cx = Math.round(p.x);
+                    let cz = Math.round(p.z);
+                    if (!this.isValidGridSpace(cx, cz)) return true;
+                }
+                return false;
+            },
+
+            isValidGridSpace(cx, cz) {
+                if(cx < 0 || cx >= this.mapWidth || cz < 0 || cz >= this.mapHeight) return false;
+                if(this.mapData[cx]?.[cz]?.type === 'wall') return false;
+                
+                // Entity collision check
+                if (this.worldGroup) {
+                    for (const child of this.worldGroup.children) {
+                        if (child.userData && child.userData.id) {
+                            const eX = Math.round(child.position.x / this.gridSize);
+                            const eZ = Math.round(child.position.z / this.gridSize);
+                            if(cx === eX && cz === eZ) return false;
+                        }
+                    }
+                }
+                
+                return true;
+            },
+            
+            checkGridLoS(x1, z1, x2, z2) {
+                // Digital Differential Analyzer (DDA) for mathematically pure grid traversal
+                let x = Math.round(x1);
+                let z = Math.round(z1);
+                const endX = Math.round(x2);
+                const endZ = Math.round(z2);
+
+                const dx = x2 - x1;
+                const dz = z2 - z1;
+
+                const stepX = Math.sign(dx);
+                const stepZ = Math.sign(dz);
+
+                // Infinity prevents division by zero if ray is perfectly straight
+                const tDeltaX = stepX !== 0 ? Math.abs(1 / dx) : Infinity;
+                const tDeltaZ = stepZ !== 0 ? Math.abs(1 / dz) : Infinity;
+
+                // Grid boundaries are at 0.5 offsets because cells are integer aligned
+                let tMaxX = stepX === 0 ? Infinity : (stepX > 0 ? (x + 0.5 - x1) * tDeltaX : (x1 - (x - 0.5)) * tDeltaX);
+                let tMaxZ = stepZ === 0 ? Infinity : (stepZ > 0 ? (z + 0.5 - z1) * tDeltaZ : (z1 - (z - 0.5)) * tDeltaZ);
+
+                let maxSteps = 100;
+
+                while (maxSteps-- > 0) {
+                    if (x >= 0 && x < this.mapWidth && z >= 0 && z < this.mapHeight) {
+                        if (this.mapData[x] && this.mapData[x][z] && this.mapData[x][z].type === 'wall') {
+                            return false;
+                        }
+                    } else {
+                        return false; // Out of bounds
+                    }
+
+                    if (x === endX && z === endZ) return true; // Safely reached target
+
+                    if (tMaxX < tMaxZ) {
+                        tMaxX += tDeltaX;
+                        x += stepX;
+                    } else {
+                        tMaxZ += tDeltaZ;
+                        z += stepZ;
+                    }
+                }
+                return true;
+            },
+
+            checkTriggers() {
+                // Calculate the exact grid coordinate 1 tile directly in front of the player
+                const dirX = Math.round(-Math.sin(this.player.rot));
+                const dirZ = Math.round(-Math.cos(this.player.rot));
+                const playerGridX = Math.round(this.player.x);
+                const playerGridZ = Math.round(this.player.z);
+                
+                const targetX = playerGridX + dirX;
+                const targetZ = playerGridZ + dirZ;
+
+                let foundNPC = null;
+                let foundMonster = null;
+                let closestDist = Infinity;
+                
+                // Scan worldGroup for entities at the target location (forgiving distance check)
+                if (this.worldGroup) {
+                    for (const child of this.worldGroup.children) {
+                        if (child.userData && child.userData.id) {
+                            const eX = child.position.x / this.gridSize;
+                            const eZ = child.position.z / this.gridSize;
+                            
+                            // Check distance instead of exact grid match since models sit at exact center
+                            const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
+                            
+                            // True 3D FPV calculations
+                            const mPos = new THREE.Vector3().copy(child.position);
+                            mPos.y += 1.0;
+                            const cPos = new THREE.Vector3().copy(this.camera.position);
+                            const dist3D = cPos.distanceTo(mPos);
+                            
+                            const dirFromPlayer3D = new THREE.Vector3().subVectors(mPos, cPos).normalize();
+                            const camDir = new THREE.Vector3();
+                            this.camera.getWorldDirection(camDir);
+                            const dot = camDir.dot(dirFromPlayer3D);
+                            
+                            let panelHasLoS = false;
+                            // 180-degree frontal cone (dot > 0) and ignore walls, as requested by user
+                            if (dist > 0 && dist < 30 && dot > 0) {
+                                panelHasLoS = true;
+                                
+                                if (dist < closestDist) {
+                                    closestDist = dist;
+                                    if (child.userData.type === 'gambler') {
+                                        foundNPC = child;
+                                    } else if (child.userData.type === 'enemy') {
+                                        foundMonster = child;
+                                    }
+                                }
+                            } else if (dist > 0 && dist < 30) {
+                                // Diagnostic trace for failure to meet angle
+                                // console.log(`[LOS ARC FAILED] Target at ${dist.toFixed(1)} blocks. 3D Dot is ${dot.toFixed(2)} (needs > 0)`);
+                            }
+                        }
+                    }
+                }
+                
+                let currentCmd = 'HIDE_COMBAT';
+                let currentExitCmd = 'HIDE_EXIT';
+                let newTargetId = null;
+
+                if (foundNPC) {
+                    this.activeTarget = foundNPC;
+                    newTargetId = foundNPC.userData.id;
+                    currentCmd = 'SHOW_GAMBLING';
+                } else if (foundMonster) {
+                    this.activeTarget = foundMonster;
+                    newTargetId = foundMonster.userData.id;
+                    currentCmd = 'SHOW_COMBAT';
+                } else {
+                    this.activeTarget = null;
+                }
+                
+                // Only postMessage if the active UI state actually changed, avoiding 60FPS DOM spam
+                if (this._lastCombatCmd !== currentCmd || this._lastTargetId !== newTargetId) {
+                    this._lastCombatCmd = currentCmd;
+                    this._lastTargetId = newTargetId;
+                    
+                    if (currentCmd === 'SHOW_GAMBLING') {
+                        window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
+                    } else if (currentCmd === 'SHOW_COMBAT') {
+                        window.parent.postMessage({ type: 'SHOW_COMBAT', health: foundMonster.userData.hp || '4/1' }, '*');
+                    } else {
+                        window.parent.postMessage({ type: 'HIDE_COMBAT' }, '*');
+                    }
+                }
+                
+                // --- Exit Dungeon Trigger ---
+                // The entrance is always at x = Math.floor(this.mapWidth / 2), y = this.mapHeight - 2
+                const entranceX = Math.floor(this.mapWidth / 2);
+                const entranceZ = this.mapHeight - 2;
+                
+                if (playerGridX === entranceX && playerGridZ === entranceZ) {
+                    // Check if player is facing the stairs (+Z direction)
+                    const fZ = -Math.cos(this.player.rot); 
+                    if (fZ < -0.8) { // Facing deeply south
+                        currentExitCmd = 'SHOW_EXIT';
+                    }
+                }
+                
+                if (this._lastExitCmd !== currentExitCmd) {
+                    this._lastExitCmd = currentExitCmd;
+                    window.parent.postMessage({ type: currentExitCmd }, '*');
+                }
+            },
+
+            initComms() {
+                // Listen to UI Panels
+                window.addEventListener('UI_ACTION', (e) => {
+                    const action = e.detail ? e.detail.action : e.data ? e.data.action : null;
+                    if (action === 'attack' && this.activeTarget && this.activeTarget.userData.type === 'enemy') {
+                        // Forward the attack to the AI Brain (single source of truth)
+                        this.postToAI({ type: 'PLAYER_ATTACK', targetId: this.activeTarget.userData.id });
+                    }
+                    if (action === 'retreat') {
+                        // Force player backward safely on grid
+                        const dx = Math.sin(this.player.rot) * 1.0;
+                        const dz = Math.cos(this.player.rot) * 1.0;
+                        if (!this.checkCollision(this.player.x + dx, this.player.z + dz, 0.35)) {
+                            this.player.x += dx;
+                            this.player.z += dz;
+                        }
+                    }
+                });
+
+                // Listen to AI Brain
+                window.addEventListener('message', (e) => {
+                    if (e.data && e.data.type === 'COMBAT_UPDATE') {
+                        // Sync UI with the AI's math
+                        window.parent.postMessage(
+                            { type: 'SHOW_COMBAT', health: e.data.newHp }, 
+                            '*'
+                        );
+                    } else if (e.data && e.data.type === 'AI_DEATH') {
+                        // Remove monster if AI declares it dead
+                        const deadMesh = this.worldGroup.children.find(m => m.userData && m.userData.id === e.data.id);
+                        if (deadMesh) {
+                            this.worldGroup.remove(deadMesh);
+                            if (this.activeTarget && this.activeTarget.userData.id === e.data.id) {
+                                this.activeTarget = null;
+                                window.parent.postMessage({ type: 'HIDE_ALL' }, '*');
+                            }
+                        }
+                    } else if (e.data && e.data.type === 'AI_UPDATES') {
+                        // Process commands from the A* brain
+                        e.data.updates.forEach(up => {
+                            const mesh = this.worldGroup.children.find(m => m.userData && m.userData.id === up.id);
+                            if (mesh) {
+                                if (up.action === 'MOVE') {
+                                    // Normally we'd lerp this in the animate loop for smoothness,
+                                    // but snapping to grid cells works for this retro grid crawler aesthetic.
+                                    mesh.position.x = up.x * this.gridSize;
+                                    mesh.position.z = up.z * this.gridSize;
+                                }
+                                
+                                // Color the base circle based on AI State (Red for attacking/chasing, Soft White for idle)
+                                if (up.state && mesh.userData.baseMat) {
+                                    mesh.userData.baseMat.color.setHex(up.state === 'IDLE' ? 0xffffff : 0xff0000);
+                                    mesh.userData.baseMat.opacity = (up.state === 'IDLE' ? 0.2 : 0.4);
+                                }
+                            }
+                        });
+                        this.checkTriggers();
+                    }
+                });
+
+                // Send procedural setup to parent shell (which routes to Map and AI engines)
+                window.parent.postMessage({
+                    type: 'INIT_ENTITIES',
+                    // The Map and AI brain need the dungeon layout
+                    mapData: this.mapData, 
+                    spawns: this.mobSpawns,
+                    playerSpawn: { x: this.player.x, z: this.player.z }
+                }, '*');
+            },
+
+            postToAI(msg) {
+                // Route through the parent shell to avoid cross-origin DOM access errors
+                window.parent.postMessage(msg, '*');
+            },
+
+            // Main Loop
+            animate() {
+                // Update delta time for glTF Skeletal Animations
+                const delta = this.clock.getDelta();
+                this.mixers.forEach(mixer => mixer.update(delta));
+                
+                let moveDir = 0;
+                let turnDir = 0;
+                
+                if (this.keys.w) moveDir = 1;
+                if (this.keys.s) moveDir = -1;
+                if (this.keys.a) turnDir = 1;
+                if (this.keys.d) turnDir = -1;
+
+                const currentlyMoving = (moveDir !== 0 || turnDir !== 0);
+                
+                // Rotation
+                if (turnDir !== 0) {
+                    this.player.rot += turnDir * this.ROT_SPEED * delta;
+                }
+                this.camera.rotation.y = this.player.rot;
+                
+                // Movement
+                if (moveDir !== 0) {
+                    // Note: moveDir = 1 is forward. In 3D, forward is -z vector.
+                    const speed = this.MOVE_SPEED * delta * moveDir;
+                    const dx = Math.sin(this.player.rot) * speed;
+                    const dz = Math.cos(this.player.rot) * speed;
+                    
+                    let nextX = this.player.x - dx; 
+                    let nextZ = this.player.z - dz;
+                    
+                    const radius = 0.35; // Collision radius (grid units)
+                    
+                    let colX = this.checkCollision(nextX, this.player.z, radius);
+                    if (colX) nextX = this.player.x;
+                    
+                    let colZ = this.checkCollision(nextX, nextZ, radius);
+                    if (colZ) nextZ = this.player.z;
+
+                    // Auto-Turn UX: seamless corridor cornering
+                    if (moveDir === 1 && turnDir === 0 && (colX || colZ)) {
+                        // Snap current rotation to nearest cardinal direction to prevent mid-turn check failure
+                        const cardinalRot = Math.round(this.player.rot / (Math.PI/2)) * (Math.PI/2);
+                        
+                        const checkDist = 1.0; 
+                        const leftRot = cardinalRot + Math.PI/2;
+                        const rightRot = cardinalRot - Math.PI/2;
+                        
+                        const leftBlocked = this.checkCollision(this.player.x - Math.sin(leftRot)*checkDist, this.player.z - Math.cos(leftRot)*checkDist, radius);
+                        const rightBlocked = this.checkCollision(this.player.x - Math.sin(rightRot)*checkDist, this.player.z - Math.cos(rightRot)*checkDist, radius);
+                        
+                        if (!leftBlocked && rightBlocked) {
+                            this.player.rot += this.ROT_SPEED * delta; 
+                        } else if (!rightBlocked && leftBlocked) {
+                            this.player.rot -= this.ROT_SPEED * delta; 
+                        } else if (!leftBlocked && !rightBlocked) {
+                            // T-Junction: Pick a consistent direction (Right-Hand Rule)
+                            this.player.rot -= this.ROT_SPEED * delta; 
+                        }
+                    }
+                    
+                    this.player.x = nextX;
+                    this.player.z = nextZ;
+                }
+                
+                // Grid change detection for AI and Triggers
+                const curGridX = Math.round(this.player.x);
+                const curGridZ = Math.round(this.player.z);
+                const curRotDirX = Math.round(-Math.sin(this.player.rot));
+                const curRotDirZ = Math.round(-Math.cos(this.player.rot));
+                if (this.lastGridX !== curGridX || this.lastGridZ !== curGridZ || this.lastRotDirX !== curRotDirX || this.lastRotDirZ !== curRotDirZ) {
+                    this.lastGridX = curGridX;
+                    this.lastGridZ = curGridZ;
+                    this.lastRotDirX = curRotDirX;
+                    this.lastRotDirZ = curRotDirZ;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ }, '*');
+                }
+                
+                // Check LoS triggers securely per frame instead of bound to integer positions, protecting against fast rotations
+                this.checkTriggers();
+                
+                // State emission for UI styling (e.g. guide panels fading)
+                if (currentlyMoving && !this.isMoving) {
+                    this.isMoving = true;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: true }, '*');
+                } else if (!currentlyMoving && this.isMoving) {
+                    this.isMoving = false;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: false }, '*');
+                    window.parent.postMessage({ type: 'PLAYER_IDLE' }, '*');
+                }
+                
+                // Camera Realism: Head Bobbing & Sway
+                // ---------------------------------------------------------------------
+                const BOB_FREQ = 12.0;   // How fast the steps are
+                
+                if (currentlyMoving) {
+                    this.bobTimer += delta * BOB_FREQ;
+                    // The 'Math.abs(Math.sin)' makes a sharp bounce on each footfall, typical of old-school crawlers
+                    this.bobHeight = Math.abs(Math.sin(this.bobTimer)) * this.BOB_AMP;
+                    this.bobSway = Math.cos(this.bobTimer / 2) * this.SWAY_AMP; // Half speed sway for weight shift
+                } else {
+                    // Smoothly ease back to rest position when stopped
+                    this.bobTimer = 0;
+                    this.bobHeight += (0 - this.bobHeight) * 10 * delta;
+                    this.bobSway += (0 - this.bobSway) * 10 * delta;
+                }
+                
+                // Apply final smoothed transforms to the camera
+                this.camera.position.x = (this.player.x * this.gridSize) + (Math.cos(this.camera.rotation.y) * this.bobSway);
+                this.camera.position.z = (this.player.z * this.gridSize) + (Math.sin(this.camera.rotation.y) * this.bobSway);
+                this.camera.position.y = 1.84 + this.bobHeight; // Eye level + bob bounce
+                this.camera.rotation.z = this.bobSway * -0.5; // Slight tilt during weight shift
+                
+                // Procedural Breathing & State Machine AI (IDLE, CHASE, SEARCH, RETURN)
+                // TIME-STOP / TURN-BASED: Freeze time and logic if player is idle
+                if (currentlyMoving) {
+                    this.gameTime += delta; 
+                }
+                const time = this.gameTime * 2.5; // Equivalent scaling to the old Date.now() * 0.0025
+                
+                if (this.worldGroup && currentlyMoving) {
+                    
+                    // Raycaster setup for LoS
+                    const pPos = new THREE.Vector3(this.player.x * this.gridSize, 1.0, this.player.z * this.gridSize);
+                    
+                    // Use the walls array generated during buildWorldGeometry()
+                    const walls = this.walls || [];
+
+                    this.worldGroup.children.forEach(child => {
+                        if (child.userData && child.userData.type === 'enemy') {
+                            const model = child.children[0];
+                            const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
+                            
+                            if (model && !child.userData.mixer) {
+                                // Simulate ethereal hovering off the ground
+                                if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
+                                model.position.y = 0.6 + Math.sin(time + child.userData.bobPhase) * 0.25; 
+                                
+                                // Swirl Mist Particles
+                                if (child.userData.mistGroup) {
+                                    child.userData.mistGroup.rotation.y += delta * 0.4; // Rotate entire cloud slowly
+                                    child.userData.mistGroup.children.forEach(sprite => {
+                                        sprite.position.y = 0.2 + Math.abs(Math.sin(time * sprite.userData.speed + sprite.userData.angleOffset)) * 1.5;
+                                        const s = 3.0 + Math.sin(time * sprite.userData.speed * 2.0) * 1.2;
+                                        sprite.scale.set(s, s, s);
+                                        sprite.material.opacity = 0.6 + Math.sin(time * sprite.userData.speed) * 0.4;
+                                    });
+                                }
+                            }
+                            
+                            if (!aiData) return;
+                            
+                            // Line of Sight Check (True 3D Raycaster as requested)
+                            const mPos = new THREE.Vector3().copy(child.position);
+                            mPos.y += 1.0; // Aim at chest height
+                            const cPos = new THREE.Vector3().copy(this.camera.position);
+                            
+                            const distToPlayer3D = cPos.distanceTo(mPos);
+                            const dirToPlayer3D = new THREE.Vector3().subVectors(cPos, mPos).normalize();
+                            const dirFromPlayer3D = new THREE.Vector3().subVectors(mPos, cPos).normalize();
+                            
+                            let hasLoS = true;
+                            // Limit sight strictly to 200 feet (15 grids * approx dist)
+                            if (distToPlayer3D > (15 * this.gridSize)) {
+                                hasLoS = false;
+                            } else {
+                                const ray = new THREE.Ray(cPos, dirFromPlayer3D);
+                                const target = new THREE.Vector3(); // Pre-allocate outside loop
+                                // Mathematical AABB loop
+                                for (const box of this.wallBoxes) {
+                                    if (ray.intersectBox(box, target)) {
+                                        if (cPos.distanceTo(target) < (distToPlayer3D - 0.5)) {
+                                            hasLoS = false; // Blocked by wall AABB
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 90-degree frontal arc check for the monster (Front is local +Z)
+                            // Calculate if player is in front of the monster's current rotation
+                            // Calculate if player is in front of the monster's current rotation
+                            const mFacingDir = new THREE.Vector3(0, 0, 1);
+                            mFacingDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), child.rotation.y);
+                            const monsterDot = dirToPlayer3D.dot(mFacingDir);
+                            
+                            // If the monster is IDLE or RETURN, it can only spot the player if within frontal arc (~90 degrees -> dot > ~0.707)
+                            if (hasLoS && monsterDot < 0.707 && (aiData.state === 'IDLE' || aiData.state === 'RETURN')) {
+                                hasLoS = false; 
+                            }
+
+                            // State Machine Transitions
+                            if (hasLoS) {
+                                aiData.state = 'CHASE';
+                                aiData.searchTimer = 0;
+                            } else if (aiData.state === 'CHASE') {
+                                aiData.state = 'SEARCH';
+                                aiData.searchTimer = 0;
+                            }
+                            
+                            // State Execution
+                            let viewAngle = 0; // Where is the monster looking?
+                            
+                            if (aiData.state === 'CHASE') {
+                                // Move towards player (TEMPORARILY DISABLED PER USER REQUEST)
+                                const angle = Math.atan2(dirToPlayer3D.x, dirToPlayer3D.z);
+                                // The model itself and the arrow face local +Z. Rotate wrapper to point +Z at player.
+                                child.rotation.y = angle; 
+                                
+                                // User requested monsters only face the player and do not move yet
+                                // const dx = Math.sin(angle) * (aiData.speed * 0.75) * delta;
+                                // const dz = Math.cos(angle) * (aiData.speed * 0.75) * delta;
+                                // child.position.x += dx;
+                                // child.position.z += dz;
+                                
+                                // Update colors (Red when chasing/attacking)
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ff0000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ff0000');
+                                    }
+                                    child.userData.baseMat.opacity = 0.9;
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                
+                            } else if (aiData.state === 'SEARCH') {
+                                aiData.searchTimer += delta;
+                                // Stand still, scan left and right
+                                child.rotation.y += Math.sin(time * 2) * delta;
+                                
+                                if (child.userData.baseMat && Math.floor(time * 4) % 2 === 0) {
+                                  // Update texture to blinking split Red/Black, only update 2x a second to save draw calls
+                                  child.userData.baseMat.map = this.createStatusCircleTexture('#ff0000', true, '#000000');
+                                } else if (child.userData.baseMat) {
+                                  // Keep base assigned so it doesn't vanish
+                                  child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
+                                }
+                                
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
+
+                                if (aiData.searchTimer > 4.0) { // 4 seconds of searching
+                                    aiData.state = 'RETURN';
+                                }
+                                
+                            } else if (aiData.state === 'RETURN') {
+                                const hPos = new THREE.Vector3(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
+                                const dirToHome = new THREE.Vector3().subVectors(hPos, mPos);
+                                const distToHome = dirToHome.length();
+                                
+                                if (distToHome < 0.5) {
+                                    aiData.state = 'IDLE';
+                                } else {
+                                    dirToHome.normalize();
+                                    const angle = Math.atan2(dirToHome.x, dirToHome.z);
+                                    child.rotation.y = angle;
+                                    
+                                    const dx = Math.sin(angle) * aiData.speed * delta;
+                                    const dz = Math.cos(angle) * aiData.speed * delta;
+                                    child.position.x += dx;
+                                    child.position.z += dz;
+                                }
+                                
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ffaa00')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ffaa00'); // Orange return
+                                    }
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                
+                            } else {
+                                // IDLE
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
+                                    }
+                                    child.userData.baseMat.opacity = 0.5;
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                            }
+                        }
+                    });
+                }
+                
+                // ---------------------------------------------------------------------
+                // RENDER PASSES
+                // ---------------------------------------------------------------------
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                
+                // Render FPV Frame
+                if (this.layoutData && this.layoutData.fpv) {
+                    const fRect = this.layoutData.fpv;
+                    this.renderer.setViewport(fRect.left, fRect.bottom, fRect.width, fRect.height);
+                    this.renderer.setScissor(fRect.left, fRect.bottom, fRect.width, fRect.height);
+                    this.renderer.setScissorTest(true);
+                } else {
+                    // Fallback to fullscreen if no layout frame yet
+                    this.renderer.setViewport(0, 0, winW, winH);
+                    this.renderer.setScissor(0, 0, winW, winH);
+                    this.renderer.setScissorTest(true);
+                }
+
+                // FPV Renderer Call
+                this.renderer.setClearColor(0x2a2a2a, 1);
+                this.scene.fog.density = 0.12; // Volumetric fog ON
+                
+                // Use standard Renderer
+                this.renderer.render(this.scene, this.camera);
+                
+                // --- FPS Counter ---
+                this.frameCount++;
+                const now = performance.now();
+                if (now - this.lastFpsTime >= 1000) {
+                    this.currentFps = this.frameCount;
+                    this.frameCount = 0;
+                    this.lastFpsTime = now;
+                    const fpsEl = document.getElementById('fps-counter');
+                    if (fpsEl) {
+                        fpsEl.textContent = `FPS: ${this.currentFps}/60`;
+                    }
+                }
+
+                requestAnimationFrame(() => this.animate());
+            }
+        };
+
+        window.onload = () => Engine.init();
+
+    </script>
+</body>
+</html>

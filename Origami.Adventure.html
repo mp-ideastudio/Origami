@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Dungeon: Ethereal Edition</title>
+
+    <!-- 1. Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@700&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 2. Styles -->
+    <style>
+        :root {
+            /* Palette: Midnight Glass */
+            --bg-gradient-start: #1e293b;
+            /* Slate 800 */
+            --bg-gradient-end: #020617;
+            /* Slate 950 */
+
+            --book-cover: #0f172a;
+            /* Deep Navy Cover */
+            --book-page: #fdfdfd;
+            /* Pure White */
+            --text-ink: #1e293b;
+            /* Slate 800 Ink */
+
+            /* Glass UI */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+            --accent-glow: rgba(56, 189, 248, 0.5);
+            /* Cyan Glow */
+
+            --radius-std: 24px;
+            --font-ui: 'Nunito', sans-serif;
+            --font-book: 'Crimson Text', serif;
+        }
+
+        /* --- GLOBAL & BACKGROUND --- */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: var(--font-ui);
+            overflow: hidden;
+            background: transparent;
+            /* Transparent for Iframe Overlay */
+            color: white;
+        }
+
+        /* Ambient Light Spot behind Book */
+        #ambient-light {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- 3D BOOK ENGINE --- */
+
+        #book-wrapper {
+            position: absolute;
+            bottom: 160px;
+            /* Lifted for elegance */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            max-width: 850px;
+            height: 42vh;
+            aspect-ratio: 3/2;
+            perspective: 2500px;
+            z-index: 10;
+            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            opacity: 1;
+        }
+
+        #book-wrapper.book-hidden {
+            opacity: 0;
+            transform: translate(-50%, 40px) scale(0.9);
+            pointer-events: none;
+        }
+
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            border-radius: var(--radius-std);
+            background: var(--book-cover);
+        }
+
+        /* The Cover / Base */
+        .book-cover-back {
+            position: absolute;
+            inset: -6px;
+            background: var(--book-cover);
+            border-radius: var(--radius-std);
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+            z-index: 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Static Page Blocks (Left/Right) */
+        .page-static {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            background: var(--book-page);
+            overflow: hidden;
+        }
+
+        .page-static.left {
+            left: 0;
+            border-radius: var(--radius-std) 0 0 var(--radius-std);
+            /* Subtle page curvature gradient */
+            background: linear-gradient(to right, #e2e8f0 0%, #fff 5%, #fff 95%, #cbd5e1 100%);
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .page-static.right {
+            right: 0;
+            border-radius: 0 var(--radius-std) var(--radius-std) 0;
+            background: linear-gradient(to left, #e2e8f0 0%, #fff 5%, #fff 95%, #cbd5e1 100%);
+            border-left: 1px solid #e2e8f0;
+        }
+
+        /* Page Content Area */
+        .page-content {
+            padding: 32px;
+            height: 100%;
+            overflow-y: auto;
+            color: var(--text-ink);
+            font-family: var(--font-book);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        /* The Spine */
+        .book-spine {
+            position: absolute;
+            left: 50%;
+            top: -10px;
+            bottom: -10px;
+            width: 40px;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #020617, #1e293b, #020617);
+            border-radius: 4px;
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- FLIPPING PAGE --- */
+        .page-flipper {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 50%;
+            transform-style: preserve-3d;
+            transform-origin: left center;
+            z-index: 30;
+            pointer-events: none;
+            display: none;
+        }
+
+        .page-face {
+            position: absolute;
+            inset: 0;
+            backface-visibility: hidden;
+            background: var(--book-page);
+            overflow: hidden;
+        }
+
+        .page-face.front {
+            border-radius: 0 var(--radius-std) var(--radius-std) 0;
+            background: linear-gradient(to left, #cbd5e1 0%, #fff 10%);
+        }
+
+        .page-face.back {
+            transform: rotateY(180deg);
+            border-radius: var(--radius-std) 0 0 var(--radius-std);
+            background: linear-gradient(to right, #cbd5e1 0%, #fff 10%);
+        }
+
+        .page-face::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.6s;
+            pointer-events: none;
+        }
+
+        @keyframes flipRightToLeft {
+            0% {
+                transform: rotateY(0deg);
+            }
+
+            100% {
+                transform: rotateY(-180deg);
+            }
+        }
+
+        @keyframes flipLeftToRight {
+            0% {
+                transform: rotateY(-180deg);
+            }
+
+            100% {
+                transform: rotateY(0deg);
+            }
+        }
+
+        .flipping-next {
+            display: block;
+            animation: flipRightToLeft 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards;
+        }
+
+        .flipping-next .page-face.front::after {
+            animation: shadowNextFront 0.8s forwards;
+        }
+
+        .flipping-next .page-face.back::after {
+            animation: shadowNextBack 0.8s forwards;
+        }
+
+        .flipping-prev {
+            display: block;
+            animation: flipLeftToRight 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards;
+        }
+
+        @keyframes shadowNextFront {
+            0% {
+                background: rgba(0, 0, 0, 0);
+            }
+
+            50% {
+                background: rgba(0, 0, 0, 0.1);
+            }
+
+            100% {
+                background: rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        @keyframes shadowNextBack {
+            0% {
+                background: rgba(0, 0, 0, 0.2);
+            }
+
+            50% {
+                background: rgba(0, 0, 0, 0.1);
+            }
+
+            100% {
+                background: rgba(0, 0, 0, 0);
+            }
+        }
+
+        /* --- CARD SYSTEM --- */
+        #event-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .playing-card-container {
+            width: 240px;
+            height: 340px;
+            perspective: 1000px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .playing-card {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-art {
+            height: 140px;
+            margin: 10px 10px 0;
+            background: #f1f5f9;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* --- GLASS HUD --- */
+
+        .game-hud {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+
+            /* Glassmorphism */
+            background: var(--glass-bg);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+
+            border-radius: 30px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            height: 64px;
+        }
+
+        #controls-wrapper {
+            position: absolute;
+            bottom: 110px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #guide-buttons-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Glass Buttons */
+        .glass-btn {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .glass-btn:active,
+        .glass-btn.active {
+            background: white;
+            color: #0f172a;
+            transform: translateY(0);
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1,
+        h2,
+        h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--text-ink);
+        }
+
+        .drop-cap {
+            float: left;
+            font-size: 3rem;
+            line-height: 0.8;
+            margin-right: 8px;
+            font-family: 'Cinzel', serif;
+            color: #64748b;
+        }
+
+        /* --- INPUT --- */
+        #command-input {
+            background: transparent;
+            border: none;
+            padding: 0 16px;
+            height: 100%;
+            color: white;
+            font-family: var(--font-ui);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        #command-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        #command-input:focus {
+            outline: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Ambient Light Effect -->
+    <div id="ambient-light"></div>
+
+    <!-- React Root for DM Tools -->
+    <div id="dm-interface-root" class="hidden absolute inset-0 z-[9999]"></div>
+
+    <!-- 1. EVENT CARD MODAL -->
+    <div id="event-modal">
+        <div class="playing-card-container" id="modal-card-container"></div>
+    </div>
+
+    <!-- 2. BOOK INTERFACE -->
+    <div id="book-wrapper">
+        <!-- Close / Minimize Button (Glass) -->
+        <button
+            class="absolute -top-4 -right-4 w-10 h-10 glass-btn rounded-full z-50 text-sm bg-slate-800 border-slate-600 hover:bg-slate-700"
+            onclick="toggleBook()" title="Minimize Book">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="book">
+            <div class="book-cover-back"></div>
+            <div class="book-spine"></div>
+
+            <!-- Static Layers -->
+            <div class="page-static left">
+                <div id="page-content-left" class="page-content"></div>
+                <div class="absolute bottom-6 left-6 text-xs text-slate-400 font-mono tracking-widest"
+                    id="page-num-left">1</div>
+            </div>
+
+            <div class="page-static right">
+                <div id="page-content-right" class="page-content"></div>
+                <div class="absolute bottom-6 right-6 text-xs text-slate-400 font-mono tracking-widest"
+                    id="page-num-right">2</div>
+                <!-- Click zones -->
+                <div class="absolute inset-y-0 right-0 w-20 cursor-pointer hover:bg-gradient-to-l hover:from-slate-100/30 transition-all duration-300"
+                    onclick="turnPage('next')" title="Next Page"></div>
+                <div class="absolute inset-y-0 left-0 w-16 cursor-pointer hover:bg-slate-100/20 transition-colors z-20 block md:hidden"
+                    onclick="turnPage('prev')" title="Previous Page"></div>
+            </div>
+
+            <!-- Flipper -->
+            <div id="flipper" class="page-flipper">
+                <div class="page-face front">
+                    <div id="flipper-content-front" class="page-content"></div>
+                </div>
+                <div class="page-face back">
+                    <div id="flipper-content-back" class="page-content"></div>
+                </div>
+            </div>
+
+            <div class="absolute inset-y-0 cursor-pointer hover:bg-gradient-to-r hover:from-slate-100/30 transition-all duration-300 z-20 -left-full w-[100px]"
+                onclick="turnPage('prev')" title="Previous Page"></div>
+        </div>
+    </div>
+
+    <!-- 3. GUIDE BUTTONS + LOG TOGGLE -->
+    <div id="controls-wrapper">
+        <div id="guide-buttons-container">
+            <!-- Dynamic Buttons injected here -->
+        </div>
+
+        <!-- Collapse/Expand Book Button -->
+        <button id="log-toggle-btn" class="glass-btn px-5 py-2.5 active" title="View/Hide Log" onclick="toggleBook()">
+            <i class="fa-solid fa-book-open"></i>
+            <span class="ml-2 font-[Nunito] font-bold text-sm">Log</span>
+        </button>
+
+        <!-- Inventory Toggle Button (Moved from HUD) -->
+        <button id="inventory-btn" class="glass-btn px-5 py-2.5" title="Inventory" onclick="toggleInventory()">
+            <i class="fa-solid fa-suitcase"></i>
+            <span class="ml-2 font-[Nunito] font-bold text-sm">Bag</span>
+        </button>
+    </div>
+
+    <!-- 4. HUD -->
+    <div class="game-hud">
+        <!-- Level Badge (Clickable for Stats) -->
+        <div class="w-10 h-10 glass-btn flex items-center justify-center font-bold shrink-0 rounded-full bg-white/10 text-white cursor-pointer hover:bg-white/30 transition-colors"
+            onclick="showStats()" title="View Stats">
+            <span id="level-num">1</span>
+        </div>
+
+        <!-- Input -->
+        <input type="text" id="command-input" placeholder="Write your story..." autocomplete="off">
+
+        <!-- Send Icon -->
+        <button id="send-btn" title="Send"
+            class="w-10 h-10 glass-btn flex items-center justify-center rounded-full hover:text-cyan-300 hover:border-cyan-300/50">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const game = {
+                pages: [],
+                currentPageIdx: 0,
+                isFlipping: false,
+                player: {
+                    inventory: ["Map", "Compass"],
+                    stats: {
+                        STR: 12, DEX: 14, CON: 10,
+                        INT: 16, WIS: 8, CHA: 13,
+                        ARMOR: 2, POWER: 5
+                    }
+                }
+            };
+            const playSound = (type) => { console.log("Sound:", type); };
+
+            function renderContent(container, pageData) {
+                if (!pageData) { container.innerHTML = ""; return; }
+                const html = `<h2 class="text-2xl font-bold mb-4 border-b border-slate-200 pb-2 font-[Cinzel] tracking-tight">${pageData.title}</h2><div class="prose prose-slate text-slate-700 leading-relaxed">${pageData.text}</div>`;
+                container.innerHTML = html;
+            }
+
+            function updateBookView() {
+                renderContent(document.getElementById('page-content-left'), game.pages[game.currentPageIdx]);
+                renderContent(document.getElementById('page-content-right'), game.pages[game.currentPageIdx + 1]);
+                document.getElementById('page-num-left').innerText = game.currentPageIdx + 1;
+                document.getElementById('page-num-right').innerText = game.currentPageIdx + 2;
+            }
+
+            window.turnPage = (dir) => {
+                if (game.isFlipping) return;
+                const flipper = document.getElementById('flipper');
+
+                if (dir === 'next') {
+                    if (game.currentPageIdx >= game.pages.length - 2) return;
+                    game.isFlipping = true; playSound('flip');
+                    renderContent(document.getElementById('flipper-content-front'), game.pages[game.currentPageIdx + 1]);
+                    renderContent(document.getElementById('flipper-content-back'), game.pages[game.currentPageIdx + 2]);
+                    renderContent(document.getElementById('page-content-right'), game.pages[game.currentPageIdx + 3]);
+                    flipper.className = 'page-flipper flipping-next';
+                    setTimeout(() => { game.currentPageIdx += 2; updateBookView(); flipper.className = 'page-flipper'; game.isFlipping = false; }, 800);
+                } else {
+                    if (game.currentPageIdx <= 0) return;
+                    game.isFlipping = true; playSound('flip');
+                    renderContent(document.getElementById('flipper-content-back'), game.pages[game.currentPageIdx]);
+                    renderContent(document.getElementById('flipper-content-front'), game.pages[game.currentPageIdx - 1]);
+                    renderContent(document.getElementById('page-content-left'), game.pages[game.currentPageIdx - 2]);
+                    flipper.className = 'page-flipper flipping-prev';
+                    setTimeout(() => { game.currentPageIdx -= 2; updateBookView(); flipper.className = 'page-flipper'; game.isFlipping = false; }, 800);
+                }
+            };
+
+            window.toggleBook = () => {
+                const b = document.getElementById('book-wrapper');
+                const btn = document.getElementById('log-toggle-btn');
+                b.classList.toggle('book-hidden');
+
+                if (b.classList.contains('book-hidden')) {
+                    btn.classList.remove('active');
+                    btn.querySelector('span').innerText = "Open Log";
+                } else {
+                    btn.classList.add('active');
+                    btn.querySelector('span').innerText = "Log";
+                }
+            };
+
+            function addPage(title, text) {
+                game.pages.push({ title, text: `<span class="drop-cap">${text.charAt(0)}</span>${text.slice(1)}` });
+                if (game.pages.length > 2 && game.currentPageIdx >= game.pages.length - 4) {
+                    game.currentPageIdx = Math.floor((game.pages.length - 1) / 2) * 2;
+                }
+                updateBookView();
+            }
+
+            // --- NEW: Stats Functionality ---
+            window.showStats = () => {
+                const s = game.player.stats;
+                const statsHtml = `
+                <div class="grid grid-cols-2 gap-4 text-left w-full mt-2">
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">STR:</span> ${s.STR}</div>
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">DEX:</span> ${s.DEX}</div>
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">CON:</span> ${s.CON}</div>
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">INT:</span> ${s.INT}</div>
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">WIS:</span> ${s.WIS}</div>
+                    <div class="bg-slate-100 p-2 rounded border border-slate-200"><span class="font-bold text-slate-800">CHA:</span> ${s.CHA}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-left w-full mt-2">
+                    <div class="bg-slate-200 p-2 rounded border border-slate-300 flex justify-between"><span class="font-bold text-slate-900"><i class="fa-solid fa-shield-halved"></i> ARMOR</span> <span>${s.ARMOR}</span></div>
+                    <div class="bg-slate-200 p-2 rounded border border-slate-300 flex justify-between"><span class="font-bold text-slate-900"><i class="fa-solid fa-bolt"></i> POWER</span> <span>${s.POWER}</span></div>
+                </div>
+            `;
+                showCard("Character Stats", statsHtml, "fa-solid fa-user-shield");
+            };
+
+            // --- NEW: Inventory Functionality ---
+            window.toggleInventory = () => {
+                const items = game.player.inventory.map(i => `<div class="bg-slate-50 p-2 rounded shadow-sm border border-slate-200 text-xs font-bold text-center">${i}</div>`).join('');
+                const invHtml = items ? `<div class="grid grid-cols-3 gap-2 w-full">${items}</div>` : `<div class="italic text-slate-400">Empty</div>`;
+                showCard("Backpack", invHtml, "fa-solid fa-suitcase");
+            };
+
+            function showCard(title, body, iconClass, loot3d = null) {
+                const modal = document.getElementById('event-modal');
+                const id = `card-${Date.now()}`;
+                modal.style.display = 'flex'; playSound('pop');
+
+                // Adjust card height for stats if needed, or keep generic
+                const isStats = title === "Character Stats";
+
+                document.getElementById('modal-card-container').innerHTML = `
+                <div class="playing-card">
+                    <div class="absolute top-3 left-3 text-slate-400 font-bold"><i class="fa-solid fa-diamond"></i></div>
+                    <div class="absolute bottom-3 right-3 text-slate-400 font-bold rotate-180"><i class="fa-solid fa-diamond"></i></div>
+                    <div class="text-center pt-5 pb-2"><div class="font-[Cinzel] font-bold uppercase text-slate-800 text-sm tracking-widest border-b border-slate-100 inline-block px-4 pb-1">${title}</div></div>
+                    
+                    ${isStats
+                        ? `<div class="p-4 flex-1 overflow-y-auto flex flex-col items-center">${body}</div>`
+                        : `<div class="card-art">${loot3d ? `<div id="${id}" class="w-full h-full"></div>` : `<div class="text-5xl text-slate-600"><i class="${iconClass}"></i></div>`}</div>
+                           <div class="flex-1 p-4 text-center flex items-center justify-center"><div class="font-[Crimson Text] text-base leading-relaxed text-slate-700 w-full">${body}</div></div>`
+                    }
+                    
+                    <div class="p-3 border-t border-slate-100 flex justify-center"><button onclick="document.getElementById('event-modal').style.display='none'" class="glass-btn bg-slate-800 text-white text-xs font-bold px-6 py-2 rounded-full hover:bg-slate-700">CLOSE</button></div>
+                </div>`;
+                if (loot3d) setTimeout(() => initThree(id, loot3d), 50);
+            }
+
+            function initThree(id, type) {
+                const c = document.getElementById(id); if (!c) return;
+                const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, c.clientWidth / c.clientHeight, 0.1, 100);
+                const r = new THREE.WebGLRenderer({ alpha: true, antialias: true }); r.setSize(c.clientWidth, c.clientHeight); c.appendChild(r.domElement);
+
+                // Elegant Wireframe
+                const m = new THREE.Mesh(
+                    type === 'coin' ? new THREE.CylinderGeometry(1, 1, 0.1, 32) : new THREE.IcosahedronGeometry(1, 0),
+                    new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.8 })
+                );
+                if (type === 'coin') m.rotation.x = Math.PI / 2; s.add(m); cam.position.z = 3.5;
+                function a() { if (document.contains(c)) { requestAnimationFrame(a); m.rotation.y += 0.01; r.render(s, cam); } } a();
+            }
+
+            function handleInput(cmd) {
+                const l = cmd.toLowerCase();
+                if (l.includes('go')) { addPage("Moving On", `You ${cmd}. The paper crinkles. Shadows deepen.`); updateButtons(["Inspect", "Search"]); }
+                else if (l.includes('inspect')) { showCard("Found Item", "A shiny Gold Coin!", "fa-solid fa-coins", "coin"); addPage("Discovery", "You found a coin."); }
+                else { addPage("Action", `You tried to "${cmd}". Nothing happened.`); }
+            }
+
+            function getActionIcon(action) {
+                const lower = action.toLowerCase();
+                if (lower.includes('north')) return '<i class="fa-solid fa-arrow-up"></i>';
+                if (lower.includes('south')) return '<i class="fa-solid fa-arrow-down"></i>';
+                if (lower.includes('east')) return '<i class="fa-solid fa-arrow-right"></i>';
+                if (lower.includes('west')) return '<i class="fa-solid fa-arrow-left"></i>';
+                if (lower.includes('inspect')) return '<i class="fa-solid fa-magnifying-glass"></i>';
+                if (lower.includes('search')) return '<i class="fa-solid fa-eye"></i>';
+                if (lower.includes('attack')) return '<i class="fa-solid fa-skull"></i>';
+                if (lower.includes('talk')) return '<i class="fa-solid fa-comments"></i>';
+                if (lower.includes('lantern')) return '<i class="fa-solid fa-lightbulb"></i>';
+                return '<i class="fa-solid fa-hand-point-right"></i>';
+            }
+
+            function updateButtons(acts) {
+                document.getElementById('guide-buttons-container').innerHTML = acts.map(a =>
+                    `<button onclick="window.handleAction('${a}')" class="glass-btn px-5 py-2.5 text-sm font-bold flex items-center gap-2 group">
+                    <span class="group-hover:text-cyan-300 transition-colors">${getActionIcon(a)}</span>
+                    <span>${a}</span>
+                </button>`
+                ).join('');
+            }
+
+            window.handleAction = (a) => handleInput(a);
+            document.getElementById('send-btn').onclick = () => { const i = document.getElementById('command-input'); if (i.value) { handleInput(i.value); i.value = ""; } };
+            document.getElementById('command-input').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); }
+
+            addPage("Welcome to Origami Adventure!", "You come across a mysterious doorway in the side of a rocky hill.  You open an ancient door.  Do you proceed into the darkness beyond?  What adventure awaits you?");
+            addPage("Mysterious Dark Stairs", "You climb down stone steps into a long hallway.  You see a long hallway in front of you.");
+            updateButtons(["Go North", "Inspect Lantern"]);
+        });
+    </script>
+
+    <script type="text/babel">
+        const { createRoot } = ReactDOM;
+        const DMInterface = () => (
+            <div className="absolute top-4 right-4 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl shadow-xl border border-white/10">
+                <h3 className="font-bold text-xs uppercase text-slate-300 mb-2"><i className="fa-solid fa-dungeon mr-1"></i> DM Tools</h3>
+                <button className="text-xs bg-white/10 text-white px-3 py-1 rounded-lg hover:bg-white/20 transition-colors" onClick={() => document.getElementById('dm-interface-root').style.display = 'none'}>Hide</button>
+            </div>
+        );
+        const root = createRoot(document.getElementById('dm-interface-root'));
+        root.render(<DMInterface />);
+    </script>
+</body>
+
+</html>

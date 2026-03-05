@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Origami - AI Brain</title>
+</head>
+<body>
+    <script>
+        /**
+         * NewOrigamiAi.html
+         * 
+         * This script acts as a headless WebWorker/Iframe container that calculates
+         * pathfinding, states, and behavior for all non-player entities in the game.
+         * 
+         * It listens to messages from NewOrigamiGame.html (The Core Engine), updates 
+         * entity states, and sends back visual commands (Move, Attack, Talk).
+         */
+
+        class EntitiesManager {
+            constructor() {
+                this.entities = new Map(); // Store by ID
+                this.gridSize = 2; // Map unit size (matches Three.js FPV setup)
+                this.playerPos = { x: 0, z: 0 };
+                
+                // Set up listener for the main engine
+                window.addEventListener('message', (e) => this.handleEngineMessage(e));
+                
+                // Tick AI every 1000ms for testing
+                setInterval(() => this.tickAI(), 1000);
+            }
+
+            handleEngineMessage(e) {
+                if (!e.data || !e.data.type) return;
+
+                switch(e.data.type) {
+                    case 'INIT_ENTITIES':
+                        // Engine passes the raw level layout and initial enemy spots
+                        this.mapData = e.data.mapData;
+                        this.mapWidth = this.mapData.length;
+                        this.mapHeight = this.mapData[0].length;
+                        this.initEntities(e.data.spawns);
+                        break;
+                    case 'PLAYER_MOVE':
+                        // Updating AI awareness
+                        this.playerPos = { x: e.data.x, z: e.data.z };
+                        break;
+                    case 'PLAYER_ATTACK':
+                        // The Game Engine has forwarded an attack command from the UI
+                        // Normally we'd roll random dice here based on stats
+                        const dmg = Math.floor(Math.random() * 15) + 10; // 10-24 dmg
+                        this.applyDamage(e.data.targetId, dmg);
+                        break;
+                }
+            }
+
+            initEntities(spawns) {
+                spawns.forEach(s => {
+                    this.entities.set(s.id, {
+                        id: s.id,
+                        type: s.type, // 'monster' or 'npc'
+                        x: s.x,
+                        z: s.z,
+                        hp: 100,
+                        state: 'IDLE', // IDLE, CHASE, FLEE, COMBAT
+                        speed: 1
+                    });
+                });
+                console.log("[AI Brain] Initialized Entities:", this.entities);
+            }
+
+            // The main AI loop
+            tickAI() {
+                if (this.entities.size === 0) return;
+
+                const updates = [];
+                
+                this.entities.forEach(entity => {
+                    // Very basic AI logic for testing
+                    if (entity.state === 'DEAD') return;
+
+                    const dx = this.playerPos.x - entity.x;
+                    const dz = this.playerPos.z - entity.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    
+                    const prevState = entity.state;
+                    
+                    if (entity.type === 'monster') {
+                        if (dist < 6) { // Aggro radius
+                            entity.state = 'CHASE';
+                            
+                            // Ask a* algorithm for the path
+                            const path = this.findPath({x: entity.x, z: entity.z}, {x: this.playerPos.x, z: this.playerPos.z});
+                            
+                            if (path && path.length > 0) {
+                                // First node is always our next optimal step towards the player
+                                const step = path[0];
+                                entity.x = step.x;
+                                entity.z = step.z;
+                                
+                                // Send move command back to Renderer
+                                updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: entity.state });
+                            } else if (prevState !== 'CHASE') {
+                                updates.push({ id: entity.id, action: 'STATE', state: entity.state });
+                            }
+                        } else {
+                            entity.state = 'IDLE';
+                            if (prevState !== 'IDLE') {
+                                updates.push({ id: entity.id, action: 'STATE', state: entity.state });
+                            }
+                        }
+                    } else if (entity.type === 'npc') {
+                        // NPCs stay still and wait for player interaction
+                        if (dist < 2 && entity.state !== 'TALKING') {
+                            entity.state = 'TALKING';
+                            updates.push({ id: entity.id, action: 'TALK', text: "Hey! Want to gamble?" });
+                        } else if (dist >= 2 && entity.state === 'TALKING') {
+                            entity.state = 'IDLE';
+                        }
+                    }
+                });
+
+                // Batch send updates back to the rendering engine so it can animate them
+                if (updates.length > 0) {
+                    this.sendToEngine({ type: 'AI_UPDATES', updates });
+                }
+            }
+
+            // --- A* Pathfinding Logic ---
+            isWalkable(x, z) {
+                if(!this.mapData || x < 0 || x >= this.mapWidth || z < 0 || z >= this.mapHeight) return false;
+                if(this.mapData[x][z] === 1) return false; // Legacy structural check
+                if(this.mapData[x][z] && this.mapData[x][z].type === 'wall') return false;
+                
+                // Do not walk through other entities
+                let blockedByEntity = false;
+                this.entities.forEach(e => {
+                    if (e.state !== 'DEAD' && e.x === x && e.z === z) blockedByEntity = true;
+                });
+                return !blockedByEntity;
+            }
+
+            findPath(start, end) {
+                if (!this.mapData) return null;
+                
+                const openSet = [{...start, g: 0, h: 0, f: 0, parent: null}];
+                const closedSet = new Set();
+                const heuristic = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
+
+                while (openSet.length > 0) {
+                    openSet.sort((a, b) => a.f - b.f);
+                    const current = openSet.shift();
+
+                    if (current.x === end.x && current.z === end.z) {
+                        const path = [];
+                        let temp = current;
+                        while(temp.parent) {
+                            path.unshift({x: temp.x, z: temp.z});
+                            temp = temp.parent;
+                        }
+                        return path;
+                    }
+
+                    closedSet.add(`${current.x},${current.z}`);
+
+                    const neighbors = [[0, -1], [0, 1], [-1, 0], [1, 0]]; // Manhatten cross
+                    for (const [dx, dz] of neighbors) {
+                        const nextX = current.x + dx;
+                        const nextZ = current.z + dz;
+                        const key = `${nextX},${nextZ}`;
+
+                        // We consider the actual player location walkable for the algorithm to succeed
+                        const isPlayerTile = (nextX === this.playerPos.x && nextZ === this.playerPos.z);
+                        if (closedSet.has(key) || (!this.isWalkable(nextX, nextZ) && !isPlayerTile)) {
+                            continue;
+                        }
+
+                        const gScore = current.g + 1;
+                        let neighborNode = openSet.find(node => node.x === nextX && node.z === nextZ);
+                        
+                        if (!neighborNode) {
+                            neighborNode = {
+                                x: nextX, z: nextZ, g: gScore,
+                                h: heuristic({x: nextX, z: nextZ}, end),
+                                f: gScore + heuristic({x: nextX, z: nextZ}, end),
+                                parent: current
+                            };
+                            openSet.push(neighborNode);
+                        } else if (gScore < neighborNode.g) {
+                            neighborNode.parent = current;
+                            neighborNode.g = gScore;
+                            neighborNode.f = gScore + neighborNode.h;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            applyDamage(id, amt) {
+                const e = this.entities.get(id);
+                if (!e || e.state === 'DEAD') return;
+                
+                e.hp -= amt;
+                console.log(`[AI Brain] Entity ${id} took ${amt} damage. HP is now ${e.hp}`);
+                
+                if (e.hp <= 0) {
+                    e.state = 'DEAD';
+                    this.sendToEngine({ type: 'AI_DEATH', id: e.id });
+                } else {
+                    // Send back the new HP so the 3D Engine can update the UI panel
+                    this.sendToEngine({ type: 'COMBAT_UPDATE', id: e.id, newHp: e.hp });
+                }
+            }
+
+            sendToEngine(msg) {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(msg, '*');
+                }
+            }
+        }
+
+        // Initialize AI manager
+        const AIBrain = new EntitiesManager();
+
+    </script>
+</body>
+</html>

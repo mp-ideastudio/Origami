@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure UI Dashboard</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Exact Baseline.Origami colors */
+            --bg-glass: rgba(40, 40, 40, 0.85); 
+            --border-glass: rgba(120, 120, 120, 0.2);
+            --text-primary: #e8e8e8;
+            --text-secondary: #a8a8a8;
+            --accent: #3b82f6;
+            
+            /* Origami Porcelain Shadows */
+            --porcelain-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.6),
+                0 1px 3px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            --radius: 2px;
+        }
+
+        body {
+            background-color: transparent; 
+            margin: 0;
+            padding: 16px; /* Matched Baseline padding */
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            color: var(--text-primary);
+            overflow: hidden;
+            
+            /* The 4-column Baseline Layout */
+            display: grid;
+            grid-template-columns: auto 1fr 1fr auto; 
+            align-items: center;
+            gap: 24px;
+            
+            /* The Frost Glass Panel Effect itself is applied to the wrapper inside the Shell,
+               but we apply it here so the entire frame is the "panel" */
+            background: var(--bg-glass);
+            border-radius: var(--radius);
+            box-shadow: var(--porcelain-shadow);
+            border: 1px solid var(--border-glass);
+            -webkit-backdrop-filter: blur(8px) saturate(110%);
+            backdrop-filter: blur(8px) saturate(110%);
+        }
+
+        /* 1. Stats Column */
+        .level-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 80px;
+        }
+        .level-circle {
+            width: 54px; height: 54px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.02), rgba(0,0,0,0.55));
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: 6px 6px 14px rgba(0,0,0,0.7), -6px -6px 12px rgba(70,70,70,0.05);
+            font-weight: 800; font-size: 14px;
+        }
+
+        /* 2. Command Input Column */
+        .adventure-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .adventure-input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-glass);
+            border-radius: 9999px;
+            padding: 14px 20px;
+            padding-right: 48px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .adventure-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .adventure-input:focus {
+            border-color: var(--accent);
+            background: rgba(0,0,0,0.4);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        /* 3. Event Log Column */
+        .event-log {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background: rgba(0,0,0,0.2);
+            border-left: 2px solid var(--border-glass);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        /* 4. Action Buttons Column */
+        .action-panel {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .action-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 5px; /* Boxy aesthetic from baseline */
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--porcelain-shadow);
+        }
+
+        .action-btn:hover {
+            background: rgba(80, 80, 80, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 15px rgba(0,0,0,0.8), -6px -6px 15px rgba(255,255,255,0.05);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Stats Column -->
+    <div class="level-display" aria-label="Player Level">
+        <div class="level-circle">01</div>
+    </div>
+
+    <!-- 2. Command Input Column -->
+    <div class="adventure-input-wrapper">
+        <input type="text" class="adventure-input" placeholder="What do you want to do..." aria-label="Adventure Command Input">
+        <span class="material-icons-round input-icon">keyboard_return</span>
+    </div>
+
+    <!-- 3. Event Log Summary Column -->
+    <div class="event-log" aria-label="Mini Log">
+        You stand at the entrance of an ancient temple.
+    </div>
+
+    <!-- 4. Quick Action Dials Column -->
+    <div class="action-panel">
+        <button class="action-btn" title="Inventory">
+            <span class="material-icons-round">backpack</span>
+        </button>
+        <button class="action-btn" title="Logbook">
+            <span class="material-icons-round">menu_book</span>
+        </button>
+        <button class="action-btn" title="Action">
+            <span class="material-icons-round">front_hand</span>
+        </button>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure Panel</title>
+    <style>
+        :root {
+            /* Variables extracted from FPV.3.html */
+            --adventure-bg-main: #0A0A0A;
+            --adventure-panel-bg: rgba(8, 8, 10, 0.85);
+            --adventure-text-primary: #E8E8EA;
+            --adventure-text-secondary: #888890;
+            --adventure-gold: #ffffff;
+            --adventure-gold-dark: #cccccc;
+            --adventure-gold-light: #ffffff;
+            --adventure-shadow-dark: #000000;
+            --adventure-shadow-light: #1A1A1C;
+            --adventure-shadow-highlight: rgba(255, 255, 255, 0.02);
+            --adventure-glass-border: rgba(255, 255, 255, 0.08);
+
+            --adventure-neu-raised: 3px 3px 6px var(--adventure-shadow-dark), -2px -2px 4px var(--adventure-shadow-light), inset 0 0 0 1px var(--adventure-shadow-highlight);
+            --adventure-neu-inset: inset 3px 3px 6px var(--adventure-shadow-dark), inset -2px -2px 4px var(--adventure-shadow-light);
+            --adventure-neu-pressed: inset 4px 4px 8px var(--adventure-shadow-dark), inset -1px -1px 2px var(--adventure-shadow-light);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Adventure Log - 3D Inset Display */
+        #dnd-adventure-log {
+            flex: 1;
+            min-height: 0;
+            /* flex scroll fix */
+            margin-bottom: 10px;
+            overflow-y: auto;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(8, 8, 10, 0.4));
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            box-shadow: var(--adventure-neu-inset);
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--adventure-text-primary);
+            scroll-behavior: smooth;
+        }
+
+        #dnd-adventure-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #dnd-adventure-log::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        #dnd-adventure-log::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        /* Input Bar */
+        #dnd-adventure-input-bar {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: linear-gradient(145deg, rgba(12, 12, 14, 0.8), rgba(8, 8, 10, 0.9));
+            border-radius: 8px;
+            border: 1px solid var(--adventure-glass-border);
+            box-shadow: var(--adventure-neu-raised);
+        }
+
+        /* Buttons */
+        .dnd-adventure-header-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid var(--adventure-glass-border);
+            background: linear-gradient(145deg, rgba(16, 16, 18, 0.9), rgba(8, 8, 10, 0.9));
+            box-shadow: var(--adventure-neu-raised);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--adventure-text-secondary);
+            transition: all 0.15s;
+        }
+
+        .dnd-adventure-header-button:hover {
+            background: #222;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .dnd-adventure-header-button:active {
+            transform: translateY(0);
+            box-shadow: var(--adventure-neu-pressed);
+        }
+
+        .dnd-adventure-header-button svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.8;
+        }
+
+        .adventure-level-num {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--adventure-gold);
+        }
+
+        .adventure-level-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        #dnd-adventure-game-container { display: flex; flex-direction: column; height: 100%; padding: 10px; }
+        .system-init-msg { color: grey; margin: 0; }
+        .level-text-container { text-align: center; }
+        .header-buttons { display: flex; gap: 6px; }
+        #dnd-adventure-command-input { width: 100%; border: none; color: white; background: transparent; padding: 4px; outline: none; }
+    </style>
+</head>
+
+<body>
+    <div id="dnd-adventure-game-container">
+        <div id="dnd-adventure-log">
+            <p class="system-init-msg">System initialized...</p>
+        </div>
+        <div id="dnd-adventure-command-center">
+            <div id="dnd-adventure-input-bar">
+                <div id="dnd-adventure-level-display">
+                    <div class="level-text-container">
+                        <div id="dnd-adventure-level-num" class="adventure-level-num">01</div>
+                        <div class="adventure-level-label">LVL</div>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <button id="dnd-adventure-inventory-btn" class="dnd-adventure-header-button" title="Inventory">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M16 10a4 4 0 0 1-8 0" />
+                        </svg>
+                    </button>
+                    <button id="dnd-adventure-redraw-map-btn" class="dnd-adventure-header-button" title="Map">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- Simple Input Placeholder to allow compilation -->
+                <input type="text" id="dnd-adventure-command-input" placeholder="Enter command...">
+            </div>
+        </div>
+    </div>
+    <script>
+        // Simple bridge to allow parent to access elements if cross-origin rules allow (same file:// is tricky but works mostly)
+        window.logMessage = (msg, color = 'white') => {
+            const log = document.getElementById('dnd-adventure-log');
+            const p = document.createElement('p');
+            p.textContent = msg;
+            p.style.color = color;
+            p.style.margin = '0 0 4px 0';
+            log.appendChild(p);
+            log.scrollTop = log.scrollHeight;
+        };
+        // Expose to parent
+        if (window.parent) {
+            window.parent.AdventurePanel = window;
+        }
+    </script>
+</body>
+
+</html>

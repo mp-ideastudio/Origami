@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Adventure Panels - Tactical Symmetry Pro</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
+            --bg-panel: rgba(220, 225, 232, 0.45); 
+            --bg-circle: rgba(242, 245, 248, 0.5); 
+            --bg-glass: rgba(220, 225, 232, 0.5); /* Unified Translucency */
+            --bg-attr-dark: #101012; 
+            --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
+            --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
+            --glass-border: 1px solid rgba(0, 0, 0, 0.15);
+            
+            --color-text: #1a1a1a; 
+            --color-text-dim: #44474a; 
+            
+            --bottom-dock-height: 230px;
+            --wing-height: 160px;
+            --card-w: 84px;
+            --card-h: 125px;
+
+            /* DARKENED ELEMENTAL AAA PALETTE */
+            --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
+            --wind-clr: #37474f;  --wind-bg: rgba(55, 71, 79, 0.15);
+            --fire-clr: #b71c1c;  --fire-bg: rgba(183, 28, 28, 0.15);
+            --water-clr: #0d47a1; --water-bg: rgba(13, 71, 161, 0.15);
+            --item-clr: #1b5e20;  --item-bg: rgba(27, 94, 32, 0.15);
+            
+            --wager-solid: #1b5e20;
+            --attack-solid: #b71c1c;
+
+            --pill-text: #ffffff; 
+        }
+
+        body.dark-mode {
+            --bg-panel: rgba(15, 15, 18, 0.9);
+            --bg-circle: rgba(40, 40, 48, 0.6);
+            --bg-glass: rgba(15, 15, 18, 0.9);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.12);
+            --color-text: #ffffff;
+            --color-text-dim: rgba(255,255,255,0.7);
+        }
+
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: transparent !important; overflow: hidden; font-family: 'Nunito', sans-serif; -webkit-font-smoothing: antialiased; color: var(--color-text); pointer-events: none; }
+
+        /* --- UI DOCK --- */
+        #ui-dock { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 10px 0; box-sizing: border-box; z-index: 10000; }
+        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 10px; box-sizing: border-box; transition: opacity 0.4s ease; }
+        body.is-moving #lower-ui-row { opacity: 0.1; pointer-events: none; }
+        body.is-moving .side-panel { opacity: 0.1 !important; pointer-events: none; }
+
+        /* --- SIDE PANELS (Bloom Removed) --- */
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
+        .side-panel { 
+            position: relative; width: 130px; height: auto; 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); 
+            border: var(--glass-border); padding: 20px 8px 25px 8px; 
+            box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
+            box-shadow: 0 15px 45px var(--nm-shadow-dark); 
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+        }
+        #pax-console { border-radius: 0 24px 24px 0; border-left: none; transform: translateX(-150%); opacity: 0; pointer-events: none; }
+        #action-rail { border-radius: 24px 0 0 24px; border-right: none; transform: translateX(150%); opacity: 0; pointer-events: none; }
+
+        #encounter-zone.active #pax-console, #encounter-zone.active #action-rail {
+            transform: translateX(0); opacity: 1; pointer-events: auto;
+        }
+
+        /* Full Height Tactical Bars - Blooms Removed */
+        .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
+        #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
+        #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
+
+        .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
+        .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 15px; width: 100%; text-align: center; line-height: 1.2; }
+        
+        .sp-bar { width: 90%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; margin-bottom: 15px; overflow: hidden; box-shadow: var(--nm-shadow-inner); border: 1px solid rgba(0,0,0,0.05); }
+        .sp-fill { height: 100%; width: 55%; background: linear-gradient(90deg, var(--fire-clr), #ff5252); }
+        .sp-fill.player { height: 100%; width: 80%; background: linear-gradient(90deg, var(--item-clr), #4caf50); }
+        
+        /* Tactical Buttons */
+        .sp-btn { 
+            width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
+            border: 1.5px solid var(--theme-clr); 
+            background: var(--bg-panel); 
+            font-weight: 900; font-size: 10px; text-transform: uppercase; 
+            cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
+            padding: 0 10px; box-sizing: border-box;
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 2px 2px 8px var(--nm-shadow-dark);
+            color: var(--color-text);
+        }
+        /* Lesser strength hover using elemental background */
+        .sp-btn:hover { background: var(--theme-bg) !important; transform: translateY(-1px); }
+
+        .btn-icon-circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; background: rgba(255,255,255,0.08); }
+        .sp-btn i { color: var(--theme-clr); font-size: 11px; text-align: center; }
+
+        .btn-wager { background: var(--wager-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-wager i, .btn-wager .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+        .btn-attack { background: var(--attack-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-attack i, .btn-attack .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+
+        body.dark-mode .sp-btn:not(.btn-wager):not(.btn-attack) { color: #ffffff !important; border-color: rgba(255,255,255,0.25); }
+
+        .sp-btn span { flex: 1; text-align: left; }
+        .sp-btn:active { transform: scale(0.92); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark); }
+
+        /* --- DOCK & WINGS --- */
+        .u-panel { pointer-events: auto; outline: none; }
+        .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-panel); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 8px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
+        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; font-weight: 900; font-size: 22px; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: 2px solid var(--water-clr); color: var(--water-text); }
+        .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
+        
+        .btn-action { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .outer-active .btn-action { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
+        .act-n { --tx: 0px; --ty: -78px; } .act-s { --tx: 0px; --ty: 78px; } .act-e { --tx: 78px; --ty: 0px; } .act-w { --tx: -78px; --ty: 0px; }
+        .act-ne { --tx: 56px; --ty: -56px; } .act-nw { --tx: -56px; --ty: -56px; } .act-se { --tx: 56px; --ty: 56px; } .act-sw { --tx: -56px; --ty: 56px; }
+        .ac-text { font-size: 6.5px; font-weight: 900; margin-top: 3px; text-transform: uppercase; color: var(--color-text); }
+
+        /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
+        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: fit-content; height: auto; align-self: end; }
+        #guides-container { display: flex; width: 100%; padding: 10px; box-sizing: border-box; position: relative; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; }
+        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+        .card-column.focused { z-index: 30; }
+
+        @media (max-width: 750px) { .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } }
+        @media (max-width: 500px) { .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } }
+
+        .guide-card {
+            position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
+            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
+            justify-content: flex-start; text-align: center; color: var(--color-text); 
+            background: var(--bg-panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); 
+            box-shadow: 2px 2px 8px var(--nm-shadow-dark); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
+        }
+        .guide-card::after { content: ''; position: absolute; left: 0; top: 32%; height: 36%; width: 3.5px; background: var(--theme-clr); border-radius: 0 3px 3px 0; box-shadow: 0 0 6px var(--theme-clr); z-index: 5; }
+        .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
+        
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); }
+        .guide-card[data-depth="1"] { opacity: 0.8; z-index: 10; transform: translateY(var(--stack-offset)) scale(0.96); }
+        
+        /* Rigid Vertical Symmetry Zones */
+        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
+        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
+        
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
+        .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
+        
+        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-circle); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--blue-gray-border); flex-shrink: 0; }
+        .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        .card-attr-fused { width: 100%; height: 24px; margin-top: auto; background: var(--bg-attr-dark); color: var(--theme-clr); font-weight: 900; font-size: 7.5px; padding: 0 2px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+        .card-earth { --theme-clr: var(--earth-clr); --theme-bg: var(--earth-bg); } 
+        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: var(--wind-bg); } 
+        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: var(--fire-bg); } 
+        .card-water { --theme-clr: var(--water-clr); --theme-bg: var(--water-bg); } 
+        .card-item  { --theme-clr: var(--item-clr); --theme-bg: var(--item-bg); }
+
+        /* --- MODAL --- */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+        #launch-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 50000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        #launch-modal.active, #exit-modal.active { opacity: 1; pointer-events: auto; }
+        
+        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        .exit-title { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .exit-controls { display: flex; gap: 20px; width: 100%; justify-content: center; }
+        .exit-btn { width: 60px; height: 60px; border-radius: 50%; border: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; color: #fff; box-shadow: var(--nm-shadow-inner); transition: transform 0.2s, filter 0.2s; }
+        .exit-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .exit-btn.yes { background: var(--item-bg); border: 2px solid var(--item-clr); color: var(--item-clr); text-shadow: 0 0 8px var(--item-clr); }
+        .exit-btn.no { background: var(--fire-bg); border: 2px solid var(--fire-clr); color: var(--fire-clr); text-shadow: 0 0 8px var(--fire-clr); }
+        .modal-card-hd { width: 180px; height: 265px; margin-bottom: 35px; position: relative; pointer-events: none; }
+        .modal-card-hd .guide-card { width: 100%; height: 100%; border-radius: 24px; padding-top: 5px; border-width: 1.5px; }
+
+        /* --- HIGH PERFORMANCE INPUT --- */
+        #input-container { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; margin-top: 6px; }
+        .chat-pill { width: 100%; height: 54px; background: var(--bg-panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark), 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 700; font-size: 16px; text-shadow: none; }
+        .chat-input::placeholder { color: var(--color-text-dim); font-weight: 500; }
+        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); }
+    </style>
+</head>
+<body class="focus-active">
+
+    <div id="modal-overlay" onclick="closeModal()"></div>
+
+    <div id="ui-dock">
+        <div id="encounter-zone">
+            <!-- PAX CONSOLE (Green Accent) -->
+            <div id="pax-console" class="side-panel">
+                <div class="sp-title">Yazuka Goblin</div>
+                <div class="sp-sub">ALIVE • 1.0m<br>Parley Chance 85%</div>
+                <div class="sp-bar"><div class="sp-fill player"></div></div>
+                <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
+                    <span>Wager</span>
+                </button>
+                <button class="sp-btn card-item" onclick="emitAction('PARLEY')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-comments"></i></div>
+                    <span>Parley</span>
+                </button>
+                <button class="sp-btn card-wind" onclick="emitAction('HIDE')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-ghost"></i></div>
+                    <span>Hide</span>
+                </button>
+            </div>
+            <!-- ACTION RAIL (Red Accent) -->
+            <div id="action-rail" class="side-panel">
+                <div class="sp-title">4/1 HP</div>
+                <div class="sp-sub">LVL 5 • AC 12<br>ATK +4</div>
+                <div class="sp-bar"><div class="sp-fill"></div></div>
+                <button class="sp-btn btn-attack" onclick="emitAction('ATTACK')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
+                    <span>Attack</span>
+                </button>
+                <button class="sp-btn card-wind" onclick="emitAction('RETREAT')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-person-running"></i></div>
+                    <span>Retreat</span>
+                </button>
+                <button class="sp-btn card-earth" onclick="emitAction('OBSERVE')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-eye"></i></div>
+                    <span>Observe</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="lower-ui-row">
+            <div id="left-panel" class="u-wing u-panel" tabindex="1">
+                <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
+                <div class="u-btn pos-w" data-key="ArrowLeft"><i class="fa-solid fa-caret-left"></i></div>
+                <div class="kp-center-btn" data-key="ArrowUp"><i class="fa-regular fa-circle-dot"></i></div>
+                <div class="u-btn pos-e" data-key="ArrowRight"><i class="fa-solid fa-caret-right"></i></div>
+                <div class="u-btn pos-s" data-key="ArrowDown"><i class="fa-solid fa-caret-down"></i></div>
+            </div>
+
+            <div id="bottom-panel" class="u-panel" tabindex="2">
+                <div id="tactical-inner-wrap">
+                    <div id="launch-modal">
+                        <div id="modal-content" class="modal-card-hd"></div>
+                        <div class="modal-controls">
+                            <button class="m-btn" onclick="closeModal()">CANCEL</button>
+                            <button class="m-btn launch" id="launch-btn" style="color:var(--modal-theme-clr); border-color:var(--modal-theme-clr)">OK +</button>
+                        </div>
+                    </div>
+                    <div id="exit-modal">
+                        <div class="exit-title">EXIT DUNGEON?</div>
+                        <div class="exit-controls">
+                            <button class="exit-btn no" title="No" onclick="hideExitModal()"><i class="fa-solid fa-xmark"></i></button>
+                            <button class="exit-btn yes" title="Yes" onclick="confirmExit()"><i class="fa-solid fa-check"></i></button>
+                        </div>
+                    </div>
+                    <div id="guides-container"></div>
+                    <div id="input-container">
+                        <div class="chat-pill">
+                            <input type="text" class="chat-input" placeholder="Tactical command..." autocomplete="off">
+                            <i class="fa-solid fa-turn-down enter-symbol"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel" class="u-wing u-panel" tabindex="3">
+                <div id="action-zone">
+                    <div class="avatar-circle" onclick="toggleRing()">H</div>
+                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-circle-half-stroke"></i><span class="ac-text">Mode</span></div>
+                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><span class="ac-text">Bag</span></div>
+                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><span class="ac-text">Map</span></div>
+                    <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><span class="ac-text">Set</span></div>
+                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><span class="ac-text">Rest</span></div>
+                    <div class="u-btn btn-action act-sw" onclick="emitAction('SKILLS')"><span class="ac-text">Heal</span></div>
+                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><span class="ac-text">View</span></div>
+                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><span class="ac-text">Log</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        const categories = [
+            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
+            { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
+            { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Inferno star.', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
+            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Viscous tide.', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
+            { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Green nectar.', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'ELIXIR'] }
+        ];
+
+        let focusedColIndex = 0, pendingAction = null, wheelThrottle = false;
+        const scenes = {}, dpr = window.devicePixelRatio || 1;
+
+        function init3DIcons() {
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM'];
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            elements.forEach(el => {
+                const scene = new THREE.Scene();
+                scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+                const dir = new THREE.DirectionalLight(0xffffff, 2.2);
+                dir.position.set(5, 5, 5); scene.add(dir);
+                
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: { EARTH: 0x006064, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el],
+                    roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
+                });
+                
+                let group = new THREE.Group(), update;
+                if (el === 'EARTH') {
+                    // Forensic Quake fix - sharp facets, correct size
+                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 0), mat); group.add(rock);
+                    update = (t) => {
+                        const b = Math.abs(Math.sin(t * 1.5)); rock.position.y = (b * 0.7) - 0.35; 
+                        rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
+                        if (b < 0.2) group.position.set(Math.sin(t * 5) * (0.2-b)*2, Math.cos(t * 6) * (0.1-b/2)*2, 0);
+                        else group.position.set(0, 0, 0);
+                    };
+                } else if (el === 'FIRE') {
+                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 5, flatShading: true })); group.add(core);
+                    const flames = [];
+                    for(let i=0; i<36; i++) {
+                        const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
+                        const ang = (i / 36) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
+                        s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); group.add(s);
+                        flames.push({ m: s, s: 6 + Math.random() * 10, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 5, bx: s.position.x, bz: s.position.z });
+                    }
+                    update = (t) => {
+                        core.rotation.y = t * 1.2; core.scale.setScalar(1 + Math.sin(t * 12) * 0.08);
+                        flames.forEach(f => {
+                            const w = Math.sin(t * f.s + f.o); f.m.scale.setScalar(0.4 + w * 0.6); f.m.position.y = 0.3 + w * 0.4;
+                            f.m.position.x = f.bx + Math.sin(t * 5 + f.o) * 0.1; f.m.position.z = f.bz + Math.cos(t * 5 + f.o) * 0.1; f.m.rotation.x = t * f.rs;
+                        });
+                    };
+                } else if (el === 'WIND') {
+                    const tornado = new THREE.Group();
+                    for(let i=0; i<10; i++) {
+                        const h = i/10, r = (h*1.4)+0.4, pts = [];
+                        for(let j=0; j<=12; j++) pts.push(new THREE.Vector3(Math.cos((j/12)*Math.PI*2)*r, 0, Math.sin((j/12)*Math.PI*2)*r));
+                        const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x37474f, opacity: 0.8, transparent: true }));
+                        line.position.y = (h-0.5)*2.5; tornado.add(line);
+                    }
+                    group.add(tornado);
+                    update = (t) => { tornado.children.forEach((l, idx) => { l.rotation.y = t*(idx+70); l.position.x = Math.sin(t*8 + idx)*0.1; }); tornado.rotation.z = Math.sin(t*4)*0.1; };
+                } else if (el === 'WATER') {
+                    const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
+                    update = (t) => {
+                        const pos = geo.attributes.position;
+                        for(let i=0; i<pos.count; i++) {
+                            const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                            if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                        }
+                        pos.needsUpdate = true;
+                    };
+                } else if (el === 'ITEM') {
+                    const vial = new THREE.Group();
+                    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, flatShading: true }));
+                    const liq = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.0, 12), new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x002e03, emissiveIntensity: 0.5 }));
+                    liq.position.y = -0.3; vial.add(body, liq);
+                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
+                    cork.position.y = 1.6; vial.add(cork); group.add(vial);
+                    update = (t) => { vial.rotation.z = Math.sin(t * 2) * 0.2; liq.scale.y = 0.9 + Math.sin(t * 3) * 0.1; };
+                }
+                scene.add(group); scenes[el] = { scene, update };
+            });
+
+            function renderLoop(time) {
+                requestAnimationFrame(renderLoop);
+                const t = time * 0.001;
+                elements.forEach(el => {
+                    scenes[el].update(t);
+                    const canvases = document.querySelectorAll(`.card-icon-3d[data-element="${el}"] canvas`);
+                    canvases.forEach(cvs => {
+                        const cw = cvs.clientWidth, ch = cvs.clientHeight;
+                        if (cw === 0 || ch === 0) return; 
+                        const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
+                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+                        renderer.setSize(cw, ch, false);
+                        const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 100); cam.position.set(0, 0, 7.5);
+                        renderer.render(scenes[el].scene, cam);
+                        const ctx = cvs.getContext('2d');
+                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
+                    });
+                });
+            }
+            renderLoop(0);
+        }
+
+        function cycle(idx, fwd = true) {
+            const col = document.getElementById(`col-${idx}`);
+            if (!col) return;
+            const cards = Array.from(col.querySelectorAll('.guide-card'));
+            if(cards.length <= 1) return;
+            cards.forEach(c => {
+                let d = parseInt(c.dataset.depth);
+                c.dataset.depth = fwd ? (d === cards.length - 1 ? 0 : d + 1) : (d === 0 ? cards.length - 1 : d - 1);
+            });
+        }
+
+        function setup() {
+            categories.forEach((cat, idx) => {
+                const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                cat.cards.forEach((name, i) => {
+                    const card = document.createElement('div');
+                    card.className = `guide-card card-${cat.id.toLowerCase()}`;
+                    card.dataset.depth = i;
+                    card.innerHTML = `
+                        <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
+                        <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
+                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
+                        <div class="card-attr-fused">${cat.attr || ''}</div>
+                    `;
+                    card.onclick = () => { if(card.dataset.depth === "0") launchModal(card); };
+                    col.appendChild(card);
+                });
+                document.getElementById('guides-container').appendChild(col);
+            });
+            document.querySelectorAll('.u-panel').forEach(p => { 
+                p.onmouseenter = () => p.focus(); 
+                p.onmouseleave = () => p.blur(); 
+            });
+            document.getElementById('bottom-panel').onwheel = e => {
+                if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
+                e.preventDefault(); wheelThrottle = true; cycle(focusedColIndex, e.deltaY > 0); setTimeout(() => wheelThrottle = false, 150);
+            };
+            init3DIcons(); setFocus(0, false);
+        }
+
+        function launchModal(card) {
+            pendingAction = card.querySelector('.card-title').textContent;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = card.innerHTML;
+            content.className = `modal-card-hd ${card.className}`;
+            const styles = getComputedStyle(card);
+            document.getElementById('launch-modal').style.setProperty('--modal-theme-clr', styles.getPropertyValue('--theme-clr'));
+            document.getElementById('launch-modal').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function setFocus(idx, scroll = true) {
+            focusedColIndex = idx;
+            document.querySelectorAll('.card-column').forEach((c, i) => c.classList.toggle('focused', i === idx));
+            if (scroll) {
+                const col = document.getElementById(`col-${idx}`), container = document.getElementById('guides-container');
+                container.scrollTo({ left: col.offsetLeft - (container.offsetWidth/2) + (col.offsetWidth/2), behavior: 'smooth' });
+            }
+        }
+
+        window.closeModal = () => { document.getElementById('launch-modal').classList.remove('active'); document.getElementById('modal-overlay').classList.remove('active'); };
+        
+        // Exit Modal Logic
+        let exitModalActive = false;
+        window.showExitModal = () => {
+            if (exitModalActive) return;
+            exitModalActive = true;
+            document.getElementById('exit-modal').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+        };
+        window.hideExitModal = () => {
+            exitModalActive = false;
+            document.getElementById('exit-modal').classList.remove('active');
+            document.getElementById('modal-overlay').classList.remove('active');
+        };
+        window.confirmExit = () => {
+            // For now, redirect or alert
+            console.log("EXITING DUNGEON");
+            alert("Exiting Dungeon... (Redirect to world map)");
+            window.location.reload(); // Temporary fallback
+        };
+        window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
+        window.toggleRing = () => document.getElementById('right-panel').classList.toggle('outer-active');
+        window.emitAction = a => window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
+        document.getElementById('launch-btn').onclick = () => { emitAction(pendingAction); closeModal(); };
+        
+        // Touch / Mouse D-Pad Controls
+        const handleDPadInput = (e, isDown) => {
+            e.preventDefault();
+            const btn = e.target.closest('[data-key]');
+            if (!btn) return;
+            const key = btn.dataset.key;
+            if (isDown) {
+                window.parent.postMessage({ type: 'KEY_DOWN', key: key, code: key }, '*');
+            } else {
+                window.parent.postMessage({ type: 'KEY_UP', key: key, code: key }, '*');
+            }
+        };
+
+        const leftPanel = document.getElementById('left-panel');
+        leftPanel.addEventListener('mousedown', e => handleDPadInput(e, true));
+        leftPanel.addEventListener('mouseup', e => handleDPadInput(e, false));
+        leftPanel.addEventListener('mouseleave', e => handleDPadInput(e, false));
+        
+        leftPanel.addEventListener('touchstart', e => handleDPadInput(e, true), {passive: false});
+        leftPanel.addEventListener('touchend', e => handleDPadInput(e, false), {passive: false});
+        leftPanel.addEventListener('touchcancel', e => handleDPadInput(e, false), {passive: false});
+
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        if (mode === 'combat') {
+            document.getElementById('lower-ui-row').style.display = 'none';
+            document.body.classList.remove('focus-active');
+        } else if (mode === 'dock') {
+            document.getElementById('encounter-zone').style.display = 'none';
+        }
+
+        window.addEventListener('keydown', e => {
+            window.parent.postMessage({ type: 'KEY_DOWN', key: e.key, code: e.code }, '*');
+            if (e.key === 'Escape') { closeModal(); if(document.activeElement.classList.contains('u-panel')) document.activeElement.blur(); return; }
+            if (e.key === 'Tab') return;
+            if (!document.activeElement.classList.contains('u-panel')) return;
+            if (document.activeElement.id === 'bottom-panel') {
+                if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                    focusedColIndex = e.key === 'ArrowLeft' ? Math.max(0, focusedColIndex - 1) : Math.min(categories.length - 1, focusedColIndex + 1);
+                    setFocus(focusedColIndex);
+                } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    e.preventDefault();
+                    cycle(focusedColIndex, e.key === 'ArrowDown');
+                }
+            }
+        });
+        window.addEventListener('keyup', e => {
+            window.parent.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
+        });
+        setup();
+
+        // Listen for combat state changes from main relay
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'SHOW_COMBAT') {
+                document.getElementById('encounter-zone').classList.add('active');
+            } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
+                document.getElementById('encounter-zone').classList.remove('active');
+            } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
+                if (e.data.isMoving) {
+                    document.body.classList.add('is-moving');
+                    hideExitModal(); // Hide if player walks away
+                }
+                else document.body.classList.remove('is-moving');
+            } else if (e.data && e.data.type === 'SHOW_EXIT') {
+                showExitModal();
+            } else if (e.data && e.data.type === 'HIDE_EXIT') {
+                if(exitModalActive) hideExitModal();
+            }
+        });
+    </script>
+</body>
+</html>
