@@ -202,7 +202,7 @@
          */
         const Engine = {
             // State
-            player: { x: 5, z: 5, rot: 0 },
+            player: { x: 5, z: 5, rot: 0, autoTurnTarget: null },
             gridSize: 2,
             mapData: [],
             mapWidth: 40,   // Increased for 10 room dungeon
@@ -1687,42 +1687,69 @@
                 this.camera.rotation.y = this.player.rot;
                 
                 // Movement
-                if (moveDir !== 0) {
-                    // Note: moveDir = 1 is forward. In 3D, forward is -z vector.
-                    const speed = this.MOVE_SPEED * delta * moveDir;
-                    const dx = Math.sin(this.player.rot) * speed;
-                    const dz = Math.cos(this.player.rot) * speed;
-                    
-                    let nextX = this.player.x - dx; 
-                    let nextZ = this.player.z - dz;
-                    
-                    const radius = 0.35; // Collision radius (grid units)
-                    
-                    let colX = this.checkCollision(nextX, this.player.z, radius);
-                    if (colX) nextX = this.player.x;
-                    
-                    let colZ = this.checkCollision(nextX, nextZ, radius);
-                    if (colZ) nextZ = this.player.z;
+                if (moveDir !== 0 || this.player.autoTurnTarget !== null) {
+                    // Handle active auto-turn override
+                    if (this.player.autoTurnTarget !== null) {
+                        const target = this.player.autoTurnTarget;
+                        const diff = target - this.player.rot;
+                        
+                        // Normalize diff to -PI .. PI range
+                        let normDiff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                        
+                        // Aggressive snap if we're very close (0.05 radians ~ 2.8 degrees)
+                        if (Math.abs(normDiff) < 0.05) {
+                            this.player.rot = target;
+                            this.player.autoTurnTarget = null;
+                        } else {
+                            // Steer aggressively towards target (twice normal turn speed)
+                            this.player.rot += Math.sign(normDiff) * this.ROT_SPEED * 2.0 * delta;
+                        }
+                        
+                        // Consume the forward movement to pivot in place smoothly
+                        moveDir = 0;
+                    }
 
-                    // Auto-Turn UX: seamless corridor cornering
-                    if (moveDir === 1 && turnDir === 0 && (colX || colZ)) {
-                        // Snap current rotation to nearest cardinal direction to prevent mid-turn check failure
-                        const cardinalRot = Math.round(this.player.rot / (Math.PI/2)) * (Math.PI/2);
+                    // Normal movement processing if not consumed by turn
+                    let nextX = this.player.x;
+                    let nextZ = this.player.z;
+
+                    if (moveDir !== 0) {
+                        // Note: moveDir = 1 is forward. In 3D, forward is -z vector.
+                        const speed = this.MOVE_SPEED * delta * moveDir;
+                        const dx = Math.sin(this.player.rot) * speed;
+                        const dz = Math.cos(this.player.rot) * speed;
                         
-                        const checkDist = 1.0; 
-                        const leftRot = cardinalRot + Math.PI/2;
-                        const rightRot = cardinalRot - Math.PI/2;
+                        nextX -= dx; 
+                        nextZ -= dz;
                         
-                        const leftBlocked = this.checkCollision(this.player.x - Math.sin(leftRot)*checkDist, this.player.z - Math.cos(leftRot)*checkDist, radius);
-                        const rightBlocked = this.checkCollision(this.player.x - Math.sin(rightRot)*checkDist, this.player.z - Math.cos(rightRot)*checkDist, radius);
+                        const radius = 0.35; // Collision radius (grid units)
                         
-                        if (!leftBlocked && rightBlocked) {
-                            this.player.rot += this.ROT_SPEED * delta; 
-                        } else if (!rightBlocked && leftBlocked) {
-                            this.player.rot -= this.ROT_SPEED * delta; 
-                        } else if (!leftBlocked && !rightBlocked) {
-                            // T-Junction: Pick a consistent direction (Right-Hand Rule)
-                            this.player.rot -= this.ROT_SPEED * delta; 
+                        let colX = this.checkCollision(nextX, this.player.z, radius);
+                        if (colX) nextX = this.player.x;
+                        
+                        let colZ = this.checkCollision(nextX, nextZ, radius);
+                        if (colZ) nextZ = this.player.z;
+
+                        // Trigger Auto-Turn Feature
+                        if (moveDir === 1 && turnDir === 0 && (colX || colZ) && this.player.autoTurnTarget === null) {
+                            // Snap current rotation to nearest cardinal direction to prevent mid-turn check failure
+                            const cardinalRot = Math.round(this.player.rot / (Math.PI/2)) * (Math.PI/2);
+                            
+                            const checkDist = 1.0; 
+                            const leftRot = cardinalRot + Math.PI/2;
+                            const rightRot = cardinalRot - Math.PI/2;
+                            
+                            const leftBlocked = this.checkCollision(this.player.x - Math.sin(leftRot)*checkDist, this.player.z - Math.cos(leftRot)*checkDist, radius);
+                            const rightBlocked = this.checkCollision(this.player.x - Math.sin(rightRot)*checkDist, this.player.z - Math.cos(rightRot)*checkDist, radius);
+                            
+                            if (!leftBlocked && rightBlocked) {
+                                this.player.autoTurnTarget = leftRot; 
+                            } else if (!rightBlocked && leftBlocked) {
+                                this.player.autoTurnTarget = rightRot; 
+                            } else if (!leftBlocked && !rightBlocked) {
+                                // T-Junction: Pick a consistent direction (Right-Hand Rule)
+                                this.player.autoTurnTarget = rightRot; 
+                            }
                         }
                     }
                     
