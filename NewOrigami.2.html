@@ -116,493 +116,10 @@
         border-radius: 4px;
       }
 
-      /* --- HEADER STYLES --- */
-      .panel-header {
-        background-color: var(--bg-header);
-        border-bottom: 1px solid var(--border-color);
-        height: 44px; /* Large touch target for WCAG Target Size */
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 12px;
-        -webkit-user-select: none;
-        user-select: none;
-        flex-shrink: 0;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-      }
+      /* --- MAIN APPLICATION SHELL --- */
+      /* Note: Legacy UI components (PiP, Splitters, Header titles, text adventure overlays) 
+         have been forensically removed from the CSS to optimize rendering. */
       
-      .panel-header.draggable {
-        cursor: move;
-      }
-
-      .header-title {
-        font-size: 1rem; /* Approx 16px for readability */
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        transition: color 0.3s ease;
-      }
-
-      /* MINIMALIST SYMBOL HIDING (DEFAULT) */
-      .header-title .header-icon {
-        opacity: 0;
-        transform: translateX(-5px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        font-size: 1.25rem;
-        color: var(--text-secondary);
-      }
-      /* Reveal Logic */
-      .panel-base:hover .header-title .header-icon,
-      .pip-window:hover .header-title .header-icon,
-      .panel-base:focus-within .header-title .header-icon,
-      .pip-window:focus-within .header-title .header-icon {
-        opacity: 1;
-        transform: translateX(0);
-      }
-
-      .header-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px; /* Improved spacing for touch targets */
-        opacity: 0;
-        transform: translateX(5px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      
-      .panel-base:hover .header-controls,
-      .pip-window:hover .header-controls,
-      .header-controls:focus-within {
-        opacity: 1;
-        transform: translateX(0);
-      }
-
-      .icon-btn {
-        width: 36px; /* 36px touch target + gap exceeds 44px equivalent */
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid transparent; /* Prepare for high contrast mode */
-        background: transparent;
-      }
-      .icon-btn:hover {
-        background-color: var(--btn-hover-bg);
-        color: var(--btn-hover-text);
-      }
-      .icon-btn.close:hover {
-        background-color: #fee2e2;
-        color: #ef4444;
-      }
-      body.dark-mode .icon-btn.close:hover {
-        background-color: #7f1d1d;
-        color: #fca5a5;
-      }
-
-      .restore-btn {
-        font-size: 0.8rem;
-        font-weight: 500;
-        background-color: var(--btn-hover-bg);
-        color: var(--text-secondary);
-        padding: 6px 12px;
-        border-radius: 999px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px dashed var(--border-color);
-        transition: all 0.2s;
-      }
-      .restore-btn:hover {
-        background-color: var(--border-color);
-        color: var(--text-primary);
-        border-color: var(--text-secondary);
-      }
-
-      /* --- PANEL BASE STYLES --- */
-      .panel-base {
-        position: relative;
-        background-color: var(--bg-panel);
-        border: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-      }
-
-      .panel-content {
-        flex-grow: 1;
-        min-height: 0;
-        width: 100%;
-        height: 100%;
-        padding: 0;
-        position: relative;
-        overflow: auto;
-        background-color: var(--bg-content);
-        transition: background-color 0.3s ease;
-      }
-
-      /* --- TOP ROW CONFIG --- */
-      #top-row {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        position: relative;
-        z-index: 1;
-      }
-
-      /* --- LOWER DOCK CONFIG --- */
-      #adventure-panel {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 250px;
-        z-index: 30;
-        display: block;
-        pointer-events: none; /* Let clicks pass through empty space */
-        background: transparent !important;
-        transition: opacity 0.5s ease;
-      }
-      #adventure-panel .panel-content {
-        background: transparent !important;
-        border: none !important;
-      }
-      #adventure-panel iframe {
-        pointer-events: auto; /* Re-enable clicks inside the iframe */
-        width: 100%;
-        height: 100%;
-        background: transparent !important;
-        border: none !important;
-      }
-      #adventure-panel .panel-header {
-        border-top-left-radius: 0.75rem;
-        border-top-right-radius: 0.75rem;
-      }
-
-      /* --- SPLITTERS & HANDLES --- */
-      .v-splitter {
-        width: 8px;
-        background-color: var(--splitter-bg);
-        cursor: col-resize;
-        z-index: 20;
-        flex-shrink: 0;
-        transition: background-color 0.3s ease;
-        border-left: 1px solid var(--border-color);
-        border-right: 1px solid var(--border-color);
-      }
-      .v-splitter:hover {
-        background-color: var(--splitter-hover);
-      }
-
-      /* Adventure View 3D Handle */
-      .resize-handle-top {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 16px; /* Larger target for touch */
-        cursor: row-resize;
-        z-index: 40;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        margin-top: -8px;
-      }
-      .resize-handle-top::after {
-        content: "";
-        width: 60px;
-        height: 6px;
-        background: linear-gradient(180deg, var(--handle-grad-1) 0%, var(--handle-grad-2) 100%);
-        border: 1px solid var(--handle-border);
-        border-radius: 10px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        margin-top: 4px;
-        transition: all 0.2s;
-      }
-      .resize-handle-top:hover::after {
-        background: var(--splitter-hover);
-        border-color: #60a5fa;
-        width: 80px;
-        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
-      }
-
-      /* --- PIP WINDOW --- */
-      .pip-window {
-        position: fixed;
-        background-color: var(--bg-panel);
-        border-radius: 0.75rem;
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-pip);
-        z-index: 100;
-        display: flex;
-        flex-direction: column;
-        resize: both;
-        overflow: hidden;
-        min-width: 150px;
-        min-height: 100px;
-        transition: transform 0.1s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-      }
-      .pip-window:active { transform: scale(0.995); }
-      .pip-window .panel-header {
-        cursor: move;
-        border-radius: 0;
-        background-color: var(--bg-header);
-      }
-
-      /* --- THEME TOGGLE BUTTON --- */
-      .theme-toggle-btn {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background-color: var(--bg-panel);
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-pip);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 999;
-        color: var(--text-primary);
-        transition: transform 0.2s ease;
-      }
-      .theme-toggle-btn:hover {
-        transform: scale(1.1);
-      }
-
-      .panel-hidden { display: none !important; }
-      .panel-is-pip { display: none !important; }
-
-      /* --- ADVENTURE VIEW (BASELINE PROMPT CONTAINER) --- */
-      #dnd-game-prompt-container {
-        display: grid;
-        grid-template-columns: auto 1fr auto; /* Stats | Input Area | Buttons */
-        align-items: center;
-        gap: 24px;
-        padding: 16px;
-        position: relative;
-        background: rgba(40, 40, 40, 0.85); /* Dark Glass Panel */
-        border-radius: 2px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(120, 120, 120, 0.2);
-        will-change: auto;
-        transform: none !important;
-        animation: none !important;
-        height: 100%;
-      }
-
-      #dnd-game-command-center {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-      }
-
-      #dnd-game-system-message {
-        color: #e8e8e8;
-        font-family: 'Noto Sans JP', sans-serif;
-        font-weight: 700;
-        margin: 0;
-        padding-left: 16px;
-        font-size: 14px;
-      }
-
-      #dnd-game-input-wrapper {
-        display: flex;
-        align-items: center;
-        position: relative;
-        width: 100%;
-        min-height: 48px;
-      }
-
-      #dnd-game-prompt-icon {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        width: 36px; 
-        height: 36px;
-        border-radius: 999px;
-        display: grid; 
-        place-items: center;
-        color: #ffffff;
-        font-weight: 700; 
-        font-size: 12px;
-        background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), rgba(255,255,255,0.05)),
-                    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.3));
-        border: 1px solid rgba(255,255,255,0.18);
-        box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 6px rgba(0,0,0,0.6) inset;
-      }
-
-      #dnd-game-command-input {
-        flex: 1 1 auto;
-        min-width: 0;
-        box-sizing: border-box;
-        padding-left: 64px;
-        padding-right: 24px;
-        height: 48px;
-        border-radius: 24px;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(120, 120, 120, 0.3);
-        color: #e8e8e8;
-        font-size: 15px;
-        outline: none;
-        transition: all 0.2s ease;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-      }
-      #dnd-game-command-input:focus {
-        border-color: rgba(200, 200, 200, 0.5);
-        background: rgba(0, 0, 0, 0.6);
-      }
-
-      #dnd-game-quick-actions {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
-        margin-top: 4px;
-        overflow: hidden;
-        height: 48px;
-      }
-
-      .dnd-qa-btn {
-        height: 44px;
-        padding: 0 14px;
-        border-radius: 5px;
-        border: 1px solid rgba(120, 120, 120, 0.2);
-        color: #e8e8e8;
-        background: rgba(40, 40, 40, 0.85);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-        transition: all 0.2s ease-in-out;
-        font-family: 'Noto Sans JP', sans-serif;
-        font-weight: 500;
-        cursor: pointer;
-        outline: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-      .dnd-qa-btn:hover {
-        box-shadow: 6px 6px 15px rgba(0, 0, 0, 0.8), -6px -6px 15px rgba(200, 200, 200, 0.05);
-        transform: translateY(-2px);
-        background: rgba(80, 80, 80, 0.3);
-      }
-
-      #dnd-game-command-ui-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        justify-content: center;
-      }
-
-      .dnd-game-header-button {
-        background: rgba(40, 40, 40, 0.9);
-        color: #a8a8a8;
-        border: 1px solid rgba(120, 120, 120, 0.2);
-        padding: 8px 12px;
-        border-radius: 3px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s ease;
-      }
-      .dnd-game-header-button:hover {
-        background: rgba(80, 80, 80, 0.3);
-        color: #e8e8e8;
-        border-color: rgba(200, 200, 200, 0.4);
-      }
-
-      /* Baseline Level Display */
-      #dnd-game-level-display {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #dnd-game-progress-circle {
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        background: conic-gradient(#6b8f71 0%, #1a1a1a 0%);
-        box-shadow: 0 0 15px rgba(107,143,113,0.3);
-      }
-      #dnd-game-progress-circle::before {
-        content: '';
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        background: #1a1a1a;
-      }
-      #stats-inner {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-      .level-num {
-        font-size: 24px;
-        font-weight: 800;
-        color: #ffffff;
-        line-height: 1;
-      }
-      .level-label {
-        font-size: 10px;
-        color: #a8a8a8;
-        letter-spacing: 1px;
-      }
-      .hp-text {
-        font-size: 11px;
-        color: #b85450;
-        margin-top: 4px;
-        font-weight: 600;
-      }
-        /* --- Small.Origami Baseline Architecture Port --- */
-      
-      #mapview-container {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        height: 250px;
-        width: 250px;
-        border-radius: 22px;
-        background: var(--bg-panel);
-        padding: 15px;
-        box-shadow: inset 5px 5px 10px rgba(0,0,0,0.5), inset -5px -5px 10px rgba(255,255,255,0.02), 7px 7px 16px rgba(0,0,0,0.6), -7px -7px 16px rgba(0,0,0,0.2);
-        z-index: 100;
-        border: 1px solid var(--border-color);
-        box-sizing: border-box;
-      }
-      #mapview-container .canvas-wrapper {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      
-      /* --- FUZZY LOGIC DEBUG VISUALS --- */
-      body.debug-layout * {
-         outline: 1px solid rgba(255, 0, 0, 0.3) !important;
-      }
-      body.debug-layout iframe {
-         outline: 2px solid rgba(0, 0, 255, 0.8) !important;
-         background: rgba(0, 0, 255, 0.1) !important;
-      }
-      body.debug-layout #adventure-panel {
-         outline: 3px dashed rgba(0, 255, 0, 0.9) !important;
-      }
       /* Side panels wrapper for Combat UI */
       #combat-panels-wrapper {
          position: absolute;
@@ -625,7 +142,6 @@
       #combat-panels-wrapper.active iframe {
          pointer-events: auto; /* Only capture clicks when active */
       }
-      
 
     </style>
   </head>
@@ -659,155 +175,106 @@
     </div>
 
     <script>
-      const app = {};
+      // Wrap in IIFE to avoid global namespace pollution
+      (function() {
+         document.addEventListener("DOMContentLoaded", () => {
+            // --- CACHED DOM REFERENCES ---
+            // Fetch once at load instead of constantly repeatedly querying inside messaging loops
+            const engines = {
+               fpv: document.getElementById('fpv-iframe'),
+               map: document.getElementById('map-iframe'),
+               combat: document.getElementById('combat-iframe'),
+               panels: document.getElementById('panels-iframe')
+            };
+            const combatWrapper = document.getElementById('combat-panels-wrapper');
+            let cachedInitEntities = null;
 
-      document.addEventListener("DOMContentLoaded", () => {
-        let globalZIndex = 100;
-        const LAYOUT_STORAGE_KEY = 'dashboard_layout_v4';
-        const THEME_STORAGE_KEY = 'dashboard_theme_v1';
-
-
-
-
-        // --- STATE & CONFIG ---
-        // Basic app state removed since panels are absolute now.
-
-        // --- MESSAGE ROUTING (FPV -> PIP) ---
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'toggleTheme') {
-                const isDark = document.body.classList.contains('dark-mode');
-                setTheme(!isDark);
-            }
-        });
-
-        // --- 5. INITIALIZATION ---
-
-        function sendKeyEvent(keyStr) {
-            const fpvIframe = document.getElementById('fpv-iframe');
-            if (fpvIframe && fpvIframe.contentWindow) {
-                fpvIframe.contentWindow.postMessage({ type: 'KEY_DOWN', key: keyStr }, '*');
-            }
-            const mapIframe = document.getElementById('map-iframe');
-            if (mapIframe && mapIframe.contentWindow) {
-                mapIframe.contentWindow.postMessage({ type: 'KEY_DOWN', key: keyStr }, '*');
-            }
-        }
-
-        function sendKeyUpEvent(keyStr) {
-            const fpvIframe = document.getElementById('fpv-iframe');
-            if (fpvIframe && fpvIframe.contentWindow) {
-                fpvIframe.contentWindow.postMessage({ type: 'KEY_UP', key: keyStr }, '*');
-            }
-            const mapIframe = document.getElementById('map-iframe');
-            if (mapIframe && mapIframe.contentWindow) {
-                mapIframe.contentWindow.postMessage({ type: 'KEY_UP', key: keyStr }, '*');
-            }
-        }
-        // Forward global key events (WASD) so the player never stops moving if they click off the iframe
-        document.addEventListener('keydown', (e) => {
-            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-            const fpvIframe = document.getElementById('fpv-iframe');
-            if (fpvIframe && fpvIframe.contentWindow) {
-                fpvIframe.contentWindow.postMessage({ type: 'KEY_DOWN', key: e.key, code: e.code }, '*');
-            }
-            const mapIframe = document.getElementById('map-iframe');
-            if (mapIframe && mapIframe.contentWindow) {
-                mapIframe.contentWindow.postMessage({ type: 'KEY_DOWN', key: e.key, code: e.code }, '*');
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-            const fpvIframe = document.getElementById('fpv-iframe');
-            if (fpvIframe && fpvIframe.contentWindow) {
-                fpvIframe.contentWindow.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
-            }
-            const mapIframe = document.getElementById('map-iframe');
-            if (mapIframe && mapIframe.contentWindow) {
-                mapIframe.contentWindow.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
-            }
-        });
-        
-        let cachedInitEntities = null;
-
-        // --- MASTER MESSAGE ROUTER ---
-        // Bounces messages between the decoupled IFrames
-        window.addEventListener('message', (e) => {
-           if (!e.data || !e.data.type) return;
-
-           // When Map Engine spins up, immediately send it the cached dungeon data
-           if (e.data.type === 'MAP_ENGINE_READY' && cachedInitEntities) {
-               const mapFrame = document.getElementById('map-iframe');
-               if (mapFrame && mapFrame.contentWindow) {
-                   mapFrame.contentWindow.postMessage(cachedInitEntities, '*');
+            // --- HELPER FUNCTIONS ---
+            /** Safely broadcasts a message payload to a specific engine/iframe */
+            function notifyEngine(engineKey, payload) {
+               const frame = engines[engineKey];
+               if (frame && frame.contentWindow) {
+                  frame.contentWindow.postMessage(payload, '*');
                }
-           }
+            }
 
-           // Route movement data to the Map Engine to keep the Map Camera synced
-           if (e.data.type === 'PLAYER_MOVE') {
-               const mapFrame = document.getElementById('map-iframe');
-               if (mapFrame && mapFrame.contentWindow) {
-                   mapFrame.contentWindow.postMessage(e.data, '*');
+            /** Broadcasts to all active engine logic iframes */
+            function broadcastKey(type, payload) {
+               const msg = { type, ...payload };
+               notifyEngine('fpv', msg);
+               notifyEngine('map', msg);
+            }
+
+            // --- KEYBOARD ROUTING ---
+            // Forward global key events (WASD) natively downwards.
+            // Using e.repeat drastically improves performance by stopping the key holding spam.
+            document.addEventListener('keydown', (e) => {
+               if (e.repeat) return; // Prevent spamming messages while button is held
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_DOWN', { key: e.key, code: e.code });
+            });
+
+            document.addEventListener('keyup', (e) => {
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_UP', { key: e.key, code: e.code });
+            });
+
+            // --- MASTER MESSAGE ROUTER (Relay switchboard) ---
+            window.addEventListener('message', (e) => {
+               if (!e.data || !e.data.type) return;
+
+               switch (e.data.type) {
+                  case 'toggleTheme':
+                     const isDark = document.body.classList.contains('dark-mode');
+                     setTheme(!isDark);
+                     break;
+
+                  case 'MAP_ENGINE_READY':
+                     if (cachedInitEntities) notifyEngine('map', cachedInitEntities);
+                     break;
+
+                  case 'PLAYER_MOVE':
+                     notifyEngine('map', e.data);
+                     break;
+
+                  case 'PLAYER_MOVE_STATE':
+                     window.parent.postMessage(e.data, '*');
+                     break;
+
+                  case 'SHOW_COMBAT':
+                     if (combatWrapper) combatWrapper.classList.add('active');
+                     notifyEngine('combat', e.data);
+                     break;
+
+                  case 'HIDE_COMBAT':
+                  case 'HIDE_ALL':
+                     if (combatWrapper) combatWrapper.classList.remove('active');
+                     notifyEngine('combat', e.data);
+                     break;
+
+                  case 'INIT_ENTITIES':
+                     cachedInitEntities = e.data;
+                     notifyEngine('map', e.data);
+                     break;
+
+                  case 'KEY_DOWN':
+                  case 'KEY_UP':
+                     broadcastKey(e.data.type, e.data);
+                     break;
+
+                  // Route specific UI Actions from Panels straight to FPV
+                  case 'EXPLORE_ROOM':
+                  case 'SEARCH_ADJACENT':
+                  case 'AUTO_EXPLORE':
+                  case 'APPROACH_MONSTER':
+                  case 'TEXT_COMMAND':
+                  case 'FPV_ACTION':
+                     notifyEngine('fpv', e.data);
+                     break;
                }
-           }
-           
-           if (e.data.type === 'PLAYER_MOVE_STATE') {
-               window.parent.postMessage(e.data, '*');
-               
-               // Fade HUD when moving logic disabled to prevent flashing panels
-           }
-           
-           if (e.data.type === 'PLAYER_IDLE') {
-               // Player stopped moving map/rendering.
-               // We catch the `isMoving: false` in PLAYER_MOVE_STATE instead for robustness.
-           }
-           
-           // Combat HUD visibility
-           if (e.data.type === 'SHOW_COMBAT') {
-               const combatWrapper = document.getElementById('combat-panels-wrapper');
-               if (combatWrapper) combatWrapper.classList.add('active');
-               const cf = document.getElementById('combat-iframe');
-               if (cf && cf.contentWindow) cf.contentWindow.postMessage(e.data, '*');
-           }
-           
-           if (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL') {
-               const combatWrapper = document.getElementById('combat-panels-wrapper');
-               if (combatWrapper) combatWrapper.classList.remove('active');
-               const cf = document.getElementById('combat-iframe');
-               if (cf && cf.contentWindow) cf.contentWindow.postMessage(e.data, '*');
-           }
-           
-           // Route the generated dungeon layout from the FPV engine to the Map engine and AI
-           if (e.data.type === 'INIT_ENTITIES') {
-               cachedInitEntities = e.data;
-               const mapFrame = document.getElementById('map-iframe');
-               if (mapFrame && mapFrame.contentWindow) {
-                   mapFrame.contentWindow.postMessage(e.data, '*');
-               }
-               // Note: The AI frame router will also be placed here eventually
-           }
-           
-           // Route Virtual Keypad events to engines
-           if (e.data.type === 'KEY_DOWN' || e.data.type === 'KEY_UP') {
-               const fpvFrame = document.getElementById('fpv-iframe');
-               if (fpvFrame && fpvFrame.contentWindow) {
-                   fpvFrame.contentWindow.postMessage(e.data, '*');
-               }
-               const mapFrame = document.getElementById('map-iframe');
-               if (mapFrame && mapFrame.contentWindow) {
-                   mapFrame.contentWindow.postMessage(e.data, '*');
-               }
-           }
-           
-           // Route UI Actions from Panels (relay to original FPV engine)
-           if (['EXPLORE_ROOM', 'SEARCH_ADJACENT', 'AUTO_EXPLORE', 'APPROACH_MONSTER', 'TEXT_COMMAND', 'FPV_ACTION'].includes(e.data.type)) {
-               const fpvFrame = document.getElementById('fpv-iframe');
-               if (fpvFrame && fpvFrame.contentWindow) {
-                   fpvFrame.contentWindow.postMessage(e.data, '*');
-               }
-           }
-        });
-      });
+            });
+         });
+      })();
     </script>
   </body>
 </html>
