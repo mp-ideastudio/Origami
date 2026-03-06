@@ -803,16 +803,11 @@
                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
                 this.bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    0.6,    // strength (washes out image if too high)
-                    0.8,    // radius (smear width)
-                    0.45    // threshold (increased so the regular floor doesn't bloom)
+                    0.4,    // strength (reduced to prevent blowout)
+                    0.2,    // radius (tightened for sharper glow)
+                    0.9     // threshold (drastically increased so only the pure white 0xffffff goblin eyes bloom, leaving the floor and walls sharp)
                 );
                 this.composer.addPass(this.bloomPass);
-
-                // 2. Chromatic Aberration (RGB Shift for spectral interference)
-                this.rgbShiftPass = new THREE.ShaderPass(THREE.RGBShiftShader);
-                this.rgbShiftPass.uniforms['amount'].value = 0.0035; // Subtle edge separation
-                this.composer.addPass(this.rgbShiftPass);
 
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
