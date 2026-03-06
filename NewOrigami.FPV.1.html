@@ -812,12 +812,21 @@
 
                 // 2. Outline Pass (Neon Luminous Border around enemies)
                 this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
-                this.outlinePass.edgeStrength = 4.0;
-                this.outlinePass.edgeGlow = 1.0;
-                this.outlinePass.edgeThickness = 2.0;
+                this.outlinePass.edgeStrength = 8.0; // Cranked up for intense bloom reflection
+                this.outlinePass.edgeGlow = 3.0; // Increased blur spread
+                this.outlinePass.edgeThickness = 4.0; // Thicker rim matching the SSS glass
                 this.outlinePass.pulsePeriod = 0;
-                this.outlinePass.visibleEdgeColor.setHex(0x00ffcc); // Bright cyan/green holographic border
-                this.outlinePass.hiddenEdgeColor.setHex(0x00ffcc);
+                
+                // Using setRGB with values > 1.0 forces it into HDR range so UnrealBloom catches it aggressively
+                this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0); 
+                this.outlinePass.hiddenEdgeColor.setRGB(0, 4.0, 3.0);
+                
+                // CRITICAL FIX: Three.js r128 OutlinePass materials do NOT support skinning by default!
+                // This causes the outline to freeze in T-Pose when approaching the camera.
+                if (this.outlinePass.prepareMaskMaterial) this.outlinePass.prepareMaskMaterial.skinning = true;
+                if (this.outlinePass.depthMaterial) this.outlinePass.depthMaterial.skinning = true;
+                if (this.outlinePass.renderMaterial) this.outlinePass.renderMaterial.skinning = true;
+                
                 this.composer.addPass(this.outlinePass);
 
                 window.addEventListener('resize', () => {
@@ -1240,8 +1249,11 @@
                                 const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
                                 const meshName = child.name ? child.name.toLowerCase() : "";
                                 
+                                const eyeKeywords = ['eye', 'pupil', 'sclera', 'cornea', 'lens', 'iris'];
+                                const isEye = eyeKeywords.some(kw => matName.includes(kw) || meshName.includes(kw));
+                                
                                 // Skip applying hologram transparency and neon color logic to the white eyes
-                                if (!matName.includes('eye') && !meshName.includes('eye') && !matName.includes('pupil') && !meshName.includes('pupil')) {
+                                if (!isEye) {
                                     // Clone existing native texture mapping
                                     const ghostMat = Array.isArray(nativeMat) 
                                         ? nativeMat.map(m => m.clone()) 
@@ -1278,8 +1290,9 @@
                                 } else {
                                     // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
                                     const eyeMat = nativeMat.clone();
+                                    if (eyeMat.color) eyeMat.color.setHex(0xffffff);
                                     eyeMat.emissive.setHex(0xffffff);
-                                    eyeMat.emissiveIntensity = 2.0;
+                                    eyeMat.emissiveIntensity = 5.0; // Extreme intensity for Bloom threshold 0.9
                                     child.material = eyeMat;
                                 }
                                 
@@ -1287,6 +1300,11 @@
                                 child.renderOrder = 10; 
                             }
                         });
+
+                        // Attach a pure white point light right at eye/face level to blast the face with illumination
+                        const eyeLight = new THREE.PointLight(0xffffff, 2.0, this.gridSize * 1.5);
+                        eyeLight.position.set(0, 1.4, 0.4); // Head height, slightly forward
+                        goblin.add(eyeLight);
 
                         // Local Ghost PointLight removed to eliminate volumetric scatter haze
                         
@@ -1301,9 +1319,9 @@
                         // Fix Rotation: Force to -Math.PI/2 to swing from 90 degrees Left to 90 degrees Right (facing player)
                         goblin.rotation.y = -Math.PI / 2;
                         
-                        // Push to OutlinePass so it renders the luminous border around the physical mesh
-                        if (this.outlinePass && !this.outlinePass.selectedObjects.includes(entityWrapper)) {
-                            this.outlinePass.selectedObjects.push(entityWrapper);
+                        // Push to OutlinePass so it renders the luminous border around the physical mesh (NOT the ground circle wrapper)
+                        if (this.outlinePass && !this.outlinePass.selectedObjects.includes(goblin)) {
+                            this.outlinePass.selectedObjects.push(goblin);
                         }
                         
                         buildEntity(sp, true, entityWrapper);
