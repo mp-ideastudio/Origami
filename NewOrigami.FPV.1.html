@@ -775,11 +775,11 @@
                 this.scene.add(rimLight);
                 
                 // Player Flashlight
-                const headlamp = new THREE.SpotLight(0xfff8e0, 0.5, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1);
+                const headlamp = new THREE.SpotLight(0xfff8e0, 0.1, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1); // Dropped brightness to prevent washout
                 headlamp.position.set(0, 0, 0);
                 headlamp.target.position.set(0, 0, -1);
                 
-                const outerGlow = new THREE.SpotLight(0xffffff, 0.9, this.gridSize * 20, Math.PI / 8, 0.2, 0.8);
+                const outerGlow = new THREE.SpotLight(0xffffff, 0.0, this.gridSize * 20, Math.PI / 8, 0.2, 0.8); // Zeroed out to prevent massive white bloom semicircle
                 outerGlow.position.set(0, 0, 0);
                 outerGlow.target.position.set(0, 0, -1);
                 
@@ -1243,10 +1243,16 @@
                                     const applyHoloLayer = (mat) => {
                                         mat.transparent = true;
                                         mat.opacity = 0.65; // Dropped to 0.65 for more ethereal thinness
-                                        mat.blending = THREE.AdditiveBlending; // Glass hologram non-reflective aesthetic
+                                        mat.blending = THREE.NormalBlending; // Reverted from AdditiveBlending to prevent white washout
                                         mat.depthWrite = false; // Prevent Z-fighting and allow internal glow
                                         mat.shininess = 0;  // Prevent white flashlight reflection overbloom
+                                        
+                                        // Stop the material from capturing headlamp light by nullifying its root color
+                                        if (mat.color) mat.color.setHex(0x000000);
+                                        
                                         if (mat.specular) mat.specular.setHex(0x000000);
+                                        if (mat.map) mat.emissiveMap = mat.map; // Cast the texture directly into the glow
+                                        
                                         if (mat.emissive) {
                                             mat.emissive.setHex(0x00ffcc); // Green+Blue Hologram
                                             mat.emissiveIntensity = 0.6;
