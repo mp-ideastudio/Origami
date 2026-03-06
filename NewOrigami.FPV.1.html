@@ -751,7 +751,10 @@
                 this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for perf
-                // We disabled autoClear=false and composer since bloom is removed
+                
+                // Shift Optical Center UP by 150px so the Monster is not blocked by the UI panels at the bottom
+                // Arguments: (fullWidth, fullHeight, xOffset, yOffset, width, height)
+                this.camera.setViewOffset(window.innerWidth, window.innerHeight, 0, 150, window.innerWidth, window.innerHeight);
                 
                 // Bloom removed completely based on user feedback
                 
@@ -831,6 +834,10 @@
 
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
+                    
+                    // Maintain the 150px optical shift dynamically upon resize
+                    this.camera.setViewOffset(window.innerWidth, window.innerHeight, 0, 150, window.innerWidth, window.innerHeight);
+                    
                     if (this.renderer) {
                         this.renderer.setSize(window.innerWidth, window.innerHeight);
                         this.composer.setSize(window.innerWidth, window.innerHeight);
