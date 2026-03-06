@@ -223,13 +223,6 @@
             SWAY_AMP: 0.015, // Horizontal sway width
             
             keys: { w: false, a: false, s: false, d: false },
-            isMoving: false,
-            lastGridX: -1,
-            lastGridZ: -1,
-            wasIdle: true,
-            bobTimer: 0,     // Tracks head-bob animation
-            bobHeight: 0,    // Current vertical offset
-            bobSway: 0,      // Current horizontal offset
             gameTime: 0,     // Custom accumulator for turn-based time-stop effect
 
             init() {
@@ -663,97 +656,41 @@
                 // Initialize rich grid map architecture [x][z]
                 this.mapData = Array.from({ length: this.mapWidth }, () => Array.from({ length: this.mapHeight }, () => ({ type: 'wall' })));
                 this.rooms = [];
-                const roomCount = 10; // Exactly 10 rooms for NetHack style
-                const ROOM_BUFFER = 2; // Prevents rooms from touching
-                const ROOM_SIZES = [
-                    { w: 6, h: 6 },
-                    { w: 5, h: 7 },
-                    { w: 8, h: 5 },
-                    { w: 4, h: 8 }
-                ];
-                const MAX_ROOM_GAP = 6; 
-
-                // 1. Place Rooms (force 10)
-                let attempts = 0;
-                while (this.rooms.length < roomCount && attempts < 500) {
-                    attempts++;
-                    const size = ROOM_SIZES[Math.floor(Math.random() * ROOM_SIZES.length)];
-                    const w = size.w; const h = size.h;
-                    const x = 1 + Math.floor(Math.random() * (this.mapWidth - w - 2));
-                    const y = 1 + Math.floor(Math.random() * (this.mapHeight - h - 6)); 
-
-                    const newRoom = { id: this.rooms.length + 1, x, y, w, h, center: { x: x + Math.floor(w / 2), y: y + Math.floor(h / 2) } };
-                    let overlaps = false;
-                    for (let r of this.rooms) {
-                        if (x < r.x + r.w + ROOM_BUFFER && x + w + ROOM_BUFFER > r.x && y < r.y + r.h + ROOM_BUFFER && y + h + ROOM_BUFFER > r.y) {
-                            overlaps = true; break;
-                        }
-                    }
-                    if (overlaps) continue;
-
-                    let isCloseEnough = this.rooms.length === 0;
-                    if (!isCloseEnough) {
-                        for (let r of this.rooms) {
-                            const dx = Math.max(0, Math.max(r.x - (x + w), x - (r.x + r.w)));
-                            const dy = Math.max(0, Math.max(r.y - (y + h), y - (r.y + r.h)));
-                            if (Math.max(dx, dy) <= MAX_ROOM_GAP) { isCloseEnough = true; break; }
-                        }
-                    }
-                    if (!isCloseEnough) continue;
-
-                    this.rooms.push(newRoom);
-                    for (let ry = y; ry < y + h; ry++) {
-                        for (let rx = x; rx < x + w; rx++) {
-                            this.mapData[rx][ry] = { type: 'floor', room: true, roomId: newRoom.id };
-                        }
-                    }
-                }
-
-                if (this.rooms.length === 0) return; // Fallback
-
-                // 2. Entrance (7 Tiles Long)
-                const entrancePos = { x: Math.floor(this.mapWidth / 2), y: this.mapHeight - 2 };
-                this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
-                this.mapData[entrancePos.x][this.mapHeight - 1] = { type: 'wall' }; // Ensure the very bottom is a wall behind the stairs
+                // STATIC HALLWAY SANDBOX (AS REQUESTED)
+                // 1. Single massive 7x7 room at the North end
+                const roomSize = 7;
+                const rStartX = Math.floor(this.mapWidth / 2) - 3;
+                const rStartZ = 5;
                 
-                for (let i = 0; i <= 7; i++) {
-                    this.mapData[entrancePos.x][this.mapHeight - 2 - i] = { type: 'floor', hallway: true };
-                }
-                const hallwayEnd = { x: entrancePos.x, y: this.mapHeight - 9 };
-
-                // 3. Connect Entrance to nearest room
-                let closestRoomToEntrance = this.rooms.sort((a, b) =>
-                    Math.hypot(a.center.x - hallwayEnd.x, a.center.y - hallwayEnd.y) -
-                    Math.hypot(b.center.x - hallwayEnd.x, b.center.y - hallwayEnd.y)
-                )[0];
-                this.carveFuzzyHallway(hallwayEnd, closestRoomToEntrance.center);
-
-                // 4. Connect all rooms
-                const connectedRooms = new Set();
-                connectedRooms.add(closestRoomToEntrance);
-
-                while (connectedRooms.size < this.rooms.length) {
-                    let closestDist = Infinity;
-                    let closestPair = null;
-
-                    for (const conRoom of Array.from(connectedRooms)) {
-                        for (const unconRoom of this.rooms) {
-                            if (connectedRooms.has(unconRoom)) continue;
-                            const dist = Math.hypot(conRoom.center.x - unconRoom.center.x, conRoom.center.y - unconRoom.center.y);
-                            if (dist < closestDist) {
-                                closestDist = dist;
-                                closestPair = { from: conRoom, to: unconRoom };
-                            }
-                        }
+                this.rooms = [{
+                    id: 1, 
+                    x: rStartX, 
+                    y: rStartZ, 
+                    w: roomSize, 
+                    h: roomSize, 
+                    center: { x: rStartX + 3, y: rStartZ + 3 }
+                }];
+                
+                for(let ry = rStartZ; ry < rStartZ + roomSize; ry++) {
+                    for(let rx = rStartX; rx < rStartX + roomSize; rx++) {
+                        this.mapData[rx][ry] = { type: 'floor', room: true, roomId: 1 };
                     }
-
-                    if (closestPair) {
-                        this.carveFuzzyHallway(closestPair.from.center, closestPair.to.center);
-                        connectedRooms.add(closestPair.to);
-                    } else break;
                 }
-
-                // Move Player to entrance
+                
+                // 2. Straight 7-tile hallway leading South from the room's bottom center
+                const hallX = this.rooms[0].center.x;
+                const hallStartTopZ = rStartZ + roomSize;
+                
+                for(let i = 0; i < 7; i++) {
+                    this.mapData[hallX][hallStartTopZ + i] = { type: 'floor', hallway: true };
+                }
+                
+                // Entrance exactly at the end of the hallway
+                const entrancePos = { x: hallX, y: hallStartTopZ + 6 };
+                this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
+                this.mapData[entrancePos.x][entrancePos.y + 1] = { type: 'wall' }; // Blocking wall behind it
+                
+                // Move Player to entrance, facing North (0 rotation)
                 this.player.x = entrancePos.x;
                 this.player.z = entrancePos.y;
                 this.player.rot = 0;
@@ -769,48 +706,20 @@
                     }
                 }
                 
-                // Spawn 1 Test Model exactly in the center of the first generated room
-                const firstRoom = this.rooms[0];
+                // Spawn 1 Target exactly in the center of the sandbox room
                 this.mobSpawns.push({ 
                     type: 'goblin', 
-                    x: firstRoom.center.x, 
-                    z: firstRoom.center.y, 
-                    homeX: firstRoom.center.x, 
-                    homeZ: firstRoom.center.y, 
+                    x: this.rooms[0].center.x, 
+                    z: this.rooms[0].center.y, 
+                    homeX: this.rooms[0].center.x, 
+                    homeZ: this.rooms[0].center.y, 
                     speed: 8.0, 
                     state: 'IDLE', searchTimer: 0 
                 });
             },
 
             carveFuzzyHallway(start, end) {
-                let cx = start.x;
-                let cy = start.y;
-                let lastDir = null;
-
-                while (cx !== end.x || cy !== end.y) {
-                    const dx = end.x - cx;
-                    const dy = end.y - cy;
-                    let moveHorizontal;
-                    
-                    if (dx === 0) moveHorizontal = false;
-                    else if (dy === 0) moveHorizontal = true;
-                    else {
-                        const continueChance = 0.75;
-                        if (lastDir === 'h' && Math.random() < continueChance) moveHorizontal = true;
-                        else if (lastDir === 'v' && Math.random() < continueChance) moveHorizontal = false;
-                        else moveHorizontal = Math.random() > 0.5;
-                    }
-
-                    if (moveHorizontal) {
-                        cx += Math.sign(dx); lastDir = 'h';
-                    } else {
-                        cy += Math.sign(dy); lastDir = 'v';
-                    }
-
-                    if (this.mapData[cx]?.[cy]?.type === 'wall') {
-                        this.mapData[cx][cy] = { type: 'floor', hallway: true };
-                    }
-                }
+                // Kept for signature compatibility if MapEngine relies on parsing this script directly
             },
 
             initWebGL() {
@@ -871,11 +780,32 @@
                 // Keep reference for flickering effect in animate()
                 this.headlamp = headlamp;
                 this.outerGlow = outerGlow;
+                
+                // -----------------------------------------------------
+                // GHOSTBUSTER POST-PROCESSING PIPELINE
+                // -----------------------------------------------------
+                this.composer = new THREE.EffectComposer(this.renderer);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+
+                // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
+                this.bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    0.6,    // strength (washes out image if too high)
+                    0.8,    // radius (smear width)
+                    0.2     // threshold (only glow things brighter than this)
+                );
+                this.composer.addPass(this.bloomPass);
+
+                // 2. Chromatic Aberration (RGB Shift for spectral interference)
+                this.rgbShiftPass = new THREE.ShaderPass(THREE.RGBShiftShader);
+                this.rgbShiftPass.uniforms['amount'].value = 0.0035; // Subtle edge separation
+                this.composer.addPass(this.rgbShiftPass);
 
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
                     if (this.renderer) {
                         this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        this.composer.setSize(window.innerWidth, window.innerHeight);
                     }
                 });
 
@@ -1284,15 +1214,14 @@
                         }
                         
                         
-                        // Safe Ghostbuster Silhouette (Additive Blending stacking)
+                        // Safe Subsurface Scattering implementation (Relies on UnrealBloomPass for glow)
+                        // This allows the paper to tint intensely with the ghost light without breaking rigged skeleton shaders
                         const glassMat = new THREE.MeshPhongMaterial({
-                            color: 0x001111,          // Very dark core
-                            emissive: 0x00ffaa,       // Bright glowing cyan-green edge
+                            color: 0x004433,          // Matte base color
+                            emissive: 0x00aaff,       // Blast it with cyan phantom light
+                            emissiveIntensity: 0.6,   // The BloomPass grabs this to make the glow push beyond the geometry
                             transparent: true,
-                            opacity: 0.15,            // Almost fully see-through so it only stacks heavily on the edges
-                            side: THREE.DoubleSide,
-                            depthWrite: false,        // Required for stacked additive transparency 
-                            blending: THREE.AdditiveBlending 
+                            opacity: 0.85             // Mostly opaque to catch the SSS light, but slightly glassy
                         });
                         
                         // Rigged models MUST have skinning enabled when replacing materials
@@ -1301,7 +1230,7 @@
                         
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                // Protect the authentic white glowing eyes
+                                // Protect the authentic white glowing eyes (BloomPass will grab their native 1.0 white emissive and make them blinding)
                                 const matName = child.material.name ? child.material.name.toLowerCase() : "";
                                 if (!matName.includes('eye')) {
                                     child.material = child.isSkinnedMesh ? glassSkinnedMat : glassMat;
@@ -2005,8 +1934,12 @@
                 this.renderer.setClearColor(0x2a2a2a, 1);
                 this.scene.fog.density = 0.12; // Volumetric fog ON
                 
-                // Use standard Renderer
-                this.renderer.render(this.scene, this.camera);
+                // Use Composer for Bloom and Chromatic Aberration Pipeline
+                if (this.composer) {
+                    this.composer.render();
+                } else {
+                    this.renderer.render(this.scene, this.camera);
+                }
                 
                 // --- FPS Counter ---
                 this.frameCount++;
