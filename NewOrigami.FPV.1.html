@@ -805,7 +805,7 @@
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
                     0.6,    // strength (washes out image if too high)
                     0.8,    // radius (smear width)
-                    0.2     // threshold (only glow things brighter than this)
+                    0.45    // threshold (increased so the regular floor doesn't bloom)
                 );
                 this.composer.addPass(this.bloomPass);
 
@@ -1242,7 +1242,7 @@
                                     // Apply neon cyan/green hologram rules without breaking textures/skinning
                                     const applyHoloLayer = (mat) => {
                                         mat.transparent = true;
-                                        mat.opacity = 0.85;
+                                        mat.opacity = 0.75;
                                         if (mat.emissive) {
                                             mat.emissive.setHex(0x00ffaa);
                                             mat.emissiveIntensity = 0.6;
@@ -1279,7 +1279,7 @@
                         entityWrapper.userData.mistGroup = mistGroup;
                         
                         // Add a local point light inside the ghost to cast a blue-green glow on the dungeon walls
-                        const spiritGlow = new THREE.PointLight(0x00ffaa, 0.15, this.gridSize * 2.0); // Dramatically reduced intensity (0.5 => 0.15)
+                        const spiritGlow = new THREE.PointLight(0x00ffaa, 0.05, this.gridSize * 2.0); // Dramatically reduced intensity (0.5 => 0.15 => 0.05)
                         spiritGlow.position.set(0, 1.0, 0); // Belly height
                         entityWrapper.add(spiritGlow);
                         
