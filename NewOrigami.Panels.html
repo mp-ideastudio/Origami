@@ -129,7 +129,7 @@
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-panel); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 8px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: 2px solid var(--water-clr); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: none; }
         .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
@@ -473,12 +473,12 @@
             loader.load('./assets/models/Player.A.Walking.glb', (gltf) => {
                 const model = gltf.scene;
                 
-                // Position so the torso is centered in the circle
-                model.position.set(0, -0.6, 0);
+                // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
+                model.position.set(0, -0.1, 0);
                 // Rotate to face slightly right layout (isometric feel)
                 model.rotation.y = Math.PI / 8;
                 // Scale by 20%
-                model.scale.set(1.2, 1.2, 1.2);
+                model.scale.set(1.25, 1.25, 1.25);
                 
                 avatarScene.add(model);
                 

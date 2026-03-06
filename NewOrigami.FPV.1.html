@@ -1276,10 +1276,7 @@
                             }
                         });
 
-                        // Restore a localized point light to give the Monster self-illumination over its surroundings
-                        const spiritGlow = new THREE.PointLight(0x00ffcc, 0.15, this.gridSize * 2.0);
-                        spiritGlow.position.set(0, 1.0, 0); // Belly height
-                        entityWrapper.add(spiritGlow);
+                        // Local Ghost PointLight removed to eliminate volumetric scatter haze
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
@@ -1483,8 +1480,8 @@
                             const dot = camDir.dot(dirFromPlayer3D);
                             
                             let panelHasLoS = false;
-                            // 180-degree frontal cone (dot > -0.2) and ignore walls, as requested by user. Widened distance tolerance to prevent missing combat panels on collision.
-                            if (dist >= 0 && dist <= 1.8 && dot > -0.2) {
+                            // Wide 180-degree frontal cone and ignore walls. Radically widened distance to 3.0 tiles to ensure Panels pop early enough.
+                            if (dist >= 0 && dist <= 3.0 && dot > -0.5) {
                                 panelHasLoS = true;
                                 
                                 if (dist < closestDist) {
