@@ -1284,21 +1284,15 @@
                         }
                         
                         
-                        // Apply Blue-Green Holographic Glass Material (Silhouette focused)
-                        const glassMat = new THREE.MeshPhysicalMaterial({
-                            color: 0x001111,          // Almost black core so it only relies on emissive/transmission
-                            emissive: 0x004433,       // Dark green/cyan subtle glow
-                            emissiveIntensity: 0.5,   // Reduced from 0.7 to kill inner bloom
-                            roughness: 0.05,          // Incredibly sharp, glossy rim
-                            metalness: 0.1,           
-                            transmission: 1.0,        // Max glass refraction thickness
-                            ior: 1.5,                 // Standard glass Index of Refraction
-                            clearcoat: 1.0,           // Sharp rim lighting
-                            clearcoatRoughness: 0.1,
+                        // Safe Ghostbuster Silhouette (Additive Blending stacking)
+                        const glassMat = new THREE.MeshPhongMaterial({
+                            color: 0x001111,          // Very dark core
+                            emissive: 0x00ffaa,       // Bright glowing cyan-green edge
                             transparent: true,
-                            opacity: 1.0,
+                            opacity: 0.15,            // Almost fully see-through so it only stacks heavily on the edges
                             side: THREE.DoubleSide,
-                            depthWrite: false         // Prevent self-occlusion artifacts
+                            depthWrite: false,        // Required for stacked additive transparency 
+                            blending: THREE.AdditiveBlending 
                         });
                         
                         // Rigged models MUST have skinning enabled when replacing materials
@@ -1307,7 +1301,12 @@
                         
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                child.material = child.isSkinnedMesh ? glassSkinnedMat : glassMat;
+                                // Protect the authentic white glowing eyes
+                                const matName = child.material.name ? child.material.name.toLowerCase() : "";
+                                if (!matName.includes('eye')) {
+                                    child.material = child.isSkinnedMesh ? glassSkinnedMat : glassMat;
+                                }
+                                
                                 // Fix Z-Index sorting issue against the red targeting circle
                                 child.renderOrder = 10; 
                             }
