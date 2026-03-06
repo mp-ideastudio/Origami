@@ -453,9 +453,11 @@
                 const model = gltf.scene;
                 
                 // Position so the torso is centered in the circle
-                model.position.set(0, -1.2, 0);
+                model.position.set(0, -0.6, 0);
                 // Rotate to face slightly right layout (isometric feel)
                 model.rotation.y = Math.PI / 8;
+                // Scale by 20%
+                model.scale.set(1.2, 1.2, 1.2);
                 
                 avatarScene.add(model);
                 
