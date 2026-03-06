@@ -1856,11 +1856,52 @@
                             const model = child.children[0];
                             const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
                             
-                            if (model && !child.userData.mixer) {
-                                // Simulate ethereal hovering off the ground
-                                if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
-                                model.position.y = 0.6 + Math.sin(time + child.userData.bobPhase) * 0.25; 
+                            // 1. Calculate Grid Distance to camera for Proximity Fading
+                            const mPosV = new THREE.Vector3().copy(child.position);
+                            mPosV.y += 1.0; 
+                            const cPosV = new THREE.Vector3().copy(this.camera.position);
+                            const distToPlayerGrid = cPosV.distanceTo(mPosV) / this.gridSize;
+
+                            let targetOpacity = 0.0;
+                            if (distToPlayerGrid < 3.0) targetOpacity = 0.70;
+                            else if (distToPlayerGrid > 8.0) targetOpacity = 0.0;
+                            else {
+                                const progress = (8.0 - distToPlayerGrid) / 5.0;
+                                targetOpacity = progress * 0.70;
+                            }
+                            
+                            // 2. Mathematically hide entities (and their outline/lights) when out of range
+                            child.visible = targetOpacity > 0.01;
+
+                            if (model && child.visible) {
+                                // Dynamic Translucency mapping
+                                model.traverse((n) => {
+                                    if (n.isMesh && n.material) {
+                                        const mats = Array.isArray(n.material) ? n.material : [n.material];
+                                        mats.forEach(mat => {
+                                            if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
+                                                if (targetOpacity <= 0.05) mat.opacity = 0.0; 
+                                                else mat.opacity = 1.0;
+                                            } else if (mat.name !== 'mist') { // Don't override mist physics
+                                                mat.opacity = targetOpacity;
+                                            }
+                                        });
+                                    }
+                                });
                                 
+                                // Ethereal Float Engine
+                                if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
+                                const isCombatTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
+                                
+                                // Increase float height and amplitude rapidly when confronted
+                                const floatAmp = isCombatTarget ? 0.6 : 0.25; 
+                                const floatBase = isCombatTarget ? 1.0 : (child.userData.mixer ? 0.0 : 0.6); // Let goblins walk when distant
+                                
+                                // Lerp the model's Y position physically into the air
+                                model.position.y += ( (floatBase + Math.sin(time + child.userData.bobPhase) * floatAmp) - model.position.y ) * 0.1;
+                            }
+                            
+                            if (model && !child.userData.mixer) {
                                 // Swirl Mist Particles
                                 if (child.userData.mistGroup) {
                                     child.userData.mistGroup.rotation.y += delta * 0.4; // Rotate entire cloud slowly
