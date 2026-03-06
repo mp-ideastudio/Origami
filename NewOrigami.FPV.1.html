@@ -804,9 +804,9 @@
                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
                 this.bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    0.4,    // strength (reduced to prevent blowout)
-                    0.2,    // radius (tightened for sharper glow)
-                    0.9     // threshold (drastically increased so only the pure white 0xffffff goblin eyes bloom, leaving the floor and walls sharp)
+                    0.8,    // strength (increased for intense radiant bloom)
+                    0.6,    // radius (widened for soft spread)
+                    0.9     // threshold (tightly clamped so only the 0xffffff glows)
                 );
                 this.composer.addPass(this.bloomPass);
 
@@ -1302,7 +1302,8 @@
                         });
 
                         // Attach a pure white point light right at eye/face level to blast the face with illumination
-                        const eyeLight = new THREE.PointLight(0xffffff, 2.0, this.gridSize * 1.5);
+                        // Distance heavily restricted to 0.4x gridSize so it doesn't illuminate long hallways
+                        const eyeLight = new THREE.PointLight(0xffffff, 2.0, this.gridSize * 0.4);
                         eyeLight.position.set(0, 1.4, 0.4); // Head height, slightly forward
                         goblin.add(eyeLight);
 
