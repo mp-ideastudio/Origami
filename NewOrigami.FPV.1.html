@@ -1243,7 +1243,7 @@
                                     // Apply neon cyan/green hologram rules without breaking textures/skinning
                                     const applyHoloLayer = (mat) => {
                                         mat.transparent = true;
-                                        mat.opacity = 0.35; // Dropped to 0.35 for intense 30% more transparent glass effect
+                                        mat.opacity = 0.55; // Opacity 0.55 for distinct double-sided 3D glass
                                         mat.blending = THREE.NormalBlending; // Reverted from AdditiveBlending to prevent white washout
                                         mat.side = THREE.DoubleSide; // Render back-walls through the front to make it look like actual volumetric hollow glass
                                         mat.depthWrite = false; // Prevent Z-fighting and allow internal glow
@@ -1281,7 +1281,10 @@
                             }
                         });
 
-                        // Mist and Local Ghost PointLight deleted to remove the massive white semi-circle ground bloom wash.
+                        // Restore a localized point light to give the Monster self-illumination over its surroundings
+                        const spiritGlow = new THREE.PointLight(0x00ffcc, 0.15, this.gridSize * 2.0);
+                        spiritGlow.position.set(0, 1.0, 0); // Belly height
+                        entityWrapper.add(spiritGlow);
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
@@ -1485,8 +1488,8 @@
                             const dot = camDir.dot(dirFromPlayer3D);
                             
                             let panelHasLoS = false;
-                            // 180-degree frontal cone (dot > 0) and ignore walls, as requested by user
-                            if (dist > 0 && dist < 1.5 && dot > 0) {
+                            // 180-degree frontal cone (dot > -0.2) and ignore walls, as requested by user. Widened distance tolerance to prevent missing combat panels on collision.
+                            if (dist >= 0 && dist <= 1.8 && dot > -0.2) {
                                 panelHasLoS = true;
                                 
                                 if (dist < closestDist) {
