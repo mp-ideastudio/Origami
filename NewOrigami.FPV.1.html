@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/OutlinePass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
@@ -809,11 +810,22 @@
                 );
                 this.composer.addPass(this.bloomPass);
 
+                // 2. Outline Pass (Neon Luminous Border around enemies)
+                this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
+                this.outlinePass.edgeStrength = 4.0;
+                this.outlinePass.edgeGlow = 1.0;
+                this.outlinePass.edgeThickness = 2.0;
+                this.outlinePass.pulsePeriod = 0;
+                this.outlinePass.visibleEdgeColor.setHex(0x00ffcc); // Bright cyan/green holographic border
+                this.outlinePass.hiddenEdgeColor.setHex(0x00ffcc);
+                this.composer.addPass(this.outlinePass);
+
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
                     if (this.renderer) {
                         this.renderer.setSize(window.innerWidth, window.innerHeight);
                         this.composer.setSize(window.innerWidth, window.innerHeight);
+                        if (this.outlinePass) this.outlinePass.setSize(window.innerWidth, window.innerHeight);
                     }
                 });
 
@@ -1289,6 +1301,11 @@
                         // Fix Rotation: Force to -Math.PI/2 to swing from 90 degrees Left to 90 degrees Right (facing player)
                         goblin.rotation.y = -Math.PI / 2;
                         
+                        // Push to OutlinePass so it renders the luminous border around the physical mesh
+                        if (this.outlinePass && !this.outlinePass.selectedObjects.includes(entityWrapper)) {
+                            this.outlinePass.selectedObjects.push(entityWrapper);
+                        }
+                        
                         buildEntity(sp, true, entityWrapper);
                     }, undefined, (e) => {
                         console.warn(`Failed to load Primary Model for spawn ${idx}, attempting CDN fallback:`, e?.message || e);
@@ -1480,8 +1497,11 @@
                             const dot = camDir.dot(dirFromPlayer3D);
                             
                             let panelHasLoS = false;
-                            // Wide 180-degree frontal cone and ignore walls. Radically widened distance to 3.0 tiles to ensure Panels pop early enough.
-                            if (dist >= 0 && dist <= 3.0 && dot > -0.5) {
+                            
+                            // To fix the "NaN dot product on collision" bug:
+                            // If player is perfectly colliding (dist <= 1.5), bypass angle logic entirely so Combat Panels stay rigidly locked
+                            // Otherwise, use the wide 180-degree frontal cone and ignore walls up to 3.0 tiles.
+                            if (dist <= 1.5 || (dist >= 0 && dist <= 3.0 && dot > -0.5)) {
                                 panelHasLoS = true;
                                 
                                 if (dist < closestDist) {
