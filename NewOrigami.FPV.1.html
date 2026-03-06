@@ -1231,9 +1231,10 @@
                             if (child.isMesh) {
                                 const nativeMat = child.material;
                                 const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
+                                const meshName = child.name ? child.name.toLowerCase() : "";
                                 
                                 // Skip applying hologram transparency and neon color logic to the white eyes
-                                if (!matName.includes('eye')) {
+                                if (!matName.includes('eye') && !meshName.includes('eye') && !matName.includes('pupil') && !meshName.includes('pupil')) {
                                     // Clone existing native texture mapping
                                     const ghostMat = Array.isArray(nativeMat) 
                                         ? nativeMat.map(m => m.clone()) 
@@ -1242,8 +1243,9 @@
                                     // Apply neon cyan/green hologram rules without breaking textures/skinning
                                     const applyHoloLayer = (mat) => {
                                         mat.transparent = true;
-                                        mat.opacity = 0.65; // Dropped to 0.65 for more ethereal thinness
+                                        mat.opacity = 0.35; // Dropped to 0.35 for intense 30% more transparent glass effect
                                         mat.blending = THREE.NormalBlending; // Reverted from AdditiveBlending to prevent white washout
+                                        mat.side = THREE.DoubleSide; // Render back-walls through the front to make it look like actual volumetric hollow glass
                                         mat.depthWrite = false; // Prevent Z-fighting and allow internal glow
                                         mat.shininess = 0;  // Prevent white flashlight reflection overbloom
                                         
@@ -1279,25 +1281,7 @@
                             }
                         });
 
-                        // Add swirling cinematic mist at the base (Blue-Green tint, reduced scale)
-                        const mistGroup = new THREE.Group();
-                        for(let i=0; i<8; i++) {
-                            const mat = new THREE.SpriteMaterial({ map: mistTex, color: 0x00ffcc, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
-                            const sprite = new THREE.Sprite(mat);
-                            const angle = (Math.PI * 2 / 8) * i;
-                            const radius = 0.8 + Math.random() * 0.4;
-                            sprite.position.set(Math.cos(angle) * radius, 0.1 + Math.random() * 0.3, Math.sin(angle) * radius);
-                            sprite.scale.set(2.0, 2.0, 2.0); // Reduced from 3.5
-                            sprite.userData = { angleOffset: angle, speed: 0.2 + Math.random() * 0.3 };
-                            mistGroup.add(sprite);
-                        }
-                        entityWrapper.add(mistGroup);
-                        entityWrapper.userData.mistGroup = mistGroup;
-                        
-                        // Add a local point light inside the ghost to cast a blue-green glow on the dungeon walls
-                        const spiritGlow = new THREE.PointLight(0x00ffcc, 0.05, this.gridSize * 2.0); // Dramatically reduced intensity (0.5 => 0.15 => 0.05)
-                        spiritGlow.position.set(0, 1.0, 0); // Belly height
-                        entityWrapper.add(spiritGlow);
+                        // Mist and Local Ghost PointLight deleted to remove the massive white semi-circle ground bloom wash.
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
