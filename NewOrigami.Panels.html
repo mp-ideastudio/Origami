@@ -199,10 +199,29 @@
 
         /* --- HIGH PERFORMANCE INPUT --- */
         #input-container { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; margin-top: 6px; }
-        .chat-pill { width: 100%; height: 54px; background: var(--bg-panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark), 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; text-transform: uppercase; }
-        .chat-input::placeholder { color: #ffffff; font-weight: 800; opacity: 0.8; text-transform: uppercase; }
+        .chat-pill { width: 100%; height: 54px; background: rgba(30,30,35,0.85); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark), 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; }
+        .chat-input::placeholder { color: #ffffff; font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); }
+        
+        #event-log-container {
+            position: absolute;
+            bottom: 120px; /* Sits 30px above the bottom-panel which is ~90px tall */
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 900;
+            font-style: italic;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 100;
+        }
+        #event-log-container.visible {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="focus-active">
@@ -257,6 +276,8 @@
                 <div class="u-btn pos-e" data-key="ArrowRight"><i class="fa-solid fa-caret-right"></i></div>
                 <div class="u-btn pos-s" data-key="ArrowDown"><i class="fa-solid fa-caret-down"></i></div>
             </div>
+
+            <div id="event-log-container"></div>
 
             <div id="bottom-panel" class="u-panel" tabindex="2">
                 <div id="tactical-inner-wrap">

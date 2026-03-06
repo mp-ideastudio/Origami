@@ -1545,8 +1545,18 @@
                     if (currentCmd === 'SHOW_GAMBLING') {
                         window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
                     } else if (currentCmd === 'SHOW_COMBAT') {
+                        // Trigger combat float altitude
+                        if (foundMonster) foundMonster.userData.targetY = foundMonster.userData.baseY + 1.2;
                         window.parent.postMessage({ type: 'SHOW_COMBAT', health: foundMonster.userData.hp || '4/1' }, '*');
                     } else {
+                        // Reset all monster altitudes when combat drops
+                        if (this.worldGroup) {
+                            this.worldGroup.children.forEach(child => {
+                                if (child.userData && child.userData.type === 'enemy') {
+                                    child.userData.targetY = child.userData.baseY;
+                                }
+                            });
+                        }
                         window.parent.postMessage({ type: 'HIDE_COMBAT' }, '*');
                     }
                 }
@@ -1994,6 +2004,23 @@
                     this.renderer.setViewport(0, 0, winW, winH);
                     this.renderer.setScissor(0, 0, winW, winH);
                     this.renderer.setScissorTest(true);
+                }
+                
+                // --- ENTITY IDLE ANIMATIONS & COMBAT LEVITATION ---
+                if (this.worldGroup) {
+                    for (let i = 0; i < this.worldGroup.children.length; i++) {
+                        const child = this.worldGroup.children[i];
+                        
+                        // Smooth Levitation Interpolation for Combat Intros (moves the "floor base" up)
+                        if (child.userData && child.userData.targetY !== undefined) {
+                            child.userData.baseY += (child.userData.targetY - child.userData.baseY) * 2.0 * delta;
+                        }
+                        
+                        // Apply idle bob to NPCs and Monsters based on their active baseY
+                        if (child.userData && child.userData.idlePhase !== undefined && child.userData.type !== 'player') {
+                            child.position.y = (child.userData.baseY || 0) + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.1;
+                        }
+                    }
                 }
 
                 // FPV Renderer Call
