@@ -224,7 +224,18 @@
             SWAY_AMP: 0.015, // Horizontal sway width
             
             keys: { w: false, a: false, s: false, d: false },
+            isMoving: false,
+            lastGridX: -1,
+            lastGridZ: -1,
+            wasIdle: true,
+            bobTimer: 0,     // Tracks head-bob animation
+            bobHeight: 0,    // Current vertical offset
+            bobSway: 0,      // Current horizontal offset
             gameTime: 0,     // Custom accumulator for turn-based time-stop effect
+            
+            composer: null,
+            bloomPass: null,
+            rgbShiftPass: null,
 
             init() {
                 this.generateMap();
