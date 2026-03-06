@@ -740,7 +740,8 @@
                 // Fog must remain for Shader compilation, but we set it very thin/far
                 this.scene.fog = new THREE.FogExp2(0x2a2a2a, 0.005);
 
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+                // Base FOV narrowed from 75 down to 52 for a dramatic 30% zoom scale
+                this.camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
                 this.camera.position.set(this.player.x * this.gridSize, 1.6, this.player.z * this.gridSize); // Eye level
                 this.camera.layers.enable(1); // Ensure FPV camera can see the ceiling (Layer 1)
                 this.camera.rotation.y = this.player.rot;
@@ -1226,26 +1227,35 @@
                         }
                         
                         
-                        // Safe Subsurface Scattering implementation (Relies on UnrealBloomPass for glow)
-                        // This allows the paper to tint intensely with the ghost light without breaking rigged skeleton shaders
-                        const glassMat = new THREE.MeshPhongMaterial({
-                            color: 0x004433,          // Matte base color
-                            emissive: 0x00aaff,       // Blast it with cyan phantom light
-                            emissiveIntensity: 0.6,   // The BloomPass grabs this to make the glow push beyond the geometry
-                            transparent: true,
-                            opacity: 0.85             // Mostly opaque to catch the SSS light, but slightly glassy
-                        });
-                        
-                        // Rigged models MUST have skinning enabled when replacing materials
-                        const glassSkinnedMat = glassMat.clone();
-                        glassSkinnedMat.skinning = true;
-                        
                         goblin.traverse((child) => {
                             if (child.isMesh) {
-                                // Protect the authentic white glowing eyes (BloomPass will grab their native 1.0 white emissive and make them blinding)
-                                const matName = child.material.name ? child.material.name.toLowerCase() : "";
+                                const nativeMat = child.material;
+                                const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
+                                
+                                // Skip applying hologram transparency and neon color logic to the white eyes
                                 if (!matName.includes('eye')) {
-                                    child.material = child.isSkinnedMesh ? glassSkinnedMat : glassMat;
+                                    // Clone existing native texture mapping
+                                    const ghostMat = Array.isArray(nativeMat) 
+                                        ? nativeMat.map(m => m.clone()) 
+                                        : nativeMat.clone();
+                                    
+                                    // Apply neon cyan/green hologram rules without breaking textures/skinning
+                                    const applyHoloLayer = (mat) => {
+                                        mat.transparent = true;
+                                        mat.opacity = 0.85;
+                                        if (mat.emissive) {
+                                            mat.emissive.setHex(0x00ffaa);
+                                            mat.emissiveIntensity = 0.6;
+                                        }
+                                    };
+
+                                    if (Array.isArray(ghostMat)) {
+                                        ghostMat.forEach(applyHoloLayer);
+                                    } else {
+                                        applyHoloLayer(ghostMat);
+                                    }
+
+                                    child.material = ghostMat;
                                 }
                                 
                                 // Fix Z-Index sorting issue against the red targeting circle
