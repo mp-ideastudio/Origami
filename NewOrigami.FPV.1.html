@@ -1242,7 +1242,7 @@
                                     // Apply neon cyan/green hologram rules without breaking textures/skinning
                                     const applyHoloLayer = (mat) => {
                                         mat.transparent = true;
-                                        mat.opacity = 0.75;
+                                        mat.opacity = 0.65; // Dropped to 0.65 for more ethereal thinness
                                         if (mat.emissive) {
                                             mat.emissive.setHex(0x00ffaa);
                                             mat.emissiveIntensity = 0.6;
@@ -1256,6 +1256,12 @@
                                     }
 
                                     child.material = ghostMat;
+                                } else {
+                                    // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
+                                    const eyeMat = nativeMat.clone();
+                                    eyeMat.emissive.setHex(0xffffff);
+                                    eyeMat.emissiveIntensity = 2.0;
+                                    child.material = eyeMat;
                                 }
                                 
                                 // Fix Z-Index sorting issue against the red targeting circle
@@ -1372,12 +1378,18 @@
                     { x: gx - radiusInGridUnits, z: gz + radiusInGridUnits },
                     { x: gx + radiusInGridUnits, z: gz + radiusInGridUnits },
                 ];
+                let hitEntity = null;
                 for (let p of points) {
                     let cx = Math.round(p.x);
                     let cz = Math.round(p.z);
-                    if (!this.isValidGridSpace(cx, cz)) return true;
+                    const validation = this.isValidGridSpace(cx, cz);
+                    
+                    if (validation === false) return true; // Hard wall collision
+                    if (validation !== true && typeof validation === 'object') {
+                        hitEntity = validation; // We struck a specific entity Mesh
+                    }
                 }
-                return false;
+                return hitEntity ? hitEntity : false; // Return the entity if hit, otherwise False means space is clear
             },
 
             isValidGridSpace(cx, cz) {
@@ -1390,7 +1402,7 @@
                         if (child.userData && child.userData.id) {
                             const eX = Math.round(child.position.x / this.gridSize);
                             const eZ = Math.round(child.position.z / this.gridSize);
-                            if(cx === eX && cz === eZ) return false;
+                            if(cx === eX && cz === eZ) return child; // Return the exact object hit instead of boolean block
                         }
                     }
                 }
@@ -1688,6 +1700,28 @@
                         
                         let colZ = this.checkCollision(nextX, nextZ, radius);
                         if (colZ) nextZ = this.player.z;
+                        
+                        // Execute bump-to-attack rules against loaded Monster Entities
+                        // We check if either the X or Z projected collision sweep returned an Object, rather than the boolean 'true' representing a blank wall
+                        if (moveDir === 1 && (typeof colX === 'object' || typeof colZ === 'object')) {
+                            const targetMesh = typeof colX === 'object' ? colX : colZ;
+                            const now = performance.now();
+                            if (targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
+                                this.lastAttackTime = now;
+                                
+                                // Recoil violently backwards
+                                nextX = this.player.x + (dx * 1.5);
+                                nextZ = this.player.z + (dz * 1.5);
+                                
+                                // Trigger combat message to the central game orchestrator
+                                window.parent.postMessage({
+                                    type: 'COMBAT_ATTACK',
+                                    targetId: targetMesh.userData.id,
+                                    x: Math.round(targetMesh.position.x / this.gridSize),
+                                    z: Math.round(targetMesh.position.z / this.gridSize)
+                                }, '*');
+                            }
+                        }
 
                         // Trigger Auto-Turn Feature
                         if (moveDir === 1 && turnDir === 0 && (colX || colZ) && this.player.autoTurnTarget === null) {

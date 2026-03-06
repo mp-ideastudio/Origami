@@ -11,7 +11,8 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
     }
     </script>
@@ -128,7 +129,8 @@
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-panel); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 8px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; font-weight: 900; font-size: 22px; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: 2px solid var(--water-clr); color: var(--water-text); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: 2px solid var(--water-clr); }
+        .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
         .btn-action { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -284,7 +286,7 @@
 
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
                 <div id="action-zone">
-                    <div class="avatar-circle" onclick="toggleRing()">H</div>
+                    <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-circle-half-stroke"></i><span class="ac-text">Mode</span></div>
                     <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><span class="ac-text">Bag</span></div>
                     <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><span class="ac-text">Map</span></div>
@@ -300,6 +302,7 @@
 
     <script type="module">
         import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         const categories = [
             { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
@@ -311,6 +314,10 @@
 
         let focusedColIndex = 0, pendingAction = null, wheelThrottle = false;
         const scenes = {}, dpr = window.devicePixelRatio || 1;
+        
+        let avatarMixer = null;
+        let isAvatarAnimating = false;
+        let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
             const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM'];
@@ -385,9 +392,21 @@
                 scene.add(group); scenes[el] = { scene, update };
             });
 
+            avatarClock = new THREE.Clock();
+            
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 const t = time * 0.001;
+                const delta = avatarClock.getDelta();
+                
+                if (avatarMixer && isAvatarAnimating) {
+                    avatarMixer.update(delta);
+                }
+                
+                if (avatarRenderer && avatarScene && avatarCamera) {
+                    avatarRenderer.render(avatarScene, avatarCamera);
+                }
+
                 elements.forEach(el => {
                     scenes[el].update(t);
                     const canvases = document.querySelectorAll(`.card-icon-3d[data-element="${el}"] canvas`);
@@ -405,6 +424,47 @@
                 });
             }
             renderLoop(0);
+        }
+
+        function initAvatar() {
+            const container = document.getElementById('player-avatar-container');
+            if (!container) return;
+            
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            
+            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            avatarRenderer.setPixelRatio(window.devicePixelRatio);
+            avatarRenderer.setSize(w, h);
+            container.appendChild(avatarRenderer.domElement);
+            
+            avatarScene = new THREE.Scene();
+            avatarCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+            avatarCamera.position.set(0, 1.2, 4.5);
+            
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+            avatarScene.add(ambLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(5, 5, 5);
+            avatarScene.add(dirLight);
+            
+            const loader = new GLTFLoader();
+            loader.load('./assets/models/Player.A.Walking.glb', (gltf) => {
+                const model = gltf.scene;
+                
+                // Position so the torso is centered in the circle
+                model.position.set(0, -1.2, 0);
+                // Rotate to face slightly right layout (isometric feel)
+                model.rotation.y = Math.PI / 8;
+                
+                avatarScene.add(model);
+                
+                if (gltf.animations && gltf.animations.length > 0) {
+                    avatarMixer = new THREE.AnimationMixer(model);
+                    const action = avatarMixer.clipAction(gltf.animations[0]);
+                    action.play();
+                }
+            });
         }
 
         function cycle(idx, fwd = true) {
@@ -444,7 +504,9 @@
                 if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
                 e.preventDefault(); wheelThrottle = true; cycle(focusedColIndex, e.deltaY > 0); setTimeout(() => wheelThrottle = false, 150);
             };
-            init3DIcons(); setFocus(0, false);
+            init3DIcons(); 
+            initAvatar();
+            setFocus(0, false);
         }
 
         function launchModal(card) {
@@ -554,9 +616,13 @@
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
+                    isAvatarAnimating = true;
                     hideExitModal(); // Hide if player walks away
                 }
-                else document.body.classList.remove('is-moving');
+                else {
+                    document.body.classList.remove('is-moving');
+                    isAvatarAnimating = false;
+                }
             } else if (e.data && e.data.type === 'SHOW_EXIT') {
                 showExitModal();
             } else if (e.data && e.data.type === 'HIDE_EXIT') {
