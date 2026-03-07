@@ -2098,6 +2098,8 @@
                         const dx = Math.sin(this.player.rot) * speed;
                         const dz = Math.cos(this.player.rot) * speed;
                         
+                        let colX = null, colZ = null;
+                        
                         // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 1.5 tiles)
                         // If we are just locked onto it from afar (e.g., 4 tiles away), allow normal walking towards it!
                         if (moveDir === 1 && this.activeTarget && this.activeTargetDist < 1.5) {
@@ -2130,10 +2132,10 @@
                             
                             const radius = 0.35; // Collision radius (grid units)
                             
-                            let colX = this.checkCollision(nextX, this.player.z, radius);
+                            colX = this.checkCollision(nextX, this.player.z, radius);
                             if (colX) nextX = this.player.x;
                             
-                            let colZ = this.checkCollision(nextX, nextZ, radius);
+                            colZ = this.checkCollision(nextX, nextZ, radius);
                             if (colZ) nextZ = this.player.z;
                             
                             // Passive Object bumps (Walls, doors, etc.)
