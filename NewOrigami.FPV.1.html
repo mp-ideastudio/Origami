@@ -1835,17 +1835,10 @@
                         window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
                     } else if (currentCmd === 'SHOW_COMBAT') {
                         // Trigger combat float altitude
-                        if (foundMonster) foundMonster.userData.targetY = foundMonster.userData.baseY + 1.2;
+                        // We rely entirely on model.position.y lerping now to prevent the targeting circle from lifting
                         window.parent.postMessage({ type: 'SHOW_COMBAT', health: foundMonster.userData.hp || '4/1', distance: this.activeTargetDist }, '*');
                     } else {
                         // Reset all monster altitudes when combat drops
-                        if (this.worldGroup) {
-                            this.worldGroup.children.forEach(child => {
-                                if (child.userData && child.userData.type === 'enemy') {
-                                    child.userData.targetY = child.userData.baseY;
-                                }
-                            });
-                        }
                         window.parent.postMessage({ type: 'HIDE_COMBAT' }, '*');
                     }
                 } else if (currentCmd === 'SHOW_COMBAT' && Math.abs(this._lastSentDist - this.activeTargetDist) > 0.1) {
@@ -2278,7 +2271,8 @@
                                                 if (targetOpacity <= 0.05) mat.opacity = 0.0; 
                                                 else mat.opacity = 1.0;
                                             } else if (mat.name !== 'mist') { // Don't override mist physics
-                                                mat.opacity = targetOpacity;
+                                                mat.transparent = true;
+                                                mat.opacity = Math.min(targetOpacity, 0.45); // Ghostly transparency request
                                                 // Glass properties are now statically updated by the dat.gui onChange events
                                             }
                                         });
@@ -2289,8 +2283,8 @@
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
                                 
                                 // Gentle float amplitude (0.05 units = 0.5 feet), hover exactly at 3 feet (0.3 units) during combat
-                                const floatAmp = isCombatTarget ? 0.05 : 0.4; 
-                                const floatBase = isCombatTarget ? 0.3 : (child.userData.mixer ? 0.0 : 0.6); // Let goblins walk when distant
+                                const floatAmp = isCombatTarget ? 0.05 : 0.0; 
+                                const floatBase = isCombatTarget ? 0.3 : 0.0; // Stay grounded when idle/distant
                                 
                                 // Lerp the model's Y position physically into the air
                                 model.position.y += ( (floatBase + Math.sin(time + child.userData.bobPhase) * floatAmp) - model.position.y ) * 0.1;
@@ -2321,8 +2315,8 @@
                             this._anim_dirFromPlayer3D.subVectors(this._anim_mPos, this._anim_cPos).normalize();
                             
                             let hasLoS = true;
-                            // Limit sight strictly to 200 feet (15 grids * approx dist)
-                            if (distToPlayer3D > (15 * this.gridSize)) {
+                            // Limit sight strictly to 40 feet (4 grids * approx dist)
+                            if (distToPlayer3D > (4.0 * this.gridSize)) {
                                 hasLoS = false;
                             } else {
                                 this._anim_ray.set(this._anim_cPos, this._anim_dirFromPlayer3D);
