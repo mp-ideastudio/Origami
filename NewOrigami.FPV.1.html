@@ -2271,6 +2271,8 @@
                             
                             // 2. Mathematically hide entities (and their outline/lights) when out of range
                             child.visible = targetOpacity > 0.01;
+                            
+                            const isCombatTarget = this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.id === child.userData.id;
 
                             if (model && child.visible) {
                                 // Dynamic Translucency mapping
@@ -2291,7 +2293,6 @@
                                 
                                 // Ethereal Float Engine
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
-                                const isCombatTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
                                 
                                 // Gentle float amplitude (0.05 units = 0.5 feet), hover exactly at 3 feet (0.3 units) during combat
                                 const floatAmp = isCombatTarget ? 0.05 : 0.4; 
