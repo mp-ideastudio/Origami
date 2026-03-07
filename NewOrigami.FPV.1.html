@@ -1898,12 +1898,6 @@
                                     this.spawnCombatText(rolls[rIdx], types[rIdx]);
                                 }
                                 
-                                // Force Visual Recoil
-                                // Note: moveDir = 1 is forward. Forward is -z. Recoil backward is +z.
-                                const dx = Math.sin(this.player.rot) * 1.5;
-                                const dz = Math.cos(this.player.rot) * 1.5;
-                                this.player.x += dx;
-                                this.player.z += dz;
                                 
                                 // Forward the attack to the AI Brain
                                 this.postToAI({ type: 'PLAYER_ATTACK', targetId: this.activeTarget.userData.id });
