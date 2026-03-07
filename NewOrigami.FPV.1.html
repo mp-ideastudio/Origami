@@ -1706,6 +1706,12 @@
                 return true;
             },
 
+            // Pre-allocated Global Vectors for checkTriggers GC optimization
+            _ct_mPos: new THREE.Vector3(),
+            _ct_cPos: new THREE.Vector3(),
+            _ct_dirFromPlayer3D: new THREE.Vector3(),
+            _ct_camDir: new THREE.Vector3(),
+
             checkTriggers() {
                 // Calculate the exact grid coordinate 1 tile directly in front of the player
                 const dirX = Math.round(-Math.sin(this.player.rot));
@@ -1731,16 +1737,15 @@
                             // Check distance instead of exact grid match since models sit at exact center
                             const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
                             
-                            // True 3D FPV calculations
-                            const mPos = new THREE.Vector3().copy(child.position);
-                            mPos.y += 1.0;
-                            const cPos = new THREE.Vector3().copy(this.camera.position);
-                            const dist3D = cPos.distanceTo(mPos);
+                            // True 3D FPV calculations utilizing Global vectors to prevent GC spills
+                            this._ct_mPos.copy(child.position);
+                            this._ct_mPos.y += 1.0;
+                            this._ct_cPos.copy(this.camera.position);
+                            const dist3D = this._ct_cPos.distanceTo(this._ct_mPos);
                             
-                            const dirFromPlayer3D = new THREE.Vector3().subVectors(mPos, cPos).normalize();
-                            const camDir = new THREE.Vector3();
-                            this.camera.getWorldDirection(camDir);
-                            const dot = camDir.dot(dirFromPlayer3D);
+                            this._ct_dirFromPlayer3D.subVectors(this._ct_mPos, this._ct_cPos).normalize();
+                            this.camera.getWorldDirection(this._ct_camDir);
+                            const dot = this._ct_camDir.dot(this._ct_dirFromPlayer3D);
                             
                             let panelHasLoS = false;
                             
@@ -2033,6 +2038,8 @@
 
             // Main Loop
             animate() {
+                requestAnimationFrame(() => this.animate());
+
                 // Update delta time for glTF Skeletal Animations
                 const delta = this.clock.getDelta();
                 this.mixers.forEach(mixer => mixer.update(delta));
@@ -2321,25 +2328,24 @@
                             if (!aiData) return;
                             
                             // Line of Sight Check (True 3D Raycaster as requested)
-                            const mPos = new THREE.Vector3().copy(child.position);
-                            mPos.y += 1.0; // Aim at chest height
-                            const cPos = new THREE.Vector3().copy(this.camera.position);
+                            this._anim_mPos.copy(child.position);
+                            this._anim_mPos.y += 1.0; // Aim at chest height
+                            this._anim_cPos.copy(this.camera.position);
                             
-                            const distToPlayer3D = cPos.distanceTo(mPos);
-                            const dirToPlayer3D = new THREE.Vector3().subVectors(cPos, mPos).normalize();
-                            const dirFromPlayer3D = new THREE.Vector3().subVectors(mPos, cPos).normalize();
+                            const distToPlayer3D = this._anim_cPos.distanceTo(this._anim_mPos);
+                            this._anim_dirToPlayer3D.subVectors(this._anim_cPos, this._anim_mPos).normalize();
+                            this._anim_dirFromPlayer3D.subVectors(this._anim_mPos, this._anim_cPos).normalize();
                             
                             let hasLoS = true;
                             // Limit sight strictly to 200 feet (15 grids * approx dist)
                             if (distToPlayer3D > (15 * this.gridSize)) {
                                 hasLoS = false;
                             } else {
-                                const ray = new THREE.Ray(cPos, dirFromPlayer3D);
-                                const target = new THREE.Vector3(); // Pre-allocate outside loop
+                                this._anim_ray.set(this._anim_cPos, this._anim_dirFromPlayer3D);
                                 // Mathematical AABB loop
                                 for (const box of this.wallBoxes) {
-                                    if (ray.intersectBox(box, target)) {
-                                        if (cPos.distanceTo(target) < (distToPlayer3D - 0.5)) {
+                                    if (this._anim_ray.intersectBox(box, this._anim_target)) {
+                                        if (this._anim_cPos.distanceTo(this._anim_target) < (distToPlayer3D - 0.5)) {
                                             hasLoS = false; // Blocked by wall AABB
                                             break;
                                         }
@@ -2349,10 +2355,9 @@
                             
                             // 90-degree frontal arc check for the monster (Front is local +Z)
                             // Calculate if player is in front of the monster's current rotation
-                            // Calculate if player is in front of the monster's current rotation
-                            const mFacingDir = new THREE.Vector3(0, 0, 1);
-                            mFacingDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), child.rotation.y);
-                            const monsterDot = dirToPlayer3D.dot(mFacingDir);
+                            this._anim_mFacingDir.set(0, 0, 1);
+                            this._anim_mFacingDir.applyAxisAngle(this._anim_upAxis, child.rotation.y);
+                            const monsterDot = this._anim_dirToPlayer3D.dot(this._anim_mFacingDir);
                             
                             // If the monster is IDLE or RETURN, it can only spot the player if within frontal arc (~90 degrees -> dot > ~0.707)
                             if (hasLoS && monsterDot < 0.707 && (aiData.state === 'IDLE' || aiData.state === 'RETURN')) {
@@ -2373,7 +2378,7 @@
                             
                             if (aiData.state === 'CHASE') {
                                 // Move towards player (TEMPORARILY DISABLED PER USER REQUEST)
-                                const angle = Math.atan2(dirToPlayer3D.x, dirToPlayer3D.z);
+                                const angle = Math.atan2(this._anim_dirToPlayer3D.x, this._anim_dirToPlayer3D.z);
                                 // The model itself and the arrow face local +Z. Rotate wrapper to point +Z at player.
                                 child.rotation.y = angle; 
                                 
@@ -2412,15 +2417,15 @@
                                 }
                                 
                             } else if (aiData.state === 'RETURN') {
-                                const hPos = new THREE.Vector3(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
-                                const dirToHome = new THREE.Vector3().subVectors(hPos, mPos);
-                                const distToHome = dirToHome.length();
+                                this._anim_hPos.set(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
+                                this._anim_dirToHome.subVectors(this._anim_hPos, this._anim_mPos);
+                                const distToHome = this._anim_dirToHome.length();
                                 
                                 if (distToHome < 0.5) {
                                     aiData.state = 'IDLE';
                                 } else {
-                                    dirToHome.normalize();
-                                    const angle = Math.atan2(dirToHome.x, dirToHome.z);
+                                    this._anim_dirToHome.normalize();
+                                    const angle = Math.atan2(this._anim_dirToHome.x, this._anim_dirToHome.z);
                                     child.rotation.y = angle;
                                     
                                     const dx = Math.sin(angle) * aiData.speed * delta;
@@ -2509,13 +2514,22 @@
                         fpsEl.textContent = `FPS: ${this.currentFps}/60`;
                     }
                 }
-
-                requestAnimationFrame(() => this.animate());
-            }
+            }, // Closing brace for animate() function
+            
+            // Pre-allocated Global Vectors for animate GC optimization
+            _anim_mPos: new THREE.Vector3(),
+            _anim_cPos: new THREE.Vector3(),
+            _anim_dirToPlayer3D: new THREE.Vector3(),
+            _anim_dirFromPlayer3D: new THREE.Vector3(),
+            _anim_mFacingDir: new THREE.Vector3(0, 0, 1),
+            _anim_upAxis: new THREE.Vector3(0, 1, 0),
+            _anim_ray: new THREE.Ray(),
+            _anim_target: new THREE.Vector3(),
+            _anim_hPos: new THREE.Vector3(),
+            _anim_dirToHome: new THREE.Vector3(),
         };
 
         window.onload = () => Engine.init();
-
     </script>
 </body>
 </html>
