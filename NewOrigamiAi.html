@@ -47,8 +47,8 @@
                         break;
                     case 'PLAYER_ATTACK':
                         // The Game Engine has forwarded an attack command from the UI
-                        // Normally we'd roll random dice here based on stats
-                        const dmg = Math.floor(Math.random() * 15) + 10; // 10-24 dmg
+                        // Level 1 Weapon Damage
+                        const dmg = Math.floor(Math.random() * 5) + 4; // 4-8 dmg
                         this.applyDamage(e.data.targetId, dmg);
                         break;
                 }
@@ -63,7 +63,7 @@
                         z: s.z,
                         spawnX: s.x,
                         spawnZ: s.z,
-                        hp: 100,
+                        hp: Math.floor(Math.random() * 41) + 60, // 60-100 random HP
                         state: 'IDLE', // IDLE, HOSTILE, SEARCHING, TALKING
                         moveEnergy: 0,
                         searchTurns: 0

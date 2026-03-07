@@ -173,6 +173,8 @@
       }
       #combat-panels-wrapper.active iframe {
          pointer-events: auto; /* Only capture clicks when active */
+         /* CRITICAL FIX: Cut a hole in the top right corner so dat.gui can still be clicked! */
+         clip-path: polygon(0 0, calc(100% - 320px) 0, calc(100% - 320px) 450px, 100% 450px, 100% 100%, 0 100%);
       }
 
     </style>
