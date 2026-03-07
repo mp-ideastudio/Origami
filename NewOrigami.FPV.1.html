@@ -904,8 +904,8 @@
                 // 2. Outline Pass (Neon Luminous Border around enemies)
                 this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
                 this.outlinePass.edgeStrength = 4.0; // Reduced for subtle glow
-                this.outlinePass.edgeGlow = 1.0; // Reduced spread
-                this.outlinePass.edgeThickness = 1.0; // 75% thinner rim
+                this.outlinePass.edgeGlow = 1.1; // Increased by 10% per user request
+                this.outlinePass.edgeThickness = 1.1; // Increased by 10% per user request
                 this.outlinePass.pulsePeriod = 0;
                 
                 // Using setRGB with values > 1.0 forces it into HDR range so UnrealBloom catches it aggressively
@@ -1436,8 +1436,8 @@
                             const actions = gltf.animations.map(a => mixer.clipAction(a));
                             
                             // Sequencer: 4=Bow, 2=Laugh, 0=Idle, 3=Look Around 
-                            // Sequence: Bow -> Laughter -> Idle -> Look Around -> Laughter -> Idle -> Look Around -> repeat
-                            const seqIndices = [4, 2, 0, 3, 2, 0, 3];
+                            // Sequence: Bow -> Idle -> Look Around -> Laugh -> repeat
+                            const seqIndices = [4, 0, 3, 2];
                             let currentSeqStep = 0;
                             
                             const playNextAnim = () => {
@@ -1477,8 +1477,8 @@
                                 if (!isEye) {
                                     // Apply neon cyan/green hologram rules directly to native material to preserve vertex colors and maps
                                     const applyHoloLayer = (mat) => {
-                                        mat.transparent = true;
-                                        mat.opacity = Engine.fxConfig.baseOpacity; 
+                                        mat.transparent = false; // Set to false to remove internal mesh back-face double imagery sorting
+                                        mat.opacity = 1.0; 
                                         mat.blending = THREE.NormalBlending;
                                         mat.side = THREE.FrontSide;
                                         mat.depthWrite = true;
@@ -2106,16 +2106,11 @@
                                 this.lastAttackTime = now;
                                 
                                 // FCT Magic: Random WoW text generator
-                                const rolls = ['Hit!', 'Crit!', 'Miss', 'Dodge'];
-                                const types = ['hit', 'crit', 'miss', 'miss'];
-                                const dmg = Math.floor(Math.random() * 40) + 10;
-                                const rIdx = Math.floor(Math.random() * rolls.length);
+                                const isPlayerAtk = Math.random() > 0.5;
+                                const actor = isPlayerAtk ? "PLAYER" : "GOBLIN";
+                                const dmg = Math.floor(Math.random() * 4) + 1; // 1-4 pts
                                 
-                                if (rIdx <= 1) {
-                                    Engine.spawnCombatText(`${rolls[rIdx]} ${dmg * (rIdx===1 ? 2 : 1)}`, types[rIdx]);
-                                } else {
-                                    Engine.spawnCombatText(rolls[rIdx], types[rIdx]);
-                                }
+                                Engine.spawnCombatText(`${actor} HITS ${dmg}`, isPlayerAtk ? 'hit' : 'crit');
                                 
                                 // Recoil violently backwards for visual effect without ever stepping closer to the 3D model
                                 nextX = this.player.x + (dx * 1.5);
@@ -2304,8 +2299,8 @@
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
                                 const isCombatTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
                                 
-                                // Gentle float amplitude, hover exactly at 3 feet (0.3 units) during combat
-                                const floatAmp = isCombatTarget ? 0.15 : 0.4; 
+                                // Gentle float amplitude (0.05 units = 0.5 feet), hover exactly at 3 feet (0.3 units) during combat
+                                const floatAmp = isCombatTarget ? 0.05 : 0.4; 
                                 const floatBase = isCombatTarget ? 0.3 : (child.userData.mixer ? 0.0 : 0.6); // Let goblins walk when distant
                                 
                                 // Lerp the model's Y position physically into the air
@@ -2450,6 +2445,13 @@
                                     child.userData.baseMat.opacity = 0.5;
                                 }
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                            }
+                            
+                            // Explicit override for the side-panel logic!
+                            // :when sidepanels come up = goblin floats up in the air and circle turns red.
+                            if (isCombatTarget && child.userData.baseMat) {
+                                child.userData.baseMat.map = this.getCachedCircleTexture('#ff0000');
+                                child.userData.baseMat.opacity = 0.9;
                             }
                         }
                     });
