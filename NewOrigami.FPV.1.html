@@ -7,7 +7,6 @@
     <!-- State of the art WebGL Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
     
     <!-- Post-Processing Pipeline -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
@@ -937,112 +936,6 @@
                 this.mixers = [];
                 this.raycaster = new THREE.Raycaster(); // Initialize raycaster here
                 this.buildWorldGeometry();
-                
-                // Construct the DevTools FX slider panel
-                this.setupFXPanel();
-            },
-
-            setupFXPanel() {
-                // Instantiate the dat.GUI panel using autoPlace to guarantee original container mechanics
-                const gui = new dat.GUI({ width: 300 });
-
-                // Find the dat.gui auto-generated wrapper and securely bump its z-index
-                setTimeout(() => {
-                    const dgWrapper = document.querySelector('.dg.ac');
-                    if (dgWrapper) {
-                        dgWrapper.style.zIndex = '99999';
-                        dgWrapper.style.position = 'fixed';
-                        dgWrapper.style.top = '0px';
-                        dgWrapper.style.right = '0px';
-                        dgWrapper.style.pointerEvents = 'none'; // CRITICAL: Do not let the wrapper block the screen
-                    }
-                    
-                    const dgMain = document.querySelector('.dg.main');
-                    if (dgMain) {
-                        dgMain.style.pointerEvents = 'auto'; // Only the panel itself should capture clicks
-                    }
-                }, 100);
-
-                // Helper function to force an update to all active ghost materials immediately on click/drag
-                const updateGhostMaterials = () => {
-                    if (!this.worldGroup) return;
-                    this.worldGroup.children.forEach(child => {
-                        if (child.userData && child.userData.type === 'enemy') {
-                            const model = child.children[0];
-                            if (model) {
-                                model.traverse(n => {
-                                    if (n.isMesh && n.material) {
-                                        const mats = Array.isArray(n.material) ? n.material : [n.material];
-                                        mats.forEach(mat => {
-                                            if (mat.name !== 'mist' && !(mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0)) {
-                                                mat.opacity = this.fxConfig.baseOpacity;
-                                                if (mat.emissive !== undefined) {
-                                                    mat.emissive.set(typeof this.fxConfig.emissiveColor === 'string' ? this.fxConfig.emissiveColor : "#00ffcc");
-                                                    mat.emissiveIntensity = this.fxConfig.emissiveIntensity;
-                                                }
-                                                if (mat.isMeshPhysicalMaterial) {
-                                                    mat.transmission = this.fxConfig.transmission;
-                                                    mat.roughness = this.fxConfig.roughness;
-                                                    mat.ior = this.fxConfig.ior;
-                                                    mat.thickness = this.fxConfig.thickness;
-                                                }
-                                                mat.needsUpdate = true;
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        }
-                    });
-                };
-
-                // Category 1: Model Translucency (Glass)
-                const folderGhost = gui.addFolder('Model Translucency');
-                folderGhost.add(Engine.fxConfig, 'baseOpacity', 0.0, 1.0).step(0.01).name('Max Opacity').onChange(updateGhostMaterials);
-                folderGhost.add(Engine.fxConfig, 'transmission', 0.0, 1.0).step(0.01).name('Transmission').onChange(updateGhostMaterials);
-                folderGhost.add(Engine.fxConfig, 'roughness', 0.0, 1.0).step(0.01).name('Roughness').onChange(updateGhostMaterials);
-                folderGhost.add(Engine.fxConfig, 'ior', 1.0, 2.33).step(0.01).name('Index of Refraction').onChange(updateGhostMaterials);
-                folderGhost.add(Engine.fxConfig, 'thickness', 0.0, 5.0).step(0.01).name('Thickness').onChange(updateGhostMaterials);
-                
-                Engine.fxConfig.forceUpdate = updateGhostMaterials;
-                folderGhost.add(Engine.fxConfig, 'forceUpdate').name('Force Execute Apply');
-                folderGhost.open();
-
-                // Category 2: Core Emissive Glow
-                const folderGlow = gui.addFolder('Inner Model Glow');
-                folderGlow.add(Engine.fxConfig, 'emissiveIntensity', 0.0, 5.0).step(0.01).name('Intensity').onChange(updateGhostMaterials);
-                folderGlow.addColor(Engine.fxConfig, 'emissiveColor').name('Core Color').onChange(updateGhostMaterials);
-                folderGlow.open();
-
-                // Category 3: Ethereal Outline glow
-                const folderOutline = gui.addFolder('Ethereal Silhouette Outline');
-                folderOutline.add(Engine.fxConfig, 'edgeStrength', 0.1, 30.0).step(0.1).name('Strength').onChange(v => {
-                    if (Engine.outlinePass) Engine.outlinePass.edgeStrength = v;
-                });
-                folderOutline.add(Engine.fxConfig, 'edgeGlow', 0.0, 20.0).step(0.1).name('Glow Spread').onChange(v => {
-                    if (Engine.outlinePass) Engine.outlinePass.edgeGlow = v;
-                });
-                folderOutline.add(Engine.fxConfig, 'edgeThickness', 1.0, 20.0).step(0.1).name('Thickness').onChange(v => {
-                    if (Engine.outlinePass) Engine.outlinePass.edgeThickness = v;
-                });
-                
-                folderOutline.addColor(Engine.fxConfig, 'visibleColor').name('Visible Color').onChange(v => {
-                    if (Engine.outlinePass) Engine.outlinePass.visibleEdgeColor.set(v);
-                });
-                folderOutline.addColor(Engine.fxConfig, 'hiddenColor').name('Hidden Color').onChange(v => {
-                    if (Engine.outlinePass) Engine.outlinePass.hiddenEdgeColor.set(v);
-                });
-                folderOutline.open();
-
-                // Category 3: Global Radiant Bloom
-                const folderBloom = gui.addFolder('Radiant Bloom');
-                folderBloom.add(Engine.fxConfig, 'bloomStrength', 0.0, 3.0).step(0.1).name('Strength').onChange(v => {
-                    if (Engine.bloomPass) Engine.bloomPass.strength = v;
-                });
-                folderBloom.add(Engine.fxConfig, 'bloomRadius', 0.0, 2.0).step(0.1).name('Radius').onChange(v => {
-                    if (Engine.bloomPass) Engine.bloomPass.radius = v;
-                });
-                folderBloom.open();
             },
 
             // --- Baseline Procedural Textures ---
