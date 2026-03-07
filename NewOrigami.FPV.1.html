@@ -1754,10 +1754,10 @@
                             // 2. You must be facing the monster (dot > 0.4)
                             let makesCombat = false;
                             
-                            // Once locked, it stays locked up to 12 tiles for retreat/recoil
+                            // Once locked, it stays locked up to 12 tiles for retreat/recoil, but ONLY if still in view
                             const isActiveTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
                             
-                            if (isActiveTarget && dist <= 12.0) {
+                            if (isActiveTarget && dist <= 12.0 && dot > 0.25) {
                                 makesCombat = true; 
                             } else if (dist <= 5.0 && dot > 0.707) {
                                 makesCombat = true; 
