@@ -2281,13 +2281,15 @@
                                 
                                 // Ethereal Float Engine
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
+                                if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
                                 
-                                // Gentle float amplitude (0.05 units = 0.5 feet), hover exactly at 3 feet (0.3 units) during combat
-                                const floatAmp = isCombatTarget ? 0.05 : 0.0; 
-                                const floatBase = isCombatTarget ? 0.3 : 0.0; // Stay grounded when idle/distant
+                                // Float amplitude (0.15), hover at 1.0 units (~3 feet in visual scale) during combat
+                                const floatAmp = isCombatTarget ? 0.15 : 0.0; 
+                                const floatOffset = isCombatTarget ? 1.0 : 0.0; // Stay grounded when idle/distant
                                 
-                                // Lerp the model's Y position physically into the air
-                                model.position.y += ( (floatBase + Math.sin(time + child.userData.bobPhase) * floatAmp) - model.position.y ) * 0.1;
+                                // Lerp the model's Y position physically into the air relative to its original bounding box base
+                                const targetY = model.userData.baseY + floatOffset + Math.sin(time + child.userData.bobPhase) * floatAmp;
+                                model.position.y += (targetY - model.position.y) * 0.1;
                             }
                             
                             if (model && !child.userData.mixer) {
