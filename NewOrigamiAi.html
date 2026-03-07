@@ -61,9 +61,12 @@
                         type: s.type, // 'monster' or 'npc'
                         x: s.x,
                         z: s.z,
+                        spawnX: s.x,
+                        spawnZ: s.z,
                         hp: 100,
-                        state: 'IDLE', // IDLE, CHASE, FLEE, COMBAT
-                        speed: 1
+                        state: 'IDLE', // IDLE, HOSTILE, SEARCHING, TALKING
+                        moveEnergy: 0,
+                        searchTurns: 0
                     });
                 });
                 console.log("[AI Brain] Initialized Entities:", this.entities);
@@ -86,27 +89,51 @@
                     const prevState = entity.state;
                     
                     if (entity.type === 'monster') {
-                        if (dist < 6) { // Aggro radius
-                            entity.state = 'CHASE';
-                            
-                            // Ask a* algorithm for the path
-                            const path = this.findPath({x: entity.x, z: entity.z}, {x: this.playerPos.x, z: this.playerPos.z});
-                            
-                            if (path && path.length > 0) {
-                                // First node is always our next optimal step towards the player
-                                const step = path[0];
-                                entity.x = step.x;
-                                entity.z = step.z;
-                                
-                                // Send move command back to Renderer
-                                updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: entity.state });
-                            } else if (prevState !== 'CHASE') {
-                                updates.push({ id: entity.id, action: 'STATE', state: entity.state });
+                        // AI State Machine
+                        if (entity.state === 'IDLE') {
+                            if (dist < 6) {
+                                entity.state = 'HOSTILE';
+                                updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                            } else if (entity.x !== entity.spawnX || entity.z !== entity.spawnZ) {
+                                // Walk back to spawn point
+                                const path = this.findPath({x: entity.x, z: entity.z}, {x: entity.spawnX, z: entity.spawnZ});
+                                if (path && path.length > 0) {
+                                    entity.x = path[0].x;
+                                    entity.z = path[0].z;
+                                    updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: 'IDLE' });
+                                }
                             }
-                        } else {
-                            entity.state = 'IDLE';
-                            if (prevState !== 'IDLE') {
-                                updates.push({ id: entity.id, action: 'STATE', state: entity.state });
+                        } else if (entity.state === 'HOSTILE') {
+                            if (dist > 8) {
+                                entity.state = 'SEARCHING';
+                                entity.searchTurns = 0;
+                                updates.push({ id: entity.id, action: 'STATE', state: 'SEARCHING' });
+                            } else {
+                                // 75% Speed Accumulator
+                                entity.moveEnergy += 0.75;
+                                if (entity.moveEnergy >= 1) {
+                                    entity.moveEnergy -= 1;
+                                    const path = this.findPath({x: entity.x, z: entity.z}, {x: this.playerPos.x, z: this.playerPos.z});
+                                    if (path && path.length > 0) {
+                                        entity.x = path[0].x;
+                                        entity.z = path[0].z;
+                                        updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: 'HOSTILE' });
+                                    }
+                                }
+                            }
+                        } else if (entity.state === 'SEARCHING') {
+                            if (dist < 6) {
+                                entity.state = 'HOSTILE';
+                                updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                            } else {
+                                entity.searchTurns++;
+                                if (entity.searchTurns > 3) {
+                                    entity.state = 'IDLE';
+                                    updates.push({ id: entity.id, action: 'STATE', state: 'IDLE' });
+                                } else {
+                                    // Trigger a random 90 degree turn visually in the 3D Engine
+                                    updates.push({ id: entity.id, action: 'SEARCH_TURN', state: 'SEARCHING' });
+                                }
                             }
                         }
                     } else if (entity.type === 'npc') {

@@ -126,12 +126,15 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 250px;
+        height: 250px; /* Reduced from 100% to prevent blocking FPV. Expands via class for Modals. */
         z-index: 30;
         display: block;
         pointer-events: none; /* Let clicks pass through empty space */
         background: transparent !important;
-        transition: opacity 0.5s ease;
+        transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+      }
+      #adventure-panel.modal-open {
+        height: 100%;
       }
       #adventure-panel .panel-content {
         background: transparent !important;
@@ -152,12 +155,12 @@
       /* Side panels wrapper for Combat UI */
       #combat-panels-wrapper {
          position: absolute;
-         top: 50%;
-         transform: translateY(-50%);
+         top: 0; /* Reset top to 0 and expand full height like the bottom dock to ensure Modals work natively */
+         transform: none;
          left: 0;
          right: 0;
          width: 100%;
-         height: 350px; /* Fit the side panels */
+         height: 100%;
          z-index: 25;
          pointer-events: none;
       }
@@ -253,6 +256,17 @@
                if (!e.data || !e.data.type) return;
 
                switch (e.data.type) {
+                  case 'MODAL_STATE':
+                     const advPanel = document.getElementById('adventure-panel');
+                     if (advPanel) {
+                         if (e.data.isOpen) {
+                             advPanel.classList.add('modal-open');
+                         } else {
+                             advPanel.classList.remove('modal-open');
+                         }
+                     }
+                     break;
+
                   case 'toggleTheme':
                      const isDark = document.body.classList.contains('dark-mode');
                      setTheme(!isDark);

@@ -63,8 +63,9 @@
         /* --- UI DOCK --- */
         #ui-dock { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 10px 0; box-sizing: border-box; z-index: 10000; }
         #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 10px; box-sizing: border-box; transition: opacity 0.4s ease; }
-        body.is-moving #lower-ui-row { opacity: 0.1; pointer-events: none; }
-        body.is-moving .side-panel { opacity: 0.1 !important; pointer-events: none; }
+        /* Disabled opacity fade so action buttons remain visible during movement */
+        body.is-moving #lower-ui-row { transition: none; }
+        body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
         #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
@@ -122,6 +123,12 @@
 
         .sp-btn span { flex: 1; text-align: left; }
         .sp-btn:active { transform: scale(0.92); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark); }
+        .sp-btn.punch-anim { animation: btnPunch 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: rgba(255, 60, 60, 0.5) !important; }
+        @keyframes btnPunch {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.85); }
+            100% { transform: scale(1); }
+        }
 
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; }
@@ -233,7 +240,7 @@
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
                 <div class="sp-title">Yazuka Goblin</div>
-                <div class="sp-sub">ALIVE • 1.0m<br>Parley Chance 85%</div>
+                <div class="sp-sub">ALIVE * <span class="dist-text">40 ft</span><br>Parley Chance 85%</div>
                 <div class="sp-bar"><div class="sp-fill player"></div></div>
                 <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
@@ -251,7 +258,7 @@
             <!-- ACTION RAIL (Red Accent) -->
             <div id="action-rail" class="side-panel">
                 <div class="sp-title">4/1 HP</div>
-                <div class="sp-sub">LVL 5 • AC 12<br>ATK +4</div>
+                <div class="sp-sub">ALIVE * <span class="dist-text">40 ft</span><br>LVL 5 • AC 12</div>
                 <div class="sp-bar"><div class="sp-fill"></div></div>
                 <button class="sp-btn btn-attack" onclick="emitAction('ATTACK')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
@@ -469,25 +476,31 @@
             dirLight.position.set(5, 5, 5);
             avatarScene.add(dirLight);
             
-            const loader = new GLTFLoader();
-            loader.load('./assets/models/Player.A.Walking.glb', (gltf) => {
-                const model = gltf.scene;
-                
-                // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
-                model.position.set(0, -0.1, 0);
-                // Rotate to face slightly right layout (isometric feel)
-                model.rotation.y = Math.PI / 8;
-                // Scale by 20%
-                model.scale.set(1.25, 1.25, 1.25);
-                
-                avatarScene.add(model);
-                
-                if (gltf.animations && gltf.animations.length > 0) {
-                    avatarMixer = new THREE.AnimationMixer(model);
-                    const action = avatarMixer.clipAction(gltf.animations[0]);
-                    action.play();
-                }
-            });
+            try {
+                const loader = new GLTFLoader();
+                loader.load('./assets/models/Player.A.Walking.glb', (gltf) => {
+                    const model = gltf.scene;
+                    
+                    // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
+                    model.position.set(0, -0.1, 0);
+                    // Rotate to face slightly right layout (isometric feel)
+                    model.rotation.y = Math.PI / 8;
+                    // Scale by 20%
+                    model.scale.set(1.25, 1.25, 1.25);
+                    
+                    avatarScene.add(model);
+                    
+                    if (gltf.animations && gltf.animations.length > 0) {
+                        avatarMixer = new THREE.AnimationMixer(model);
+                        const action = avatarMixer.clipAction(gltf.animations[0]);
+                        action.play();
+                    }
+                }, undefined, (e) => {
+                    console.warn("Avatar failed to load natively. Running without Player Avatar.", e);
+                });
+            } catch (err) {
+                console.warn("Avatar loader threw synchronous exception. Suppressing.", err);
+            }
         }
 
         function cycle(idx, fwd = true) {
@@ -541,6 +554,7 @@
             document.getElementById('launch-modal').style.setProperty('--modal-theme-clr', styles.getPropertyValue('--theme-clr'));
             document.getElementById('launch-modal').classList.add('active');
             document.getElementById('modal-overlay').classList.add('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: true }, '*');
         }
 
         function setFocus(idx, scroll = true) {
@@ -552,7 +566,11 @@
             }
         }
 
-        window.closeModal = () => { document.getElementById('launch-modal').classList.remove('active'); document.getElementById('modal-overlay').classList.remove('active'); };
+        window.closeModal = () => { 
+            document.getElementById('launch-modal').classList.remove('active'); 
+            document.getElementById('modal-overlay').classList.remove('active'); 
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: false }, '*');
+        };
         
         // Exit Modal Logic
         let exitModalActive = false;
@@ -561,11 +579,13 @@
             exitModalActive = true;
             document.getElementById('exit-modal').classList.add('active');
             document.getElementById('modal-overlay').classList.add('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: true }, '*');
         };
         window.hideExitModal = () => {
             exitModalActive = false;
             document.getElementById('exit-modal').classList.remove('active');
             document.getElementById('modal-overlay').classList.remove('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: false }, '*');
         };
         window.confirmExit = () => {
             // For now, redirect or alert
@@ -574,9 +594,22 @@
             window.location.reload(); // Temporary fallback
         };
         window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
-        window.toggleRing = () => document.getElementById('right-panel').classList.toggle('outer-active');
-        window.emitAction = a => window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
-        document.getElementById('launch-btn').onclick = () => { emitAction(pendingAction); closeModal(); };
+        window.emitAction = (a, explicitBtn = null) => { 
+            window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
+            let btn = explicitBtn;
+            if (!btn && window.event && window.event.currentTarget) {
+                btn = window.event.currentTarget;
+            }
+            if (btn && btn.classList) {
+                btn.classList.add('punch-anim');
+                setTimeout(() => btn.classList.remove('punch-anim'), 300);
+            }
+        };
+        document.getElementById('launch-btn').onclick = function(e) { 
+            e.preventDefault();
+            emitAction(pendingAction, this); 
+            closeModal(); 
+        };
         
         // Touch / Mouse D-Pad Controls
         const handleDPadInput = (e, isDown) => {
@@ -634,6 +667,15 @@
         window.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'SHOW_COMBAT') {
                 document.getElementById('encounter-zone').classList.add('active');
+                if (e.data.health) {
+                    const hpTitle = document.querySelector('#action-rail .sp-title');
+                    if (hpTitle) hpTitle.textContent = `${e.data.health} HP`;
+                }
+                if (e.data.distance !== undefined) {
+                    const distTexts = document.querySelectorAll('.dist-text');
+                    const distFeet = (e.data.distance * 10).toFixed(0);
+                    distTexts.forEach(el => el.textContent = `${distFeet} ft`);
+                }
             } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
                 document.getElementById('encounter-zone').classList.remove('active');
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
