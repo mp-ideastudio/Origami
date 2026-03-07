@@ -543,6 +543,7 @@
                                     mesh.userData.baseMat.color.setHex(up.state === 'IDLE' ? 0xffffff : 0xff0000);
                                     mesh.userData.baseMat.opacity = (up.state === 'IDLE' ? 0.2 : 0.4);
                                 }
+                                this._forceRender = true;
                             }
                         });
                     }
@@ -623,10 +624,15 @@
 
                 // Clear to background color
                 this.renderer.setClearColor(0x2a2a2a, 1);
-                this.renderer.clearDepth(); 
-                this.renderer.clearColor(); 
-
-                this.renderer.render(this.scene, this.mapCamera);
+                
+                if (!isVisuallyIdle || this._lastRenderRot !== this.camera.rotation.y || this._forceRender) {
+                    this._lastRenderRot = this.camera.rotation.y;
+                    this._forceRender = false;
+                    
+                    this.renderer.clearDepth(); 
+                    this.renderer.clearColor(); 
+                    this.renderer.render(this.scene, this.mapCamera);
+                }
 
                 requestAnimationFrame(() => this.animate());
             }

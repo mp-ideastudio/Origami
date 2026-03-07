@@ -1665,17 +1665,19 @@
                             }
 
                             if (makesGlow && child.userData.type === 'enemy') {
-                                // To make OutlinePass follow skeletal animation perfectly, we must isolate and push the SkinnedMesh
-                                // Because OutlinePass overrideMaterial with skinning=true will fail on static wrapper groups or plain Meshes
-                                let foundSkinned = false;
-                                child.traverse(n => {
-                                    if (n.isSkinnedMesh) {
-                                        glowingTargets.push(n);
-                                        foundSkinned = true;
-                                    }
-                                });
-                                // Fallback if no skinned mesh found
-                                if (!foundSkinned) glowingTargets.push(child);
+                                if (!child.userData.glowMeshes) {
+                                    child.userData.glowMeshes = [];
+                                    let foundSkinned = false;
+                                    child.traverse(n => {
+                                        if (n.isSkinnedMesh) {
+                                            child.userData.glowMeshes.push(n);
+                                            foundSkinned = true;
+                                        }
+                                    });
+                                    // Fallback if no skinned mesh found
+                                    if (!foundSkinned) child.userData.glowMeshes.push(child);
+                                }
+                                glowingTargets.push(...child.userData.glowMeshes);
                             }
 
                             if (makesCombat) {
@@ -1696,7 +1698,19 @@
                 
                 // Dynamically assign which enemies get the ethereal outline glow
                 if (this.outlinePass) {
-                    this.outlinePass.selectedObjects = glowingTargets;
+                    let changed = false;
+                    if (this.outlinePass.selectedObjects.length !== glowingTargets.length) {
+                        changed = true;
+                    } else {
+                        for(let i=0; i<glowingTargets.length; i++) {
+                            if (this.outlinePass.selectedObjects[i] !== glowingTargets[i]) {
+                                changed = true; break;
+                            }
+                        }
+                    }
+                    if (changed) {
+                        this.outlinePass.selectedObjects = glowingTargets;
+                    }
                 }
                 
                 let currentCmd = 'HIDE_COMBAT';

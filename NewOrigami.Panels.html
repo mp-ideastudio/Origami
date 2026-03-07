@@ -468,6 +468,10 @@
             
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
+                
+                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden (e.g. Combat Mode)
+                if (document.getElementById('lower-ui-row').style.display === 'none') return;
+                
                 const t = time * 0.001;
                 const delta = avatarClock.getDelta();
                 
@@ -481,7 +485,9 @@
 
                 elements.forEach(el => {
                     scenes[el].update(t);
-                    const canvases = document.querySelectorAll(`.card-icon-3d[data-element="${el}"] canvas`);
+                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0).
+                    // This cuts the active WebGL contexts & drawImage calls from 20 per frame down to 5.
+                    const canvases = document.querySelectorAll(`.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`);
                     canvases.forEach(cvs => {
                         const cw = cvs.clientWidth, ch = cvs.clientHeight;
                         if (cw === 0 || ch === 0) return; 
