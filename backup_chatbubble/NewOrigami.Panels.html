@@ -351,7 +351,6 @@
                         <div class="chat-pill">
                             <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
                             <i class="fa-solid fa-turn-down enter-symbol"></i>
-                            <div id="viewport-readout" style="color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap;"></div>
                         </div>
                     </div>
                 </div>
@@ -467,10 +466,6 @@
 
             avatarClock = new THREE.Clock();
             
-            // Single Global Camera for all 3D Icons
-            const iconCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); 
-            iconCamera.position.set(0, 0, 7.5);
-            
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 
@@ -499,10 +494,8 @@
                         const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
                         if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
                         renderer.setSize(cw, ch, false);
-                        
-                        // Use pre-instantiated camera to prevent massive garbage collection stalls
-                        renderer.render(scenes[el].scene, iconCamera);
-                        
+                        const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 100); cam.position.set(0, 0, 7.5);
+                        renderer.render(scenes[el].scene, cam);
                         const ctx = cvs.getContext('2d');
                         if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
                     });
@@ -762,22 +755,6 @@
                 if(exitModalActive) hideExitModal();
             }
         });
-
-        // Viewport Readout Logic
-        function updateViewportReadout() {
-            const readout = document.getElementById('viewport-readout');
-            if (readout) {
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                let device = 'Mobile';
-                if (w >= 1024) device = 'Desktop';
-                else if (w >= 640) device = 'Tablet';
-                readout.textContent = `(Viewport:${device} [${w}x${h}])`;
-            }
-        }
-        window.addEventListener('resize', updateViewportReadout);
-        setTimeout(updateViewportReadout, 100); // Initial call after DOM paints
-        updateViewportReadout();
     </script>
 </body>
 </html>

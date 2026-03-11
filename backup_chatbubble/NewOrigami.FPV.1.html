@@ -288,31 +288,17 @@
                 }
 
                 const canvas = document.createElement('canvas');
-                // Use a 2:1 aspect ratio for perfect equirectangular mapping onto a Sphere
-                canvas.width = 2048; 
-                canvas.height = 1024;
+                canvas.width = 1000;
+                canvas.height = 1000;
                 const ctx = canvas.getContext('2d');
 
-                // Fill the balloon surface color (sleek white)
-                ctx.fillStyle = 'rgba(252, 252, 252, 1.0)';
-                ctx.fillRect(0, 0, 2048, 1024);
-
-                // Add geometric/origami accent lines to the equirectangular map
-                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-                ctx.lineWidth = 14;
-                ctx.beginPath();
-                ctx.moveTo(0, 200); ctx.lineTo(2048, 200);
-                ctx.moveTo(0, 824); ctx.lineTo(2048, 824);
-                ctx.stroke();
-
-                let enFontSize = 140;
+                let enFontSize = 100;
                 let enLines = [];
                 let enLineHeight = 0;
                 let enTotalHeight = 0;
 
-                // We only want to draw on the "front" face of the balloon (center of equirectangular map)
-                const MAX_WIDTH = 1000; 
-                const MAX_HEIGHT = 500;
+                const MAX_WIDTH = 740;
+                const MAX_HEIGHT = 450;
                 
                 // Keep scaling down English text until it theoretically fits
                 while (true) {
@@ -345,11 +331,11 @@
                             break;
                         }
                     }
-                    enFontSize -= 4;
+                    enFontSize -= 2;
                 }
 
                 // Setup Japanese font
-                let jpFontSize = Math.min(50, enFontSize * 0.5);
+                let jpFontSize = Math.min(32, enFontSize * 0.5);
                 ctx.font = `bold ${jpFontSize}px sans-serif`;
                 let jpLines = [];
                 let currentJpLine = "";
@@ -368,69 +354,95 @@
                 let jpTotalHeight = jpLines.length > 0 ? (jpLines.length * jpLineHeight) : 0;
 
                 // Total combined height for centering
-                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 40) : 0);
+                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 30) : 0);
                 
+                // Box Geometry Settings
+                const bX = 50, bY = 50, bW = 900, bH = 650;
+                const cut = 60; // origami trimmed corners
+
+                // Draw Background Shape (Geometrical/Origami Octagon + Tail)
+                ctx.fillStyle = 'rgba(250, 250, 250, 0.95)';
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 14;
+                ctx.lineJoin = 'bevel';
+
+                ctx.beginPath();
+                ctx.moveTo(bX + cut, bY);
+                ctx.lineTo(bX + bW - cut, bY);
+                ctx.lineTo(bX + bW, bY + cut);
+                ctx.lineTo(bX + bW, bY + bH - cut);
+                ctx.lineTo(bX + bW - cut, bY + bH);
+                
+                // Geometric Tail pointing down
+                ctx.lineTo(540, bY + bH);
+                ctx.lineTo(460, 930);
+                ctx.lineTo(490, bY + bH);
+                
+                ctx.lineTo(bX + cut, bY + bH);
+                ctx.lineTo(bX, bY + bH - cut);
+                ctx.lineTo(bX, bY + cut);
+                ctx.closePath();
+
+                // Advanced shadow for 3D geometrical feel
+                ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                ctx.shadowBlur = 30;
+                ctx.shadowOffsetX = 10;
+                ctx.shadowOffsetY = 20;
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                ctx.stroke();
+
+                // Inner geometrical accent lines (creates the folded Origami feel)
+                ctx.beginPath();
+                ctx.moveTo(bX + cut + 8, bY + 22);
+                ctx.lineTo(bX + bW - cut - 8, bY + 22);
+                ctx.lineTo(bX + bW - 22, bY + cut + 8);
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
                 // Draw English Text
                 ctx.fillStyle = '#000000';
                 ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // Front center of equirectangular is exactly X=1024, Y=512
-                let startY = 512 - (totalContentHeight / 2) + (enFontSize / 2);
+                let startY = bY + (bH / 2) - (totalContentHeight / 2) + (enFontSize / 2);
                 let currentY = startY;
                 
                 for (let i = 0; i < enLines.length; i++) {
-                    ctx.fillText(enLines[i], 1024, currentY);
+                    ctx.fillText(enLines[i], 500, currentY);
                     currentY += enLineHeight;
                 }
 
                 // Draw Japanese Subtitle
                 if (jpText) {
-                    currentY += (jpFontSize / 2) + 20;
+                    currentY += (jpFontSize / 2); // Transition padding
                     ctx.fillStyle = '#555555'; // Dark grey subtitle styling
                     ctx.font = `bold ${jpFontSize}px sans-serif`;
                     ctx.textBaseline = 'top';
                     for (let i = 0; i < jpLines.length; i++) {
-                        ctx.fillText(jpLines[i], 1024, currentY);
+                        ctx.fillText(jpLines[i], 500, currentY);
                         currentY += jpLineHeight;
                     }
                 }
 
                 const texture = new THREE.CanvasTexture(canvas);
-                // Beautiful Anisotropic mapping to prevent blurry text on edges
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                texture.minFilter = THREE.LinearMipmapLinearFilter;
-                if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
-                
-                // Beautiful physical material to make the balloon feel glossy and premium
-                const material = new THREE.MeshPhysicalMaterial({ 
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+
+                const material = new THREE.MeshBasicMaterial({ 
                     map: texture, 
-                    clearcoat: 1.0,
-                    clearcoatRoughness: 0.1,
-                    roughness: 0.3,
-                    metalness: 0.1,
-                    emissive: 0xffffff,
-                    emissiveIntensity: 0.25, // Slight glow to pop in dark environments
-                    depthWrite: true
+                    transparent: true,
+                    depthTest: false
                 });
 
-                // Create a Round 3D Balloon Model (Ellipsoid)
-                const geometry = new THREE.SphereGeometry(1.0, 64, 32);
+                // Flat 3D Object instead of Sprite
+                const geometry = new THREE.PlaneGeometry(1.6, 1.6); // Scale up slightly to preserve crispness with the octagon
                 const mesh = new THREE.Mesh(geometry, material);
                 
-                // Scale into a wide chat bubble balloon shape
-                mesh.scale.set(1.4, 0.9, 0.7);
                 mesh.renderOrder = 999;
-                
-                // Add the classic Chat Bubble Tail using a Cone geometry
-                const tailGeo = new THREE.ConeGeometry(0.3, 0.8, 16);
-                const tailMesh = new THREE.Mesh(tailGeo, material);
-                // Position relative to the scaled balloon
-                tailMesh.position.set(-0.4, -0.9, 0.4); 
-                tailMesh.rotation.z = Math.PI / 4; // Angle it down and to the left
-                tailMesh.rotation.x = -Math.PI / 8; // Angle slightly forward
-                mesh.add(tailMesh);
                 
                 this.scene.add(mesh); // Add to master scene independently
 
@@ -2452,10 +2464,10 @@
                             const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
                             
                             // 1. Calculate Grid Distance to camera for Proximity Fading
-                            this._anim_mPos.copy(child.position);
-                            this._anim_mPos.y += 1.0; 
-                            this._anim_cPos.copy(this.camera.position);
-                            const distToPlayerGrid = this._anim_cPos.distanceTo(this._anim_mPos) / this.gridSize;
+                            const mPosV = new THREE.Vector3().copy(child.position);
+                            mPosV.y += 1.0; 
+                            const cPosV = new THREE.Vector3().copy(this.camera.position);
+                            const distToPlayerGrid = cPosV.distanceTo(mPosV) / this.gridSize;
 
                             let targetOpacity = 0.0;
                             if (distToPlayerGrid < 3.0) targetOpacity = this.fxConfig.baseOpacity;

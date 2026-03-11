@@ -171,12 +171,20 @@
                 if (!this.mapData) return null;
                 
                 const openSet = [{...start, g: 0, h: 0, f: 0, parent: null}];
+                const openMap = new Map();
+                openMap.set(`${start.x},${start.z}`, openSet[0]);
                 const closedSet = new Set();
                 const heuristic = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
 
+                const MAX_STEPS = 200;
+                let steps = 0;
+
                 while (openSet.length > 0) {
+                    if (steps++ >= MAX_STEPS) break;
+
                     openSet.sort((a, b) => a.f - b.f);
                     const current = openSet.shift();
+                    openMap.delete(`${current.x},${current.z}`);
 
                     if (current.x === end.x && current.z === end.z) {
                         const path = [];
@@ -203,7 +211,7 @@
                         }
 
                         const gScore = current.g + 1;
-                        let neighborNode = openSet.find(node => node.x === nextX && node.z === nextZ);
+                        let neighborNode = openMap.get(key);
                         
                         if (!neighborNode) {
                             neighborNode = {
@@ -213,6 +221,7 @@
                                 parent: current
                             };
                             openSet.push(neighborNode);
+                            openMap.set(key, neighborNode);
                         } else if (gScore < neighborNode.g) {
                             neighborNode.parent = current;
                             neighborNode.g = gScore;
