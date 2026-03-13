@@ -272,7 +272,13 @@
 
                   case 'toggleTheme':
                      const isDark = document.body.classList.contains('dark-mode');
-                     setTheme(!isDark);
+                     if (isDark) {
+                         document.body.classList.remove('dark-mode');
+                     } else {
+                         document.body.classList.add('dark-mode');
+                     }
+                     // Notify FPV engine to update floor textures
+                     notifyEngine('fpv', { type: 'THEME_UPDATE', isDark: !isDark });
                      break;
 
                   case 'MAP_ENGINE_READY':
@@ -284,7 +290,9 @@
                      break;
 
                   case 'PLAYER_MOVE_STATE':
-                     window.parent.postMessage(e.data, '*');
+                  case 'PLAYER_IDLE':
+                     // Pass these states down to the panels engine (which houses the HUD/Avatar animations)
+                     notifyEngine('panels', e.data);
                      break;
 
                   case 'SHOW_COMBAT':

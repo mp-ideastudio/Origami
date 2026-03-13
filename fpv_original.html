@@ -280,184 +280,165 @@
                 if (this.activeChat) {
                     if (this.activeChat.mesh) {
                         this.scene.remove(this.activeChat.mesh);
-                        if (this.activeChat.mesh.children && this.activeChat.mesh.children[0] && this.activeChat.mesh.children[0].material.map) {
-                            this.activeChat.mesh.children[0].material.map.dispose();
-                        }
-                        this.activeChat.mesh.children.forEach(c => {
-                            if (c.geometry) c.geometry.dispose();
-                            if (c.material) c.material.dispose();
-                        });
+                        if (this.activeChat.mesh.material.map) this.activeChat.mesh.material.map.dispose();
+                        this.activeChat.mesh.material.dispose();
+                        this.activeChat.mesh.geometry.dispose();
                     }
                     this.activeChat = null;
                 }
 
-                // High-resolution Canvas for crisp text
-                const cw = 800, ch = 400;
                 const canvas = document.createElement('canvas');
-                canvas.width = cw; 
-                canvas.height = ch;
+                // Use a 2:1 aspect ratio for perfect equirectangular mapping onto a Sphere
+                canvas.width = 2048; 
+                canvas.height = 1024;
                 const ctx = canvas.getContext('2d');
 
-                // Clear background completely so it's transparent over the 3D Balloon mesh
-                ctx.clearRect(0, 0, cw, ch);
+                // Fill the balloon surface color (sleek white)
+                ctx.fillStyle = 'rgba(252, 252, 252, 1.0)';
+                ctx.fillRect(0, 0, 2048, 1024);
 
-                // English Text Configuration - Cleaner, wider font
-                let enFontSize = 42;
-                ctx.font = `900 ${enFontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-                const words = enText.split(' ');
+                // Add geometric/origami accent lines to the equirectangular map
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                ctx.lineWidth = 14;
+                ctx.beginPath();
+                ctx.moveTo(0, 200); ctx.lineTo(2048, 200);
+                ctx.moveTo(0, 824); ctx.lineTo(2048, 824);
+                ctx.stroke();
+
+                let enFontSize = 140;
                 let enLines = [];
-                let currentLine = words[0];
+                let enLineHeight = 0;
+                let enTotalHeight = 0;
 
-                // Wrap Text with comfortable padding (wrap at 700px on an 800px canvas)
-                for (let i = 1; i < words.length; i++) {
-                    const word = words[i];
-                    const width = ctx.measureText(currentLine + " " + word).width;
-                    if (width < 700) {
-                        currentLine += " " + word;
-                    } else {
-                        enLines.push(currentLine);
-                        currentLine = word;
-                    }
-                }
-                if (currentLine) enLines.push(currentLine);
+                // We only want to draw on the "front" face of the balloon (center of equirectangular map)
+                const MAX_WIDTH = 1000; 
+                const MAX_HEIGHT = 500;
+                
+                // Keep scaling down English text until it theoretically fits
+                while (true) {
+                    ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
+                    const words = enText.split(' ');
+                    enLines = [];
+                    let currentLine = words[0];
 
-                // Draw Japanese Subtitle Setup
-                let jpFontSize = 28;
-                ctx.font = `bold ${jpFontSize}px "Noto Sans JP", sans-serif`;
-                let jpLines = [];
-                if (jpText) {
-                    let currentJpLine = "";
-                    for (let char of jpText) {
-                        let w = ctx.measureText(currentJpLine + char).width;
-                        if (w < 700) {
-                            currentJpLine += char;
+                    for (let i = 1; i < words.length; i++) {
+                        const word = words[i];
+                        const width = ctx.measureText(currentLine + " " + word).width;
+                        if (width < MAX_WIDTH) {
+                            currentLine += " " + word;
                         } else {
-                            jpLines.push(currentJpLine);
-                            currentJpLine = char;
+                            enLines.push(currentLine);
+                            currentLine = word;
                         }
                     }
-                    if (currentJpLine) jpLines.push(currentJpLine);
+                    if (currentLine) enLines.push(currentLine);
+
+                    enLineHeight = enFontSize * 1.15;
+                    enTotalHeight = enLines.length * enLineHeight;
+                    
+                    if (enTotalHeight <= MAX_HEIGHT || enFontSize <= 24) {
+                        let maxWordWidth = 0;
+                        for (let l of enLines) {
+                            maxWordWidth = Math.max(maxWordWidth, ctx.measureText(l).width);
+                        }
+                        if (maxWordWidth <= MAX_WIDTH || enFontSize <= 24) {
+                            break;
+                        }
+                    }
+                    enFontSize -= 4;
                 }
 
-                // Vertical Centering Calculation inside the main bubble body
-                const enLineHeight = enFontSize * 1.25;
-                const jpLineHeight = jpFontSize * 1.5;
-                const totalContentHeight = (enLines.length * enLineHeight) + (jpLines.length ? (jpLines.length * jpLineHeight) + 15 : 0);
+                // Setup Japanese font
+                let jpFontSize = Math.min(50, enFontSize * 0.5);
+                ctx.font = `bold ${jpFontSize}px sans-serif`;
+                let jpLines = [];
+                let currentJpLine = "";
+                for (let char of (jpText || "")) {
+                    let w = ctx.measureText(currentJpLine + char).width;
+                    if (w < MAX_WIDTH * 0.95) {
+                        currentJpLine += char;
+                    } else {
+                        jpLines.push(currentJpLine);
+                        currentJpLine = char;
+                    }
+                }
+                if (currentJpLine) jpLines.push(currentJpLine);
+                
+                let jpLineHeight = jpFontSize * 1.4;
+                let jpTotalHeight = jpLines.length > 0 ? (jpLines.length * jpLineHeight) : 0;
+
+                // Total combined height for centering
+                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 40) : 0);
                 
                 // Draw English Text
-                ctx.fillStyle = '#111111'; // Crisp dark grey/black
-                ctx.font = `900 ${enFontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+                ctx.fillStyle = '#000000';
+                ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                let currentY = (ch / 2) - (totalContentHeight / 2) + (enFontSize / 2);
+                // Front center of equirectangular is exactly X=1024, Y=512
+                let startY = 512 - (totalContentHeight / 2) + (enFontSize / 2);
+                let currentY = startY;
+                
                 for (let i = 0; i < enLines.length; i++) {
-                    ctx.fillText(enLines[i], cw / 2, currentY);
+                    ctx.fillText(enLines[i], 1024, currentY);
                     currentY += enLineHeight;
                 }
 
                 // Draw Japanese Subtitle
                 if (jpText) {
-                    currentY += (jpFontSize / 2) + 10;
-                    ctx.fillStyle = '#555555';
-                    ctx.font = `bold ${jpFontSize}px "Noto Sans JP", sans-serif`;
+                    currentY += (jpFontSize / 2) + 20;
+                    ctx.fillStyle = '#555555'; // Dark grey subtitle styling
+                    ctx.font = `bold ${jpFontSize}px sans-serif`;
                     ctx.textBaseline = 'top';
                     for (let i = 0; i < jpLines.length; i++) {
-                        ctx.fillText(jpLines[i], cw / 2, currentY);
+                        ctx.fillText(jpLines[i], 1024, currentY);
                         currentY += jpLineHeight;
                     }
                 }
 
                 const texture = new THREE.CanvasTexture(canvas);
+                // Beautiful Anisotropic mapping to prevent blurry text on edges
                 texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 texture.minFilter = THREE.LinearMipmapLinearFilter;
                 if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
                 
-                // Text Sprite material - FOG IS OFF so text stays 100% black
-                const material = new THREE.MeshBasicMaterial({ 
+                // Beautiful physical material to make the balloon feel glossy and premium
+                const material = new THREE.MeshPhysicalMaterial({ 
                     map: texture, 
-                    transparent: true,
-                    depthWrite: false,     
-                    depthTest: false,
-                    fog: false
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.1,
+                    roughness: 0.3,
+                    metalness: 0.1,
+                    emissive: 0xffffff,
+                    emissiveIntensity: 0.25, // Slight glow to pop in dark environments
+                    depthWrite: true
                 });
 
-                // Custom 3D Comic Balloon Shape (Origami/Cardstock style)
-                const shape = new THREE.Shape();
-                const bWidth = 3.6;
-                const bHeight = 1.8;
-                const bRad = 0.4;
-                const tWidth = 0.2; // Width must accommodate bevel size
-                const tHeight = 0.3; // Small, dainty tail
-                const tOffset = -0.1; // Shift tail closer to the center
-
-                // Start top left
-                shape.moveTo(-bWidth/2 + bRad, bHeight/2);
-                shape.lineTo(bWidth/2 - bRad, bHeight/2);
-                shape.quadraticCurveTo(bWidth/2, bHeight/2, bWidth/2, bHeight/2 - bRad);
-                shape.lineTo(bWidth/2, -bHeight/2 + bRad);
-                shape.quadraticCurveTo(bWidth/2, -bHeight/2, bWidth/2 - bRad, -bHeight/2);
+                // Create a Round 3D Balloon Model (Ellipsoid)
+                const geometry = new THREE.SphereGeometry(1.0, 64, 32);
+                const mesh = new THREE.Mesh(geometry, material);
                 
-                // Bottom edge with tail
-                shape.lineTo(tOffset + tWidth, -bHeight/2);
-                shape.lineTo(tOffset, -bHeight/2 - tHeight);    // Tip of tail
-                shape.lineTo(tOffset - tWidth, -bHeight/2);
+                // Scale into a wide chat bubble balloon shape
+                mesh.scale.set(1.4, 0.9, 0.7);
+                mesh.renderOrder = 999;
                 
-                shape.lineTo(-bWidth/2 + bRad, -bHeight/2);
-                shape.quadraticCurveTo(-bWidth/2, -bHeight/2, -bWidth/2, -bHeight/2 + bRad);
-                shape.lineTo(-bWidth/2, bHeight/2 - bRad);
-                shape.quadraticCurveTo(-bWidth/2, bHeight/2, -bWidth/2 + bRad, bHeight/2);
-
-                const extrudeSettings = {
-                    steps: 1,
-                    depth: 0.15,
-                    bevelEnabled: true,
-                    bevelThickness: 0.1, // Puffs it out in Z making it look like a rounded cloud
-                    bevelSize: 0.1, // Rounds the corners significantly
-                    bevelOffset: 0,
-                    bevelSegments: 8 // Very smooth rounded edges
-                };
-
-                const balloonGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                // Add the classic Chat Bubble Tail using a Cone geometry
+                const tailGeo = new THREE.ConeGeometry(0.3, 0.8, 16);
+                const tailMesh = new THREE.Mesh(tailGeo, material);
+                // Position relative to the scaled balloon
+                tailMesh.position.set(-0.4, -0.9, 0.4); 
+                tailMesh.rotation.z = Math.PI / 4; // Angle it down and to the left
+                tailMesh.rotation.x = -Math.PI / 8; // Angle slightly forward
+                mesh.add(tailMesh);
                 
-                // We use MeshStandardMaterial to get 3D shading, but with maximum roughness
-                // so the canvas reflection is soft, avoiding high-gloss hotspots that trigger the Bloom filter.
-                const balloonMat = new THREE.MeshStandardMaterial({ 
-                    color: 0xffffff,
-                    roughness: 1.0, // Totally matte, kills sharp glossy reflections
-                    metalness: 0.0,
-                    emissive: 0x000000, 
-                    depthWrite: false,
-                    depthTest: false,
-                    transparent: true,
-                    fog: false
-                });
-
-                const balloonMesh = new THREE.Mesh(balloonGeo, balloonMat);
-                // Extrusion grows towards +z, so we push it back slightly more than the depth + bevel
-                balloonMesh.position.z = -0.25;
-                balloonMesh.renderOrder = 999;
-
-                // Perfect 2D Billboard Text (scaled to match the canvas aspect ratio 2:1)
-                const geometry = new THREE.PlaneGeometry(3.6, 1.8);
-                const textMesh = new THREE.Mesh(geometry, material);
-                textMesh.position.z = 0.05; // Pull text firmly in front of the balloon's puffy front face
-                textMesh.renderOrder = 1000;
-                
-                const group = new THREE.Group();
-                group.add(balloonMesh);
-                group.add(textMesh);
-                group.renderOrder = 999;
-                
-                // Scale down the entire chat bubble as requested
-                group.scale.set(0.65, 0.65, 0.65);
-                
-                this.scene.add(group);
+                this.scene.add(mesh); // Add to master scene independently
 
                 this.activeChat = {
-                    mesh: group,
+                    mesh: mesh,
+                    text: enText,
                     target: targetMesh,
-                    expires: Infinity,
+                    expires: Infinity, // Permanent until clicked
                     fading: false
                 };
             },
@@ -1179,77 +1160,17 @@
                 // -----------------------------------------------------
                 // GHOSTBUSTER POST-PROCESSING PIPELINE
                 // -----------------------------------------------------
-                
-                // We use Layer 0 for general world mapping
-                // Layer 1 is for ceilings (hidden from minimaps)
-                // Layer 2 is for completely un-bloomed UI elements (Chat Bubbles)
-                this.camera.layers.enable(1); 
-                this.camera.layers.enable(2); 
-
                 this.composer = new THREE.EffectComposer(this.renderer);
-                this.renderPass = new THREE.RenderPass(this.scene, this.camera);
-                this.composer.addPass(this.renderPass);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
 
                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
                 this.bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    0.8,    // strength
-                    0.6,    // radius
+                    0.8,    // strength (increased for intense radiant bloom)
+                    0.6,    // radius (widened for soft spread)
                     0.9     // threshold (tightly clamped so only the 0xffffff glows)
                 );
-                
-                // Create a dark material to mask out non-blooming objects during the bloom pass
-                const darkMaterial = new THREE.MeshBasicMaterial({ color: "black" });
-                this.darkenNonBloomed = (obj) => {
-                    // If the object is explicitly on Layer 2 (UI/NoBloom), swap its material to black
-                    if (obj.isMesh && obj.layers.test(new THREE.Layers().set(2))) {
-                        obj.userData.originalMaterial = obj.material;
-                        obj.material = darkMaterial;
-                    }
-                };
-                
-                this.restoreMaterial = (obj) => {
-                    if (obj.userData.originalMaterial) {
-                        obj.material = obj.userData.originalMaterial;
-                        delete obj.userData.originalMaterial;
-                    }
-                };
-
-                // Create a dedicated composer just for the bloom pass to enable selective darkening
-                const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-                this.bloomComposer = new THREE.EffectComposer(this.renderer, renderTarget);
-                this.bloomComposer.renderToScreen = false;
-                this.bloomComposer.addPass(this.renderPass);
-                this.bloomComposer.addPass(this.bloomPass);
-
-                // Final pass to mix the original scene with the bloomed scene
-                const finalPass = new THREE.ShaderPass(
-                    new THREE.ShaderMaterial({
-                        uniforms: {
-                            baseTexture: { value: null },
-                            bloomTexture: { value: this.bloomComposer.renderTarget2.texture }
-                        },
-                        vertexShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                vUv = uv;
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform sampler2D baseTexture;
-                            uniform sampler2D bloomTexture;
-                            varying vec2 vUv;
-                            void main() {
-                                gl_FragColor = (texture2D(baseTexture, vUv) + vec4(1.0) * texture2D(bloomTexture, vUv));
-                            }
-                        `,
-                        defines: {}
-                    }), 'baseTexture'
-                );
-                finalPass.needsSwap = true;
-                
-                this.composer.addPass(finalPass);
+                this.composer.addPass(this.bloomPass);
 
                 // 2. Outline Pass (Neon Luminous Border around enemies)
                 this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
@@ -1318,36 +1239,6 @@
                     ctx.strokeStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.moveTo(x,y+2); ctx.lineTo(Math.min(512,x+len), y+2+Math.sin((y+2)*0.05)*2); ctx.stroke();
                 }
                 const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2,2); return tex;
-            },
-
-            createDungeonWallTexture() {
-                const canvas = document.createElement("canvas");
-                canvas.width = 256;
-                canvas.height = 256;
-                const ctx = canvas.getContext("2d");
-                ctx.fillStyle = "#f5f5f5";
-                ctx.fillRect(0, 0, 256, 256);
-                ctx.fillStyle = "rgba(0,0,0,0.03)";
-                for (let i = 0; i < 1000; i++) {
-                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-                }
-                ctx.strokeStyle = "#3a2d1e";
-                ctx.lineWidth = 24;
-                ctx.strokeRect(0, 0, 256, 256);
-                ctx.lineWidth = 10;
-                for (let i = 48; i < 256; i += 48) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, 12);
-                    ctx.lineTo(i, 244);
-                    ctx.stroke();
-                }
-                for (let i = 64; i < 256; i += 64) {
-                    ctx.beginPath();
-                    ctx.moveTo(12, i);
-                    ctx.lineTo(244, i);
-                    ctx.stroke();
-                }
-                return new THREE.CanvasTexture(canvas);
             },
 
             createDungeonWallTexture() {
@@ -2040,9 +1931,8 @@
                             let panelHasLoS = false;
                             
                             // Tactical RPG Distance Rules:
-                            // 1. The player must be fully stopped (!this._lastIsMoving)
-                            // 2. The combat panels ready themselves when a monster is close (<= 4.0 tiles)
-                            // 3. You must be facing the monster (dot > 0.707, a 45 degree frontal cone)
+                            // 1. The combat panels ready themselves when a monster is close (<= 3.0 tiles)
+                            // 2. You must be facing the monster (dot > 0.4)
                             let makesCombat = false;
                             
                             // Once locked, it stays locked up to 12 tiles for retreat/recoil, but ONLY if still in view
@@ -2050,21 +1940,21 @@
                             
                             if (isActiveTarget && dist <= 12.0 && dot > 0.25) {
                                 makesCombat = true; 
-                            } else if (dist <= 5.0 && dot > 0.707) {
+                            } else if (dist <= 4.0 && dot > 0.707) {
                                 makesCombat = true; 
                             }
                             
-                            // 30-Foot Chat Bubble Visibility (4.0 grids center-to-center = 30 ft UI display)
-                            if (dist <= 4.0 && dot > 0.707 && child.userData.type === 'enemy') {
+                            // 25-Foot Chat Bubble Halt
+                            if (dist <= 2.5 && dot > 0.707 && child.userData.type === 'enemy') {
                                 if (!child.userData.chatSpawned) {
                                     child.userData.chatSpawned = true;
-                                    this._haltPlayer = true; // Stop player movement immediately
                                     this.spawnChatBubble(
                                         "Stop Fool!  Where do you think you're going?   Make a wager or duel - your choice.  Its a fool's wager!",
                                         "止まれ、愚か者め！どこへ行くつもりだ？ 賭けをするか、決闘をするか…選べ。 愚か者の賭けだがな！",
                                         child
                                     );
                                 }
+                                this._haltPlayer = true;
                             }
 
                             // Eerie Ghost Glow triggers from further down the hall as a warning (<= 7.0 tiles)
@@ -2406,9 +2296,9 @@
                         
                         let colX = null, colZ = null;
                         
-                        // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 3.0 tiles = 30 feet uncalibrated / 20 feet calibrated)
-                        // This leaves a 20-foot visual gap in the UI when forward movement officially locks.
-                        if (moveDir === 1 && this.activeTarget && this.activeTargetDist <= 3.0) {
+                        // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 1.5 tiles)
+                        // If we are just locked onto it from afar (e.g., 4 tiles away), allow normal walking towards it!
+                        if (moveDir === 1 && this.activeTarget && this.activeTargetDist < 1.5) {
                             const now = performance.now();
                             if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
                                 this.lastAttackTime = now;
@@ -2600,14 +2490,14 @@
                                 
                                 // Ethereal Float Engine
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
-                                if (child.userData.baseY === undefined) child.userData.baseY = model.position.y;
+                                if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
                                 
-                                // Float naturally around 1.0 unit off the ground (always floating ghosts)
-                                const floatAmp = 0.15; 
-                                const floatOffset = 1.0; 
+                                // Float amplitude (0.15), hover at 1.0 units (~3 feet in visual scale) during combat
+                                const floatAmp = isCombatTarget ? 0.15 : 0.0; 
+                                const floatOffset = isCombatTarget ? 1.0 : 0.0; // Stay grounded when idle/distant
                                 
-                                // Consolidate Y-Axis logic entirely right here on the model to prevent stuttering
-                                const targetY = child.userData.baseY + floatOffset + Math.sin(time + child.userData.bobPhase) * floatAmp;
+                                // Lerp the model's Y position physically into the air relative to its original bounding box base
+                                const targetY = model.userData.baseY + floatOffset + Math.sin(time + child.userData.bobPhase) * floatAmp;
                                 model.position.y += (targetY - model.position.y) * 0.1;
                             }
                             
@@ -2816,7 +2706,10 @@
                             child.rotation.y = angle;
                         }
                         
-                        // (Idle bob for enemies is now fully handled in the raycaster logic block above to fix stutter)
+                        // Apply idle bob to NPCs and Monsters based on their active baseY
+                        if (child.userData && child.userData.idlePhase !== undefined && child.userData.type !== 'player') {
+                            child.position.y = (child.userData.baseY || 0) + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.1;
+                        }
                     }
                 }
 
@@ -2824,75 +2717,20 @@
                 if (this.activeChat && this.activeChat.mesh && this.activeChat.target) {
                     const chatParams = this.activeChat;
 
+                    // Hover above target mathematically
                     const baseY = chatParams.target.userData.baseY || chatParams.target.position.y;
-                    const floatY = Math.sin(this.clock.getElapsedTime() * 1.5) * 0.05;
-                    
-                    // The Goblin head is roughly 1.8 units above its base
-                    const headWorldY = baseY + 1.8;
-                    
-                    // SCREEN SPACE CALCULATION: Exactly +50px above monster head
-                    const vFOV = THREE.MathUtils.degToRad(this.camera.fov);
-                    const distToMonster = this.camera.position.distanceTo(chatParams.target.position);
-                    
-                    // Height of the visible frustum at the monster's depth
-                    const visibleHeight = 2 * Math.tan(vFOV / 2) * distToMonster;
-                    const worldUnitsPerPixel = visibleHeight / window.innerHeight;
-                    
-                    // 50px offset in world space
-                    const worldOffset50px = 50 * worldUnitsPerPixel;
-                    
-                    // Adjust for the bubble's own internal height scaling (Shape's geometry)
-                    // The bottom tip of the tail sits at -0.9 (box) - 0.3 (tail) = -1.2 from the local origin.
-                    // Plus bevel size 0.1 downwards = -1.3 from center.
-                    // Scale applied is 0.65 -> 1.3 * 0.65 = 0.845 from local origin to bottom tip.
-                    const bubbleCenterOffset = 0.845;
-                    
+                    const bobY = Math.sin(this.clock.getElapsedTime() * 2.5) * 0.1;
                     chatParams.mesh.position.copy(chatParams.target.position);
-                    chatParams.mesh.position.y = headWorldY + worldOffset50px + bubbleCenterOffset + floatY;
+                    chatParams.mesh.position.y = baseY + 2.5 + bobY;
                     chatParams.mesh.lookAt(this.camera.position); // Always face player perfectly
 
-                    // SCREEN SPACE CLAMPING: +50px below top of screen
-                    const bubblePos3D = chatParams.mesh.position.clone();
-                    bubblePos3D.project(this.camera); // Project to NDC (-1 to 1)
-                    
-                    const halfH = window.innerHeight / 2;
-                    let bubbleScreenY = -(bubblePos3D.y * halfH) + halfH; // Screen pixel Y (0 at top, height at bottom)
-                    
-                    // Leave 100 pixels room at the top constraint (50px padding + half the bubble height)
-                    if (bubbleScreenY < 100) {
-                        bubbleScreenY = 100;
-                        const correctedClipY = -(bubbleScreenY - halfH) / halfH;
-                        bubblePos3D.y = correctedClipY;
-                        bubblePos3D.unproject(this.camera); // Map back to 3D space along the camera ray
-                        chatParams.mesh.position.y = bubblePos3D.y; // Override height
-                    }
-
-                    // Use a moderate PointLight floating in front of the chat bubble
-                    // The matte material prevents this light from blowing out into a whitewash.
-                    if (!chatParams.light) {
-                        chatParams.light = new THREE.PointLight(0xffffff, 1.2, 10);
-                        chatParams.light.position.set(0, 0, 1.5); 
-                        chatParams.mesh.add(chatParams.light);
-                    }
-
                     if (chatParams.fading) {
-                        let op = 0;
-                        chatParams.mesh.children.forEach(child => {
-                            if (child.material) {
-                                child.material.opacity -= delta * 2.0;
-                                op = child.material.opacity;
-                            }
-                        });
-                        if (chatParams.light) {
-                             chatParams.light.intensity -= delta * 3.0;
-                        }
-                        if (op <= 0) {
+                        chatParams.mesh.material.opacity -= delta * 2.0;
+                        if (chatParams.mesh.material.opacity <= 0) {
                             this.scene.remove(chatParams.mesh);
-                            chatParams.mesh.children.forEach(c => {
-                                if (c.material && c.material.map) c.material.map.dispose();
-                                if (c.material) c.material.dispose();
-                                if (c.geometry) c.geometry.dispose();
-                            });
+                            if (chatParams.mesh.material.map) chatParams.mesh.material.map.dispose();
+                            chatParams.mesh.material.dispose();
+                            chatParams.mesh.geometry.dispose();
                             this.activeChat = null;
                         }
                     }

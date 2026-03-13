@@ -147,8 +147,9 @@
         .ac-text { font-size: 6.5px; font-weight: 900; margin-top: 3px; text-transform: uppercase; color: var(--color-text); }
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
-        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: fit-content; height: auto; align-self: end; }
-        #guides-container { display: flex; width: 100%; padding: 10px; box-sizing: border-box; position: relative; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
+        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: 600px; height: auto; align-self: end; }
+        #guides-container { display: flex; width: 100%; padding: 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
+        #guides-container::-webkit-scrollbar { display: none; }
         
         /* --- GAMBLING DICE ENGINE --- */
         #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
@@ -228,11 +229,11 @@
         .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
         /* --- HIGH PERFORMANCE INPUT --- */
-        #input-container { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; margin-top: 6px; }
+        #input-container { width: 100%; max-width: 600px; height: 60px; display: flex; justify-content: center; align-items: center; margin-top: 6px; }
         .chat-pill { width: 100%; height: 54px; background: rgba(30,30,35,0.85); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark), 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
         .chat-input::placeholder { color: #ffffff; font-weight: 800; opacity: 0.8; }
-        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); }
+        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
         
         #event-log-container {
             position: absolute;
@@ -252,6 +253,12 @@
         #event-log-container.visible {
             opacity: 1;
         }
+
+        /* Utility Classes for resolving linting errors */
+        .theme-green { --theme-clr: #4caf50; }
+        .theme-red { --theme-clr: #f44336; }
+        .viewport-text { color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; }
+
         @media (min-width: 1200px) {
             .side-panel { width: 260px; }
             .sp-btn { height: 48px; font-size: 13px; }
@@ -309,7 +316,7 @@
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
                 <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
                 <div class="u-btn pos-w" data-key="ArrowLeft"><i class="fa-solid fa-caret-left"></i></div>
-                <div class="kp-center-btn" data-key="ArrowUp"><i class="fa-regular fa-circle-dot"></i></div>
+                <div class="kp-center-btn" data-key="Space"><i class="fa-solid fa-circle-dot"></i></div>
                 <div class="u-btn pos-e" data-key="ArrowRight"><i class="fa-solid fa-caret-right"></i></div>
                 <div class="u-btn pos-s" data-key="ArrowDown"><i class="fa-solid fa-caret-down"></i></div>
             </div>
@@ -322,7 +329,7 @@
                         <div id="modal-content" class="modal-card-hd"></div>
                         <div class="modal-controls">
                             <button class="m-btn" onclick="closeModal()">CANCEL</button>
-                            <button class="m-btn launch" id="launch-btn" style="color:var(--modal-theme-clr); border-color:var(--modal-theme-clr)">OK +</button>
+                            <button class="m-btn launch" id="launch-btn">OK +</button>
                         </div>
                     </div>
                     <div id="exit-modal">
@@ -335,7 +342,7 @@
                     <div id="guides-container"></div>
                     <div id="dice-container">
                         <div class="dice-player-zone">
-                            <div class="dpz-name" style="--theme-clr: #4caf50;">Ronin</div>
+                            <div class="dpz-name theme-green">Ronin</div>
                             <div class="dpz-pot">$500</div>
                         </div>
                         <div class="dice-table-center">
@@ -343,7 +350,7 @@
                             <button class="roll-btn" onclick="emitAction('ROLL_DICE')"><i class="fa-solid fa-dice"></i> CAST</button>
                         </div>
                         <div class="dice-player-zone">
-                            <div class="dpz-name" style="--theme-clr: #f44336;">Goblin</div>
+                            <div class="dpz-name theme-red">Goblin</div>
                             <div class="dpz-pot">$100</div>
                         </div>
                     </div>
@@ -351,7 +358,7 @@
                         <div class="chat-pill">
                             <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
                             <i class="fa-solid fa-turn-down enter-symbol"></i>
-                            <div id="viewport-readout" style="color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap;"></div>
+                            <div id="viewport-readout" class="viewport-text"></div>
                         </div>
                     </div>
                 </div>
@@ -359,7 +366,7 @@
 
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
                 <div id="action-zone">
-                    <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()" style="display: none;"></div>
+                    <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-circle-half-stroke"></i><span class="ac-text">Mode</span></div>
                     <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><span class="ac-text">Bag</span></div>
                     <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><span class="ac-text">Map</span></div>
@@ -377,13 +384,23 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        const categories = [
+        const defaultCategories = [
             { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
             { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Inferno star.', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Viscous tide.', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
             { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Green nectar.', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
         ];
+
+        const combatCategories = [
+            { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Basic slash.', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
+            { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Fast thrust.', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
+            { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Heavy attack.', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
+            { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Raises AC.', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
+            { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Use item.', attr: '(RESTORE)', cards: ['POTION'] }
+        ];
+
+        let categories = defaultCategories;
 
         let focusedColIndex = 0, pendingAction = null, wheelThrottle = false;
         const scenes = {}, dpr = window.devicePixelRatio || 1;
@@ -393,7 +410,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             
             elements.forEach(el => {
@@ -403,7 +420,7 @@
                 dir.position.set(5, 5, 5); scene.add(dir);
                 
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el],
+                    color: { EARTH: 0x5C4033, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
                     roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                 });
                 
@@ -461,6 +478,32 @@
                     const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
                     cork.position.y = 1.6; vial.add(cork); group.add(vial);
                     update = (t) => { vial.rotation.z = Math.sin(t * 2) * 0.2; liq.scale.y = 0.9 + Math.sin(t * 3) * 0.1; };
+                } else if (el === 'KATANA') {
+                    const hiltGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
+                    const hiltMat = new THREE.MeshStandardMaterial({color: 0x222222});
+                    const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+                    const bladeGeo = new THREE.BoxGeometry(0.1, 3.5, 0.4);
+                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2});
+                    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                    blade.position.y = 2.0;
+                    const guardGeo = new THREE.BoxGeometry(0.8, 0.1, 0.8);
+                    const guardMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    const guard = new THREE.Mesh(guardGeo, guardMat);
+                    guard.position.y = 0.6;
+                    group.add(hilt, blade, guard);
+                    group.position.y = -1.0;
+                    update = (t) => { group.rotation.z = Math.sin(t * 3) * 0.2; group.rotation.y = t * 0.5; };
+                } else if (el === 'SHIELD') {
+                    const shieldGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
+                    const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
+                    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                    shield.rotation.x = Math.PI / 2;
+                    const bossGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                    const bossMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    const boss = new THREE.Mesh(bossGeo, bossMat);
+                    boss.position.z = 0.1;
+                    group.add(shield, boss);
+                    update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
                 }
                 scene.add(group); scenes[el] = { scene, update };
             });
@@ -485,6 +528,17 @@
                 }
                 
                 if (avatarRenderer && avatarScene && avatarCamera) {
+                    const container = document.getElementById('player-avatar-container');
+                    if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+                        const w = container.clientWidth;
+                        const h = container.clientHeight;
+                        const canvas = avatarRenderer.domElement;
+                        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+                            avatarRenderer.setSize(w, h, false);
+                            avatarCamera.aspect = w / h;
+                            avatarCamera.updateProjectionMatrix();
+                        }
+                    }
                     avatarRenderer.render(avatarScene, avatarCamera);
                 }
 
@@ -515,8 +569,8 @@
             const container = document.getElementById('player-avatar-container');
             if (!container) return;
             
-            const w = container.clientWidth;
-            const h = container.clientHeight;
+            const w = container.clientWidth || 58;
+            const h = container.clientHeight || 58;
             
             avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             avatarRenderer.setPixelRatio(window.devicePixelRatio);
@@ -524,37 +578,66 @@
             container.appendChild(avatarRenderer.domElement);
             
             avatarScene = new THREE.Scene();
-            avatarCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+            avatarCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
             avatarCamera.position.set(0, 1.2, 4.5);
+            avatarCamera.lookAt(0, 1.0, 0); // Explicitly look at the avatar's chest/head height
             
-            const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+            const ambLight = new THREE.AmbientLight(0xffffff, 1.5); // Brighter ambient light
             avatarScene.add(ambLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2.0); // Brighter directional
             dirLight.position.set(5, 5, 5);
             avatarScene.add(dirLight);
             
             try {
                 const loader = new GLTFLoader();
-                loader.load('./assets/models/Player.A.Walking.glb', (gltf) => {
-                    const model = gltf.scene;
-                    
-                    // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
-                    model.position.set(0, -0.1, 0);
-                    // Rotate to face slightly right layout (isometric feel)
-                    model.rotation.y = Math.PI / 8;
-                    // Scale by 20%
-                    model.scale.set(1.25, 1.25, 1.25);
-                    
-                    avatarScene.add(model);
-                    
-                    if (gltf.animations && gltf.animations.length > 0) {
-                        avatarMixer = new THREE.AnimationMixer(model);
-                        avatarAction = avatarMixer.clipAction(gltf.animations[0]);
-                        // Don't play initially until player moves
+                // Adding multiple paths fallback logic like FPV does if possible, but trying relative first
+                const modelUrls = [
+                    './assets/models/Player.A.Walking.glb',
+                    'assets/models/Player.A.Walking.glb',
+                    '../assets/models/Player.A.Walking.glb'
+                ];
+                
+                function tryLoadModel(urlIndex) {
+                    if (urlIndex >= modelUrls.length) {
+                        console.warn("Avatar failed to load natively after all attempts. Running without Player Avatar.");
+                        // Put a visual indicator that it failed to load
+                        container.innerHTML = '<i class="fa-solid fa-user-astronaut" style="color:var(--color-text); font-size:24px;"></i>';
+                        return;
                     }
-                }, undefined, (e) => {
-                    console.warn("Avatar failed to load natively. Running without Player Avatar.", e);
-                });
+                    
+                    loader.load(modelUrls[urlIndex], (gltf) => {
+                        const model = gltf.scene;
+                        
+                        // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
+                        model.position.set(0, -0.4, 0); // Moved down slightly to fit better
+                        // Rotate to face slightly right layout (isometric feel)
+                        model.rotation.y = Math.PI / 8;
+                        // Scale 
+                        model.scale.set(1.25, 1.25, 1.25);
+                        
+                        avatarScene.add(model);
+                        
+                        if (gltf.animations && gltf.animations.length > 0) {
+                            avatarMixer = new THREE.AnimationMixer(model);
+                            avatarAction = avatarMixer.clipAction(gltf.animations[0]);
+                            // Don't play initially until player moves
+                        }
+                        
+                        // Fix metallic/roughness issues that might make it render black
+                        model.traverse((child) => {
+                            if (child.isMesh && child.material) {
+                                child.material.needsUpdate = true;
+                            }
+                        });
+                        
+                    }, undefined, (e) => {
+                        console.warn(`Failed loading avatar from ${modelUrls[urlIndex]}`, e);
+                        tryLoadModel(urlIndex + 1);
+                    });
+                }
+                
+                tryLoadModel(0);
+                
             } catch (err) {
                 console.warn("Avatar loader threw synchronous exception. Suppressing.", err);
             }
@@ -672,7 +755,45 @@
                     diceCont.classList.add('active');
                 }, 400); // Wait for fade out
             }
+
+            // Deck Swapping
+            if (a === 'ATTACK') {
+                loadDeck(combatCategories);
+            } else if (a === 'RETREAT' || a === 'HIDE') {
+                loadDeck(defaultCategories);
+            }
         };
+
+        function loadDeck(newCategories) {
+            categories = newCategories;
+            const container = document.getElementById('guides-container');
+            container.innerHTML = '';
+            
+            categories.forEach((cat, idx) => {
+                const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                cat.cards.forEach((name, i) => {
+                    const card = document.createElement('div');
+                    card.className = `guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD') ? 'item' : cat.id.toLowerCase()}`;
+                    card.dataset.depth = i;
+                    card.innerHTML = `
+                        <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
+                        <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
+                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
+                        <div class="card-attr-fused">${cat.attr || ''}</div>
+                    `;
+                    card.onclick = () => { if(card.dataset.depth === "0") launchModal(card); };
+                    col.appendChild(card);
+                });
+                container.appendChild(col);
+            });
+            setFocus(0, false);
+            
+            // Re-attach hover focus states to newly generated UI
+            document.querySelectorAll('.u-panel').forEach(p => { 
+                p.onmouseenter = () => p.focus(); 
+                p.onmouseleave = () => p.blur(); 
+            });
+        }
         document.getElementById('launch-btn').onclick = function(e) { 
             e.preventDefault();
             emitAction(pendingAction, this); 
@@ -741,11 +862,16 @@
                 }
                 if (e.data.distance !== undefined) {
                     const distTexts = document.querySelectorAll('.dist-text');
-                    const distFeet = (e.data.distance * 10).toFixed(0);
+                    // Center-to-center distance * 10, minus 10 feet for physical contact radius
+                    let distFeet = Math.max(0, (e.data.distance * 10) - 10).toFixed(0);
                     distTexts.forEach(el => el.textContent = `${distFeet} ft`);
                 }
             } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
                 document.getElementById('encounter-zone').classList.remove('active');
+                loadDeck(defaultCategories); // Reset deck after combat
+            } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
+                // If the player steps forward into the monster (bump attack), pop out Katana cards!
+                loadDeck(combatCategories);
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');

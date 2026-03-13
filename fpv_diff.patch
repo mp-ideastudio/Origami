@@ -1,0 +1,454 @@
+diff --git a/NewOrigami.FPV.1.html b/NewOrigami.FPV.1.html
+index 8f6805e..1df5933 100644
+--- a/NewOrigami.FPV.1.html
++++ b/NewOrigami.FPV.1.html
+@@ -288,7 +288,7 @@
+                 }
+ 
+                 const canvas = document.createElement('canvas');
+-                // Use a 2:1 aspect ratio for perfect equirectangular mapping onto a Sphere
++                // High-res equirectangular canvas
+                 canvas.width = 2048; 
+                 canvas.height = 1024;
+                 const ctx = canvas.getContext('2d');
+@@ -297,24 +297,19 @@
+                 ctx.fillStyle = 'rgba(252, 252, 252, 1.0)';
+                 ctx.fillRect(0, 0, 2048, 1024);
+ 
+-                // Add geometric/origami accent lines to the equirectangular map
+-                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+-                ctx.lineWidth = 14;
+-                ctx.beginPath();
+-                ctx.moveTo(0, 200); ctx.lineTo(2048, 200);
+-                ctx.moveTo(0, 824); ctx.lineTo(2048, 824);
+-                ctx.stroke();
+-
+-                let enFontSize = 140;
++                let enFontSize = 100;
+                 let enLines = [];
+                 let enLineHeight = 0;
+                 let enTotalHeight = 0;
+ 
+-                // We only want to draw on the "front" face of the balloon (center of equirectangular map)
+-                const MAX_WIDTH = 1000; 
+-                const MAX_HEIGHT = 500;
++                // CRITICAL FIX: Shrink the drawable area tightly to the exact center 
++                // of the equirectangular map to prevent spherical wrapping/stretching distortion.
++                // The "front" face of the sphere is at X=1024, Y=512.
++                // A safe zone that looks relatively flat is roughly 600x300.
++                const MAX_WIDTH = 600; 
++                const MAX_HEIGHT = 300;
+                 
+-                // Keep scaling down English text until it theoretically fits
++                // Keep scaling down English text until it perfectly fits the safe zone
+                 while (true) {
+                     ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
+                     const words = enText.split(' ');
+@@ -349,7 +344,7 @@
+                 }
+ 
+                 // Setup Japanese font
+-                let jpFontSize = Math.min(50, enFontSize * 0.5);
++                let jpFontSize = Math.min(32, enFontSize * 0.6);
+                 ctx.font = `bold ${jpFontSize}px sans-serif`;
+                 let jpLines = [];
+                 let currentJpLine = "";
+@@ -367,8 +362,8 @@
+                 let jpLineHeight = jpFontSize * 1.4;
+                 let jpTotalHeight = jpLines.length > 0 ? (jpLines.length * jpLineHeight) : 0;
+ 
+-                // Total combined height for centering
+-                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 40) : 0);
++                // Total combined height for centering within the safe zone
++                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 20) : 0);
+                 
+                 // Draw English Text
+                 ctx.fillStyle = '#000000';
+@@ -411,20 +406,22 @@
+                     roughness: 0.3,
+                     metalness: 0.1,
+                     emissive: 0xffffff,
+-                    emissiveIntensity: 0.25, // Slight glow to pop in dark environments
+-                    depthWrite: true
++                    emissiveIntensity: 0.1, // Subtle glow
++                    transparent: true,      // Required for soft fading
++                    opacity: 1.0,
++                    depthWrite: false       // Prevent z-fighting if multiple transparents
+                 });
+ 
+                 // Create a Round 3D Balloon Model (Ellipsoid)
+                 const geometry = new THREE.SphereGeometry(1.0, 64, 32);
+                 const mesh = new THREE.Mesh(geometry, material);
+                 
+-                // Scale into a wide chat bubble balloon shape
+-                mesh.scale.set(1.4, 0.9, 0.7);
++                // Scale into a classic oval chat bubble shape without bulging too much
++                mesh.scale.set(1.4, 0.8, 0.6);
+                 mesh.renderOrder = 999;
+                 
+                 // Add the classic Chat Bubble Tail using a Cone geometry
+-                const tailGeo = new THREE.ConeGeometry(0.3, 0.8, 16);
++                const tailGeo = new THREE.ConeGeometry(0.3, 0.6, 16);
+                 const tailMesh = new THREE.Mesh(tailGeo, material);
+                 // Position relative to the scaled balloon
+                 tailMesh.position.set(-0.4, -0.9, 0.4); 
+@@ -1134,7 +1131,7 @@
+                 this.scene.add(rimLight);
+                 
+                 // Base ambient light to prevent pitch black MeshStandardMaterial (walls/floors are basic mat so they remain dark)
+-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
++                const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+                 this.scene.add(ambientLight);
+                 
+                 // Player Flashlight
+@@ -1271,87 +1268,80 @@
+                 return new THREE.CanvasTexture(canvas);
+             },
+ 
+-            createDungeonFloorTexture() {
++            createPlasticFloorTexture(isDark = false) {
+                 const size = 512;
+                 const canvas = document.createElement("canvas");
+                 canvas.width = size;
+                 canvas.height = size;
+                 const ctx = canvas.getContext("2d");
+ 
+-                ctx.fillStyle = "#d2b48c"; // Tan stone color
++                // Base color based on theme
++                ctx.fillStyle = isDark ? "#1e293b" : "#e2e8f0"; // Tailwind Slate 800 or Slate 200
+                 ctx.fillRect(0, 0, size, size);
+ 
+-                const imageData = ctx.getImageData(0, 0, size, size);
+-                const data = imageData.data;
+-                for (let i = 0; i < data.length; i += 4) {
+-                    const randomFactor = (Math.random() - 0.5) * 15;
+-                    data[i]   += randomFactor; 
+-                    data[i+1] += randomFactor; 
+-                    data[i+2] += randomFactor;
+-                }
+-                ctx.putImageData(imageData, 0, 0);
+-
+-                ctx.strokeStyle = 'rgba(139, 90, 43, 0.5)';
+-                ctx.lineWidth = 2;
+-                const step = size / 8;
+-                for(let i = step; i < size; i += step) {
+-                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+-                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+-                }
++                // Grid lines
++                ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
++                ctx.lineWidth = 4;
++                
++                // Draw a 2x2 grid segment per tile
++                ctx.beginPath();
++                ctx.moveTo(size / 2, 0);
++                ctx.lineTo(size / 2, size);
++                ctx.stroke();
+ 
+-                ctx.strokeStyle = '#8b5a2b';
+-                ctx.lineWidth = 12;
+-                const inset = 6;
+-                ctx.strokeRect(inset, inset, size - inset * 2, size - inset * 2);
++                ctx.beginPath();
++                ctx.moveTo(0, size / 2);
++                ctx.lineTo(size, size / 2);
++                ctx.stroke();
++                
++                // Outer tile border
++                ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.15)";
++                ctx.lineWidth = 6;
++                ctx.strokeRect(3, 3, size - 6, size - 6);
+ 
+                 const tex = new THREE.CanvasTexture(canvas);
+                 tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
++                // Add anisotropic filtering for sharp angled grid lines
++                if (this.renderer) {
++                    tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
++                }
++                tex.colorSpace = THREE.SRGBColorSpace;
+                 return tex;
+             },
+ 
+-            createDarkWoodRafterTexture() {
++            createDungeonWallTexture() {
+                 const size = 512;
+                 const canvas = document.createElement("canvas");
+                 canvas.width = size;
+                 canvas.height = size;
+                 const ctx = canvas.getContext("2d");
+ 
+-                ctx.fillStyle = "#2B1810"; // Dark brown wood
++                // Base color based on theme
++                const isDarkMode = window.location.search.includes('theme=dark') || (window.parent && window.parent.document && window.parent.document.body && window.parent.document.body.classList.contains('dark-mode'));
++                ctx.fillStyle = isDarkMode ? "#0f172a" : "#ffffff"; // Slate 900 or White
+                 ctx.fillRect(0, 0, size, size);
+ 
+-                const imageData = ctx.getImageData(0, 0, size, size);
+-                const data = imageData.data;
+-                for (let i = 0; i < data.length; i += 4) {
+-                    const randomFactor = (Math.random() - 0.5) * 20;
+-                    data[i]   += randomFactor;
+-                    data[i+1] += randomFactor * 0.8;
+-                    data[i+2] += randomFactor * 0.6;
+-                }
+-                ctx.putImageData(imageData, 0, 0);
+-
+-                ctx.fillStyle = "#1A0F08"; 
+-                const beamWidth = 40;
+-                const beamSpacing = 80;
+-                for (let y = 0; y < size; y += beamSpacing) {
+-                    ctx.fillRect(0, y, size, beamWidth);
+-                }
+-
+-                ctx.fillStyle = "#1A0F08";
+-                const vertBeamWidth = 30;
+-                const vertBeamSpacing = 120;
+-                for (let x = 0; x < size; x += vertBeamSpacing) {
+-                    ctx.fillRect(x, 0, vertBeamWidth, size);
+-                }
+-
+-                ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+-                ctx.lineWidth = 1;
+-                for (let i = 0; i < 50; i++) {
+-                    const y = Math.random() * size;
+-                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
++                // Grid lines (Slightly darker grout)
++                ctx.strokeStyle = isDarkMode ? "#1e293b" : "#f8fafc"; // Slate 800 or Slate 50
++                ctx.lineWidth = 4;
++                
++                // Draw a 2x2 grid segment per wall panel
++                const step = size / 2;
++                for(let i = step; i < size; i += step) {
++                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
++                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+                 }
++                
++                // Outer tile border
++                ctx.lineWidth = 8;
++                ctx.strokeRect(0, 0, size, size);
+ 
+                 const tex = new THREE.CanvasTexture(canvas);
+                 tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
++                if (this.renderer) {
++                    tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
++                }
++                tex.colorSpace = THREE.SRGBColorSpace;
+                 return tex;
+             },
+ 
+@@ -1424,14 +1414,21 @@
+                 }
+ 
+                 // Generate premium textures
+-                const floorTex = this.createDungeonFloorTexture();
++                // Check if the current URL or parent indicates dark mode to initialize correctly
++                const isDarkMode = window.location.search.includes('theme=dark') || (window.parent && window.parent.document && window.parent.document.body && window.parent.document.body.classList.contains('dark-mode'));
++                
+                 const wallTex = this.createDungeonWallTexture();
+-                const ceilTex = this.createDarkWoodRafterTexture();
++                // We replaced the wood ceil with something simpler for the white aesthetic
++                const ceilTex = this.createDungeonWallTexture(); 
+                 const objTex = this.makePaperTexture('#444444');
+ 
+-                // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
++                // Fast Lambert Materials for everything except the floor
+                 const mats = {
+-                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
++                    floor: new THREE.MeshPhongMaterial({ 
++                        color: isDarkMode ? 0x222222 : 0xffffff, // Totally white or dark grey
++                        specular: 0x555555,
++                        shininess: 100 // High gloss plastic
++                    }),
+                     ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
+                     wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
+                     npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
+@@ -1503,13 +1500,41 @@
+                 ceiling.layers.set(1); // Hide ceiling from the Orthographic map camera (which only renders layer 0)
+                 this.worldGroup.add(ceiling);
+ 
+-                // Floor
+-                floorTex.repeat.set(this.mapWidth, this.mapHeight); // Tile floor
+-                const floorGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize, this.mapHeight * this.gridSize);
+-                const floor = new THREE.Mesh(floorGeo, mats.floor);
+-                floor.rotation.x = -Math.PI / 2;
+-                floor.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, 0, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
+-                this.worldGroup.add(floor);
++                // Floor (3D Instanced Tiles)
++                const tileSize = this.gridSize * 0.99; // 1% gap for subtle 'grout' separation
++                const tileDepth = 0.5;
++                const tileGeo = new THREE.BoxGeometry(tileSize, tileDepth, tileSize);
++                
++                // Calculate total traversable tiles for instancing
++                let floorCount = 0;
++                for (let z = 0; z < this.mapHeight; z++) {
++                    for (let x = 0; x < this.mapWidth; x++) {
++                        if (this.mapData[z][x] === 0) floorCount++;
++                    }
++                }
++                
++                const instancedFloor = new THREE.InstancedMesh(tileGeo, mats.floor, floorCount);
++                instancedFloor.name = 'DungeonFloor'; // Tag for theme updates
++                
++                const dummyFloor = new THREE.Object3D();
++                let floorIdx = 0;
++                
++                for (let z = 0; z < this.mapHeight; z++) {
++                    for (let x = 0; x < this.mapWidth; x++) {
++                        if (this.mapData[z][x] === 0) {
++                            dummyFloor.position.set(
++                                x * this.gridSize, 
++                                -tileDepth / 2, // Flush with y=0
++                                z * this.gridSize
++                            );
++                            dummyFloor.updateMatrix();
++                            instancedFloor.setMatrixAt(floorIdx++, dummyFloor.matrix);
++                        }
++                    }
++                }
++                
++                instancedFloor.instanceMatrix.needsUpdate = true;
++                this.worldGroup.add(instancedFloor);
+ 
+                 // Dynamic Mob Rendering
+                 const mobGeo = new THREE.BoxGeometry(1, 2, 1);
+@@ -1767,6 +1792,7 @@
+                         if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = true;
+                         if (k === 's' || data.key === 'ArrowDown') this.keys.s = true;
+                         if (k === 'd' || data.key === 'ArrowRight') this.keys.d = true;
++                        if (k === 'togglepov' || data.key === 'TogglePOV') this.toggleThirdPerson();
+                     } else if (data.type === 'KEY_UP') {
+                         const k = data.key.toLowerCase();
+                         if (k === 'w' || data.key === 'ArrowUp') this.keys.w = false;
+@@ -1791,6 +1817,7 @@
+                     if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = true;
+                     if (k === 's' || e.key === 'ArrowDown') this.keys.s = true;
+                     if (k === 'd' || e.key === 'ArrowRight') this.keys.d = true;
++                    if (k === 'togglepov' || e.key === 'TogglePOV') this.toggleThirdPerson();
+                 });
+                 
+                 window.addEventListener('keyup', (e) => {
+@@ -1801,6 +1828,52 @@
+                     if (k === 'd' || e.key === 'ArrowRight') this.keys.d = false;
+                 });
+             },
++            
++            toggleThirdPerson() {
++                this.isThirdPerson = !this.isThirdPerson;
++                if (this.isThirdPerson && !this.playerAvatar) {
++                    this.loadAvatar();
++                } else if (this.playerAvatar) {
++                    this.playerAvatar.visible = this.isThirdPerson;
++                }
++            },
++            
++            loadAvatar() {
++                const gltfLoader = new THREE.GLTFLoader();
++                gltfLoader.load('./assets/models/yakuza.imp.animated.glb', (gltf) => {
++                    this.playerAvatar = gltf.scene;
++                    this.playerAvatar.scale.set(1.5, 1.5, 1.5);
++                    this.playerAvatar.position.y = 0;
++                    
++                    // White Glossy Material override
++                    const whiteMat = new THREE.MeshPhysicalMaterial({
++                        color: 0xffffff,
++                        roughness: 0.1,
++                        metalness: 0.1,
++                        clearcoat: 1.0,
++                        clearcoatRoughness: 0.1
++                    });
++                    
++                    this.playerAvatar.traverse((child) => {
++                        if (child.isMesh) {
++                            // Assign standard gloss white to everything
++                            child.material = whiteMat;
++                            child.castShadow = true;
++                            child.receiveShadow = true;
++                        }
++                    });
++                    
++                    this.scene.add(this.playerAvatar);
++                    
++                    if (gltf.animations && gltf.animations.length > 0) {
++                        this.avatarMixer = new THREE.AnimationMixer(this.playerAvatar);
++                        // Clip 0 is usually idle
++                        const action = this.avatarMixer.clipAction(gltf.animations[0]);
++                        action.play();
++                        this.mixers.push(this.avatarMixer);
++                    }
++                });
++            },
+ 
+             checkCollision(gx, gz, radiusInGridUnits) {                
+                 // Check 4 corners of bounding box around (gx, gz)
+@@ -2119,6 +2192,15 @@
+                             { type: 'SHOW_COMBAT', health: e.data.newHp }, 
+                             '*'
+                         );
++                    } else if (e.data.type === 'THEME_UPDATE') {
++                        if (this.worldGroup) {
++                            const floorMesh = this.worldGroup.getObjectByName('DungeonFloor');
++                            if (floorMesh && floorMesh.material) {
++                                // InstancedMesh has a single material, so we just flip its base color
++                                floorMesh.material.color.setHex(e.data.isDark ? 0x222222 : 0xffffff);
++                                floorMesh.material.needsUpdate = true;
++                            }
++                        }
+                     } else if (e.data && e.data.type === 'AI_DEATH') {
+                         // Implement sinking death animation
+                         const deadMesh = this.worldGroup.children.find(m => m.userData && m.userData.id === e.data.id);
+@@ -2426,11 +2508,35 @@
+                 }
+                 
+                 // Apply final smoothed transforms to the camera
+-                this.camera.position.x = (this.player.x * this.gridSize) + (Math.cos(this.camera.rotation.y) * this.bobSway);
+-                this.camera.position.z = (this.player.z * this.gridSize) + (Math.sin(this.camera.rotation.y) * this.bobSway);
+-                this.camera.position.y = 1.84 + this.bobHeight; // Eye level + bob bounce
+-                this.camera.rotation.z = this.bobSway * -0.5; // Slight tilt during weight shift
+-                
++                if (this.isThirdPerson) {
++                    const pullBackDist = 15.0; 
++                    // Move camera backwards against the rotational heading
++                    this.camera.position.x = (this.player.x * this.gridSize) + (Math.sin(this.player.rot) * pullBackDist);
++                    this.camera.position.z = (this.player.z * this.gridSize) + (Math.cos(this.player.rot) * pullBackDist);
++                    this.camera.position.y = 8.0; 
++                    
++                    this.camera.rotation.x = -0.3; // Tilt down
++                    this.camera.rotation.y = this.player.rot; 
++                    this.camera.rotation.z = 0;
++                    
++                    if (this.playerAvatar) {
++                        this.playerAvatar.position.set(
++                            (this.player.x * this.gridSize), 
++                            0, 
++                            (this.player.z * this.gridSize)
++                        );
++                        // Avatar faces away from the camera
++                        this.playerAvatar.rotation.y = this.player.rot + Math.PI; 
++                    }
++                } else {
++                    this.camera.position.x = (this.player.x * this.gridSize) + (Math.cos(this.camera.rotation.y) * this.bobSway);
++                    this.camera.position.z = (this.player.z * this.gridSize) + (Math.sin(this.camera.rotation.y) * this.bobSway);
++                    this.camera.position.y = 1.84 + this.bobHeight; // Eye level + bob bounce
++                    
++                    this.camera.rotation.x = 0;
++                    this.camera.rotation.y = this.player.rot;
++                    this.camera.rotation.z = this.bobSway * -0.5; // Slight tilt during weight shift
++                }
+                 // Procedural Breathing & State Machine AI (IDLE, CHASE, SEARCH, RETURN)
+                 // TIME-STOP / TURN-BASED: Freeze time and logic if player is idle
+                 if (currentlyMoving) {
+@@ -2717,11 +2823,11 @@
+                 if (this.activeChat && this.activeChat.mesh && this.activeChat.target) {
+                     const chatParams = this.activeChat;
+ 
+-                    // Hover above target mathematically
++                    // Soft, gentle float above target
+                     const baseY = chatParams.target.userData.baseY || chatParams.target.position.y;
+-                    const bobY = Math.sin(this.clock.getElapsedTime() * 2.5) * 0.1;
++                    const floatY = Math.sin(this.clock.getElapsedTime() * 1.5) * 0.05;
+                     chatParams.mesh.position.copy(chatParams.target.position);
+-                    chatParams.mesh.position.y = baseY + 2.5 + bobY;
++                    chatParams.mesh.position.y = baseY + 2.8 + floatY;
+                     chatParams.mesh.lookAt(this.camera.position); // Always face player perfectly
+ 
+                     if (chatParams.fading) {
