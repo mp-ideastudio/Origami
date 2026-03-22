@@ -519,8 +519,8 @@
                 target.userData.combatIntroTriggered = true;
 
                 // Goblin backs up 2 grids (20 feet)
-                const dirX = Math.sin(this.player.rot);
-                const dirZ = Math.cos(this.player.rot);
+                const dirX = -Math.sin(this.player.rot);
+                const dirZ = -Math.cos(this.player.rot);
                 
                 target.userData.retreatX = target.position.x + (dirX * 2.0 * this.gridSize);
                 target.userData.retreatZ = target.position.z + (dirZ * 2.0 * this.gridSize);
