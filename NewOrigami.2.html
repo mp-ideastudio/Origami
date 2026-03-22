@@ -34,10 +34,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fluid Absolute Layout - Themed</title>
     <!-- Load Tailwind CSS -->
-    <script src="js/vendor/tailwindcss.js"></script>
-    <script>
-      tailwind.config = { corePlugins: { preflight: false } };
-    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -187,7 +184,7 @@
       
       <!-- FPV Background (Fullscreen) -->
       <div id="fpv-viewport" class="absolute inset-0 z-0 pointer-events-auto">
-        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.1.html" class="w-full h-full border-none"></iframe>
+        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.1.html?cachebuster=2" class="w-full h-full border-none"></iframe>
       </div>
 
       <!-- Map PiP (Top Right) -->
@@ -272,13 +269,7 @@
 
                   case 'toggleTheme':
                      const isDark = document.body.classList.contains('dark-mode');
-                     if (isDark) {
-                         document.body.classList.remove('dark-mode');
-                     } else {
-                         document.body.classList.add('dark-mode');
-                     }
-                     // Notify FPV engine to update floor textures
-                     notifyEngine('fpv', { type: 'THEME_UPDATE', isDark: !isDark });
+                     setTheme(!isDark);
                      break;
 
                   case 'MAP_ENGINE_READY':
@@ -290,9 +281,18 @@
                      break;
 
                   case 'PLAYER_MOVE_STATE':
-                  case 'PLAYER_IDLE':
-                     // Pass these states down to the panels engine (which houses the HUD/Avatar animations)
+                     // Route to panels frame so the avatar animates!
                      notifyEngine('panels', e.data);
+                     break;
+
+                  case 'LCD_EVENT':
+                     notifyEngine('panels', e.data);
+                     break;
+
+                  case 'COMBAT_ATTACK':
+                     // Forward combat hits so the tactical UI Katana cards pop out!
+                     notifyEngine('panels', e.data);
+                     notifyEngine('map', e.data);
                      break;
 
                   case 'SHOW_COMBAT':

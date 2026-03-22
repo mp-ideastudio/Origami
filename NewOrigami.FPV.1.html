@@ -194,11 +194,37 @@
             80% { transform: translate(-50%, -100%) scale(1.0); opacity: 0.8; }
             100% { transform: translate(-50%, -120%) scale(0.8); opacity: 0; }
         }
+
+        /* Asset Preloader - High-End / Next-Gen */
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0b0b0e; z-index: 9999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            transition: opacity 0.4s ease-out;
+        }
+        .loader-content { text-align: center; color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5); font-family: 'Inter', sans-serif; letter-spacing: 0.2rem; }
+        .loader-content h2 { font-weight: 800; margin-bottom: 2rem; font-size: 1.5rem; text-transform: uppercase; }
+        .progress-box { width: 350px; height: 6px; background: rgba(0, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 3px; overflow: hidden; margin: 0 auto; box-shadow: 0 0 15px rgba(0,255,255,0.1) inset; }
+        #loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #0088ff, #00ffff); box-shadow: 0 0 15px #00ffff; transition: width 0.1s ease-out; }
+        #loading-text { margin-top: 1rem; font-size: 0.9rem; font-weight: 600; font-family: monospace; }
+        #loading-file { margin-top: 0.5rem; font-size: 0.65rem; color: rgba(0, 255, 255, 0.6); letter-spacing: 0.05rem; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
+        <!-- Asset Preloading Screen -->
+        <div id="loading-screen">
+            <div class="loader-content">
+                <h2>INITIALIZING WORLD ENGINE...</h2>
+                <div class="progress-box">
+                    <div id="loading-bar-fill"></div>
+                </div>
+                <div id="loading-text">0%</div>
+                <div id="loading-file">Connecting to databanks...</div>
+            </div>
+        </div>
+
         <!-- 3D Scene Layer -->
         <canvas id="fpv-canvas"></canvas>
 
@@ -280,116 +306,140 @@
                 if (this.activeChat) {
                     if (this.activeChat.mesh) {
                         this.scene.remove(this.activeChat.mesh);
-                        if (this.activeChat.mesh.children && this.activeChat.mesh.children[0] && this.activeChat.mesh.children[0].material.map) {
-                            this.activeChat.mesh.children[0].material.map.dispose();
+                        // Clean up children (extrusion mesh, text mesh, light)
+                        if (this.activeChat.mesh.children) {
+                            this.activeChat.mesh.children.forEach(c => {
+                                if (c.material && c.material.map) c.material.map.dispose();
+                                if (c.material) c.material.dispose();
+                                if (c.geometry) c.geometry.dispose();
+                            });
                         }
-                        this.activeChat.mesh.children.forEach(c => {
-                            if (c.geometry) c.geometry.dispose();
-                            if (c.material) c.material.dispose();
-                        });
                     }
                     this.activeChat = null;
                 }
 
-                // High-resolution Canvas for crisp text
-                const cw = 800, ch = 400;
                 const canvas = document.createElement('canvas');
-                canvas.width = cw; 
-                canvas.height = ch;
+                canvas.width = 1000;
+                canvas.height = 1000;
                 const ctx = canvas.getContext('2d');
 
-                // Clear background completely so it's transparent over the 3D Balloon mesh
-                ctx.clearRect(0, 0, cw, ch);
+                // Clear background completely transparent
+                ctx.clearRect(0, 0, 1000, 1000);
 
-                // English Text Configuration - Cleaner, wider font
-                let enFontSize = 42;
-                ctx.font = `900 ${enFontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-                const words = enText.split(' ');
+                let enFontSize = 100;
                 let enLines = [];
-                let currentLine = words[0];
+                let enLineHeight = 0;
+                let enTotalHeight = 0;
 
-                // Wrap Text with comfortable padding (wrap at 700px on an 800px canvas)
-                for (let i = 1; i < words.length; i++) {
-                    const word = words[i];
-                    const width = ctx.measureText(currentLine + " " + word).width;
-                    if (width < 700) {
-                        currentLine += " " + word;
-                    } else {
-                        enLines.push(currentLine);
-                        currentLine = word;
-                    }
-                }
-                if (currentLine) enLines.push(currentLine);
+                const MAX_WIDTH = 700;
+                const MAX_HEIGHT = 450;
+                
+                // Scale English text until it fits
+                while (true) {
+                    ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
+                    const words = enText.split(' ');
+                    enLines = [];
+                    let currentLine = words[0];
 
-                // Draw Japanese Subtitle Setup
-                let jpFontSize = 28;
-                ctx.font = `bold ${jpFontSize}px "Noto Sans JP", sans-serif`;
-                let jpLines = [];
-                if (jpText) {
-                    let currentJpLine = "";
-                    for (let char of jpText) {
-                        let w = ctx.measureText(currentJpLine + char).width;
-                        if (w < 700) {
-                            currentJpLine += char;
+                    for (let i = 1; i < words.length; i++) {
+                        const word = words[i];
+                        const width = ctx.measureText(currentLine + " " + word).width;
+                        if (width < MAX_WIDTH) {
+                            currentLine += " " + word;
                         } else {
-                            jpLines.push(currentJpLine);
-                            currentJpLine = char;
+                            enLines.push(currentLine);
+                            currentLine = word;
                         }
                     }
-                    if (currentJpLine) jpLines.push(currentJpLine);
+                    if (currentLine) enLines.push(currentLine);
+
+                    enLineHeight = enFontSize * 1.15;
+                    enTotalHeight = enLines.length * enLineHeight;
+                    
+                    if (enTotalHeight <= MAX_HEIGHT || enFontSize <= 24) {
+                        let maxWordWidth = 0;
+                        for (let l of enLines) {
+                            maxWordWidth = Math.max(maxWordWidth, ctx.measureText(l).width);
+                        }
+                        if (maxWordWidth <= MAX_WIDTH || enFontSize <= 24) {
+                            break;
+                        }
+                    }
+                    enFontSize -= 2;
                 }
 
-                // Vertical Centering Calculation inside the main bubble body
-                const enLineHeight = enFontSize * 1.25;
-                const jpLineHeight = jpFontSize * 1.5;
-                const totalContentHeight = (enLines.length * enLineHeight) + (jpLines.length ? (jpLines.length * jpLineHeight) + 15 : 0);
+                // Japanese Font sizing
+                let jpFontSize = Math.min(32, enFontSize * 0.5);
+                ctx.font = `bold ${jpFontSize}px sans-serif`;
+                let jpLines = [];
+                let currentJpLine = "";
+                for (let char of (jpText || "")) {
+                    let w = ctx.measureText(currentJpLine + char).width;
+                    if (w < MAX_WIDTH * 0.95) {
+                        currentJpLine += char;
+                    } else {
+                        jpLines.push(currentJpLine);
+                        currentJpLine = char;
+                    }
+                }
+                if (currentJpLine) jpLines.push(currentJpLine);
+                
+                let jpLineHeight = jpFontSize * 1.4;
+                let jpTotalHeight = jpLines.length > 0 ? (jpLines.length * jpLineHeight) : 0;
+                
+                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 30) : 0);
                 
                 // Draw English Text
-                ctx.fillStyle = '#111111'; // Crisp dark grey/black
-                ctx.font = `900 ${enFontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+                ctx.fillStyle = '#000000';
+                ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                let currentY = (ch / 2) - (totalContentHeight / 2) + (enFontSize / 2);
+                let startY = 500 - (totalContentHeight / 2) + (enFontSize / 2);
+                let currentY = startY;
+                
                 for (let i = 0; i < enLines.length; i++) {
-                    ctx.fillText(enLines[i], cw / 2, currentY);
+                    ctx.fillText(enLines[i], 500, currentY);
                     currentY += enLineHeight;
                 }
 
                 // Draw Japanese Subtitle
                 if (jpText) {
-                    currentY += (jpFontSize / 2) + 10;
-                    ctx.fillStyle = '#555555';
-                    ctx.font = `bold ${jpFontSize}px "Noto Sans JP", sans-serif`;
+                    currentY += (jpFontSize / 2);
+                    ctx.fillStyle = '#444444';
+                    ctx.font = `bold ${jpFontSize}px sans-serif`;
                     ctx.textBaseline = 'top';
                     for (let i = 0; i < jpLines.length; i++) {
-                        ctx.fillText(jpLines[i], cw / 2, currentY);
+                        ctx.fillText(jpLines[i], 500, currentY);
                         currentY += jpLineHeight;
                     }
                 }
 
                 const texture = new THREE.CanvasTexture(canvas);
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                texture.minFilter = THREE.LinearMipmapLinearFilter;
-                if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
-                
-                // Text Sprite material - FOG IS OFF so text stays 100% black
-                const material = new THREE.MeshBasicMaterial({ 
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+
+                const textMaterial = new THREE.MeshBasicMaterial({ 
                     map: texture, 
                     transparent: true,
-                    depthWrite: false,     
                     depthTest: false,
                     fog: false
                 });
 
-                // Custom 3D Comic Balloon Shape (Origami/Cardstock style)
+                // Perfect 2D Billboard Text Mesh
+                const geometryPlane = new THREE.PlaneGeometry(3.6, 3.6);
+                const textMesh = new THREE.Mesh(geometryPlane, textMaterial);
+                textMesh.position.z = 0.50; // Push text firmly in front of the puffiest part of the balloon
+                textMesh.renderOrder = 1000;
+
+                // Custom 3D Comic Balloon Shape using ExtrudeGeometry
                 const shape = new THREE.Shape();
-                const bWidth = 3.6;
-                const bHeight = 1.8;
-                const bRad = 0.4;
-                const tWidth = 0.2; // Width must accommodate bevel size
-                const tHeight = 0.3; // Small, dainty tail
-                const tOffset = -0.1; // Shift tail closer to the center
+                const bWidth = 4.2;   // Increased for padding buffer
+                const bHeight = 2.8;  // Increased for padding buffer
+                const bRad = 0.5;
+                const tWidth = 0.4;
+                const tHeight = 1.0; 
+                const tOffset = 0.0; 
 
                 // Start top left
                 shape.moveTo(-bWidth/2 + bRad, bHeight/2);
@@ -398,10 +448,10 @@
                 shape.lineTo(bWidth/2, -bHeight/2 + bRad);
                 shape.quadraticCurveTo(bWidth/2, -bHeight/2, bWidth/2 - bRad, -bHeight/2);
                 
-                // Bottom edge with tail
-                shape.lineTo(tOffset + tWidth, -bHeight/2);
-                shape.lineTo(tOffset, -bHeight/2 - tHeight);    // Tip of tail
-                shape.lineTo(tOffset - tWidth, -bHeight/2);
+                // Bottom edge with tail pointing diagonally left towards the entity head
+                shape.lineTo(tOffset + tWidth/2, -bHeight/2);
+                shape.lineTo(tOffset - 3.5, -bHeight/2 - tHeight);    // Tip of tail stretched far left
+                shape.lineTo(tOffset - tWidth/2, -bHeight/2);
                 
                 shape.lineTo(-bWidth/2 + bRad, -bHeight/2);
                 shape.quadraticCurveTo(-bWidth/2, -bHeight/2, -bWidth/2, -bHeight/2 + bRad);
@@ -412,52 +462,54 @@
                     steps: 1,
                     depth: 0.15,
                     bevelEnabled: true,
-                    bevelThickness: 0.1, // Puffs it out in Z making it look like a rounded cloud
-                    bevelSize: 0.1, // Rounds the corners significantly
+                    bevelThickness: 0.25, // High bevel makes it look like a rounded cloud/pill
+                    bevelSize: 0.2, 
                     bevelOffset: 0,
-                    bevelSegments: 8 // Very smooth rounded edges
+                    bevelSegments: 12 // Smooth curves
                 };
 
                 const balloonGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
                 
                 // We use MeshStandardMaterial to get 3D shading, but with maximum roughness
-                // so the canvas reflection is soft, avoiding high-gloss hotspots that trigger the Bloom filter.
                 const balloonMat = new THREE.MeshStandardMaterial({ 
-                    color: 0xffffff,
-                    roughness: 1.0, // Totally matte, kills sharp glossy reflections
+                    color: 0xdddddd,
+                    roughness: 1.0, 
                     metalness: 0.0,
-                    emissive: 0x000000, 
-                    depthWrite: false,
-                    depthTest: false,
-                    transparent: true,
+                    emissive: 0x050505, // Minimal glow to prevent bloom washout
+                    depthWrite: true,
+                    depthTest: true,
+                    transparent: false,
                     fog: false
                 });
 
                 const balloonMesh = new THREE.Mesh(balloonGeo, balloonMat);
-                // Extrusion grows towards +z, so we push it back slightly more than the depth + bevel
-                balloonMesh.position.z = -0.25;
                 balloonMesh.renderOrder = 999;
-
-                // Perfect 2D Billboard Text (scaled to match the canvas aspect ratio 2:1)
-                const geometry = new THREE.PlaneGeometry(3.6, 1.8);
-                const textMesh = new THREE.Mesh(geometry, material);
-                textMesh.position.z = 0.05; // Pull text firmly in front of the balloon's puffy front face
-                textMesh.renderOrder = 1000;
                 
+                const light = new THREE.PointLight(0xffffff, 0.15, 5);
+                
+                // Offset the meshes so the tip of the tail (-3.5, -bHeight/2 - tHeight, 0)
+                // becomes the (0,0,0) origin of the Group container.
+                // -bHeight/2 - tHeight = -1.4 - 1.0 = -2.4. So shift +3.5 X and +2.4 Y.
+                balloonMesh.position.set(3.5, 2.4, -0.25);
+                textMesh.position.set(3.5, 2.4, 0.50);
+                light.position.set(3.5, 2.4, 1.0);
+
                 const group = new THREE.Group();
                 group.add(balloonMesh);
                 group.add(textMesh);
+                group.add(light);
                 group.renderOrder = 999;
                 
-                // Scale down the entire chat bubble as requested
-                group.scale.set(0.65, 0.65, 0.65);
+                // Scale the bubble container 50% larger than before (0.18 * 1.5 = 0.27)
+                group.scale.set(0.27, 0.27, 0.27);
                 
                 this.scene.add(group);
 
                 this.activeChat = {
                     mesh: group,
                     target: targetMesh,
-                    expires: Infinity,
+                    light: light,
+                    expires: Infinity, // Permanent until clicked or dismissed
                     fading: false
                 };
             },
@@ -630,8 +682,31 @@
                     this.layoutData = data;
                 };
 
-                // Start Render Loop
-                requestAnimationFrame(() => this.animate());
+                // Start Render Loop ONLY after assets are completely loaded to prevent pop-in
+                THREE.DefaultLoadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
+                    const percent = (itemsLoaded / itemsTotal) * 100;
+                    const fill = document.getElementById('loading-bar-fill');
+                    if (fill) fill.style.width = percent + '%';
+                    
+                    const text = document.getElementById('loading-text');
+                    if (text) text.innerText = Math.round(percent) + '%';
+                    
+                    const file = document.getElementById('loading-file');
+                    if (file) {
+                        const filename = url.split('/').pop().split('?')[0];
+                        file.innerText = `Loading: ${filename}`;
+                    }
+                };
+                
+                THREE.DefaultLoadingManager.onLoad = () => {
+                    const screen = document.getElementById('loading-screen');
+                    if (screen) {
+                        screen.style.opacity = '0';
+                        setTimeout(() => { if (screen.parentNode) screen.parentNode.removeChild(screen); }, 500);
+                    }
+                    // Start rendering now that the scene is fully populated
+                    requestAnimationFrame(() => this.animate());
+                };
             },
             
             // Uniformly scale an object so its total height equals targetHeight (in world units)
@@ -1176,80 +1251,79 @@
                 this.headlamp = headlamp;
                 this.outerGlow = outerGlow;
                 
+                // --- Procedural Player Sword Mesh ---
+                this.weaponGroup = new THREE.Group();
+                // Dock weapon to the bottom-right of the FPV viewport
+                this.weaponGroup.position.set(0.6, -0.5, -1.2); 
+                // Angle it slightly inward and upward
+                this.weaponGroup.rotation.set(0.3, -0.2, 0);
+                
+                // Blade
+                const bladeGeo = new THREE.CylinderGeometry(0.01, 0.05, 1.2, 4);
+                // Shift geometry up so the origin is at the hilt, allowing for proper swinging arcs
+                bladeGeo.translate(0, 0.6, 0); 
+                const bladeMat = new THREE.MeshStandardMaterial({
+                    color: 0xcccccc, metalness: 0.8, roughness: 0.2, depthTest: false
+                });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.renderOrder = 999;
+                
+                // Hilt/Crossguard
+                const guardGeo = new THREE.BoxGeometry(0.3, 0.05, 0.05);
+                const guardMat = new THREE.MeshStandardMaterial({ color: 0x8b6508, metalness: 0.5, depthTest: false });
+                const guard = new THREE.Mesh(guardGeo, guardMat);
+                guard.position.y = 0;
+                guard.renderOrder = 999;
+                
+                // Handle
+                const handleGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8);
+                handleGeo.translate(0, -0.15, 0);
+                const handleMat = new THREE.MeshStandardMaterial({ color: 0x4a3c31, roughness: 0.9, depthTest: false });
+                const handle = new THREE.Mesh(handleGeo, handleMat);
+                handle.renderOrder = 999;
+                
+                this.weaponGroup.add(blade);
+                this.weaponGroup.add(guard);
+                this.weaponGroup.add(handle);
+                
+                // Hide sword initially
+                this.weaponGroup.visible = false;
+                this.camera.add(this.weaponGroup);
+                
+                // Weapon Animation State
+                this.weaponAnim = {
+                    active: false,
+                    type: null,
+                    startTime: 0,
+                    duration: 0
+                };
+                
+                this.playPlayerSwordAnim = (type) => {
+                    this.weaponGroup.visible = true;
+                    this.weaponAnim.active = true;
+                    this.weaponAnim.type = type; // 'SLASH', 'THRUST', 'STRONG ATTACK'
+                    this.weaponAnim.startTime = performance.now();
+                    
+                    if (type === 'SLASH') this.weaponAnim.duration = 400;
+                    else if (type === 'THRUST') this.weaponAnim.duration = 300;
+                    else if (type === 'STRONG ATTACK') this.weaponAnim.duration = 600;
+                    else this.weaponAnim.duration = 400; // default
+                };
+
                 // -----------------------------------------------------
                 // GHOSTBUSTER POST-PROCESSING PIPELINE
                 // -----------------------------------------------------
-                
-                // We use Layer 0 for general world mapping
-                // Layer 1 is for ceilings (hidden from minimaps)
-                // Layer 2 is for completely un-bloomed UI elements (Chat Bubbles)
-                this.camera.layers.enable(1); 
-                this.camera.layers.enable(2); 
-
                 this.composer = new THREE.EffectComposer(this.renderer);
-                this.renderPass = new THREE.RenderPass(this.scene, this.camera);
-                this.composer.addPass(this.renderPass);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
 
                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
                 this.bloomPass = new THREE.UnrealBloomPass(
                     new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    0.8,    // strength
-                    0.6,    // radius
+                    0.8,    // strength (increased for intense radiant bloom)
+                    0.6,    // radius (widened for soft spread)
                     0.9     // threshold (tightly clamped so only the 0xffffff glows)
                 );
-                
-                // Create a dark material to mask out non-blooming objects during the bloom pass
-                const darkMaterial = new THREE.MeshBasicMaterial({ color: "black" });
-                this.darkenNonBloomed = (obj) => {
-                    // If the object is explicitly on Layer 2 (UI/NoBloom), swap its material to black
-                    if (obj.isMesh && obj.layers.test(new THREE.Layers().set(2))) {
-                        obj.userData.originalMaterial = obj.material;
-                        obj.material = darkMaterial;
-                    }
-                };
-                
-                this.restoreMaterial = (obj) => {
-                    if (obj.userData.originalMaterial) {
-                        obj.material = obj.userData.originalMaterial;
-                        delete obj.userData.originalMaterial;
-                    }
-                };
-
-                // Create a dedicated composer just for the bloom pass to enable selective darkening
-                const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-                this.bloomComposer = new THREE.EffectComposer(this.renderer, renderTarget);
-                this.bloomComposer.renderToScreen = false;
-                this.bloomComposer.addPass(this.renderPass);
-                this.bloomComposer.addPass(this.bloomPass);
-
-                // Final pass to mix the original scene with the bloomed scene
-                const finalPass = new THREE.ShaderPass(
-                    new THREE.ShaderMaterial({
-                        uniforms: {
-                            baseTexture: { value: null },
-                            bloomTexture: { value: this.bloomComposer.renderTarget2.texture }
-                        },
-                        vertexShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                vUv = uv;
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform sampler2D baseTexture;
-                            uniform sampler2D bloomTexture;
-                            varying vec2 vUv;
-                            void main() {
-                                gl_FragColor = (texture2D(baseTexture, vUv) + vec4(1.0) * texture2D(bloomTexture, vUv));
-                            }
-                        `,
-                        defines: {}
-                    }), 'baseTexture'
-                );
-                finalPass.needsSwap = true;
-                
-                this.composer.addPass(finalPass);
+                this.composer.addPass(this.bloomPass);
 
                 // 2. Outline Pass (Neon Luminous Border around enemies)
                 this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
@@ -1318,36 +1392,6 @@
                     ctx.strokeStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.moveTo(x,y+2); ctx.lineTo(Math.min(512,x+len), y+2+Math.sin((y+2)*0.05)*2); ctx.stroke();
                 }
                 const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2,2); return tex;
-            },
-
-            createDungeonWallTexture() {
-                const canvas = document.createElement("canvas");
-                canvas.width = 256;
-                canvas.height = 256;
-                const ctx = canvas.getContext("2d");
-                ctx.fillStyle = "#f5f5f5";
-                ctx.fillRect(0, 0, 256, 256);
-                ctx.fillStyle = "rgba(0,0,0,0.03)";
-                for (let i = 0; i < 1000; i++) {
-                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-                }
-                ctx.strokeStyle = "#3a2d1e";
-                ctx.lineWidth = 24;
-                ctx.strokeRect(0, 0, 256, 256);
-                ctx.lineWidth = 10;
-                for (let i = 48; i < 256; i += 48) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, 12);
-                    ctx.lineTo(i, 244);
-                    ctx.stroke();
-                }
-                for (let i = 64; i < 256; i += 64) {
-                    ctx.beginPath();
-                    ctx.moveTo(12, i);
-                    ctx.lineTo(244, i);
-                    ctx.stroke();
-                }
-                return new THREE.CanvasTexture(canvas);
             },
 
             createDungeonWallTexture() {
@@ -2040,30 +2084,34 @@
                             let panelHasLoS = false;
                             
                             // Tactical RPG Distance Rules:
-                            // 1. The player must be fully stopped (!this._lastIsMoving)
-                            // 2. The combat panels ready themselves when a monster is close (<= 4.0 tiles)
-                            // 3. You must be facing the monster (dot > 0.707, a 45 degree frontal cone)
+                            // 1. The combat panels ready themselves when a monster is close (<= 10.0 tiles)
+                            // 2. You must be facing the monster (dot > 0.4)
                             let makesCombat = false;
                             
-                            // Once locked, it stays locked up to 12 tiles for retreat/recoil, but ONLY if still in view
+                            // Once locked, it stays locked up to 6 tiles for retreat/recoil, but ONLY if still in view
                             const isActiveTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
                             
-                            if (isActiveTarget && dist <= 12.0 && dot > 0.25) {
+                            if (isActiveTarget && dist <= 6.0 && dot > 0.25) {
                                 makesCombat = true; 
-                            } else if (dist <= 5.0 && dot > 0.707) {
+                            } else if (dist <= 4.0 && dot > 0.707) {
                                 makesCombat = true; 
                             }
                             
-                            // 30-Foot Chat Bubble Visibility (4.0 grids center-to-center = 30 ft UI display)
-                            if (dist <= 4.0 && dot > 0.707 && child.userData.type === 'enemy') {
+                            // 20-Foot Chat Bubble Halt (2 tiles = 20 feet)
+                            if (dist <= 2.0 && dot > 0.707 && child.userData.type === 'enemy') {
                                 if (!child.userData.chatSpawned) {
                                     child.userData.chatSpawned = true;
-                                    this._haltPlayer = true; // Stop player movement immediately
                                     this.spawnChatBubble(
                                         "Stop Fool!  Where do you think you're going?   Make a wager or duel - your choice.  Its a fool's wager!",
                                         "止まれ、愚か者め！どこへ行くつもりだ？ 賭けをするか、決闘をするか…選べ。 愚か者の賭けだがな！",
                                         child
                                     );
+                                    // Halt forward movement at interaction
+                                    this._haltPlayer = true;
+                                    this.keys.w = false;
+                                    this.keys.a = false;
+                                    this.keys.s = false;
+                                    this.keys.d = false;
                                 }
                             }
 
@@ -2192,11 +2240,62 @@
                     
                     if (e.data.type === 'FPV_ACTION') {
                         const action = e.data.action;
-                        if (action === 'ATTACK' && this.activeTarget && this.activeTarget.userData.type === 'enemy') {
+                        if (action === 'BET_EVEN' || action === 'BET_ODD') {
+                            this.spawnCombatText(action === 'BET_EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
+                            
+                            // Spawn 3D Bouncing Dice in front of Player/Target
+                            let spawnX = this.player.x * this.gridSize;
+                            let spawnZ = this.player.z * this.gridSize;
+                            let spawnY = 2; // Drop from above
+                            
+                            if (this.activeTarget) {
+                                spawnX = (spawnX + this.activeTarget.position.x) / 2;
+                                spawnZ = (spawnZ + this.activeTarget.position.z) / 2;
+                                this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager
+                            } else {
+                                spawnX -= Math.sin(this.player.rot) * 1.5;
+                                spawnZ -= Math.cos(this.player.rot) * 1.5;
+                            }
+                            
+                            for(let i=0; i<2; i++) {
+                                const dieGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                                const dieMat = new THREE.MeshStandardMaterial({
+                                    color: action === 'BET_EVEN' ? 0x1b5e20 : 0xb71c1c, 
+                                    roughness: 0.2, 
+                                    metalness: 0.1
+                                });
+                                const die = new THREE.Mesh(dieGeo, dieMat);
+                                die.position.set(spawnX + (i * 0.4 - 0.2), spawnY, spawnZ);
+                                
+                                die.userData = {
+                                    isDice: true,
+                                    vY: 0.1, // Toss up slightly
+                                    vX: (Math.random() - 0.5) * 0.15,
+                                    vZ: (Math.random() - 0.5) * 0.15,
+                                    rX: Math.random() * 0.5,
+                                    rY: Math.random() * 0.5,
+                                    rZ: Math.random() * 0.5,
+                                    life: 240 // 4 seconds at 60fps
+                                };
+                                this.worldGroup.add(die);
+                            }
+                            this.scene.userData.hasActiveDice = true;
+                            
+                        } else if (action === 'WAGER' && this.activeTarget) {
+                            this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager mode
+                        } else if ((action === 'ATTACK' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') && this.activeTarget && this.activeTarget.userData.type === 'enemy') {
+                            this.activeTarget.userData.stateColor = '#ff0000'; // Red for attack
                             this.triggerCombatSequence(this.activeTarget);
                             const now = performance.now();
                             if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
                                 this.lastAttackTime = now;
+                                
+                                // Route visual animation
+                                if (action !== 'ATTACK') {
+                                    this.playPlayerSwordAnim(action);
+                                } else {
+                                    this.playPlayerSwordAnim('SLASH'); // default fallback
+                                }
                                 
                                 // FCT Magic: Random WoW text generator
                                 const rolls = ['Hit!', 'Crit!', 'Miss', 'Dodge'];
@@ -2204,12 +2303,30 @@
                                 const dmg = Math.floor(Math.random() * 40) + 10;
                                 const rIdx = Math.floor(Math.random() * rolls.length);
                                 
+                                // Trigger Goblin Retaliation slightly delayed (reaction)
+                                setTimeout(() => {
+                                    if (this.activeTarget && this.activeTarget.userData.actions) {
+                                        const mixer = this.activeTarget.userData.mixer;
+                                        const slashAnim = this.activeTarget.userData.actions[1]; // Action 1 is the Goblin's specific Native Attack Animation
+                                        if (mixer && slashAnim) {
+                                            mixer.stopAllAction();
+                                            slashAnim.reset();
+                                            slashAnim.setLoop(THREE.LoopOnce, 1);
+                                            slashAnim.clampWhenFinished = true;
+                                            slashAnim.play();
+                                            
+                                            // Goblin retaliation damage text
+                                            const gobDmg = Math.floor(Math.random() * 15) + 5;
+                                            this.spawnCombatText(`GOBLIN HITS ${gobDmg}`, 'crit');
+                                        }
+                                    }
+                                }, this.weaponAnim.duration + 50); // Swing finishes, goblin hits back
+                                
                                 if (rIdx <= 1) {
                                     this.spawnCombatText(`${rolls[rIdx]} ${dmg * (rIdx===1 ? 2 : 1)}`, types[rIdx]);
                                 } else {
                                     this.spawnCombatText(rolls[rIdx], types[rIdx]);
                                 }
-                                
                                 
                                 // Forward the attack to the AI Brain
                                 this.postToAI({ type: 'PLAYER_ATTACK', targetId: this.activeTarget.userData.id });
@@ -2222,6 +2339,7 @@
                                 this.player.x += dx;
                                 this.player.z += dz;
                             }
+                            this._haltPlayer = false; // Player retreated, they can move again
                         }
                     } else if (e.data.type === 'COMBAT_UPDATE') {
                         // Sync UI with the AI's math
@@ -2406,19 +2524,37 @@
                         
                         let colX = null, colZ = null;
                         
-                        // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 3.0 tiles = 30 feet uncalibrated / 20 feet calibrated)
-                        // This leaves a 20-foot visual gap in the UI when forward movement officially locks.
-                        if (moveDir === 1 && this.activeTarget && this.activeTargetDist <= 3.0) {
+                        // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 1.5 tiles)
+                        // If we are just locked onto it from afar (e.g., 4 tiles away), allow normal walking towards it!
+                        if (moveDir === 1 && this.activeTarget && this.activeTargetDist < 1.5) {
                             const now = performance.now();
                             if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
                                 this.lastAttackTime = now;
                                 
-                                // FCT Magic: Random WoW text generator
-                                const isPlayerAtk = Math.random() > 0.5;
-                                const actor = isPlayerAtk ? "PLAYER" : "GOBLIN";
-                                const dmg = Math.floor(Math.random() * 4) + 1; // 1-4 pts
+                                // Randomize player baseline sword animation
+                                const anims = ['SLASH', 'THRUST', 'STRONG ATTACK'];
+                                this.playPlayerSwordAnim(anims[Math.floor(Math.random() * anims.length)]);
                                 
-                                Engine.spawnCombatText(`${actor} HITS ${dmg}`, isPlayerAtk ? 'hit' : 'crit');
+                                // FCT Magic: Random WoW text generator
+                                const dmg = Math.floor(Math.random() * 4) + 1; // 1-4 pts
+                                Engine.spawnCombatText(`PLAYER HITS ${dmg}`, 'hit');
+                                
+                                // Play slash animation if Goblin attacks (delayed retaliation)
+                                if (this.activeTarget.userData.actions) {
+                                    setTimeout(() => {
+                                        const mixer = this.activeTarget.userData.mixer;
+                                        const slashAnim = this.activeTarget.userData.actions[1]; // Action 1 is the Attack Animation
+                                        if (mixer && slashAnim) {
+                                            mixer.stopAllAction();
+                                            slashAnim.reset();
+                                            slashAnim.setLoop(THREE.LoopOnce, 1);
+                                            slashAnim.clampWhenFinished = true;
+                                            slashAnim.play();
+                                            const gobDmg = Math.floor(Math.random() * 4) + 1;
+                                            Engine.spawnCombatText(`GOBLIN HITS ${gobDmg}`, 'crit');
+                                        }
+                                    }, this.weaponAnim.duration + 50);
+                                }
                                 
                                 // Recoil violently backwards for visual effect without ever stepping closer to the 3D model
                                 nextX = this.player.x + (dx * 1.5);
@@ -2451,6 +2587,30 @@
                                 if (targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
                                     this.lastAttackTime = now;
                                     
+                                    if (targetMesh.userData.type === 'enemy') {
+                                        // Auto-attack bump 
+                                        this.playPlayerSwordAnim('SLASH');
+                                        const dmg = Math.floor(Math.random() * 4) + 1; // 1-4 pts
+                                        Engine.spawnCombatText(`PLAYER HITS ${dmg}`, 'hit');
+                                        
+                                        // Play slash animation if Goblin attacks
+                                        if (targetMesh.userData.actions) {
+                                            setTimeout(() => {
+                                                const mixer = targetMesh.userData.mixer;
+                                                const slashAnim = targetMesh.userData.actions[1]; // Action 1 is the Attack Animation
+                                                if (mixer && slashAnim) {
+                                                    mixer.stopAllAction();
+                                                    slashAnim.reset();
+                                                    slashAnim.setLoop(THREE.LoopOnce, 1);
+                                                    slashAnim.clampWhenFinished = true;
+                                                    slashAnim.play();
+                                                    const gobDmg = Math.floor(Math.random() * 4) + 1;
+                                                    Engine.spawnCombatText(`GOBLIN HITS ${gobDmg}`, 'crit');
+                                                }
+                                            }, 450);
+                                        }
+                                    }
+                                    
                                     // Recoil violently backwards
                                     nextX = this.player.x + (dx * 1.5);
                                     nextZ = this.player.z + (dz * 1.5);
@@ -2468,6 +2628,7 @@
 
                         // Trigger Auto-Turn Feature
                         if (moveDir === 1 && turnDir === 0 && (colX || colZ) && !this.activeTarget && this.player.autoTurnTarget === null) {
+
                             // Snap current rotation to nearest cardinal direction to prevent mid-turn check failure
                             const cardinalRot = Math.round(this.player.rot / (Math.PI/2)) * (Math.PI/2);
                                 
@@ -2529,10 +2690,11 @@
                     this.bobHeight = Math.abs(Math.sin(this.bobTimer)) * this.BOB_AMP;
                     this.bobSway = Math.cos(this.bobTimer / 2) * this.SWAY_AMP; // Half speed sway for weight shift
                 } else {
-                    // Smoothly ease back to rest position when stopped
+                    // Smoothly ease back to rest position when stopped (clamped to prevent delta explosion on lag)
                     this.bobTimer = 0;
-                    this.bobHeight += (0 - this.bobHeight) * 10 * delta;
-                    this.bobSway += (0 - this.bobSway) * 10 * delta;
+                    const lerpFactor = Math.min(1.0, 10 * delta); // PREVENT EXPLOSION!
+                    this.bobHeight += (0 - this.bobHeight) * lerpFactor;
+                    this.bobSway += (0 - this.bobSway) * lerpFactor;
                 }
                 
                 // Apply final smoothed transforms to the camera
@@ -2540,6 +2702,42 @@
                 this.camera.position.z = (this.player.z * this.gridSize) + (Math.sin(this.camera.rotation.y) * this.bobSway);
                 this.camera.position.y = 1.84 + this.bobHeight; // Eye level + bob bounce
                 this.camera.rotation.z = this.bobSway * -0.5; // Slight tilt during weight shift
+                
+                // Weapon Animation Loop
+                if (this.weaponAnim && this.weaponAnim.active) {
+                    const elapsed = performance.now() - this.weaponAnim.startTime;
+                    let progress = elapsed / this.weaponAnim.duration;
+                    
+                    if (progress >= 1) {
+                        this.weaponAnim.active = false;
+                        this.weaponGroup.rotation.set(0.3, -0.2, 0); // Reset
+                        this.weaponGroup.position.set(0.6, -0.5, -1.2); // Reset
+                        this.weaponGroup.visible = false;
+                    } else {
+                        // Math Easing Functions for tactile feel
+                        if (this.weaponAnim.type === 'SLASH') {
+                            // Arc from top right (+x) to bottom left (-x, -y)
+                            const swing = Math.sin(progress * Math.PI); // 0 to 1 to 0
+                            this.weaponGroup.position.x = 0.6 - (progress * 1.5); 
+                            this.weaponGroup.position.y = -0.5 + (swing * 0.5);
+                            this.weaponGroup.rotation.z = -progress * Math.PI * 1.5;
+                        } else if (this.weaponAnim.type === 'THRUST') {
+                            // Jab straight forward and pullback
+                            const jab = Math.sin(progress * Math.PI); 
+                            this.weaponGroup.position.z = -1.2 - (jab * 1.2);
+                            this.weaponGroup.rotation.x = Math.PI / 2; // Pointed straight
+                        } else if (this.weaponAnim.type === 'STRONG ATTACK') {
+                            // Heavy overhead chop
+                            const lift = (progress < 0.3) ? progress / 0.3 : 1 - ((progress - 0.3) / 0.7); // Fast up, slow down
+                            this.weaponGroup.position.y = -0.5 + (lift * 1.5);
+                            this.weaponGroup.position.z = -1.2 - (lift * 0.5);
+                            this.weaponGroup.rotation.x = -lift * Math.PI;
+                        }
+                    }
+                } else if (this.weaponGroup && !this.weaponAnim.active) {
+                    // Lower weapon slightly during heavy sprint/bob
+                    this.weaponGroup.position.y = -0.5 + this.bobHeight * 0.5;
+                }
                 
                 // Procedural Breathing & State Machine AI (IDLE, CHASE, SEARCH, RETURN)
                 // TIME-STOP / TURN-BASED: Freeze time and logic if player is idle
@@ -2562,10 +2760,10 @@
                             const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
                             
                             // 1. Calculate Grid Distance to camera for Proximity Fading
-                            this._anim_mPos.copy(child.position);
-                            this._anim_mPos.y += 1.0; 
-                            this._anim_cPos.copy(this.camera.position);
-                            const distToPlayerGrid = this._anim_cPos.distanceTo(this._anim_mPos) / this.gridSize;
+                            const mPosV = new THREE.Vector3().copy(child.position);
+                            mPosV.y += 1.0; 
+                            const cPosV = new THREE.Vector3().copy(this.camera.position);
+                            const distToPlayerGrid = cPosV.distanceTo(mPosV) / this.gridSize;
 
                             let targetOpacity = 0.0;
                             if (distToPlayerGrid < 3.0) targetOpacity = this.fxConfig.baseOpacity;
@@ -2600,14 +2798,14 @@
                                 
                                 // Ethereal Float Engine
                                 if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
-                                if (child.userData.baseY === undefined) child.userData.baseY = model.position.y;
+                                if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
                                 
-                                // Float naturally around 1.0 unit off the ground (always floating ghosts)
-                                const floatAmp = 0.15; 
-                                const floatOffset = 1.0; 
+                                // "yakuza goblin needs to gently float up and down by 1 foot either direction" (1 foot = 0.1 units)
+                                const floatAmp = isCombatTarget ? 0.15 : 0.1; 
+                                const floatOffset = isCombatTarget ? 1.0 : 0.1; // Gentle hover to prevent clipping
                                 
-                                // Consolidate Y-Axis logic entirely right here on the model to prevent stuttering
-                                const targetY = child.userData.baseY + floatOffset + Math.sin(time + child.userData.bobPhase) * floatAmp;
+                                // Lerp the model's Y position physically into the air relative to its original bounding box base
+                                const targetY = model.userData.baseY + floatOffset + Math.sin(time * 2.0 + child.userData.bobPhase) * floatAmp;
                                 model.position.y += (targetY - model.position.y) * 0.1;
                             }
                             
@@ -2756,7 +2954,7 @@
                             // Explicit override for the side-panel logic!
                             // :when sidepanels come up = goblin floats up in the air and circle turns red.
                             if (isCombatTarget && child.userData.baseMat) {
-                                child.userData.baseMat.map = this.getCachedCircleTexture('#ff0000');
+                                child.userData.baseMat.map = this.getCachedCircleTexture(child.userData.stateColor || '#000000');
                                 child.userData.baseMat.opacity = 0.9;
                             }
                         }
@@ -2816,83 +3014,30 @@
                             child.rotation.y = angle;
                         }
                         
-                        // (Idle bob for enemies is now fully handled in the raycaster logic block above to fix stutter)
+                        // Apply idle bob to NPCs and Monsters based on their active baseY
+                        if (child.userData && child.userData.idlePhase !== undefined && child.userData.type !== 'player') {
+                            child.position.y = (child.userData.baseY || 0) + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.1;
+                        }
                     }
                 }
 
-                // Update Chat Bubble Physics
+                // Active Chat Bubble Tracking & Billboarding
                 if (this.activeChat && this.activeChat.mesh && this.activeChat.target) {
-                    const chatParams = this.activeChat;
+                    const tPos = new THREE.Vector3();
+                    this.activeChat.target.getWorldPosition(tPos);
+                    
+                    this.activeChat.mesh.position.copy(tPos);
+                    // The origin of the chat group is the tip of its tail.
+                    // Pin it perfectly to the top of the Goblin's head (~1.8 units up).
+                    this.activeChat.mesh.position.y += 1.8; 
+                    
+                    // Always face the player
+                    this.activeChat.mesh.lookAt(this.camera.position);
 
-                    const baseY = chatParams.target.userData.baseY || chatParams.target.position.y;
-                    const floatY = Math.sin(this.clock.getElapsedTime() * 1.5) * 0.05;
-                    
-                    // The Goblin head is roughly 1.8 units above its base
-                    const headWorldY = baseY + 1.8;
-                    
-                    // SCREEN SPACE CALCULATION: Exactly +50px above monster head
-                    const vFOV = THREE.MathUtils.degToRad(this.camera.fov);
-                    const distToMonster = this.camera.position.distanceTo(chatParams.target.position);
-                    
-                    // Height of the visible frustum at the monster's depth
-                    const visibleHeight = 2 * Math.tan(vFOV / 2) * distToMonster;
-                    const worldUnitsPerPixel = visibleHeight / window.innerHeight;
-                    
-                    // 50px offset in world space
-                    const worldOffset50px = 50 * worldUnitsPerPixel;
-                    
-                    // Adjust for the bubble's own internal height scaling (Shape's geometry)
-                    // The bottom tip of the tail sits at -0.9 (box) - 0.3 (tail) = -1.2 from the local origin.
-                    // Plus bevel size 0.1 downwards = -1.3 from center.
-                    // Scale applied is 0.65 -> 1.3 * 0.65 = 0.845 from local origin to bottom tip.
-                    const bubbleCenterOffset = 0.845;
-                    
-                    chatParams.mesh.position.copy(chatParams.target.position);
-                    chatParams.mesh.position.y = headWorldY + worldOffset50px + bubbleCenterOffset + floatY;
-                    chatParams.mesh.lookAt(this.camera.position); // Always face player perfectly
-
-                    // SCREEN SPACE CLAMPING: +50px below top of screen
-                    const bubblePos3D = chatParams.mesh.position.clone();
-                    bubblePos3D.project(this.camera); // Project to NDC (-1 to 1)
-                    
-                    const halfH = window.innerHeight / 2;
-                    let bubbleScreenY = -(bubblePos3D.y * halfH) + halfH; // Screen pixel Y (0 at top, height at bottom)
-                    
-                    // Leave 100 pixels room at the top constraint (50px padding + half the bubble height)
-                    if (bubbleScreenY < 100) {
-                        bubbleScreenY = 100;
-                        const correctedClipY = -(bubbleScreenY - halfH) / halfH;
-                        bubblePos3D.y = correctedClipY;
-                        bubblePos3D.unproject(this.camera); // Map back to 3D space along the camera ray
-                        chatParams.mesh.position.y = bubblePos3D.y; // Override height
-                    }
-
-                    // Use a moderate PointLight floating in front of the chat bubble
-                    // The matte material prevents this light from blowing out into a whitewash.
-                    if (!chatParams.light) {
-                        chatParams.light = new THREE.PointLight(0xffffff, 1.2, 10);
-                        chatParams.light.position.set(0, 0, 1.5); 
-                        chatParams.mesh.add(chatParams.light);
-                    }
-
-                    if (chatParams.fading) {
-                        let op = 0;
-                        chatParams.mesh.children.forEach(child => {
-                            if (child.material) {
-                                child.material.opacity -= delta * 2.0;
-                                op = child.material.opacity;
-                            }
-                        });
-                        if (chatParams.light) {
-                             chatParams.light.intensity -= delta * 3.0;
-                        }
-                        if (op <= 0) {
-                            this.scene.remove(chatParams.mesh);
-                            chatParams.mesh.children.forEach(c => {
-                                if (c.material && c.material.map) c.material.map.dispose();
-                                if (c.material) c.material.dispose();
-                                if (c.geometry) c.geometry.dispose();
-                            });
+                    if (this.activeChat.fading) {
+                        this.activeChat.mesh.scale.multiplyScalar(0.8);
+                        if (this.activeChat.mesh.scale.x < 0.01) {
+                            this.scene.remove(this.activeChat.mesh);
                             this.activeChat = null;
                         }
                     }

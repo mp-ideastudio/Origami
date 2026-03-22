@@ -20,9 +20,9 @@
     <style>
         :root {
             /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
-            --bg-panel: rgba(220, 225, 232, 0.45); 
-            --bg-circle: rgba(242, 245, 248, 0.5); 
-            --bg-glass: rgba(220, 225, 232, 0.5); /* Unified Translucency */
+            --bg-panel: rgba(255, 255, 255, 0.55); 
+            --bg-circle: rgba(255, 255, 255, 0.75); 
+            --bg-glass: rgba(255, 255, 255, 0.55); /* Unified Translucency */
             --bg-attr-dark: #101012; 
             --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
             --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
@@ -34,7 +34,7 @@
             --bottom-dock-height: 230px;
             --wing-height: 160px;
             --card-w: 84px;
-            --card-h: 125px;
+            --card-h: 135px;
 
             /* DARKENED ELEMENTAL AAA PALETTE */
             --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
@@ -50,9 +50,9 @@
         }
 
         body.dark-mode {
-            --bg-panel: rgba(15, 15, 18, 0.9);
-            --bg-circle: rgba(40, 40, 48, 0.6);
-            --bg-glass: rgba(15, 15, 18, 0.9);
+            --bg-panel: rgba(55, 71, 79, 0.85);
+            --bg-circle: rgba(55, 71, 79, 0.3);
+            --bg-glass: rgba(55, 71, 79, 0.85);
             --glass-border: 1px solid rgba(255, 255, 255, 0.12);
             --color-text: #ffffff;
             --color-text-dim: rgba(255,255,255,0.7);
@@ -133,14 +133,45 @@
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; }
         .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
-        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-panel); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
-        .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 8px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
-        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.2); border: none; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
+        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
         .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
-        .btn-action { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .btn-action { 
+            width: 44px !important; height: 44px !important; border-radius: 50% !important;
+            opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            background: var(--bg-glass);
+            box-shadow: 
+                3px 3px 8px rgba(0,0,0,0.15), 
+                -3px -3px 8px rgba(255,255,255,0.8),
+                inset 1px 1px 2px rgba(255,255,255,0.5),
+                inset -1px -1px 2px rgba(0,0,0,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+        }
+        .btn-action::before, .u-btn::before, .kp-center-btn::before, .avatar-circle::before {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; 
+            border-radius: 50%; pointer-events: none; z-index: 0;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+        }
+        body.dark-mode .btn-action {
+             box-shadow: 
+                4px 4px 10px rgba(0,0,0,0.6), 
+                -4px -4px 10px rgba(255,255,255,0.05),
+                inset 1px 1px 2px rgba(255,255,255,0.1),
+                inset -1px -1px 2px rgba(0,0,0,0.4) !important;
+             border: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
+            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        }
+        .btn-action > i, .btn-action > span, .u-btn > i, .kp-center-btn > div, .kp-center-btn > i, .avatar-circle > i, .avatar-circle > canvas { position: relative; z-index: 1; pointer-events: none; }
         .outer-active .btn-action { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
         .act-n { --tx: 0px; --ty: -78px; } .act-s { --tx: 0px; --ty: 78px; } .act-e { --tx: 78px; --ty: 0px; } .act-w { --tx: -78px; --ty: 0px; }
         .act-ne { --tx: 56px; --ty: -56px; } .act-nw { --tx: -56px; --ty: -56px; } .act-se { --tx: 56px; --ty: 56px; } .act-sw { --tx: -56px; --ty: 56px; }
@@ -148,7 +179,7 @@
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
         #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: 600px; height: auto; align-self: end; }
-        #guides-container { display: flex; width: 100%; padding: 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
+        #guides-container { display: flex; width: 100%; padding: 10px 10px 30px 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
         #guides-container::-webkit-scrollbar { display: none; }
         
         /* --- GAMBLING DICE ENGINE --- */
@@ -168,22 +199,31 @@
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
         .card-column.focused { z-index: 30; }
 
-        @media (max-width: 750px) { .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } }
-        @media (max-width: 500px) { .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } }
+        @media (max-width: 750px) { 
+            .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 3 + 28px) !important; margin-left: 0 !important; }
+        }
+        @media (max-width: 500px) { 
+            .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 1) !important; margin-left: 0 !important; }
+        }
 
         .guide-card {
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--color-text); 
-            background: var(--bg-panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); 
-            box-shadow: 2px 2px 8px var(--nm-shadow-dark); 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); 
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
+            transform-origin: top center;
         }
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
         
-        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); }
-        .guide-card[data-depth="1"] { opacity: 0.8; z-index: 10; transform: translateY(var(--stack-offset)) scale(0.96); }
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 2px 2px 10px var(--nm-shadow-dark); }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
+        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
+        .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
         
         /* Rigid Vertical Symmetry Zones */
         .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
@@ -193,17 +233,50 @@
         .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
         .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
         
-        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 0%, rgba(200, 210, 225, 0.8) 100%); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--blue-gray-border); flex-shrink: 0; margin-bottom: 5px; }
-        .dark-mode .card-icon-3d { background: radial-gradient(circle at center, rgba(40, 45, 55, 0.6) 0%, rgba(15, 20, 25, 0.8) 100%); }
+        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-glass); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--glass-border); flex-shrink: 0; margin-bottom: 5px; }
+        .dark-mode .card-icon-3d { background: var(--bg-glass); }
         .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
-        
-        .card-attr-fused { width: 100%; height: 24px; margin-top: auto; background: var(--bg-attr-dark); color: var(--theme-clr); font-weight: 900; font-size: 7.5px; padding: 0 2px 2px 2px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-align: center; line-height: 1; }
+        .card-attr-fused { 
+            width: 100%; 
+            height: 35px; 
+            margin-top: auto; 
+            background: var(--bg-attr-dark); 
+            color: #ffffff;
+            font-weight: 900; 
+            font-size: 8px;
+            letter-spacing: 0px; 
+            padding: 0 8px 6px 8px; 
+            text-transform: uppercase; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+            text-align: center; 
+            line-height: 1.1; 
+            box-sizing: border-box; 
+        }
 
-        .card-earth { --theme-clr: #5C4033; --theme-bg: var(--bg-panel); } 
-        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: var(--bg-panel); } 
-        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: var(--bg-panel); } 
-        .card-water { --theme-clr: var(--water-clr); --theme-bg: var(--bg-panel); } 
-        .card-item  { --theme-clr: var(--item-clr); --theme-bg: var(--bg-panel); }
+        .card-tooltip {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); border-radius: 12px;
+            color: #fff; padding: 10px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            z-index: 40; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card-tooltip.show { opacity: 1; pointer-events: auto; }
+        .tt-title { font-size: 11px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
+        .tt-desc { font-size: 7.5px; margin-bottom: 8px; font-style: italic; color: rgba(255,255,255,0.7); }
+        .tt-help { font-size: 6px; font-weight: 900; color: #4caf50; animation: pulseAction 1s infinite alternate; text-transform: uppercase; }
+        @keyframes pulseAction { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+
+
+        .card-earth { --theme-clr: #5C4033; --theme-bg: #4e342e; } 
+        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
+        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
+        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; } 
+        .card-item  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
 
         /* --- MODAL --- */
         #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
@@ -229,10 +302,16 @@
         .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
         /* --- HIGH PERFORMANCE INPUT --- */
-        #input-container { width: 100%; max-width: 600px; height: 60px; display: flex; justify-content: center; align-items: center; margin-top: 6px; }
-        .chat-pill { width: 100%; height: 54px; background: rgba(30,30,35,0.85); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark), 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #ffffff; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
-        .chat-input::placeholder { color: #ffffff; font-weight: 800; opacity: 0.8; }
+        #input-container { 
+            width: 100%; 
+            max-width: calc(var(--card-w) * 5 + 56px); 
+            height: 60px; display: flex; justify-content: center; align-items: center; 
+            transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 6px auto 0 auto;
+        }
+        .chat-pill { width: 100%; height: 54px; background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
+        .chat-input::placeholder { color: var(--color-text-dim); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
         
         #event-log-container {
@@ -259,6 +338,68 @@
         .theme-red { --theme-clr: #f44336; }
         .viewport-text { color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; }
 
+        /* --- DRAGGABLE LCD EVENT PANEL --- */
+        #lcd-event-panel {
+            position: absolute;
+            top: 20%; left: 50%; transform: translateX(-50%);
+            width: 200px; /* Resizeable container */
+            min-width: 140px; max-width: 400px;
+            background: rgba(10, 20, 30, 0.4); /* Dark glass */
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
+            display: flex; flex-direction: column;
+            z-index: 40000;
+            opacity: 0; pointer-events: none; /* Auto-faded by default */
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            resize: horizontal; overflow: hidden; /* Allow Native Resizing */
+        }
+        
+        #lcd-event-panel.active, #lcd-event-panel:hover {
+            opacity: 1; pointer-events: auto;
+        }
+        
+        #lcd-event-panel:hover {
+            border-color: rgba(0, 255, 255, 0.6);
+            background: rgba(10, 20, 30, 0.6);
+        }
+
+        #lcd-header {
+            width: 100%; height: 16px;
+            background: rgba(0, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            color: rgba(0, 255, 255, 0.8);
+            font-size: 7px; font-weight: 900; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: grab; flex-shrink: 0;
+            -webkit-user-select: none; user-select: none;
+        }
+        #lcd-header:active { cursor: grabbing; }
+
+        #lcd-text {
+            flex: 1;
+            padding: 12px 15px;
+            color: #e0ffff;
+            font-family: 'Courier New', Courier, monospace; /* LCD Look */
+            font-weight: 900;
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.4);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Caps at ~8 chars visually */
+            display: flex; align-items: center; justify-content: center;
+            -webkit-user-select: none; user-select: none;
+        }
+        
+        #lcd-resize-handle {
+            position: absolute; bottom: 0; right: 0;
+            width: 15px; height: 15px;
+            cursor: ew-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(0,255,255,0.3) 50%);
+            pointer-events: none; /* Lets native CSS resize take over */
+        }
+
         @media (min-width: 1200px) {
             .side-panel { width: 260px; }
             .sp-btn { height: 48px; font-size: 13px; }
@@ -273,6 +414,13 @@
     <div id="modal-overlay" onclick="closeModal()"></div>
 
     <div id="ui-dock">
+        <!-- Draggable LCD Event Panel -->
+        <div id="lcd-event-panel">
+            <div id="lcd-header">SYSTEM EVENTS</div>
+            <div id="lcd-text">READY_</div>
+            <div id="lcd-resize-handle"></div>
+        </div>
+        
         <div id="encounter-zone">
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
@@ -312,6 +460,17 @@
             </div>
         </div>
 
+        <style>
+            .action-icon-3d { position: absolute; top: -5px; left: -5px; width: 54px; height: 54px; pointer-events: none; z-index: 10; }
+            .action-icon-3d canvas { width: 100%; height: 100%; object-fit: contain; }
+            #lower-ui-row { display:flex; width:100%; align-items:flex-end; justify-content:space-between; }
+            .wager-card-container { position:relative; transform:none; flex: 0 0 calc(50% - 10px); cursor:pointer; }
+            .wager-pill { background:var(--wager-solid); }
+            .wager-title-text { font-size:16px; }
+            .wager-desc-text { font-size:9px; margin-bottom:5px; }
+            .wager-icon-container { width:60px; height:60px; }
+            .wager-attr-text { background:#111; color:#fff; }
+        </style>
         <div id="lower-ui-row">
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
                 <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
@@ -341,17 +500,19 @@
                     </div>
                     <div id="guides-container"></div>
                     <div id="dice-container">
-                        <div class="dice-player-zone">
-                            <div class="dpz-name theme-green">Ronin</div>
-                            <div class="dpz-pot">$500</div>
+                        <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
+                           <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
+                           <div class="card-title wager-title-text">BET EVEN</div>
+                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-icon-3d wager-icon-container" data-element="DICE_EVEN"><canvas></canvas></div>
+                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
                         </div>
-                        <div class="dice-table-center">
-                            <div class="game-status">HIGH ROLL WINS</div>
-                            <button class="roll-btn" onclick="emitAction('ROLL_DICE')"><i class="fa-solid fa-dice"></i> CAST</button>
-                        </div>
-                        <div class="dice-player-zone">
-                            <div class="dpz-name theme-red">Goblin</div>
-                            <div class="dpz-pot">$100</div>
+                        <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_ODD', this)">
+                           <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
+                           <div class="card-title wager-title-text">BET ODD</div>
+                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-icon-3d wager-icon-container" data-element="DICE_ODD"><canvas></canvas></div>
+                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
                         </div>
                     </div>
                     <div id="input-container">
@@ -367,14 +528,14 @@
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
                 <div id="action-zone">
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
-                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-circle-half-stroke"></i><span class="ac-text">Mode</span></div>
-                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><span class="ac-text">Bag</span></div>
-                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><span class="ac-text">Map</span></div>
-                    <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><span class="ac-text">Set</span></div>
-                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><span class="ac-text">Rest</span></div>
-                    <div class="u-btn btn-action act-sw" onclick="emitAction('SKILLS')"><span class="ac-text">Heal</span></div>
-                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><span class="ac-text">View</span></div>
-                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><span class="ac-text">Log</span></div>
+                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
+                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
+                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
+                    <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><i class="fa-solid fa-gear"></i><span class="ac-text">Set</span></div>
+                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
+                    <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text">Heal</span></div>
+                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><i class="fa-solid fa-eye"></i><span class="ac-text">View</span></div>
+                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><i class="fa-solid fa-scroll"></i><span class="ac-text">Log</span></div>
                 </div>
             </div>
         </div>
@@ -383,6 +544,12 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // Fix for missing toggleRing action buttons
+        window.toggleRing = function() {
+            const az = document.getElementById('action-zone');
+            if(az) az.classList.toggle('outer-active');
+        };
 
         const defaultCategories = [
             { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
@@ -410,7 +577,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             
             elements.forEach(el => {
@@ -504,6 +671,37 @@
                     boss.position.z = 0.1;
                     group.add(shield, boss);
                     update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
+                } else if (el === 'DICE_EVEN' || el === 'DICE_ODD') {
+                    const dieGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+                    const dieMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.1});
+                    const die = new THREE.Mesh(dieGeo, dieMat);
+                    
+                    const dotGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+                    const dotMat = new THREE.MeshStandardMaterial({color: el === 'DICE_EVEN' ? 0x1b5e20 : 0xb71c1c}); // Green for Even, Red for Odd
+                    
+                    // Add standard center dot mapping (1 face)
+                    const dotCenter = new THREE.Mesh(dotGeo, dotMat);
+                    dotCenter.rotation.x = Math.PI / 2;
+                    dotCenter.position.z = 0.81;
+                    die.add(dotCenter);
+
+                    // Add opposing face (6 dots)
+                    for (let x of [-0.4, 0.4]) {
+                        for (let y of [-0.4, 0, 0.4]) {
+                            const d = new THREE.Mesh(dotGeo, dotMat);
+                            d.rotation.x = -Math.PI / 2;
+                            d.position.set(x, y, -0.81);
+                            die.add(d);
+                        }
+                    }
+
+                    group.add(die);
+                    update = (t) => { 
+                        // Spin crazily
+                        die.rotation.x = t * (el === 'DICE_EVEN' ? 2.5 : -2.5); 
+                        die.rotation.y = t * 3.1; 
+                        die.rotation.z = Math.sin(t*2);
+                    };
                 }
                 scene.add(group); scenes[el] = { scene, update };
             });
@@ -544,9 +742,11 @@
 
                 elements.forEach(el => {
                     scenes[el].update(t);
-                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0).
-                    // This cuts the active WebGL contexts & drawImage calls from 20 per frame down to 5.
-                    const canvases = document.querySelectorAll(`.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`);
+                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0) OR are Wager cards
+                    // This cuts the active WebGL contexts & drawImage calls down drastically
+                    let selector = `.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`;
+                    if (el === 'DICE_EVEN' || el === 'DICE_ODD') selector = `.wager-card .card-icon-3d[data-element="${el}"] canvas`;
+                    const canvases = document.querySelectorAll(selector);
                     canvases.forEach(cvs => {
                         const cw = cvs.clientWidth, ch = cvs.clientHeight;
                         if (cw === 0 || ch === 0) return; 
@@ -591,16 +791,19 @@
             try {
                 const loader = new GLTFLoader();
                 // Adding multiple paths fallback logic like FPV does if possible, but trying relative first
-                const modelUrls = [
+                const isLocalFile = window.location.protocol === 'file:';
+                const modelUrls = isLocalFile ? [] : [
                     './assets/models/Player.A.Walking.glb',
-                    'assets/models/Player.A.Walking.glb',
                     '../assets/models/Player.A.Walking.glb'
                 ];
                 
                 function tryLoadModel(urlIndex) {
                     if (urlIndex >= modelUrls.length) {
-                        console.warn("Avatar failed to load natively after all attempts. Running without Player Avatar.");
-                        // Put a visual indicator that it failed to load
+                        if (isLocalFile) {
+                            console.log("Avatar 3D load skipped: Browsers block 'file://' CORS fetch requests. Please run a local web server (e.g. `npx serve` or `python3 -m http.server`) to view the animated avatar.");
+                        } else {
+                            console.warn("Avatar failed to load natively after all attempts. Running without Player Avatar.");
+                        }
                         container.innerHTML = '<i class="fa-solid fa-user-astronaut" style="color:var(--color-text); font-size:24px;"></i>';
                         return;
                     }
@@ -609,7 +812,7 @@
                         const model = gltf.scene;
                         
                         // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
-                        model.position.set(0, -0.4, 0); // Moved down slightly to fit better
+                        model.position.set(0, -0.1, 0); // Moved up to add +25px bottom buffer
                         // Rotate to face slightly right layout (isometric feel)
                         model.rotation.y = Math.PI / 8;
                         // Scale 
@@ -657,6 +860,16 @@
         function setup() {
             categories.forEach((cat, idx) => {
                 const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                
+                let startY = 0, isDragging = false;
+                col.onpointerdown = (e) => { startY = e.clientY; isDragging = true; col.setPointerCapture(e.pointerId); };
+                col.onpointermove = (e) => { 
+                    if(!isDragging) return; 
+                    const deltaY = e.clientY - startY; 
+                    if(Math.abs(deltaY) > 25) { cycle(idx, deltaY > 0); startY = e.clientY; document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show')); } 
+                };
+                col.onpointerup = (e) => { isDragging = false; col.releasePointerCapture(e.pointerId); };
+
                 cat.cards.forEach((name, i) => {
                     const card = document.createElement('div');
                     card.className = `guide-card card-${cat.id.toLowerCase()}`;
@@ -666,8 +879,28 @@
                         <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
                         <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
                         <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-tooltip">
+                            <div class="tt-title">${name}</div>
+                            <div class="tt-desc">${cat.desc}</div>
+                            <div class="tt-help">DBL-CLICK/ENTER TO USE</div>
+                        </div>
                     `;
-                    card.onclick = () => { if(card.dataset.depth === "0") launchModal(card); };
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        setFocus(idx);
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        if(card.dataset.depth === "0") {
+                            const tt = card.querySelector('.card-tooltip');
+                            if(tt) tt.classList.add('show');
+                        }
+                    };
+                    card.ondblclick = (e) => {
+                        e.stopPropagation();
+                        if(card.dataset.depth === "0") {
+                            document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                            emitAction(name, card);
+                        }
+                    };
                     col.appendChild(card);
                 });
                 document.getElementById('guides-container').appendChild(col);
@@ -771,6 +1004,52 @@
             
             categories.forEach((cat, idx) => {
                 const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                
+                let startY = 0, isDragging = false;
+                col.onpointerdown = (e) => { 
+                    startY = e.clientY; 
+                    isDragging = true; 
+                    col.setPointerCapture(e.pointerId); 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    if (topCard) topCard.style.transition = 'none';
+                };
+                
+                col.onpointermove = (e) => { 
+                    if(!isDragging) return; 
+                    const deltaY = e.clientY - startY; 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    
+                    if (topCard) {
+                        topCard.style.transform = `translateY(${deltaY}px) scale(1)`;
+                    }
+
+                    if(Math.abs(deltaY) > 50) { 
+                        if (topCard) {
+                            topCard.style.transition = '';
+                            topCard.style.transform = '';
+                        }
+                        cycle(idx, deltaY > 0); 
+                        startY = e.clientY; 
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show')); 
+                        
+                        // Grab new top card for continuous dragging
+                        const newTop = col.querySelector('.guide-card[data-depth="0"]');
+                        if (newTop) newTop.style.transition = 'none';
+                    } 
+                };
+                
+                const endDrag = (e) => {
+                    isDragging = false; 
+                    col.releasePointerCapture(e.pointerId); 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    if (topCard) {
+                        topCard.style.transition = '';
+                        topCard.style.transform = '';
+                    }
+                };
+                col.onpointerup = endDrag;
+                col.onpointercancel = endDrag;
+
                 cat.cards.forEach((name, i) => {
                     const card = document.createElement('div');
                     card.className = `guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD') ? 'item' : cat.id.toLowerCase()}`;
@@ -780,8 +1059,28 @@
                         <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
                         <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
                         <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-tooltip">
+                            <div class="tt-title">${name}</div>
+                            <div class="tt-desc">${cat.desc}</div>
+                            <div class="tt-help">DBL-CLICK/ENTER TO USE</div>
+                        </div>
                     `;
-                    card.onclick = () => { if(card.dataset.depth === "0") launchModal(card); };
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        setFocus(idx);
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        if(card.dataset.depth === "0") {
+                            const tt = card.querySelector('.card-tooltip');
+                            if(tt) tt.classList.add('show');
+                        }
+                    };
+                    card.ondblclick = (e) => {
+                        e.stopPropagation();
+                        if(card.dataset.depth === "0") {
+                            document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                            emitAction(name, card);
+                        }
+                    };
                     col.appendChild(card);
                 });
                 container.appendChild(col);
@@ -799,6 +1098,52 @@
             emitAction(pendingAction, this); 
             closeModal(); 
         };
+        
+        // --- LCD EVENT PANEL LOGIC ---
+        const lcdPanel = document.getElementById('lcd-event-panel');
+        const lcdHeader = document.getElementById('lcd-header');
+        const lcdText = document.getElementById('lcd-text');
+        let lcdTimeout = null;
+        let isLcdDragging = false, lcdStartX, lcdStartY, lcdStartLeft, lcdStartTop;
+
+        window.showLcdEvent = function(text) {
+            if (!lcdPanel || !lcdText) return;
+            lcdText.textContent = text.substring(0, 8); // Hardware cap ~8 chars
+            lcdPanel.classList.add('active');
+            if (lcdTimeout) clearTimeout(lcdTimeout);
+            lcdTimeout = setTimeout(() => {
+                lcdPanel.classList.remove('active');
+            }, 2000);
+        };
+
+        if (lcdHeader && lcdPanel) {
+            lcdHeader.addEventListener('pointerdown', (e) => {
+                isLcdDragging = true;
+                lcdStartX = e.clientX;
+                lcdStartY = e.clientY;
+                const rect = lcdPanel.getBoundingClientRect();
+                lcdStartLeft = rect.left;
+                lcdStartTop = rect.top;
+                // De-couple from flexible transform positioning
+                lcdPanel.style.transform = 'none';
+                lcdPanel.style.left = lcdStartLeft + 'px';
+                lcdPanel.style.top = lcdStartTop + 'px';
+                lcdHeader.setPointerCapture(e.pointerId);
+            });
+            
+            lcdHeader.addEventListener('pointermove', (e) => {
+                if (!isLcdDragging) return;
+                const dx = e.clientX - lcdStartX;
+                const dy = e.clientY - lcdStartY;
+                lcdPanel.style.left = (lcdStartLeft + dx) + 'px';
+                lcdPanel.style.top = (lcdStartTop + dy) + 'px';
+            });
+            
+            lcdHeader.addEventListener('pointerup', (e) => {
+                isLcdDragging = false;
+                lcdHeader.releasePointerCapture(e.pointerId);
+            });
+        }
         
         // Touch / Mouse D-Pad Controls
         const handleDPadInput = (e, isDown) => {
@@ -841,9 +1186,24 @@
                     e.preventDefault();
                     focusedColIndex = e.key === 'ArrowLeft' ? Math.max(0, focusedColIndex - 1) : Math.min(categories.length - 1, focusedColIndex + 1);
                     setFocus(focusedColIndex);
+                    document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                    const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+                    if(topCard) {
+                        const tt = topCard.querySelector('.card-tooltip');
+                        if(tt) tt.classList.add('show');
+                    }
                 } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
                     e.preventDefault();
+                    document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
                     cycle(focusedColIndex, e.key === 'ArrowDown');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+                    if(topCard) {
+                        const name = topCard.querySelector('.card-title').textContent;
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        emitAction(name, topCard);
+                    }
                 }
             }
         });
@@ -872,6 +1232,8 @@
             } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
                 // If the player steps forward into the monster (bump attack), pop out Katana cards!
                 loadDeck(combatCategories);
+            } else if (e.data && e.data.type === 'LCD_EVENT') {
+                if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
@@ -905,5 +1267,19 @@
         setTimeout(updateViewportReadout, 100); // Initial call after DOM paints
         updateViewportReadout();
     </script>
+
+<script>
+setTimeout(() => {
+    const gc = document.getElementById('guides-container');
+    const ic = document.getElementById('input-container');
+    const cards = document.querySelectorAll('.card-column');
+    console.log("GC rect:", gc.getBoundingClientRect());
+    console.log("IC rect:", ic.getBoundingClientRect());
+    if (cards.length > 0) {
+        console.log("First card left:", cards[0].getBoundingClientRect().left);
+        console.log("Last card right:", cards[cards.length-1].getBoundingClientRect().right);
+    }
+}, 3000);
+</script>
 </body>
 </html>
