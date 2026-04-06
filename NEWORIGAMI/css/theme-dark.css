@@ -1,0 +1,3226 @@
+ /* minimal fallback for necessary utilities used by the UI */
+      .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    
+
+/* ---------- NEXT STYLE BLOCK ---------- */
+
+
+      /* Neumorphic Design System from Game.html */
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+
+      :root, [data-theme="dark"] {
+        --bg-color: #1a1d24;
+        --container-color-light: #2c303a;
+        --container-color-dark: #1e2128;
+        --shadow-light: #2e323c;
+        --shadow-dark: #15171c;
+        --text-color: #a0aec0;
+        --text-color-strong: #ffffff;
+        --pointer-color: #f2c4ce;
+        --scrollbar-thumb: #4a5568;
+        --scrollbar-track: #2d3748;
+        /* Label theming: dark mode = white label with black text */
+        --label-bg: #ffffff;
+        --label-fg: #000000;
+        
+        /* Original variables from Small.Origami.6b.html */
+        --ink: #e5e7eb;
+        --ink-dim: #a8a8a8;
+        --edge: #ffffff2e;
+        --glass: #0000008c;
+        --glass-2: #ffffff14;
+        --glow: #00e5ff40;
+        --accent: #25b5af;
+        --badged: #0b0b0bcc;
+        --gold: #ffd700;
+        /* Original Neumorphic UI Palette (kept for compatibility) */
+        --surface-color: #222226;
+        
+        /* Adventure Game Core Variables - Next Gen Dark */
+        --adventure-bg-main: #0A0A0A;
+        --adventure-panel-bg: rgba(8, 8, 10, 0.85);
+        --adventure-panel-solid: #141416;
+        --adventure-text-primary: #E8E8EA;
+        --adventure-text-secondary: #888890;
+        --adventure-gold: #ffffff;
+        --adventure-gold-dark: #ffffff;
+        --adventure-gold-light: #ffffff;
+        
+        /* 3D Neumorphic Shadows - Dark Mode */
+        --adventure-shadow-dark: #000000;
+        --adventure-shadow-light: #1A1A1C;
+        --adventure-shadow-highlight: rgba(255, 255, 255, 0.02);
+        --adventure-shadow-lowlight: rgba(0, 0, 0, 0.8);
+        
+        /* 3D Shadow System */
+        --adventure-neu-raised: 
+            3px 3px 6px var(--adventure-shadow-dark),
+            -2px -2px 4px var(--adventure-shadow-light),
+            inset 0 0 0 1px var(--adventure-shadow-highlight);
+        --adventure-neu-inset: 
+            inset 3px 3px 6px var(--adventure-shadow-dark),
+            inset -2px -2px 4px var(--adventure-shadow-light);
+        --adventure-neu-pressed: 
+            inset 4px 4px 8px var(--adventure-shadow-dark),
+            inset -1px -1px 2px var(--adventure-shadow-light);
+            
+        /* Glass Effects */
+        --adventure-glass-bg: rgba(0, 0, 0, 0.4);
+        --adventure-glass-border: rgba(255, 255, 255, 0.08);
+        --adventure-glass-highlight: rgba(255, 255, 255, 0.03);
+      }
+      
+      [data-theme="light"] {
+        --bg-color: #f0f2f5;
+        --container-color-light: #fafbff;
+        --container-color-dark: #e6e9ef;
+        --shadow-light: #ffffff;
+        --shadow-dark: #93a0b3;
+        --text-color: #5a6678;
+        --text-color-strong: #000000;
+        --pointer-color: #702459;
+        --scrollbar-thumb: #a0aec0;
+        --scrollbar-track: #edf2f7;
+        /* Light mode = black label with white text */
+        --label-bg: #000000;
+        --label-fg: #ffffff;
+      }
+
+      body { 
+        font-family: 'Roboto', sans-serif; 
+        background-color: var(--bg-color); 
+        color: var(--text-color); 
+        transition: background-color 0.3s ease, color 0.3s ease; 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale; 
+        letter-spacing: 0.01em;
+        margin: 0;
+        overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      
+      .main-container { 
+        background: linear-gradient(145deg, var(--container-color-light), var(--container-color-dark)); 
+        box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light); 
+        transition: background 0.3s ease, box-shadow 0.3s ease; 
+      }
+      
+      .panel, .neumorphic-button, .input-bar, .dial-container, .mobile-tab { 
+        background: linear-gradient(145deg, var(--container-color-dark), var(--container-color-light)); 
+        box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); 
+        transition: background 0.3s ease, box-shadow 0.3s ease; 
+        color: var(--text-color); 
+      }
+      
+      .neumorphic-button:active, .mobile-tab.active { 
+        box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); 
+      }
+
+      .desktop-dial { --dial-size: clamp(160px, 12vw, 180px); }
+      .mobile-input-dial { --dial-size: clamp(56px, 15vw, 64px); }
+
+      .dial-container { 
+        position: relative; 
+        width: var(--dial-size); 
+        height: var(--dial-size); 
+        border-radius: 50%; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        flex-shrink: 0; 
+      }
+      
+      /* Compass tick marks */
+      .compass-ticks { position: absolute; width: 100%; height: 100%; }
+      .compass-tick { position: absolute; background-color: rgba(200, 200, 200, 0.6); width: 2px; height: 8px; top: 50%; left: 50%; transform-origin: center center; }
+      .compass-tick.small { height: 5px; }
+      
+      /* Compass tick positioning via nth-child */
+      .compass-tick:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg) translateY(-70px); }
+      .compass-tick:nth-child(2) { transform: translate(-50%, -50%) rotate(15deg) translateY(-70px); }
+      .compass-tick:nth-child(3) { transform: translate(-50%, -50%) rotate(30deg) translateY(-70px); }
+      .compass-tick:nth-child(4) { transform: translate(-50%, -50%) rotate(45deg) translateY(-70px); }
+      .compass-tick:nth-child(5) { transform: translate(-50%, -50%) rotate(60deg) translateY(-70px); }
+      .compass-tick:nth-child(6) { transform: translate(-50%, -50%) rotate(75deg) translateY(-70px); }
+      .compass-tick:nth-child(7) { transform: translate(-50%, -50%) rotate(90deg) translateY(-70px); }
+      .compass-tick:nth-child(8) { transform: translate(-50%, -50%) rotate(105deg) translateY(-70px); }
+      .compass-tick:nth-child(9) { transform: translate(-50%, -50%) rotate(120deg) translateY(-70px); }
+      .compass-tick:nth-child(10) { transform: translate(-50%, -50%) rotate(135deg) translateY(-70px); }
+      .compass-tick:nth-child(11) { transform: translate(-50%, -50%) rotate(150deg) translateY(-70px); }
+      .compass-tick:nth-child(12) { transform: translate(-50%, -50%) rotate(165deg) translateY(-70px); }
+      .compass-tick:nth-child(13) { transform: translate(-50%, -50%) rotate(180deg) translateY(-70px); }
+      .compass-tick:nth-child(14) { transform: translate(-50%, -50%) rotate(195deg) translateY(-70px); }
+      .compass-tick:nth-child(15) { transform: translate(-50%, -50%) rotate(210deg) translateY(-70px); }
+      .compass-tick:nth-child(16) { transform: translate(-50%, -50%) rotate(225deg) translateY(-70px); }
+      .compass-tick:nth-child(17) { transform: translate(-50%, -50%) rotate(240deg) translateY(-70px); }
+      .compass-tick:nth-child(18) { transform: translate(-50%, -50%) rotate(255deg) translateY(-70px); }
+      .compass-tick:nth-child(19) { transform: translate(-50%, -50%) rotate(270deg) translateY(-70px); }
+      .compass-tick:nth-child(20) { transform: translate(-50%, -50%) rotate(285deg) translateY(-70px); }
+      .compass-tick:nth-child(21) { transform: translate(-50%, -50%) rotate(300deg) translateY(-70px); }
+      .compass-tick:nth-child(22) { transform: translate(-50%, -50%) rotate(315deg) translateY(-70px); }
+      .compass-tick:nth-child(23) { transform: translate(-50%, -50%) rotate(330deg) translateY(-70px); }
+      .compass-tick:nth-child(24) { transform: translate(-50%, -50%) rotate(345deg) translateY(-70px); }
+      
+      /* Compass indicators */
+      .compass-indicator { position: absolute; background-color: #d9534f; width: 8px; height: 8px; border-radius: 50%; }
+      .indicator-1 { top: 11%; left: 24%; }
+      .indicator-2 { top: 24%; right: 11%; }
+      .compass-pointer-e { position: absolute; right: 12%; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 12px solid #e0e0e0; }
+      
+      /* Progress ring with SVG */
+      .dial-container .progress-ring { position: relative; width: 65%; height: 65%; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+      .progress-svg { position: absolute; width: 115%; height: 115%; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
+      .progress-ring-bg { fill: transparent; stroke: rgba(148,163,184,0.1); stroke-width: 14; }
+      .progress-ring-health { fill: transparent; stroke: #d9534f; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+      .progress-ring-stamina { fill: transparent; stroke: #5cb85c; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+      
+      .dial-container .progress-ring-inner { background: linear-gradient(145deg, var(--container-color-light), var(--container-color-dark)); width: calc(100% - var(--ring-inset, 20px)); height: calc(100% - var(--ring-inset, 20px)); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; z-index: 1; }
+
+      .xp-bar-fill { background-color: #42a5f5; }
+      h1, .text-strong { color: var(--text-color-strong); }
+      .text-glow-red { text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+      .text-glow-green { text-shadow: 0 0 10px rgba(34, 197, 94, 0.5); }
+      .text-glow-yellow { text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+
+      .font-orbitron { font-family: 'Roboto', sans-serif; }
+      .compass-label { position: absolute; font-size: 1rem; font-weight: 500; color: var(--text-color); }
+      .n-label { top: 2%; left: 50%; transform: translateX(-50%); }
+      .e-label { top: 50%; right: 2%; transform: translateY(-50%); }
+      .s-label { bottom: 2%; left: 50%; transform: translateX(-50%); }
+      .w-label { top: 50%; left: 2%; transform: translateY(-50%); }
+
+      /* Mobile dial variants and small compass labels */
+      .mobile-input-dial .compass-label,
+      .mobile-input-dial .xp-bar-container { display: none; }
+      .mobile-input-dial .progress-ring-inner { --ring-inset: 12px; }
+      .mobile-input-dial .level-number { font-size: 1.25rem; }
+      .mobile-input-dial .level-label { font-size: 0.6rem; }
+      .n-label-sm { top: 1%; left: 50%; transform: translateX(-50%); }
+      .e-label-sm { top: 50%; right: 1%; transform: translateY(-50%); }
+      .s-label-sm { bottom: 1%; left: 50%; transform: translateX(-50%); }
+      .w-label-sm { top: 50%; left: 1%; transform: translateY(-50%); }
+
+      .monster-dot { position: absolute; width: 10px; height: 10px; background-color: var(--pointer-color); border-radius: 50%; top: 50%; left: 50%; transform-origin: 0 0; }
+      .level-number { font-size: 1.5rem; }
+      .level-label { font-size: 0.75rem; }
+
+      /* Health ring visuals */
+      .health-bg { fill: none; stroke: rgba(148,163,184,0.25); }
+      .health-bar { fill: none; stroke: #ef4444; stroke-linecap: round; transition: stroke-dashoffset 0.35s ease; }
+
+      /* Panel overlay label (interactive) */
+      .panel-label {
+        position: absolute;
+        display: inline-block;
+        background: var(--label-bg);
+        color: var(--label-fg);
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        z-index: 80;
+        cursor: grab;
+        -webkit-user-select: none;
+        user-select: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        border: 1px solid rgba(0,0,0,0.15);
+        pointer-events: auto;
+      }
+      .panel-label:active { cursor: grabbing; }
+
+      /* Center dial compass needle */
+      #compass-needle-ui { 
+        position: absolute; 
+        left: 50%; 
+        top: 50%; 
+        width: 0; 
+        height: 0; 
+        transform-origin: center bottom; 
+        transform: translate(-50%, -100%) rotate(0deg); 
+        border-left: 9px solid transparent; 
+        border-right: 9px solid transparent; 
+        border-bottom: 26px solid #ff2a2a; 
+        filter: drop-shadow(0 0 6px rgba(255,0,0,0.6)); 
+      }
+
+      :root {
+        --ink: #e5e7eb;
+        --ink-dim: #a8a8a8;
+        --edge: #ffffff2e;
+        --glass: #0000008c;
+        --glass-2: #ffffff14;
+        --glow: #00e5ff40;
+        --accent: #25b5af;
+        --badged: #0b0b0bcc;
+        --gold: #ffd700;
+        /* Neumorphic UI Palette */
+        --bg-color: #1a1a1d;
+        --surface-color: #222226;
+        --shadow-dark: rgba(0, 0, 0, 0.5);
+        --shadow-light: rgba(255, 255, 255, 0.05);
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        color: #fff;
+        font-family: "Courier New", Courier, monospace;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      
+      /* Layout - FPV stretches full height, adventure view overlaid at bottom */
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        color: #fff;
+        font-family: "Courier New", Courier, monospace;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      
+      #main-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        padding: 0;
+        gap: 0;
+        box-sizing: border-box;
+      }
+      
+      #adventure-view {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        width: 100%;
+        max-height: none;
+        margin: 0;
+        padding-top: clamp(56px, 6vh, 72px);
+        z-index: 120;
+        flex-shrink: 0;
+        align-self: stretch;
+        transition: all 0.3s ease-in-out;
+      }
+
+      /* Minimized Adventure View State */
+      #adventure-view.minimized {
+        max-height: 80px;
+        padding: 8px 16px;
+        background: rgba(45, 55, 72, 0.95);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #adventure-view.minimized .panel-label,
+      #adventure-view.minimized #player-attributes-bar,
+      #adventure-view.minimized .flex-grow,
+      #adventure-view.minimized #quick-actions {
+        display: none;
+      }
+
+      #adventure-view.minimized #dnd-game-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      #adventure-view.minimized #mini-compass-radar {
+        display: block;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(45, 55, 72, 0.9);
+        border: 2px solid rgba(59, 130, 246, 0.5);
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      #mini-compass-radar {
+        display: none;
+      }
+
+      #adventure-view.minimized .input-bar {
+        background: rgba(55, 65, 81, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #adventure-view.minimized #adventure-command-input {
+        background: transparent;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      #adventure-view.minimized #adventure-command-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      #adventure-view.minimized .neumorphic-button {
+        background: rgba(55, 65, 81, 0.9);
+        color: white;
+        font-weight: bold;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      #adventure-view.minimized .neumorphic-button:hover {
+        background: rgba(75, 85, 99, 0.9);
+        border-color: rgba(59, 130, 246, 0.5);
+      }
+
+      #fpview-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      #fpv-viewport {
+        flex-grow: 1;
+        position: relative;
+      }
+      /* --- DnD Keypad & Dice overlay (copied from Origami.Dungeon.001.E) --- */
+      .dnd-game-dice-keypad { width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor: pointer; }
+      /* Keep .tan defined for compatibility but do not use it for the FPV dice button */
+      .dnd-game-dice-keypad.tan { background: var(--floor-ground, #D6C38A); border: 1px solid rgba(80,60,40,0.18); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+      /* Dice cube core sizing taken from 001.E */
+      .dnd-game-3d-dice {
+        width: 21px;
+        height: 21px;
+        transform-style: preserve-3d;
+        transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        transform: rotateX(0deg) rotateY(0deg);
+        transform-origin: center center;
+        margin: auto;
+      }
+      .dice-face {
+        position: absolute;
+        width: 21px;
+        height: 21px;
+        background-color: rgba(255, 255, 255, 0.95);
+        border: 1px solid #e0e0e0;
+        border-radius: 2px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
+        font-size: 8px;
+        font-weight: bold;
+        color: #333;
+      }
+      .dice-face--front { transform: rotateY(0deg) translateZ(10.5px); }
+      .dice-face--back { transform: rotateY(180deg) translateZ(10.5px); }
+      .dice-face--right { transform: rotateY(90deg) translateZ(10.5px); }
+      .dice-face--left { transform: rotateY(-90deg) translateZ(10.5px); }
+      .dice-face--top { transform: rotateX(90deg) translateZ(10.5px); }
+      .dice-face--bottom { transform: rotateX(-90deg) translateZ(10.5px); }
+      .dice-face--left, .dice-face--bottom { filter: brightness(0.9); }
+      .dice-face--back { filter: brightness(0.8); }
+      .pip-container { width: 100%; height: 100%; display: grid; }
+      .pip { width: 4px; height: 4px; background-color: #333; border-radius: 50%; align-self: center; justify-self: center; }
+      .dice-face--1 .pip-container { grid-template-areas: ". . ." ". a ." ". . ."; }
+      .dice-face--2 .pip-container { grid-template-areas: "a . ." ". . ." ". . b"; }
+      .dice-face--3 .pip-container { grid-template-areas: "a . ." ". b ." ". . c"; }
+      .dice-face--4 .pip-container { grid-template-areas: "a . b" ". . ." "c . d"; }
+      .dice-face--5 .pip-container { grid-template-areas: "a . b" ". c ." "d . e"; }
+      .dice-face--6 .pip-container { grid-template-areas: "a . b" "c . d" "e . f"; }
+      .pip:nth-of-type(1) { grid-area: a; }
+      .pip:nth-of-type(2) { grid-area: b; }
+      .pip:nth-of-type(3) { grid-area: c; }
+      .pip:nth-of-type(4) { grid-area: d; }
+      .pip:nth-of-type(5) { grid-area: e; }
+      .pip:nth-of-type(6) { grid-area: f; }
+      @keyframes diceSpin { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+      .dnd-game-3d-dice.idle { animation: diceSpin 6s linear infinite; }
+      .dnd-game-3d-dice.rolling { animation: diceSpin 1.8s cubic-bezier(0.25,0.46,0.45,0.94); }
+      .dnd-game-3d-dice.fast-spin { animation: diceSpin 0.28s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+  /* FPV Keypad - Now in Adventure View */
+  #dnd-game-movement-overlay {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  /* When keypad is placed inside FPV, pin it to top-center */
+  #fpv-viewport #dnd-game-movement-overlay {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    pointer-events: auto;
+  }
+  
+  .movement-keypad-container {
+    display: grid;
+    grid-template-areas: 
+      ". up ."
+      "left center right"  
+      ". down .";
+    grid-template-columns: 56px 56px 56px;
+    grid-template-rows: 56px 56px 56px;
+    gap: 10px;
+    align-items: center;
+    justify-items: center;
+    /* Floating buttons; no background frame */
+    background: transparent;
+    padding: 0;
+    border: 0;
+  }
+  /* Hidden-first keypad button used for accessibility focus trapping; keep visually hidden via CSS (avoid inline styles) */
+  #dnd-game-keypad-hidden-first { width:0; height:0; padding:0; border:0; opacity:0; pointer-events:none; position:absolute; }
+      /* Compact center keypad for movement */
+      .dnd-game-center-keypad { display:flex; flex-direction:column; gap:8px; align-items:center; }
+      .dnd-game-center-keypad .row { display:flex; gap:8px; }
+      .dnd-game-move-btn { 
+        width: 56px; 
+        height: 56px; 
+        border-radius: 50%; 
+        color: #e9eef6; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: linear-gradient(145deg, rgba(35,39,45,0.85), rgba(20,24,28,0.85));
+        box-shadow:
+          0 4px 16px rgba(0,0,0,0.35),
+          inset 0 1px 2px rgba(255,255,255,0.08),
+          inset 0 -2px 4px rgba(0,0,0,0.35);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+      }
+      .dnd-game-move-btn:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow:
+          0 6px 20px rgba(0,0,0,0.45),
+          inset 0 1px 3px rgba(255,255,255,0.1),
+          inset 0 -2px 5px rgba(0,0,0,0.4);
+      }
+      .dnd-game-move-btn:active {
+        transform: translateY(0);
+        filter: brightness(0.96);
+        box-shadow:
+          0 2px 10px rgba(0,0,0,0.4),
+          inset 0 2px 6px rgba(0,0,0,0.5);
+      }
+      
+      /* Grid area assignments following 001.E pattern */
+      #dnd-game-move-up { grid-area: up; }
+      #dnd-game-move-down { grid-area: down; }
+      #dnd-game-move-left { grid-area: left; }
+      #dnd-game-move-right { grid-area: right; }
+      #dnd-game-interaction-button-container { grid-area: center; }
+
+      /* Center dice button should visually match the other keypad buttons */
+      #dnd-game-visual-keypad.dnd-game-dice-keypad {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        /* Inherit visuals from .dnd-game-move-btn via class; keep minor interaction tweak */
+      }
+      /* Subtle scale on press like 001.E */
+      .dnd-game-dice-keypad:active .dnd-game-3d-dice { transform: scale(1.06); filter: brightness(1.3); }
+      
+      /* Let Three.js control canvas resolution; avoid CSS stretching that blurs */
+      #fpv-viewport canvas,
+      #mapview-container canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #mapview-container {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        height: clamp(250px, 30vh, 400px);
+        width: clamp(250px, 30vh, 400px);
+        min-width: 200px;
+        min-height: 200px;
+        border-radius: 22px; /* Adjusted for padding */
+        /* Neumorphic Border Effect */
+        background: var(--surface-color);
+        padding: 15px;
+        box-shadow: inset 5px 5px 10px var(--shadow-dark),
+          inset -5px -5px 10px var(--shadow-light),
+          7px 7px 16px var(--shadow-dark), -7px -7px 16px var(--shadow-light);
+        z-index: 50;
+        border: 1px solid var(--edge);
+        box-sizing: border-box;
+        cursor: grab;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden; /* Hide canvas overflow but allow handles */
+      }
+
+      #mapview-container .canvas-wrapper {
+        position: relative;
+        width: 100%; height: 100%;
+        overflow: hidden;
+        border-radius: 8px; 
+        background: #0a0a0c; 
+        min-height: 300px !important;
+        box-shadow: inset 0 0 80px rgba(0,0,0,0.95); /* Deep AAA Vignette */
+        border: 1px solid rgba(255,255,255,0.08); /* Technical Bezel */
+      }
+
+      /* Ensure 3D containers are visible */
+      #main-container {
+        position: relative !important;
+        z-index: 100 !important;
+        pointer-events: auto !important;
+      }
+      
+      /* Adventure Game UI */
+      #dnd-game-app-container {
+        position: relative !important;
+        z-index: 50 !important;
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch;
+        visibility: visible !important;
+        opacity: 1 !important;
+        gap: clamp(16px, 2vw, 32px);
+      }
+
+      /* Positioning for top prompt container (updated for fluid layout) */
+      #dnd-game-prompt-container {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        max-width: none;
+        z-index: inherit;
+        background: transparent;
+        padding: 0;
+        border-radius: 12px;
+      }
+      
+      #mapview-container {
+        position: absolute !important;
+        z-index: 101 !important;
+        display: block !important;
+        visibility: visible !important;
+        cursor: move; /* Show it's draggable */
+        -webkit-user-select: none; /* Prevent text selection while dragging - Safari */
+        user-select: none; /* Prevent text selection while dragging */
+        transition: box-shadow 0.2s ease; /* Smooth shadow transitions */
+      }
+      
+      #mapview-container:hover {
+        box-shadow: inset 5px 5px 10px var(--shadow-dark),
+          inset -5px -5px 10px var(--shadow-light),
+          10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+      }
+      
+      #mapview-container.dragging {
+        cursor: grabbing !important;
+        box-shadow: inset 5px 5px 10px var(--shadow-dark),
+          inset -5px -5px 10px var(--shadow-light),
+          15px 15px 30px var(--shadow-dark), -15px -15px 30px var(--shadow-light);
+        z-index: 200 !important;
+      }
+      
+      #mapview-container.resizing {
+        transition: none; /* Disable transitions while resizing */
+      }
+      
+      #fpv-viewport {
+        position: relative !important;
+        z-index: 99 !important;
+        display: block !important;
+        visibility: visible !important;
+        /* Removed debug background */
+        min-height: 400px !important;
+        min-width: 400px !important;
+      }
+
+      #mapview-container:active {
+        cursor: grabbing;
+      }
+
+      .resize-handle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: transparent;
+        z-index: 51;
+      }
+      .resize-handle.se {
+        bottom: 0;
+        right: 0;
+        cursor: se-resize;
+      }
+      .resize-handle.sw {
+        bottom: 0;
+        left: 0;
+        cursor: sw-resize;
+      }
+      .resize-handle.ne {
+        top: 0;
+        right: 0;
+        cursor: ne-resize;
+      }
+      .resize-handle.nw {
+        top: 0;
+        left: 0;
+        cursor: nw-resize;
+      }
+
+      /* Remove hover scale to prevent perceived sliding near edges */
+      /* #mapview-container:hover { transform: scale(1.02); } */
+      #map-fog {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 5;
+      }
+      /* Vertical zoom slider overlay for mapview */
+      #mapview-container .zoom-slider-container {
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        transform: translateY(-50%) rotate(-90deg);
+        transform-origin: right center;
+        z-index: 6;
+        pointer-events: auto;
+      }
+      #map-zoom-slider {
+        width: 160px; /* length after rotation */
+        height: 26px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+      }
+      #map-zoom-slider::-webkit-slider-runnable-track {
+        height: 6px;
+        background: rgba(200,200,200,0.35);
+        border-radius: 4px;
+      }
+      #map-zoom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        margin-top: -6px; /* center thumb */
+        border: 1px solid rgba(0,0,0,0.4);
+      }
+      #map-zoom-slider::-moz-range-track {
+        height: 6px;
+        background: rgba(200,200,200,0.35);
+        border-radius: 4px;
+      }
+      #map-zoom-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        border: 1px solid rgba(0,0,0,0.4);
+      }
+
+      /* --- View Swapping Logic --- */
+      #main-container.views-swapped #fpview-container {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        height: clamp(250px, 30vh, 400px);
+        width: clamp(250px, 30vh, 400px);
+        min-width: 200px;
+        min-height: 200px;
+        border-radius: 22px;
+        padding: 15px;
+        box-shadow: inset 5px 5px 10px var(--shadow-dark),
+          inset -5px -5px 10px var(--shadow-light),
+          7px 7px 16px var(--shadow-dark), -7px -7px 16px var(--shadow-light);
+        z-index: 50;
+        border: 1px solid var(--edge);
+        box-sizing: border-box;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      #main-container.views-swapped #mapview-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        right: 0;
+        border-radius: 0;
+        padding: 0;
+        transform: none;
+        cursor: default;
+      }
+
+      #main-container.views-swapped #fpview-container .resize-handle {
+        display: none;
+      }
+
+      /* Hide FPV UI overlays when it's in the small view */
+      #main-container.views-swapped #fpview-container .view-label {
+        display: block;
+      }
+      #main-container.views-swapped #fpview-container #fpv-compass-top,
+      #main-container.views-swapped #fpview-container .hud-badge {
+        display: none;
+      }
+
+      /* --- FPV Prompt Band --- */
+      #dnd-fpv-prompt {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(26, 26, 29, 0.95); /* 95% opacity */
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--shadow-light);
+        z-index: 20;
+        padding: 10px 20px;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+      }
+      #dnd-fpv-canvas {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+        width: 100%;
+        margin: 0;
+        padding-right: 10px;
+        box-sizing: border-box;
+      }
+      #dnd-fpv-canvas-left {
+        display: none;
+      } /* Compass moved to viewport */
+      #dnd-fpv-canvas-right {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+        grid-auto-rows: min-content;
+        gap: 12px;
+        align-items: start;
+        height: 100%;
+      }
+      #dnd-game-prompt-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 12px;
+        background: var(--surface-color);
+        border: 1px solid var(--edge);
+        pointer-events: none;
+        box-shadow: inset 3px 3px 5px var(--shadow-dark),
+          inset -3px -3px 5px var(--shadow-light);
+      }
+      #dnd-game-command-input {
+        background: var(--surface-color);
+        border: 1px solid var(--edge);
+        border-radius: 10px;
+        box-shadow: inset 4px 4px 8px var(--shadow-dark),
+          inset -4px -4px 8px var(--shadow-light);
+        height: 48px;
+        padding: 0 110px 0 56px;
+        width: 100%;
+        color: #fff;
+        box-sizing: border-box;
+      }
+      #dnd-game-command-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      #dnd-game-input-wrapper {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+      }
+      #dnd-fpv-enter-btn,
+      #dnd-fpv-speaker-btn {
+        -webkit-appearance: none;
+        appearance: none;
+        border: 1px solid var(--edge);
+        background: var(--surface-color);
+        color: #e2e8f0;
+        border-radius: 10px;
+        height: 36px;
+        width: 36px;
+        display: inline-grid;
+        place-items: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        box-shadow: 3px 3px 5px var(--shadow-dark),
+          -3px -3px 5px var(--shadow-light);
+      }
+
+      #dnd-fpv-enter-btn:hover,
+      #dnd-fpv-speaker-btn:hover {
+        background: var(--accent);
+      }
+      #dnd-fpv-enter-btn:active,
+      #dnd-fpv-speaker-btn:active {
+        transform: translateY(-50%) scale(0.95);
+        box-shadow: inset 3px 3px 5px var(--shadow-dark),
+          inset -3px -3px 5px var(--shadow-light);
+      }
+      #dnd-fpv-enter-btn {
+        right: 12px;
+      }
+      #dnd-fpv-speaker-btn {
+        right: 56px;
+      }
+      #dnd-stats-display {
+        display: none;
+      }
+      /* Next‑gen Neumorphic Player Stats */
+      #player-stats {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: auto minmax(160px, 1fr) auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        background: var(--surface-color);
+        border: 1px solid var(--edge);
+        border-radius: 12px;
+        box-shadow: 6px 6px 14px var(--shadow-dark),
+          -6px -6px 14px var(--shadow-light);
+        color: var(--ink);
+      }
+      .stat-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #player-stats .stat {
+        display: grid;
+        gap: 4px;
+        align-items: center;
+      }
+      #player-stats .stat .label {
+        font-size: 10px;
+        letter-spacing: 0.4px;
+        color: var(--ink-dim);
+      }
+      #player-stats .stat .value {
+        font-weight: 700;
+        font-size: 14px;
+      }
+      #player-stats .stat-hp,
+      #player-stats .stat-xp {
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 8px;
+      }
+      #player-stats .bar {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--edge);
+        box-shadow: inset 3px 3px 6px var(--shadow-dark),
+          inset -3px -3px 6px var(--shadow-light);
+        overflow: hidden;
+      }
+      #player-stats .stat-hp .bar > span {
+        position: absolute;
+        inset: 0;
+        background: #2f7a3b; /* subtle fill behind the pill */
+        opacity: 0.14;
+      }
+      #stat-hp-bar {
+        width: 100%;
+        height: 100%;
+        background: #2f7a3b; /* medium-dark green */
+        border-right: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.35);
+        transition: width 0.18s ease;
+      }
+      #stat-xp-bar {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.35);
+        transition: width 0.2s ease;
+      }
+
+      /* NetHack-style attribute stats */
+      #player-stats .stat-attributes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        margin-top: 8px;
+      }
+
+      #player-stats .stat-attributes .stat {
+        margin: 0;
+        padding: 2px 4px;
+        font-size: 0.7em;
+      }
+
+      #player-stats .stat-attributes .label {
+        color: #888;
+        font-size: 0.8em;
+      }
+
+      #player-stats .stat-attributes .value {
+        color: #fff;
+        font-weight: bold;
+      }
+
+      /* NetHack Inventory Panel */
+      #nethack-inventory {
+        margin-top: 12px;
+        padding: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 4px;
+        border: 1px solid #333;
+      }
+
+      #nethack-inventory .section-header {
+        margin-bottom: 6px;
+        text-align: center;
+        font-size: 11px;
+        color: #ccc;
+        font-weight: bold;
+      }
+
+      #inventory-list {
+        max-height: 120px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 10px;
+        line-height: 1.2;
+      }
+
+      .inventory-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 1px 2px;
+        color: #bbb;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .inventory-item:last-child {
+        border-bottom: none;
+      }
+
+      .inventory-item.equipped {
+        color: #4caf50;
+        font-weight: bold;
+      }
+
+      .inventory-item .item-letter {
+        color: #ffd700;
+        font-weight: bold;
+      }
+
+      .inventory-item .item-name {
+        flex: 1;
+        margin-left: 4px;
+      }
+
+      .inventory-item .item-count {
+        color: #888;
+        font-size: 9px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* Prompt layout refinements */
+      #dnd-fpv-canvas {
+        padding-top: 10px;
+      }
+      #dnd-fpv-canvas-right {
+        gap: 14px;
+      }
+      #message-log {
+        border-radius: 12px;
+      }
+
+      /* Quick actions — neumorphic pills (now positioned within top row) */
+      #quick-actions .qa {
+        -webkit-appearance: none;
+        appearance: none;
+        border: 1px solid var(--edge);
+        background: var(--surface-color);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 4px 4px 10px var(--shadow-dark),
+          -4px -4px 10px var(--shadow-light);
+        transition: transform 0.1s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      #quick-actions .qa:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      #quick-actions .qa:active {
+        transform: translateY(1px);
+        box-shadow: inset 3px 3px 6px var(--shadow-dark),
+          inset -3px -3px 6px var(--shadow-light);
+      }
+      #inventory-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        color: #cbd5e1;
+        font-size: 12px;
+      }
+      #inventory-bar .item {
+        padding: 3px 6px;
+        border: 1px solid var(--edge);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+      }
+      #inventory-bar .item.equipped {
+        background: var(--accent);
+        color: white;
+        font-weight: bold;
+      }
+      #room-event,
+      #message-log {
+        height: 100px;
+        overflow-y: scroll;
+        background: var(--surface-color);
+        border-radius: 12px;
+        padding: 8px;
+        margin-bottom: 0;
+        box-shadow: inset 4px 4px 8px var(--shadow-dark),
+          inset -4px -4px 8px var(--shadow-light);
+        border: 1px solid var(--edge);
+        display: flex;
+        flex-direction: column-reverse;
+        font-size: 12px;
+        position: relative;
+      }
+
+      /* Combat stats container */
+      #combat-stats {
+        background: var(--surface-color);
+        border-radius: 12px;
+        padding: 8px;
+        margin-bottom: 0;
+        box-shadow: inset 4px 4px 8px var(--shadow-dark),
+          inset -4px -4px 8px var(--shadow-light);
+        border: 1px solid var(--edge);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        min-width: 80px;
+      }
+      /* Black scrollbars for logs */
+      #room-event::-webkit-scrollbar,
+      #message-log::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      #room-event::-webkit-scrollbar-track,
+      #message-log::-webkit-scrollbar-track {
+        background: #000;
+        border-radius: 8px;
+      }
+      #room-event::-webkit-scrollbar-thumb,
+      #message-log::-webkit-scrollbar-thumb {
+        background: #1f1f23;
+        border-radius: 8px;
+        border: 1px solid #2b2b31;
+      }
+      /* Fallbacks for non-WebKit engines handled by default scrollbars */
+      #message-log p {
+        margin: 0 0 4px 0;
+        color: var(--ink-dim);
+      }
+      #message-log p:first-child {
+        color: var(--ink);
+      }
+
+      #info-display {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 120px;
+      }
+
+      /* Top row: Stats and Actions side by side */
+      #top-stats-actions-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* Bottom row: Compass and Event Log side by side */
+      #bottom-compass-log-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      #bottom-compass-log-row #dnd-compass-container {
+        flex-shrink: 0; /* Don't shrink compass */
+      }
+
+      #bottom-compass-log-row #room-event {
+        flex: 1; /* Event log takes remaining space */
+      }
+
+      /* Quick actions horizontal layout within stats row */
+      #top-stats-actions-row #quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        grid-column: unset; /* Remove old grid positioning */
+      }
+
+      /* Panel titles */
+      #message-log::before {
+        content: attr(data-title);
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        padding: 2px 8px;
+        font-size: 10px;
+        letter-spacing: 0.4px;
+        background: var(--glass);
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        color: var(--ink-dim);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      #message-log {
+        padding-top: 36px;
+      }
+
+      .view-label {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 4px 10px;
+        font-size: 10px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        background: rgba(0, 0, 0, 0.85);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 999px;
+        pointer-events: all;
+        z-index: 120;
+        cursor: pointer;
+      }
+      .primary-view {
+        position: relative;
+        background: linear-gradient(145deg, rgba(28, 30, 36, 0.95), rgba(10, 12, 16, 0.92));
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.45),
+                    inset -6px -6px 12px rgba(90, 90, 100, 0.08),
+                    10px 14px 28px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+      }
+      .primary-view .view-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+
+      /* Floating damage numbers */
+      #hud-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 999;
+      }
+      .floating-dmg {
+        position: absolute;
+        color: #ff5a5a;
+        font-weight: 700;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        opacity: 0.95;
+        will-change: transform, opacity;
+      }
+
+      /* --- New HUD and UI Styles --- */
+      .hud-badge {
+        position: absolute;
+        top: 12px;
+        padding: 4px 8px;
+        font-size: 12px;
+        background: var(--badged);
+        border: 1px solid var(--edge);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.75);
+        z-index: 5;
+        -webkit-backdrop-filter: blur(10px) saturate(120%);
+        backdrop-filter: blur(10px) saturate(120%);
+      }
+      #fpv-room-tag {
+        left: 12px;
+      }
+      #fpv-fps-badge {
+        right: 12px;
+        z-index: 20000;
+      }
+      #fpv-vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 3;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 50%,
+          rgba(0, 0, 0, 0.7) 100%
+        );
+      }
+      /* Compass moved from prompt to top of viewport */
+      #fpv-compass-top {
+        display: none; /* Hidden on desktop, shown on mobile */
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 6;
+        width: 120px;
+        height: 120px;
+      }
+      #dnd-compass-container .compass-rose {
+        width: 120px;
+        height: 120px;
+      }
+      .compass-rose {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        /* Neumorphic surface */
+        background: linear-gradient(145deg, #0f1214, #191b1e);
+        box-shadow: 8px 8px 18px rgba(0, 0, 0, 0.6),
+          -6px -6px 14px rgba(255, 255, 255, 0.02) inset;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      /* Dynamic Health Ring */
+      .compass-rose::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        background: conic-gradient(
+          var(--health-color, #2ecc71) var(--health-percent, 100%),
+          #2a2a2f 0
+        );
+        -webkit-mask: radial-gradient(circle, transparent 64%, black 65%);
+        mask: radial-gradient(circle, transparent 64%, black 65%);
+        opacity: 0;
+        transition: background 0.3s ease; /* Smooth transition for health changes */
+        display: none; /* Disable green border ring */
+      }
+      /* Damage Flash Effect */
+      .compass-rose.damaged::after {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .xp-ring {
+        position: absolute;
+        inset: 14px; /* Inside the health ring */
+        border-radius: 50%;
+        background: conic-gradient(
+          #3b82f6 var(--xp-percent, 0%),
+          transparent 0
+        );
+        -webkit-mask: radial-gradient(circle, transparent 82%, black 83%);
+        mask: radial-gradient(circle, transparent 82%, black 83%);
+        opacity: 0.8;
+        transition: background 0.2s ease;
+      }
+      .radar-canvas {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 76px;
+        height: 76px;
+        pointer-events: none;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+      }
+
+      /* Duplicate FPS Skeleton CSS removed to avoid redundancy */
+
+      /* FPS Skeleton (scoped, non-interfering) */
+      #fps-skel {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 34%;
+        z-index: 5;
+        pointer-events: none;
+      }
+      #fps-skel #dnd-game-map-container-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 0;
+      }
+      #fps-skel #dnd-game-map-grid {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: auto !important;
+        transform-origin: bottom left;
+        display: grid;
+        grid-auto-rows: 48px;
+        gap: 2px;
+        pointer-events: none;
+      }
+      #fps-skel .dnd-game-tile {
+        width: 48px;
+        height: 48px;
+        box-sizing: border-box;
+        background: linear-gradient(180deg, #1b1f25, #121316);
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.02);
+      }
+      #fps-skel #avatar {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #fffb, #fff2);
+        border: 1px solid white;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #fps-skel .dnd-game-facing-indicator {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: #ff6b6b;
+        transform-origin: center;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        opacity: 0.95;
+      }
+      #fps-skel #mapLightOverlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 35;
+      }
+      #fps-skel #map3d {
+        display: none;
+      }
+      #fps-skel .hud {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 60;
+        display: flex;
+        gap: 8px;
+      }
+      #fps-skel .compass {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #fps-skel #compassNeedle {
+        transform-origin: center;
+      }
+
+      /* Origami Radar overlay (SVG ticks + arrow indicator) */
+      #origami-radar {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      #origami-radar svg {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 96%;
+        height: 96%;
+        overflow: visible;
+      }
+      #origami-radar #radar-indicator {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 0;
+        height: 0;
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-bottom: 22px solid #bfeecf; /* soft green */
+        transform: translate(-50%, -50%) rotate(0deg);
+        transform-origin: 50% 70%;
+        filter: drop-shadow(0 0 6px rgba(135, 211, 161, 0.18));
+      }
+      #origami-radar .tick {
+        stroke: #9fe6c1; /* muted green ticks */
+        stroke-opacity: 0.62;
+      }
+      #origami-radar .tick.major {
+        stroke-width: 3;
+        stroke-opacity: 0.9;
+      }
+      #origami-radar .tick.mid {
+        stroke-width: 2;
+        stroke-opacity: 0.75;
+      }
+      #origami-radar .tick.minor {
+        stroke-width: 1.5;
+        stroke-opacity: 0.6;
+      }
+      #origami-radar .tick.micro {
+        stroke-width: 1;
+        stroke-opacity: 0.35;
+      }
+      #origami-radar .ring {
+        stroke: #ffffff;
+        stroke-opacity: 0.9;
+        stroke-width: 2;
+        fill: none;
+      }
+
+      .compass-rose .c-n,
+      .compass-rose .c-e,
+      .compass-rose .c-s,
+      .compass-rose .c-w {
+        position: absolute;
+        color: #ffffff; /* bold white inner cardinals */
+        font-size: 12px;
+        opacity: 0.95;
+        font-weight: 800;
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+      }
+      /* Show cardinal letters on the compass by default */
+      .compass-rose .c-n,
+      .compass-rose .c-e,
+      .compass-rose .c-s,
+      .compass-rose .c-w {
+        display: block;
+      }
+      /* Hide letters for the top FPV compass specifically */
+      #fpv-compass-top .compass-rose .c-n,
+      #fpv-compass-top .compass-rose .c-e,
+      #fpv-compass-top .compass-rose .c-s,
+      #fpv-compass-top .compass-rose .c-w {
+        display: none !important;
+      }
+      .c-n {
+        left: 50%;
+        transform: translateX(-50%);
+        top: 6px;
+      }
+      .c-s {
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 6px;
+      }
+      .c-e {
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .c-w {
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      #compass-needle-top,
+      #compass-needle-panel {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 2px;
+        height: 40%; /* shorter needle */
+        transform-origin: center bottom;
+        transform: translate(-50%, -100%) rotate(0deg);
+        background: #ff2a2a;
+        border-radius: 2px;
+        box-shadow: 0 0 8px #ff9d9d;
+        transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      }
+      #compass-needle-top::after,
+      #compass-needle-panel::after {
+        content: "";
+        position: absolute;
+        bottom: calc(100% - 2px);
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 8px solid #ff2a2a; /* smaller tip */
+      }
+      /* Room ID badge inside compass */
+      .compass-rose .room-id {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 2px 6px;
+        font-size: 11px;
+        color: var(--ink);
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--edge);
+        border-radius: 6px;
+        letter-spacing: 0.4px;
+        pointer-events: none;
+      }
+      /* Center the level coin inside the compass */
+      .compass-rose .level-coin {
+        position: absolute;
+        inset: auto;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 64px;
+        height: 64px;
+      }
+
+      #fpv-keypad {
+        /* Positioning handled by .dnd-fpv-keypad-overlay class */
+        /* position: absolute; left: 50%; transform: translateX(-50%); handled by overlay class */
+        z-index: 30;
+        display: grid !important; /* Force grid display to ensure visibility */
+        grid-template-columns: 50px 50px 50px;
+        grid-template-rows: 50px 50px 50px;
+        grid-template-areas: 
+          ". up ."
+          "left dice right"
+          ". down .";
+        gap: 12px;
+        align-items: center;
+        justify-items: center;
+      }
+      .mv {
+        -webkit-appearance: none;
+        appearance: none;
+        border: 1px solid var(--edge);
+        background: rgba(30, 30, 34, 0.7);
+        border-radius: 12px;
+        color: #e2e8f0;
+        cursor: pointer;
+        font-size: 24px;
+        -webkit-backdrop-filter: blur(8px) saturate(120%);
+        backdrop-filter: blur(8px) saturate(120%);
+        transition: transform 0.08s ease, background 0.15s ease,
+          box-shadow 0.15s ease;
+        width: 50px;
+        height: 50px;
+        display: grid;
+        place-items: center;
+      }
+      .mv:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      .mv:active {
+        transform: scale(0.96);
+      }
+      .mv-up {
+        grid-column: 2;
+        grid-row: 1;
+        order: 2;
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+      }
+      .mv-left {
+        grid-column: 1;
+        grid-row: 2;
+        order: 1;
+      }
+      .mv-act {
+        grid-column: 2;
+        grid-row: 2;
+        font-weight: 700;
+        order: 2; /* same background as .mv */
+        perspective: 360px;
+      }
+      .mv-right {
+        grid-column: 3;
+        grid-row: 2;
+        order: 3;
+      }
+      .mv-down {
+        grid-column: 2;
+        grid-row: 3;
+        order: 4;
+      }
+
+      /* 3D Dice inside the interact button (25% smaller) */
+      .mv-act .dice3d {
+        position: relative;
+        width: 21px;
+        height: 21px; /* 25% smaller than previous 28px */
+        transform-style: preserve-3d;
+        animation: dice-slow-spin 6s linear infinite;
+        will-change: transform;
+      }
+      .mv-act .dice-canvas {
+        width: 28px;
+        height: 28px;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+      }
+      .mv-act .dice3d .face {
+        position: absolute;
+        width: 21px;
+        height: 21px;
+        background: linear-gradient(145deg, #ffffff, #f1f1f1);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+        box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.06),
+          inset -2px -2px 3px rgba(255, 255, 255, 0.7);
+      }
+      .mv-act .dice3d .face.front {
+        transform: translateZ(10.5px);
+      }
+      .mv-act .dice3d .face.back {
+        transform: rotateY(180deg) translateZ(10.5px);
+      }
+      .mv-act .dice3d .face.right {
+        transform: rotateY(90deg) translateZ(10.5px);
+      }
+      .mv-act .dice3d .face.left {
+        transform: rotateY(-90deg) translateZ(10.5px);
+      }
+      .mv-act .dice3d .face.top {
+        transform: rotateX(90deg) translateZ(10.5px);
+      }
+      .mv-act .dice3d .face.bottom {
+        transform: rotateX(-90deg) translateZ(10.5px);
+      }
+
+      /* Burst spin on attack */
+      @keyframes dice-slow-spin {
+        0% {
+          transform: rotateX(0deg) rotateY(0deg);
+        }
+        100% {
+          transform: rotateX(360deg) rotateY(360deg);
+        }
+      }
+      @keyframes dice-spin-burst {
+        0% {
+          transform: rotateX(0deg) rotateY(0deg) scale(1);
+        }
+        50% {
+          transform: rotateX(540deg) rotateY(540deg) scale(1.1);
+        }
+        100% {
+          transform: rotateX(1080deg) rotateY(1080deg) scale(1);
+        }
+      }
+      .mv-act .dice3d.rolling {
+        animation: dice-spin-burst 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+          dice-slow-spin 6s linear infinite 0.6s;
+      }
+
+      .mv-act .radar-mini {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: block;
+        box-shadow: inset 0 0 8px rgba(0, 255, 255, 0.2);
+        will-change: transform;
+      }
+      .mv-act .radar-mini.pulse {
+        animation: radar-pulse 0.6s ease;
+      }
+      @keyframes radar-pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.06);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /* Enhanced Prompt */
+      .level-coin {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        text-align: center;
+        font-size: 10px;
+        line-height: 1.15;
+        background: var(--surface-color);
+        border: 1px solid var(--edge);
+        box-shadow: inset 4px 4px 8px var(--shadow-dark),
+          inset -4px -4px 8px var(--shadow-light);
+      }
+      .level-coin strong {
+        font-size: 1.2em;
+        letter-spacing: 0.5px;
+      }
+      #prompt-icon-stack {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 8px;
+      }
+      .stk {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid var(--edge);
+        background: var(--surface-color);
+        color: #e2e8f0;
+        cursor: pointer;
+        box-shadow: 3px 3px 5px var(--shadow-dark),
+          -3px -3px 5px var(--shadow-light);
+        transition: all 0.15s ease;
+      }
+      .stk:hover {
+        background: var(--accent);
+      }
+      .stk:active {
+        transform: scale(0.95);
+        box-shadow: inset 3px 3px 5px var(--shadow-dark),
+          inset -3px -3px 5px var(--shadow-light);
+      }
+
+      /* Sound Control */
+      #sound-control {
+        position: relative;
+      }
+      #volume-slider-container {
+        display: none;
+        position: absolute;
+        bottom: 40px; /* Above the button */
+        right: 0;
+        background: var(--glass);
+        border: 1px solid var(--edge);
+        border-radius: 8px;
+        padding: 8px;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+      #volume-slider {
+        width: 100px;
+      }
+
+      /* Loot Modal */
+      #loot-modal.hidden {
+        display: none;
+      }
+      #loot-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      .loot-modal-content {
+        background: var(--surface-color);
+        border-radius: 14px;
+        padding: 24px;
+        width: min(400px, 90vw);
+        border: 1px solid var(--edge);
+        box-shadow: 12px 12px 24px var(--shadow-dark),
+          -12px -12px 24px var(--shadow-light);
+        text-align: center;
+      }
+      .loot-modal-content h2 {
+        margin-top: 0;
+        color: var(--ink);
+      }
+      #loot-list {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0;
+        color: var(--ink-dim);
+      }
+      .loot-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+      }
+      #loot-get-btn {
+        background: var(--accent);
+        color: white;
+      }
+
+      /* Loading Overlay */
+      #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 999;
+        display: grid;
+        place-items: center;
+        transition: opacity 0.3s ease;
+      }
+      #loading-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loading-modal {
+        width: min(420px, 90vw);
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--glass);
+        border: 1px solid var(--edge);
+        -webkit-backdrop-filter: blur(12px) saturate(120%);
+        backdrop-filter: blur(12px) saturate(120%);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+      .loading-title {
+        color: var(--ink);
+        margin-bottom: 10px;
+        letter-spacing: 0.3px;
+      }
+      .loading-bar {
+        height: 10px;
+        background: #ffffff14;
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .loading-fill {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #22d3ee);
+        width: 0%;
+        transition: width 0.2s ease;
+      }
+
+      body.map-maximized #mapview-container {
+        height: clamp(400px, 60vh, 800px) !important;
+        width: clamp(400px, 60vh, 800px) !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+      }
+
+      /* body.map-full removed to preserve original PiP layout */
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        #main-container {
+          display: flex;
+          flex-direction: column;
+        }
+        #mapview-container {
+          display: block !important; /* show map on mobile */
+        }
+        #fpview-container {
+          height: 100vh !important;
+          width: 100vw !important;
+          display: grid;
+          grid-template-rows: 1fr auto;
+          border: none;
+        }
+        #dnd-fpv-prompt {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          box-sizing: border-box;
+          border-radius: 0;
+          border-left: none;
+          border-right: none;
+          border-bottom: none;
+          border-top: 1px solid var(--edge);
+        }
+        #dnd-fpv-canvas {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          padding-right: 0;
+        }
+        #dnd-fpv-canvas-right {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+
+        #info-display {
+          grid-template-columns: 1fr;
+          gap: 10px;
+          min-height: 0;
+        }
+        #dnd-compass-container {
+          display: none;
+        }
+        #fpv-compass-top {
+          display: block;
+          width: 90px;
+          height: 90px;
+          top: 10px;
+        }
+        /* Keep keypad at the top on mobile as well */
+        #fpv-keypad {
+          /* top: 10px; bottom: auto; - Positioning handled by .dnd-fpv-keypad-overlay */
+          grid-template-columns: 40px 40px 40px;
+          gap: 8px;
+        }
+        .mv {
+          width: 40px;
+          height: 40px;
+          font-size: 20px;
+        }
+        .mv-up {
+          width: 50px;
+          height: 50px;
+        }
+
+        #log-container {
+          grid-template-columns: 1fr;
+        }
+        #message-log,
+        #room-event {
+          height: 100px;
+        }
+      }
+      @media (max-width: 768px) {
+        #main-container {
+          display: flex;
+          flex-direction: column;
+        }
+        /* Show map at the top, full width; keep only bottom corners rounded so edges blend into FPV */
+        #mapview-container {
+          position: sticky;
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100vw !important;
+          height: 32vh !important;
+          margin: 0;
+          border-radius: 0 0 20px 20px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+          z-index: 5;
+        }
+        /* Slight overlap so the map’s curved bottom edges sit above FPV */
+        #fpview-container {
+          width: 100vw !important;
+          height: calc(100vh - 32vh) !important;
+          display: grid;
+          grid-template-rows: 1fr auto;
+          border: none;
+          margin-top: -12px; /* tuck under the map’s curve */
+          z-index: 1;
+        }
+        #dnd-fpv-prompt {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          box-sizing: border-box;
+          border-radius: 0;
+          border-left: none;
+          border-right: none;
+          border-bottom: none;
+          border-top: 1px solid var(--edge);
+        }
+        #dnd-fpv-canvas {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          padding-right: 0;
+        }
+        /* Place Room and Log side-by-side on mobile */
+        #dnd-fpv-canvas-right {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        #info-display {
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          min-height: 0;
+          align-items: stretch;
+        }
+        #room-event,
+        #message-log {
+          height: 110px;
+        }
+        #dnd-compass-container {
+          display: none;
+        }
+        #fpv-compass-top {
+          display: block;
+          width: 90px;
+          height: 90px;
+          top: 10px;
+        }
+        #fpv-keypad {
+          /* top: 10px; - Positioning handled by .dnd-fpv-keypad-overlay */
+          grid-template-columns: 40px 40px 40px;
+          gap: 8px;
+        }
+        .mv {
+          width: 40px;
+          height: 40px;
+          font-size: 20px;
+        }
+        .mv-up {
+          width: 50px;
+          height: 50px;
+        }
+        #log-container {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* Runtime status overlay */
+      #runtime-status {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 6;
+        font: 12px/1.2 monospace;
+        color: #9be;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 6px 8px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+      /* Keep FPV prompt hidden by default (legacy UI) */
+      #dnd-fpv-prompt { display: none; }
+      
+      /* ===============================
+         ADVENTURE CONTAINER STYLES 
+         =============================== */
+         
+      /* Adventure Container - Winamp-Style 3D Panel */
+      #dnd-adventure-game-container {
+          /* FIXED: Contained within FPV panel, not standalone */
+          position: absolute;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 540px;
+          max-height: 280px;
+          min-height: 240px;
+          z-index: 45;
+          
+          /* Next Gen 3D Neumorphic Base */
+          background: linear-gradient(145deg, 
+              var(--adventure-panel-bg), 
+              rgba(16, 16, 18, 0.9));
+          border: 1px solid var(--adventure-glass-border);
+          border-radius: 12px;
+          
+          /* Advanced 3D Shadow System */
+          box-shadow: 
+              0 12px 32px rgba(0, 0, 0, 0.6),
+              0 4px 16px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 var(--adventure-glass-highlight),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+          
+          /* Glass Morphism */
+          -webkit-backdrop-filter: blur(16px) saturate(1.4);
+          backdrop-filter: blur(16px) saturate(1.4);
+          
+          /* Layout */
+          display: flex;
+          flex-direction: column;
+          padding: 12px 12px 0 12px; /* Flush bottom */
+          gap: 0px;
+          
+          /* Smooth animations */
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          pointer-events: all;
+      }
+
+      /* Dark mode enhanced styling */
+      body.dark-mode #dnd-adventure-game-container {
+          background: linear-gradient(145deg, 
+              rgba(6, 6, 8, 0.9), 
+              rgba(12, 12, 14, 0.95));
+          border-color: rgba(255, 255, 255, 0.06);
+      }
+
+      /* Adventure Log - 3D Inset Display */
+      #dnd-adventure-log {
+          height: 140px;
+          overflow-y: auto;
+          padding: 10px 12px;
+          
+          /* 3D Inset Effect */
+          background: linear-gradient(135deg, 
+              rgba(0, 0, 0, 0.6), 
+              rgba(8, 8, 10, 0.4));
+          border-radius: 8px;
+          border: 1px solid rgba(0, 0, 0, 0.4);
+          box-shadow: var(--adventure-neu-inset);
+          
+          /* Typography */
+          font-size: 13px;
+          line-height: 1.4;
+          color: var(--adventure-text-primary);
+          
+          /* Smooth scrolling */
+          scroll-behavior: smooth;
+      }
+
+      /* 3D Winamp-style scrollbar */
+      #dnd-adventure-log::-webkit-scrollbar { 
+          width: 8px; 
+      }
+
+      #dnd-adventure-log::-webkit-scrollbar-track { 
+          background: linear-gradient(135deg, 
+              rgba(0, 0, 0, 0.4), 
+              rgba(8, 8, 10, 0.2));
+          border-radius: 4px;
+          border: 1px solid rgba(0, 0, 0, 0.2);
+      }
+
+      #dnd-adventure-log::-webkit-scrollbar-thumb { 
+          background: linear-gradient(135deg, 
+              var(--adventure-gold-dark), 
+              var(--adventure-gold));
+          border-radius: 4px;
+          border: 1px solid var(--adventure-gold-dark);
+          box-shadow: 
+              inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      #dnd-adventure-log::-webkit-scrollbar-thumb:hover { 
+          background: linear-gradient(135deg, 
+              var(--adventure-gold), 
+              var(--adventure-gold-light));
+      }
+
+      /* Adventure Input Bar - 3D Panel Layout */
+      #dnd-adventure-input-bar {
+          display: grid;
+          grid-template-columns: auto auto 1fr;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 8px 0 8px; /* Flush bottom */
+          
+          /* 3D Panel Background */
+          background: linear-gradient(145deg, 
+              rgba(12, 12, 14, 0.8), 
+              rgba(8, 8, 10, 0.9));
+          border-radius: 8px 8px 0 0; /* Rounded top only */
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          margin-bottom: 0;
+          box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
+      }
+
+      /* FIXED: Level Circle - Left of Prompt */
+      #dnd-adventure-level-display {
+          width: 36px;
+          height: 36px;
+          border: 2px solid var(--adventure-gold);
+          border-radius: 50%;
+          cursor: pointer;
+          
+          /* 3D Circular Effect */
+          background: radial-gradient(circle at 30% 30%, 
+              rgba(212, 175, 55, 0.2), 
+              rgba(0, 0, 0, 0.6));
+          box-shadow: 
+              var(--adventure-neu-raised),
+              inset 0 2px 4px rgba(212, 175, 55, 0.1);
+          
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #dnd-adventure-level-display:hover {
+          transform: scale(1.05);
+          border-color: var(--adventure-gold-light);
+          box-shadow: 
+              0 4px 12px rgba(212, 175, 55, 0.3),
+              var(--adventure-neu-raised),
+              inset 0 2px 4px rgba(212, 175, 55, 0.2);
+      }
+
+      #adventure-stats-inner {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+      }
+
+      #adventure-stats-text {
+          text-align: center;
+      }
+
+      .adventure-level-num {
+          font-size: 11px;
+          font-weight: bold;
+          color: var(--adventure-gold);
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+          line-height: 1;
+      }
+
+      .adventure-level-label {
+          font-size: 7px;
+          color: var(--adventure-text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 1px;
+      }
+
+      /* Adventure UI Buttons - 3D Neumorphic */
+      #dnd-adventure-command-ui-buttons {
+          display: flex;
+          gap: 6px;
+      }
+
+      .dnd-adventure-header-button {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 1px solid var(--adventure-glass-border);
+          
+          /* 3D Neumorphic Button */
+          background: linear-gradient(145deg, 
+              rgba(16, 16, 18, 0.9), 
+              rgba(8, 8, 10, 0.9));
+          box-shadow: var(--adventure-neu-raised);
+          
+          /* Content */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--adventure-text-secondary);
+          
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .dnd-adventure-header-button:hover {
+          background: linear-gradient(145deg, 
+              rgba(20, 20, 22, 0.95), 
+              rgba(12, 12, 14, 0.95));
+          color: var(--adventure-gold);
+          border-color: var(--adventure-gold);
+          transform: translateY(-1px);
+          box-shadow: 
+              0 3px 8px rgba(0, 0, 0, 0.4),
+              var(--adventure-neu-raised);
+      }
+
+      .dnd-adventure-header-button:active {
+          background: linear-gradient(145deg, 
+              rgba(4, 4, 6, 0.95), 
+              rgba(8, 8, 10, 0.9));
+          box-shadow: var(--adventure-neu-pressed);
+          transform: translateY(0);
+      }
+
+      .dnd-adventure-header-button svg {
+          width: 16px;
+          height: 16px;
+          opacity: 0.8;
+          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+      }
+
+      .dnd-adventure-header-button:hover svg {
+          opacity: 1;
+      }
+
+      /* Adventure Input Field - 3D Inset */
+      #dnd-adventure-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+      }
+
+      #dnd-adventure-prompt-icon {
+          position: absolute;
+          left: 10px;
+          color: var(--adventure-gold);
+          font-size: 12px;
+          z-index: 1;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      }
+
+      #dnd-adventure-command-input {
+          width: 100%;
+          padding: 6px 140px 6px 36px; /* Space for LCD HUD */
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 14px;
+          height: 32px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          border-radius: 6px;
+          border: 2px solid #333;
+          background-color: #888888; /* gray */
+          color: #000000; /* black text */
+          box-shadow: inset 2px 2px 8px rgba(0,0,0,0.5);
+          outline: none;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Adventure input wrapper with compass */
+      #dnd-adventure-input-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+      }
+
+      #dnd-adventure-input-wrapper .input-section {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          position: relative;
+      }
+      
+      #lcd-icons-container {
+          position: absolute;
+          right: 14px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: rgba(0,0,0,0.6);
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          font-weight: bold;
+          pointer-events: none;
+      }
+      
+      .lcd-icon {
+          font-size: 13px;
+          opacity: 0.6;
+      }
+
+      /* Mobile compass next to input */
+      #dnd-compass-container-mobile {
+          flex-shrink: 0;
+          width: 60px;
+          height: 60px;
+      }
+
+      #compass-level-mobile {
+          font-size: 0.875rem;
+      }
+
+      #dnd-adventure-command-input::placeholder {
+          color: var(--adventure-text-secondary);
+          opacity: 0.7;
+      }
+
+      #dnd-adventure-command-input:focus {
+          border-color: var(--adventure-gold);
+          background: linear-gradient(135deg, 
+              rgba(0, 0, 0, 0.7), 
+              rgba(8, 8, 10, 0.5));
+          box-shadow: 
+              var(--adventure-neu-inset),
+              0 0 0 1px var(--adventure-gold),
+              inset 0 0 8px rgba(212, 175, 55, 0.1);
+      }
+      
+      /* Death Modal Special Styling */
+      .death-modal-header h2 {
+          color: #ff4444;
+          text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+          text-align: center;
+          font-size: 24px;
+          margin: 0;
+      }
+      
+      .death-modal-content {
+          text-align: center;
+          padding: 20px 0;
+      }
+      
+      .death-modal-content p {
+          color: var(--adventure-text-primary);
+          margin: 10px 0;
+      }
+      
+      #death-cause {
+          color: #ff6666;
+          font-style: italic;
+      }
+      
+      .death-modal-actions {
+          margin-top: 20px;
+      }
+      
+      #restart-game-btn {
+          background: linear-gradient(145deg, 
+              rgba(255, 68, 68, 0.9), 
+              rgba(200, 50, 50, 0.9));
+          border: 1px solid rgba(255, 68, 68, 0.8);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: bold;
+          cursor: pointer;
+          box-shadow: var(--adventure-neu-raised);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      #restart-game-btn:hover {
+          background: linear-gradient(145deg, 
+              rgba(255, 100, 100, 0.95), 
+              rgba(220, 70, 70, 0.95));
+          transform: translateY(-1px);
+          box-shadow: 
+              0 4px 12px rgba(255, 68, 68, 0.3),
+              var(--adventure-neu-raised);
+      }
+      
+      #restart-game-btn:active {
+          transform: translateY(0);
+          box-shadow: var(--adventure-neu-pressed);
+      }
+
+    
+
+/* ---------- NEXT STYLE BLOCK ---------- */
+
+
+    /* Location overrides removed to restore default side panels */
+
+    /* SOLID RED 3D DICE */
+    .dnd-game-3d-dice {
+        transform: scale(0.6); /* fit inside thumb button */
+        pointer-events: none;
+    }
+    .kp-center-btn {
+        display: flex; justify-content: center; align-items: center; overflow: visible !important;
+    }
+    .dnd-game-3d-dice .dice-face {
+        background: #e53935 !important;
+        border: 2px solid #b71c1c !important;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.6) !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        opacity: 1.0 !important; /* solid faces */
+    }
+    .dnd-game-3d-dice .pip {
+        background-color: white !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
+    }
+
+    /* FPV VIGNETTE */
+    #fpv-viewport {
+        box-shadow: inset 0 0 150px 80px rgba(0,0,0,0.9) !important;
+    }
+    
+    /* INPUT FIELD MERGER REFINEMENTS */
+    #dnd-game-input-wrapper {
+        background: transparent !important; border: none !important; box-shadow: none !important; width: 100%; display: flex; justify-content: center;
+    }
+    .chat-pill {
+        width: 100%; max-width: 600px; margin: 0 auto;
+    }
+    
+
+/* ---------- NEXT STYLE BLOCK ---------- */
+
+
+
+        :root {
+            /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
+            --bg-panel: rgba(255, 255, 255, 0.55); 
+            --bg-circle: rgba(255, 255, 255, 0.75); 
+            --bg-glass: rgba(255, 255, 255, 0.55); /* Unified Translucency */
+            --bg-attr-dark: #101012; 
+            --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
+            --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
+            --glass-border: 1px solid rgba(0, 0, 0, 0.15);
+            
+            --color-text: #1a1a1a; 
+            --color-text-dim: #44474a; 
+            
+            --bottom-dock-height: 230px;
+            --wing-height: 160px;
+            --card-w: 84px;
+            --card-h: 135px;
+
+            /* DARKENED ELEMENTAL AAA PALETTE */
+            --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
+            --wind-clr: #37474f;  --wind-bg: rgba(55, 71, 79, 0.15);
+            --fire-clr: #b71c1c;  --fire-bg: rgba(183, 28, 28, 0.15);
+            --water-clr: #0d47a1; --water-bg: rgba(13, 71, 161, 0.15);
+            --item-clr: #1b5e20;  --item-bg: rgba(27, 94, 32, 0.15);
+            
+            --wager-solid: #1b5e20;
+            --attack-solid: #b71c1c;
+
+            --pill-text: #ffffff; 
+        }
+
+        body.dark-mode {
+            --bg-panel: rgba(22, 24, 26, 0.88);
+            --bg-circle: rgba(18, 20, 22, 0.4);
+            --bg-glass: rgba(22, 24, 26, 0.92);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+            --color-text: #ffffff;
+            --color-text-dim: #7f8a93;
+            --nm-shadow: rgba(0, 0, 0, 0.9);
+            --nm-shadow-light: rgba(35, 40, 45, 0.4);
+            --nm-shadow-inner: inset 2px 2px 6px rgba(0,0,0,0.95), inset -2px -2px 6px rgba(255,255,255,0.03);
+            --nm-shadow-dark: rgba(0, 0, 0, 1.0); /* deepest possible shadow */
+        }
+
+        @keyframes cardLaunch {
+            0% { transform: translateY(0) scale(1) translateZ(0); filter: brightness(1) drop-shadow(0px 0px 5px rgba(0, 255, 255, 0)); }
+            50% { transform: translateY(-40px) scale(1.15) translateZ(50px); filter: brightness(1.7) drop-shadow(0px 0px 30px rgba(0, 255, 255, 0.8)); }
+            100% { transform: translateY(-100px) scale(0) translateZ(0); opacity: 0; filter: brightness(2) drop-shadow(0px 0px 50px #fff); }
+        }
+        .guide-card.launching {
+            animation: cardLaunch 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+            pointer-events: none;
+            z-index: 100 !important;
+        }
+
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000 !important; overflow: hidden; font-family: 'Nunito', sans-serif; -webkit-font-smoothing: antialiased; color: var(--color-text); pointer-events: none; }
+
+        /* --- UI DOCK --- */
+        #ui-dock {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 0px;
+        }
+        #ui-dock * {
+            pointer-events: auto;
+        }
+        #ui-dock #lower-ui-row {
+            padding-bottom: 0px; 
+            margin-bottom: 0px; 
+        }
+        /* Activity log CSS removed */
+    
+#ui-dock-old { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 10px 0; box-sizing: border-box; z-index: 10000; }
+        #lower-ui-row { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; height: auto; padding: 0; padding-bottom: 0px; margin-bottom: 0; box-sizing: border-box; transition: opacity 0.4s ease; pointer-events: none; }
+        #lower-ui-row > * { pointer-events: auto; }
+        .u-wing { margin-bottom: 0px; margin-left: 20px; margin-right: 20px; }
+        /* Disabled opacity fade so action buttons remain visible during movement */
+        body.is-moving #lower-ui-row { transition: none; }
+        body.is-moving .side-panel { transition: none; }
+
+        /* --- SIDE PANELS (Bloom Removed) --- */
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100vw; align-self: stretch; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; z-index: 2000; }
+        .side-panel { 
+            position: relative; width: 130px; height: auto; 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); 
+            border: var(--glass-border); padding: 20px 8px 25px 8px; 
+            box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
+            box-shadow: 0 15px 45px var(--nm-shadow-dark); 
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+        }
+        #pax-console { border-radius: 0 24px 24px 0; border-left: none; transform: translateX(-150%); opacity: 0; pointer-events: none; }
+        #action-rail { border-radius: 24px 0 0 24px; border-right: none; transform: translateX(150%); opacity: 0; pointer-events: none; }
+
+        #encounter-zone.active #pax-console, #encounter-zone.active #action-rail {
+            transform: translateX(0); opacity: 1; pointer-events: auto;
+        }
+
+        /* Full Height Tactical Bars - Blooms Removed */
+        .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
+        #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
+        #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
+
+        .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
+        .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 15px; width: 100%; text-align: center; line-height: 1.2; }
+        
+        .sp-bar { width: 90%; height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 15px; overflow: hidden; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); }
+        .sp-fill { height: 100%; background: linear-gradient(90deg, var(--theme-clr), var(--theme-bg)); width: 100%; transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .sp-fill.player { background: linear-gradient(90deg, #4caf50, #1b5e20); }
+        #enemy-hp-bar { background: #ff0000 !important; }
+        
+        /* Tactical Buttons */
+        .sp-btn { 
+            width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
+            border: 1.5px solid var(--theme-clr); 
+            background: var(--bg-panel); 
+            font-weight: 900; font-size: 10px; text-transform: uppercase; 
+            cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
+            padding: 0 10px; box-sizing: border-box;
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 2px 2px 8px var(--nm-shadow-dark);
+            color: var(--color-text);
+        }
+        /* Lesser strength hover using elemental background */
+        .sp-btn:hover { background: var(--theme-bg) !important; transform: translateY(-1px); }
+
+        .btn-icon-circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; background: rgba(255,255,255,0.08); }
+        .sp-btn i { color: var(--theme-clr); font-size: 11px; text-align: center; }
+
+        .btn-wager { background: var(--wager-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-wager i, .btn-wager .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+        .btn-attack { background: var(--attack-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-attack:hover { background: #d50000 !important; box-shadow: 0 0 18px 4px rgba(255, 20, 20, 0.65), inset 1px 1px 4px rgba(0,0,0,0.5) !important; border-color: #ffcccc !important; }
+        .btn-attack i, .btn-attack .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+        .btn-parley { margin-top: 10px; }
+
+        body.dark-mode .sp-btn:not(.btn-wager):not(.btn-attack) { color: #ffffff !important; border-color: rgba(255,255,255,0.25); }
+
+        .sp-btn span { flex: 1; text-align: left; }
+        .sp-btn:active { transform: scale(0.92); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark); }
+        .sp-btn.punch-anim { animation: btnPunch 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: rgba(255, 60, 60, 0.5) !important; }
+        @keyframes btnPunch {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.85); }
+            100% { transform: scale(1); }
+        }
+        @keyframes slotReel {
+            0% { transform: translateY(500%); opacity: 0; filter: blur(10px); }
+            50% { opacity: 1; filter: blur(4px); }
+            100% { transform: translateY(0); filter: blur(0); }
+        }
+        .slot-anim { animation: slotReel 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; }
+
+        /* --- DOCK & WINGS --- */
+        .u-panel { pointer-events: auto; outline: none; }
+        .u-wing { flex-shrink: 0; position: relative; width: 280px; height: 180px; background: rgba(0, 0, 0, 0.4); border-radius: 16px; display: flex; align-items: center; justify-content: center; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+        #action-zone { position: relative; width: 80px; height: 80px; z-index: 10; display: flex; align-items: center; justify-content: center; left: auto; right: auto; top: auto; transform: none; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) scale(0); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
+        .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
+        .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
+        
+        /* Inner Sub-Ring logic (Compressed 7-node Semi-Circle at r=135) */
+        .outer-1 { --tx: -135px; --ty: 0px; }
+        .outer-2 { --tx: -117px; --ty: -67px; }
+        .outer-3 { --tx: -67px; --ty: -117px; }
+        .outer-4 { --tx: 0px; --ty: -135px; }
+        .outer-5 { --tx: 67px; --ty: -117px; }
+        .outer-6 { --tx: 117px; --ty: -67px; }
+        .outer-7 { --tx: 135px; --ty: 0px; }
+        
+        .skills-active .outer-1, .skills-active .outer-2, .skills-active .outer-3, .skills-active .outer-4, .skills-active .outer-5, .skills-active .outer-6, .skills-active .outer-7 { transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); opacity: 1; pointer-events: auto; z-index: 20; }
+        
+        @keyframes skillPulse {
+            0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0px transparent); }
+            50% { transform: translateY(-3px) scale(1.1); filter: drop-shadow(0 0 8px currentColor); }
+            100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0px transparent); }
+        }
+        .skills-active .skill-node i { animation: skillPulse 2.5s ease-in-out infinite; }
+        .skills-active .outer-1 i { animation-delay: 0.0s; }
+        .skills-active .outer-2 i { animation-delay: 0.2s; }
+        .skills-active .outer-3 i { animation-delay: 0.4s; }
+        .skills-active .outer-4 i { animation-delay: 0.6s; }
+        .skills-active .outer-5 i { animation-delay: 0.8s; }
+        .skills-active .outer-6 i { animation-delay: 1.0s; }
+        .skills-active .outer-7 i { animation-delay: 1.2s; }
+        
+        .icon-earth { color: var(--item-clr); }
+        .icon-fire { color: var(--fire-clr); }
+        .icon-slash { color: var(--attack-solid); }
+        .icon-wind { color: var(--wind-clr); }
+        .icon-water { color: var(--water-clr); }
+        .icon-ice { color: #00e5ff; }
+        .icon-lightning { color: #ffcc00; }
+
+        .btn-action, .skill-node { 
+            position: absolute; top: 50%; left: 50%;
+            width: 38px !important; height: 38px !important; border-radius: 50% !important;
+            opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            background: var(--bg-glass);
+            box-shadow: 
+                3px 3px 8px rgba(0,0,0,0.15), 
+                -3px -3px 8px rgba(255,255,255,0.8),
+                inset 1px 1px 2px rgba(255,255,255,0.5),
+                inset -1px -1px 2px rgba(0,0,0,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+        }
+        .btn-action::before, .skill-node::before, .u-btn::before, .kp-center-btn::before, .avatar-circle::before {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; 
+            border-radius: 50%; pointer-events: none; z-index: 0;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+        }
+        
+        .skill-label {
+            position: absolute; bottom: -12px; font-size: 6px; letter-spacing: 0.5px; opacity: 0.8;
+        }
+        body.dark-mode .btn-action, body.dark-mode .skill-node {
+             box-shadow: 
+                4px 4px 10px rgba(0,0,0,0.6), 
+                -4px -4px 10px rgba(255,255,255,0.05),
+                inset 1px 1px 2px rgba(255,255,255,0.1),
+                inset -1px -1px 2px rgba(0,0,0,0.4) !important;
+             border: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        body.dark-mode .btn-action::before, body.dark-mode .skill-node::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
+            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        }
+        .btn-action > i, .btn-action > span, .u-btn > i, .kp-center-btn > div, .kp-center-btn > i, .avatar-circle > i, .avatar-circle > canvas, .skill-node > i, .skill-node > span { position: relative; z-index: 1; pointer-events: none; }
+        .outer-active .btn-action, .outer-active .u-btn { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
+        .act-n { --tx: 0px; --ty: -54px; } .act-s { --tx: 0px; --ty: 54px; } .act-e { --tx: 54px; --ty: 0px; } .act-w { --tx: -54px; --ty: 0px; }
+        .act-ne { --tx: 39px; --ty: -39px; } .act-nw { --tx: -39px; --ty: -39px; } .act-se { --tx: 39px; --ty: 39px; } .act-sw { --tx: -39px; --ty: 39px; }
+        .ac-text { font-size: 6.5px; font-weight: 900; margin-top: 3px; text-transform: uppercase; color: var(--color-text); }
+
+        /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
+        #bottom-panel { position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; z-index: 50; background: transparent; width: 100%; max-width: 540px; height: auto; padding: 0; margin-bottom: 0px; }
+        #guides-container { display: flex; width: 100%; max-width: 540px; padding: 0 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 8px; transition: opacity 0.4s ease; margin-bottom: 0px; z-index: 60; }
+        #guides-container::-webkit-scrollbar { display: none; }
+        
+        #dnd-adventure-game-container { position: relative; bottom: auto; left: auto; transform: none; width: 100%; max-width: 540px; max-height: 280px; min-height: 0; z-index: 45; margin-top: 0px; box-sizing: border-box; }
+        
+        @media (max-width: 768px) {
+            #left-panel .u-btn[data-key^="Arrow"] { display: none !important; }
+            .dnd-game-3d-dice { transform: scale(0.5) !important; width: 42px !important; height: 42px !important; margin: auto; transform-origin: center center; }
+            #lower-ui-row { flex-wrap: nowrap; }
+            #bottom-panel { margin-bottom: 0px; }
+            .u-wing { width: 180px; height: 180px; }
+        }
+        
+        /* --- GAMBLING DICE ENGINE --- */
+        #guides-container::-webkit-scrollbar { display: none; }
+        
+        .dice-player-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; color: var(--color-text); }
+        .dpz-name { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; color: var(--theme-clr, var(--color-text)); }
+        .dpz-pot { font-size: 24px; font-weight: 900; font-family: monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        .dice-table-center { display: flex; flex-direction: column; align-items: center; flex: 1; border-left: 1px solid rgba(128,128,128,0.2); border-right: 1px solid rgba(128,128,128,0.2); padding: 0 15px; }
+        .game-status { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--color-text-dim); margin-bottom: 10px; letter-spacing: 1px; text-align: center; }
+        .roll-btn { width: 100%; height: 50px; border-radius: 12px; background: var(--item-bg); border: 2px solid var(--item-clr); color: var(--color-text); font-size: 16px; font-weight: 900; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--nm-shadow-inner); }
+        .roll-btn:hover { background: var(--item-clr); color: #fff; transform: translateY(-2px); }
+        .roll-btn i { margin-right: 10px; font-size: 20px; }
+
+        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+        .card-column.focused { z-index: 30; }
+
+        @media (max-width: 750px) { 
+            .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 3 + 28px) !important; margin-left: 0 !important; }
+        }
+        @media (max-width: 500px) { 
+            .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 1) !important; margin-left: 0 !important; }
+        }
+
+        .guide-card {
+            position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
+            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
+            justify-content: flex-start; text-align: center; color: var(--color-text); 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
+            transform-origin: top center; touch-action: manipulation;
+        }
+        .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
+        
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 2px 2px 10px var(--nm-shadow-dark); }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
+        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
+        .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
+        
+        /* Rigid Vertical Symmetry Zones */
+        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
+        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
+        
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
+        .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
+        
+        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-glass); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--glass-border); flex-shrink: 0; margin-bottom: 5px; }
+        .dark-mode .card-icon-3d { background: var(--bg-glass); }
+        .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+        .card-attr-fused { 
+            width: 100%; 
+            height: 35px; 
+            margin-top: auto; 
+            background: var(--bg-attr-dark); 
+            color: #ffffff;
+            font-weight: 900; 
+            font-size: 8px;
+            letter-spacing: 0px; 
+            padding: 0 8px 6px 8px; 
+            text-transform: uppercase; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+            text-align: center; 
+            line-height: 1.1; 
+            box-sizing: border-box; 
+        }
+
+        .card-tooltip {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); border-radius: 12px;
+            color: #fff; padding: 10px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            z-index: 40; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card-tooltip.show { opacity: 1; pointer-events: auto; }
+        .tt-title { font-size: 11px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
+        .tt-desc { font-size: 7.5px; margin-bottom: 8px; font-style: italic; color: rgba(255,255,255,0.7); }
+        .tt-help { font-size: 6px; font-weight: 900; color: #4caf50; animation: pulseAction 1s infinite alternate; text-transform: uppercase; }
+        @keyframes pulseAction { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+
+
+        .card-earth { --theme-clr: #5C4033; --theme-bg: #4e342e; } 
+        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
+        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
+        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; } 
+        .card-item  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
+
+        /* --- MODAL --- */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+        #launch-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; z-index: 50000; background: transparent; display: flex; flex-direction: column; align-items: center; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #launch-modal.active, #exit-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+        
+        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        .exit-title { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .exit-controls { display: flex; gap: 20px; width: 100%; justify-content: center; }
+        .exit-btn { width: 60px; height: 60px; border-radius: 50%; border: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; color: #fff; box-shadow: var(--nm-shadow-inner); transition: transform 0.2s, filter 0.2s; }
+        .exit-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .exit-btn.yes { background: var(--item-bg); border: 2px solid var(--item-clr); color: var(--item-clr); text-shadow: 0 0 8px var(--item-clr); }
+        .exit-btn.no { background: var(--fire-bg); border: 2px solid var(--fire-clr); color: var(--fire-clr); text-shadow: 0 0 8px var(--fire-clr); }
+        
+        .modal-card-hd { width: 180px; height: 265px; margin-bottom: 15px; position: relative; pointer-events: none; }
+        .modal-card-hd .guide-card { width: 100%; height: 100%; border-radius: 20px; padding-top: 5px; border-width: 1.5px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        
+        .modal-controls { display: flex; gap: 15px; width: 100%; justify-content: center; }
+        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--nm-shadow-inner); }
+        .m-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+        .m-btn.launch { background: rgba(0,0,0,0.9); border-width: 2px; }
+        .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+
+        /* --- HIGH PERFORMANCE INPUT --- */
+        #input-container { 
+            width: 100%; 
+            max-width: calc(var(--card-w) * 5 + 56px); 
+            height: 60px; display: flex; justify-content: center; align-items: center; 
+            transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 6px auto 0 auto;
+        }
+        .chat-pill { width: 100%; height: 70px; background: rgba(10, 15, 20, 0.85); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px 12px 0 0; display: flex; align-items: center; padding: 0 18px; padding-top: 30px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
+        .chat-input::placeholder { color: var(--color-text-dim); font-weight: 800; opacity: 0.8; }
+        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
+        #submit-btn { background: transparent; border: none; outline: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+        
+        #event-log-container {
+            position: absolute;
+            bottom: 120px; /* Sits 30px above the bottom-panel which is ~90px tall */
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 900;
+            font-style: italic;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 100;
+        }
+        #event-log-container.visible {
+            opacity: 1;
+        }
+
+        /* Utility Classes for resolving linting errors */
+        .theme-green { --theme-clr: #4caf50; }
+        .theme-red { --theme-clr: #f44336; }
+        .viewport-text { color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; }
+
+        /* --- DRAGGABLE LCD EVENT PANEL --- */
+        #lcd-event-panel {
+            position: absolute;
+            top: -200px; /* Float above the console */
+            align-self: center;
+            width: 200px; /* Resizeable container */
+            min-width: 140px; max-width: 400px;
+            background: rgba(10, 20, 30, 0.4); /* Dark glass */
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
+            display: flex; flex-direction: column;
+            z-index: 40000;
+            opacity: 0; pointer-events: none; /* Auto-faded by default */
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            resize: horizontal; overflow: hidden; /* Allow Native Resizing */
+        }
+        
+        #lcd-event-panel.active, #lcd-event-panel:hover {
+            opacity: 1; pointer-events: auto;
+        }
+        
+        #lcd-event-panel:hover {
+            border-color: rgba(0, 255, 255, 0.6);
+            background: rgba(10, 20, 30, 0.6);
+        }
+
+        #lcd-header {
+            width: 100%; height: 16px;
+            background: rgba(0, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            color: rgba(0, 255, 255, 0.8);
+            font-size: 7px; font-weight: 900; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: grab; flex-shrink: 0;
+            -webkit-user-select: none; user-select: none;
+        }
+        #lcd-header:active { cursor: grabbing; }
+
+        #lcd-text {
+            flex: 1;
+            padding: 12px 15px;
+            color: #e0ffff;
+            font-family: 'Courier New', Courier, monospace; /* LCD Look */
+            font-weight: 900;
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.4);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Caps at ~8 chars visually */
+            display: flex; align-items: center; justify-content: center;
+            -webkit-user-select: none; user-select: none;
+        }
+        
+        #lcd-resize-handle {
+            position: absolute; bottom: 0; right: 0;
+            width: 15px; height: 15px;
+            cursor: ew-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(0,255,255,0.3) 50%);
+            pointer-events: none; /* Lets native CSS resize take over */
+        }
+
+        @media (min-width: 1200px) {
+            .side-panel { width: 260px; }
+            .sp-btn { height: 48px; font-size: 13px; }
+            .btn-icon-circle { width: 26px; height: 26px; font-size: 13px; margin-right: 15px; }
+            .sp-title { font-size: 18px; }
+            .sp-sub { font-size: 11px; }
+        }
+
+        /* Full Size Desktop (1920+) High Density UI */
+        @media (min-width: 1920px) {
+            .side-panel { width: 320px; }
+            .sp-btn { height: 54px; font-size: 15px; }
+            .btn-icon-circle { width: 32px; height: 32px; font-size: 18px; }
+            
+            .u-btn { width: 54px !important; height: 54px !important; font-size: 22px !important; border-width: 2px !important; }
+            .kp-center-btn { width: 68px !important; height: 68px !important; font-size: 32px !important; border-width: 2.5px !important; }
+            .avatar-circle { width: 68px !important; height: 68px !important; border-width: 2.5px !important; }
+            
+            /* Secondary and Utility Buttons */
+            .m-btn, .exit-btn, .roll-btn, .qa, .stk, .dnd-adventure-guide-btn, .dnd-glass-combat-btn, #dnd-game-command-input { height: 54px !important; min-width: 54px; font-size: 16px !important; }
+            
+            /* Skill and Action Nodes */
+            .btn-action, .skill-node { width: 48px !important; height: 48px !important; font-size: 18px !important; }
+            .ac-text { font-size: 8px; }
+
+            /* Keypad Spacing and Transforms */
+            .movement-keypad-container {
+                grid-template-columns: 68px 68px 68px;
+                grid-template-rows: 68px 68px 68px;
+                gap: 16px;
+            }
+            
+            /* Adjust transforms for larger buttons - increase radius to prevent overlap */
+            .pos-n { --tx: 0px; --ty: -72px !important; } 
+            .pos-s { --tx: 0px; --ty: 72px !important; } 
+            .pos-e { --tx: 72px !important; --ty: 0px; } 
+            .pos-w { --tx: -72px !important; --ty: 0px; }
+
+            .act-n { --tx: 0px; --ty: -72px !important; } 
+            .act-s { --tx: 0px; --ty: 72px !important; } 
+            .act-e { --tx: 72px !important; --ty: 0px; } 
+            .act-w { --tx: -72px !important; --ty: 0px; }
+            .act-ne { --tx: 52px !important; --ty: -52px !important; } 
+            .act-nw { --tx: -52px !important; --ty: -52px !important; } 
+            .act-se { --tx: 52px !important; --ty: 52px !important; } 
+            .act-sw { --tx: -52px !important; --ty: 52px !important; }
+            
+            /* Playing Card Symbols Professional Styling */
+            .fa-spade { color: #111 !important; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
+            .fa-club { color: #111 !important; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
+            .fa-heart { color: #d32f2f !important; filter: drop-shadow(0 0 2px rgba(211,47,47,0.4)); }
+            .fa-diamond { color: #d32f2f !important; filter: drop-shadow(0 0 2px rgba(211,47,47,0.4)); }
+        }
+    
+
+
+/* ---------- NEXT STYLE BLOCK ---------- */
+
+
+            .action-icon-3d { position: absolute; top: -5px; left: -5px; width: 54px; height: 54px; pointer-events: none; z-index: 10; }
+            .action-icon-3d canvas { width: 100%; height: 100%; object-fit: contain; }
+            .wager-card-container { position:relative; transform:none; flex: 0 0 calc(50% - 10px); cursor:pointer; }
+            .wager-pill { background:var(--wager-solid); }
+            .wager-title-text { font-size:16px; }
+            .wager-desc-text { font-size:9px; margin-bottom:5px; }
+            .wager-icon-container { width:60px; height:60px; }
+            .wager-attr-text { background:#111; color:#fff; }
+        
+
+/* ---------- NEXT STYLE BLOCK ---------- */
+
+/* ---------- TACTICAL LAYOUT OVERRIDES (NewOrigami 5+) ---------- */
+/* 
+   Enforces the layout constraint: Cards on top, EventLog in middle, Input under EventLog.
+   Overrides legacy absolute positioning by using specific parent selectors.
+*/
+#bottom-panel #tactical-inner-wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    gap: 15px; /* Spacing between cards, log, and input */
+}
+
+#tactical-inner-wrap #encounter-zone {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    flex: 0 0 auto; /* Prevent stretching */
+    pointer-events: auto;
+}
+
+#tactical-inner-wrap #dnd-adventure-log {
+    position: relative;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    flex: 1 1 auto; /* Grow to fill middle space */
+    background: rgba(15, 18, 24, 0.85);
+    border-radius: 12px;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8), inset -1px -1px 3px rgba(255,255,255,0.05);
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 0;
+    min-height: 120px;
+    pointer-events: auto;
+}
+
+#tactical-inner-wrap #dnd-adventure-input-bar {
+    position: relative;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    flex: 0 0 64px; /* Fixed height for input */
+    margin-bottom: 0;
+    pointer-events: auto;
+}
+
+/* Disable the legacy draggable LCD since we brought it into the flex flow */
+body.neumorphic-body #lcd-event-panel { display: none; }
+
+/* Ensure FPV Canvas is strictly in the background */
+body.neumorphic-body #fpv-canvas {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1;
+}
+
+body.neumorphic-body #lower-ui-row {
+    z-index: 10; /* Bring UI above FPV */
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+
+/* ---------- MISCELLANEOUS INLINE REFACTORS ---------- */
+#fps-counter {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #0f0;
+    z-index: 999;
+    font-family: monospace;
+    background: rgba(0,0,0,0.5);
+    padding: 5px;
+}
+
+.kp-center-btn .fa-compass {
+    font-size: 32px;
+    color: rgba(255,255,255,0.6);
+}
+
+#enemy-hp-bar, #player-hp-bar {
+    width: 100%;
+}

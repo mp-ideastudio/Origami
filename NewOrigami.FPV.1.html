@@ -2240,8 +2240,8 @@
                     
                     if (e.data.type === 'FPV_ACTION') {
                         const action = e.data.action;
-                        if (action === 'BET_EVEN' || action === 'BET_ODD') {
-                            this.spawnCombatText(action === 'BET_EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
+                        if (action === 'BET EVEN' || action === 'BET ODD') {
+                            this.spawnCombatText(action === 'BET EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
                             
                             // Spawn 3D Bouncing Dice in front of Player/Target
                             let spawnX = this.player.x * this.gridSize;
@@ -2280,6 +2280,27 @@
                                 this.worldGroup.add(die);
                             }
                             this.scene.userData.hasActiveDice = true;
+                            
+                            // Calculate wager outcome
+                            const sum = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+                            const isEven = sum % 2 === 0;
+                            const won = (action === 'BET EVEN' && isEven) || (action === 'BET ODD' && !isEven);
+                            
+                            setTimeout(() => {
+                                if (won) {
+                                    this.spawnCombatText("YOU WON!", "crit");
+                                    this.postToAI({ type: 'WAGER_RESULT', won: true });
+                                } else {
+                                    this.spawnCombatText("YOU LOST!", "damage");
+                                    this.postToAI({ type: 'WAGER_RESULT', won: false });
+                                }
+                                
+                                // Clear chat bubble on wager conclusion
+                                if (this.activeChat) {
+                                    this.scene.remove(this.activeChat.mesh);
+                                    this.activeChat = null;
+                                }
+                            }, 1500);
                             
                         } else if (action === 'WAGER' && this.activeTarget) {
                             this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager mode
@@ -2356,6 +2377,11 @@
                                 window.parent.postMessage({ type: 'HIDE_ALL' }, '*');
                             }
                             
+                            if (this.activeChat && this.activeChat.target && this.activeChat.target.userData.id === e.data.id) {
+                                this.scene.remove(this.activeChat.mesh);
+                                this.activeChat = null;
+                            }
+                            
                             // Stop any walking/idle animations
                             if (deadMesh.userData.mixer) {
                                 deadMesh.userData.mixer.stopAllAction();
@@ -2368,21 +2394,24 @@
                             
                             // Sinking Animation
                             let sinkAmount = 0;
-                            const sinkSpeed = 0.05;
+                            let frameCount = 0;
                             const originalY = deadMesh.position.y;
                             
                             const sinkAnim = () => {
-                                sinkAmount += sinkSpeed;
-                                deadMesh.position.y = originalY - sinkAmount;
-                                
-                                // Spin slightly while falling
-                                deadMesh.rotation.y += 0.1;
-                                deadMesh.rotation.x -= 0.05;
+                                frameCount++;
+                                if (frameCount < 15) {
+                                    // Fall backward
+                                    deadMesh.rotation.x -= (Math.PI / 2) / 15;
+                                } else {
+                                    // Sink rapidly
+                                    sinkAmount += 0.15;
+                                    deadMesh.position.y = originalY - sinkAmount;
+                                }
                                 
                                 // Fade out glass opacity if available
                                 deadMesh.traverse((child) => {
                                     if (child.isMesh && child.material && child.material.transparent) {
-                                        child.material.opacity = Math.max(0, child.material.opacity - 0.02);
+                                        child.material.opacity = Math.max(0, child.material.opacity - 0.05);
                                         // Reduce emissive to lose its glow
                                         if (child.material.emissiveIntensity !== undefined) {
                                             child.material.emissiveIntensity = Math.max(0, child.material.emissiveIntensity - 0.05);
@@ -2390,7 +2419,7 @@
                                     }
                                 });
                                 
-                                if (sinkAmount < 3.0) {
+                                if (sinkAmount < 4.0) {
                                     requestAnimationFrame(sinkAnim);
                                 } else {
                                     this.worldGroup.remove(deadMesh);

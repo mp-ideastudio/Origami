@@ -1,0 +1,334 @@
+<!-- 
+  PROJECT MANIFESTO / AI INSTRUCTIONS (DO NOT REMOVE)
+  ===================================================
+  1. GOLDEN RATIO MANDATE (!important):
+     - All layout proportions must adhere to the Golden Ratio (approx 1.618 or 0.618).
+     - Current Horizontal Split: 61.8% (Primary) / 38.2% (Secondary).
+     - Vertical Split: Bottom panel approximates 1/3 visual weight or golden section relative to viewport.
+     - PiP Windows: Width = 38.2% of viewport; Aspect Ratio = Golden Ratio.
+
+  2. WCAG 2.2 AAA COMPLIANCE (MANDATED):
+     - Contrast ratios must meet AAA standards (7:1 for normal text).
+     - No illogical shrinking of text or touch targets on resize.
+     - All interactive elements must have aria-labels.
+     - Focus states must be clearly visible.
+
+  3. TEXT ADVENTURE EQUIVALENCE:
+     - Every graphical element must have a semantic text equivalent.
+     - The UI is a "Minimalist Power User" mode, but the underlying structure functions as a text-based interface for accessibility.
+
+  4. FLUIDITY & COLOR PSYCHOLOGY:
+     - UI must remain fluid; use percentages/vh/vw over fixed pixels where possible.
+     - Colors should evoke calm control (Beige/Gray/White) or Focus (Dark Mode).
+
+  5. *** IMMUTABLE FRAMEWORK WARNING *** (CRITICAL):
+     - FUTURE AI: DO NOT CHANGE THE LAYOUT, DESIGN FRAMEWORK, OR ARCHITECTURE OF THIS SHELL.
+     - IT IS A VIOLATION OF TRUST TO ALTER THE UI OUTER SHELL UNLESS EXPLICITLY DIRECTED.
+     - CONTENT UPDATES INSIDE THE CONTAINERS (GAME CONTENT) ARE PERMITTED.
+     - THIS FRAMEWORK MUST REMAIN 100% WIDTH/HEIGHT RESPONSIVE FOR WORDPRESS CONTAINERS.
+-->
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fluid Absolute Layout - Themed</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Load Material Icons for UI elements -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <style>
+      /* --- CSS VARIABLES FOR THEMING --- */
+      :root {
+        /* LIGHT MODE - TRUE BEIGE/LINEN VARIANT (AAA COMPLIANT) */
+        --bg-body: #f2efe9;       /* Warm linen/beige backdrop */
+        --bg-panel: #fffefc;      /* Ivory/Off-white Container */
+        --bg-header: #f8f6f1;     /* Soft beige header */
+        --bg-content: #fffefc;    /* Match container */
+        --border-color: #e6e2d6;  /* Warm taupe border */
+        --text-primary: #1c1917;  /* Stone-900 (Black-ish) - Contrast 16:1 */
+        /* AAA FIX: Darkened from Stone-500 to Stone-700 to meet 7:1 contrast ratio */
+        --text-secondary: #44403c;
+        --splitter-bg: #f2efe9;   
+        --splitter-hover: #3b82f6;
+        --handle-grad-1: #fffefc;
+        --handle-grad-2: #e6e2d6;
+        --handle-border: #a8a29e; /* Darker border for visibility */
+        --shadow-pip: 0 10px 25px -5px rgba(28, 25, 23, 0.1), 0 8px 10px -6px rgba(28, 25, 23, 0.1);
+        --shadow-panel: 0 -4px 20px -5px rgba(28, 25, 23, 0.05);
+        --btn-hover-bg: #e6e2d6;
+        --btn-hover-text: #1c1917;
+        
+        /* Focus Outline for Accessibility (WCAG Focus Visible) */
+        --focus-ring: 3px solid #3b82f6;
+        --focus-offset: 2px;
+      }
+
+      /* DARK MODE OVERRIDES (AAA COMPLIANT) */
+      body.dark-mode {
+        --bg-body: #0f172a;       /* Slate-900 */
+        --bg-panel: #1e293b;      /* Slate-800 */
+        --bg-header: #020617;     /* Slate-950 */
+        --bg-content: #020617;    /* Slate-950 */
+        --border-color: #334155;  /* Slate-700 */
+        --text-primary: #f8fafc;  /* Slate-50 - Contrast 15:1 */
+        /* AAA FIX: Lightened to Slate-300 to meet 7:1 contrast ratio */
+        --text-secondary: #cbd5e1;
+        --splitter-bg: #0f172a;
+        --splitter-hover: #3b82f6;
+        --handle-grad-1: #334155;
+        --handle-grad-2: #0f172a;
+        --handle-border: #475569;
+        --shadow-pip: 0 20px 25px -5px rgba(0, 0, 0, 0.9), 0 8px 10px -6px rgba(0, 0, 0, 0.9);
+        --shadow-panel: 0 -4px 20px -5px rgba(0, 0, 0, 0.7);
+        --btn-hover-bg: #334155;
+        --btn-hover-text: #ffffff;
+      }
+
+      /* --- GLOBAL STYLES --- */
+      html, body {
+        height: 100%; /* Ensure full height of container */
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        overflow: hidden;
+        background-color: var(--bg-body);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      
+      /* Accessibility Focus Management */
+      button:focus-visible {
+        outline: var(--focus-ring);
+        outline-offset: var(--focus-offset);
+        border-radius: 4px;
+      }
+
+      /* --- MAIN APPLICATION SHELL --- */
+      /* Note: Legacy UI components (PiP, Splitters, Header titles, text adventure overlays) 
+         have been forensically removed from the CSS to optimize rendering. */
+      
+      /* --- LOWER DOCK CONFIG --- */
+      #adventure-panel {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 250px; /* Reduced from 100% to prevent blocking FPV. Expands via class for Modals. */
+        z-index: 30;
+        display: block;
+        pointer-events: none; /* Let clicks pass through empty space */
+        background: transparent !important;
+        transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+      }
+      #adventure-panel.modal-open {
+        height: 100%;
+      }
+      #adventure-panel .panel-content {
+        background: transparent !important;
+        border: none !important;
+      }
+      #adventure-panel iframe {
+        pointer-events: auto; /* Re-enable clicks inside the iframe */
+        width: 100%;
+        height: 100%;
+        background: transparent !important;
+        border: none !important;
+      }
+      #adventure-panel .panel-header {
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+      }
+
+      /* Side panels wrapper for Combat UI */
+      #combat-panels-wrapper {
+         position: absolute;
+         top: 0; /* Reset top to 0 and expand full height like the bottom dock to ensure Modals work natively */
+         transform: none;
+         left: 0;
+         right: 0;
+         width: 100%;
+         height: 100%;
+         z-index: 25;
+         pointer-events: none;
+      }
+      #combat-panels-wrapper iframe {
+         pointer-events: none; /* Pass clicks through usually */
+         width: 100%;
+         height: 100%;
+         border: none;
+         background: transparent;
+      }
+      #combat-panels-wrapper.active iframe {
+         pointer-events: auto; /* Only capture clicks when active */
+      }
+
+    </style>
+  </head>
+  <body ontouchstart="">
+    <!-- Main Application Wrapper -->
+    <!-- Main Application Wrapper -->
+    <div id="main-container" class="relative w-full h-full pointer-events-none">
+      
+      <!-- FPV Background (Fullscreen) -->
+      <div id="fpv-viewport" class="absolute inset-0 z-0 pointer-events-auto">
+        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.1.html?cachebuster=2" class="w-full h-full border-none"></iframe>
+      </div>
+
+      <!-- Map PiP (Top Right) -->
+      <div id="mapview-container" class="pointer-events-none hidden">
+        <div class="view-label absolute -top-[10px] left-4 bg-[var(--bg-panel)] px-2 py-[2px] rounded text-[10px] font-bold border border-[var(--border-color)] z-10">MAP VIEW</div>
+        <div class="canvas-wrapper">
+          <iframe id="map-iframe" title="Map View Engine" src="NewOrigami.Map.1.html" class="w-full h-full border-none pointer-events-none"></iframe>
+        </div>
+      </div>
+      
+      <!-- Bottom Control Panel -->
+      <div id="adventure-panel" class="pointer-events-auto">
+        <iframe id="panels-iframe" title="Action Panels" src="NewOrigami.Panels.html?mode=dock" class="w-full h-full border-none pointer-events-auto block"></iframe>
+      </div>
+      
+      <!-- Middle Combat Panels (Left/Right) -->
+      <div id="combat-panels-wrapper">
+         <iframe id="combat-iframe" title="Combat Panels" src="NewOrigami.Panels.html?mode=combat" class="w-full h-full border-none pointer-events-none block"></iframe>
+      </div>
+    </div>
+
+    <script>
+      // Wrap in IIFE to avoid global namespace pollution
+      (function() {
+         document.addEventListener("DOMContentLoaded", () => {
+            // --- CACHED DOM REFERENCES ---
+            // Fetch once at load instead of constantly repeatedly querying inside messaging loops
+            const engines = {
+               fpv: document.getElementById('fpv-iframe'),
+               map: document.getElementById('map-iframe'),
+               combat: document.getElementById('combat-iframe'),
+               panels: document.getElementById('panels-iframe')
+            };
+            const combatWrapper = document.getElementById('combat-panels-wrapper');
+            let cachedInitEntities = null;
+
+            // --- HELPER FUNCTIONS ---
+            /** Safely broadcasts a message payload to a specific engine/iframe */
+            function notifyEngine(engineKey, payload) {
+               const frame = engines[engineKey];
+               if (frame && frame.contentWindow) {
+                  frame.contentWindow.postMessage(payload, '*');
+               }
+            }
+
+            /** Broadcasts to all active engine logic iframes */
+            function broadcastKey(type, payload) {
+               const msg = { type, ...payload };
+               notifyEngine('fpv', msg);
+               notifyEngine('map', msg);
+            }
+
+            // --- KEYBOARD ROUTING ---
+            // Forward global key events (WASD) natively downwards.
+            // Using e.repeat drastically improves performance by stopping the key holding spam.
+            document.addEventListener('keydown', (e) => {
+               if (e.repeat) return; // Prevent spamming messages while button is held
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_DOWN', { key: e.key, code: e.code });
+            });
+
+            document.addEventListener('keyup', (e) => {
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_UP', { key: e.key, code: e.code });
+            });
+
+            // --- MASTER MESSAGE ROUTER (Relay switchboard) ---
+            window.addEventListener('message', (e) => {
+               if (!e.data || !e.data.type) return;
+
+               switch (e.data.type) {
+                  case 'MODAL_STATE':
+                     const advPanel = document.getElementById('adventure-panel');
+                     if (advPanel) {
+                         if (e.data.isOpen) {
+                             advPanel.classList.add('modal-open');
+                         } else {
+                             advPanel.classList.remove('modal-open');
+                         }
+                     }
+                     break;
+
+                  case 'toggleTheme':
+                     const isDark = document.body.classList.contains('dark-mode');
+                     setTheme(!isDark);
+                     break;
+
+                  case 'MAP_ENGINE_READY':
+                     if (cachedInitEntities) notifyEngine('map', cachedInitEntities);
+                     break;
+
+                  case 'PLAYER_MOVE':
+                     notifyEngine('map', e.data);
+                     break;
+
+                  case 'PLAYER_MOVE_STATE':
+                     // Route to panels frame so the avatar animates!
+                     notifyEngine('panels', e.data);
+                     break;
+
+                  case 'LCD_EVENT':
+                     notifyEngine('panels', e.data);
+                     break;
+
+                  case 'COMBAT_ATTACK':
+                     // Forward combat hits so the tactical UI Katana cards pop out!
+                     notifyEngine('panels', e.data);
+                     notifyEngine('map', e.data);
+                     break;
+
+                  case 'SHOW_COMBAT':
+                     if (combatWrapper) combatWrapper.classList.add('active');
+                     notifyEngine('combat', e.data);
+                     break;
+
+                  case 'HIDE_COMBAT':
+                  case 'HIDE_ALL':
+                     if (combatWrapper) combatWrapper.classList.remove('active');
+                     notifyEngine('combat', e.data);
+                     break;
+
+                  case 'INIT_ENTITIES':
+                     cachedInitEntities = e.data;
+                     notifyEngine('map', e.data);
+                     break;
+
+                  case 'KEY_DOWN':
+                  case 'KEY_UP':
+                     broadcastKey(e.data.type, e.data);
+                     break;
+
+                  // Route specific UI Actions from Panels straight to FPV
+                  case 'EXPLORE_ROOM':
+                  case 'SEARCH_ADJACENT':
+                  case 'AUTO_EXPLORE':
+                  case 'APPROACH_MONSTER':
+                  case 'TEXT_COMMAND':
+                  case 'FPV_ACTION':
+                     notifyEngine('fpv', e.data);
+                     break;
+               }
+            });
+         });
+      })();
+    </script>
+  </body>
+</html>

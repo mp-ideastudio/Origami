@@ -22,6 +22,8 @@
                 this.entities = new Map(); // Store by ID
                 this.gridSize = 2; // Map unit size (matches Three.js FPV setup)
                 this.playerPos = { x: 0, z: 0 };
+                this.globalHostility = false;
+                this.wagerWon = false;
                 
                 // Set up listener for the main engine
                 window.addEventListener('message', (e) => this.handleEngineMessage(e));
@@ -47,9 +49,16 @@
                         break;
                     case 'PLAYER_ATTACK':
                         // The Game Engine has forwarded an attack command from the UI
-                        // Level 1 Weapon Damage
-                        const dmg = Math.floor(Math.random() * 5) + 4; // 4-8 dmg
+                        this.globalHostility = true; // All monsters hostile on sight
+                        const dmg = 1; // 2 attacks to kill
                         this.applyDamage(e.data.targetId, dmg);
+                        break;
+                    case 'WAGER_RESULT':
+                        if (e.data.won) {
+                            this.wagerWon = true;
+                        } else {
+                            this.globalHostility = true; // Lost wager makes them hostile
+                        }
                         break;
                 }
             }
@@ -63,7 +72,7 @@
                         z: s.z,
                         spawnX: s.x,
                         spawnZ: s.z,
-                        hp: Math.floor(Math.random() * 41) + 60, // 60-100 random HP
+                        hp: 2, // 2 attacks to kill
                         state: 'IDLE', // IDLE, HOSTILE, SEARCHING, TALKING
                         moveEnergy: 0,
                         searchTurns: 0
@@ -89,11 +98,28 @@
                     const prevState = entity.state;
                     
                     if (entity.type === 'monster') {
+                        // Global hostility overrides regular states
+                        if (this.globalHostility && entity.state !== 'HOSTILE') {
+                            entity.state = 'HOSTILE';
+                            updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                        }
+
                         // AI State Machine
                         if (entity.state === 'IDLE') {
-                            if (dist < 6) {
+                            if (!this.globalHostility && !this.wagerWon && dist < 6) {
                                 entity.state = 'HOSTILE';
                                 updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                            } else if (this.wagerWon) {
+                                // Walk around randomly
+                                if (Math.random() < 0.2) {
+                                    const nx = entity.x + (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.5 ? 1 : 0);
+                                    const nz = entity.z + (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.5 ? 1 : 0);
+                                    if (this.isWalkable(nx, nz)) {
+                                        entity.x = nx;
+                                        entity.z = nz;
+                                        updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: 'IDLE' });
+                                    }
+                                }
                             } else if (entity.x !== entity.spawnX || entity.z !== entity.spawnZ) {
                                 // Walk back to spawn point
                                 const path = this.findPath({x: entity.x, z: entity.z}, {x: entity.spawnX, z: entity.spawnZ});
@@ -104,7 +130,7 @@
                                 }
                             }
                         } else if (entity.state === 'HOSTILE') {
-                            if (dist > 8) {
+                            if (!this.globalHostility && dist > 8) {
                                 entity.state = 'SEARCHING';
                                 entity.searchTurns = 0;
                                 updates.push({ id: entity.id, action: 'STATE', state: 'SEARCHING' });

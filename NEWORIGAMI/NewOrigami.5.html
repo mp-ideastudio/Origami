@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewOrigami.5 (60FPS Engine + Dark Panels)</title>
+    
+    <!-- External Styles -->
+    <link rel="stylesheet" href="css/engine.css">
+    <link rel="stylesheet" href="css/theme-dark.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- State of the art WebGL Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/OutlinePass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/RGBShiftShader.js"></script>    
+
+
+</head>
+<body class="neumorphic-body">
+
+
+    <div id="game-container">
+        <!-- Asset Preloading Screen -->
+        <div id="loading-screen">
+            <div class="loader-content">
+                <h2>INITIALIZING WORLD ENGINE...</h2>
+                <div class="progress-box">
+                    <div id="loading-bar-fill"></div>
+                </div>
+                <div id="loading-text">0%</div>
+                <div id="loading-file">Connecting to databanks...</div>
+            </div>
+        </div>
+
+        <!-- 3D Scene Layer -->
+        <canvas id="fpv-canvas"></canvas>
+
+        <!-- Dedicated Layer for WoW style Combat Text -->
+        <!-- Floating combat text DOM removed per user request -->
+        <div id="interaction-prompt">Press E to Interact</div>
+        <div id="fps-counter">FPS: --/60</div>
+        
+        <!-- Realtime Tuning Panel -->
+        <div id="tuning-panel">
+            <h3>Movement Tuning</h3>
+            <div class="tune-row">
+                <label><span>Speed (W)</span><span id="val-speed">2.56</span></label>
+                <input type="range" id="tune-speed" title="Speed" min="0.5" max="6.0" step="0.01" value="2.56">
+            </div>
+            <div class="tune-row">
+                <label><span>Down-step (Bob)</span><span id="val-bob">0.045</span></label>
+                <input type="range" id="tune-bob" title="Bob Amplitude" min="0.0" max="0.3" step="0.001" value="0.045">
+            </div>
+            <div class="tune-row">
+                <label><span>Sway (Shift)</span><span id="val-sway">0.015</span></label>
+                <input type="range" id="tune-sway" title="Sway Amplitude" min="0.0" max="0.1" step="0.001" value="0.015">
+            </div>
+        </div>
+
+        <!-- Movement Controls (from FPV.2) -->
+        <div id="movement-pad">
+            <button class="move-btn" id="btn-up" aria-label="Move Forward"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="move-btn" id="btn-left" aria-label="Turn Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="move-btn" id="btn-down" aria-label="Move Backward"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="move-btn" id="btn-right" aria-label="Turn Right"><i class="fa-solid fa-caret-right"></i></button>
+        </div>
+
+        <iframe src="NewOrigami.Panels.html?v=2" id="ui-frame" title="User Interface Panels" class="game-ui-frame"></iframe>
+        <iframe src="NewOrigamiAi.html" id="ai-frame" title="AI Logic Brain" class="headless-logic-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/engine.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

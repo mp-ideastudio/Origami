@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Adventure Panels - Tactical Symmetry Pro</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
+            --bg-panel: rgba(255, 255, 255, 0.55); 
+            --bg-circle: rgba(255, 255, 255, 0.75); 
+            --bg-glass: rgba(255, 255, 255, 0.55); /* Unified Translucency */
+            --bg-attr-dark: #101012; 
+            --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
+            --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
+            --glass-border: 1px solid rgba(0, 0, 0, 0.15);
+            
+            --color-text: #1a1a1a; 
+            --color-text-dim: #44474a; 
+            
+            --bottom-dock-height: 230px;
+            --wing-height: 160px;
+            --card-w: 84px;
+            --card-h: 135px;
+
+            /* DARKENED ELEMENTAL AAA PALETTE */
+            --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
+            --wind-clr: #37474f;  --wind-bg: rgba(55, 71, 79, 0.15);
+            --fire-clr: #b71c1c;  --fire-bg: rgba(183, 28, 28, 0.15);
+            --water-clr: #0d47a1; --water-bg: rgba(13, 71, 161, 0.15);
+            --item-clr: #1b5e20;  --item-bg: rgba(27, 94, 32, 0.15);
+            
+            --wager-solid: #1b5e20;
+            --attack-solid: #b71c1c;
+
+            --pill-text: #ffffff; 
+        }
+
+        body.dark-mode {
+            --bg-panel: rgba(55, 71, 79, 0.85);
+            --bg-circle: rgba(55, 71, 79, 0.3);
+            --bg-glass: rgba(55, 71, 79, 0.85);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.12);
+            --color-text: #ffffff;
+            --color-text-dim: rgba(255,255,255,0.7);
+        }
+
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: transparent !important; overflow: hidden; font-family: 'Nunito', sans-serif; -webkit-font-smoothing: antialiased; color: var(--color-text); pointer-events: none; }
+
+        /* --- UI DOCK --- */
+        #ui-dock { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 10px 0; box-sizing: border-box; z-index: 10000; }
+        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 10px; box-sizing: border-box; transition: opacity 0.4s ease; }
+        /* Disabled opacity fade so action buttons remain visible during movement */
+        body.is-moving #lower-ui-row { transition: none; }
+        body.is-moving .side-panel { transition: none; }
+
+        /* --- SIDE PANELS (Bloom Removed) --- */
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
+        .side-panel { 
+            position: relative; width: 130px; height: auto; 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); 
+            border: var(--glass-border); padding: 20px 8px 25px 8px; 
+            box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
+            box-shadow: 0 15px 45px var(--nm-shadow-dark); 
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+        }
+        #pax-console { border-radius: 0 24px 24px 0; border-left: none; transform: translateX(-150%); opacity: 0; pointer-events: none; }
+        #action-rail { border-radius: 24px 0 0 24px; border-right: none; transform: translateX(150%); opacity: 0; pointer-events: none; }
+
+        #encounter-zone.active #pax-console, #encounter-zone.active #action-rail {
+            transform: translateX(0); opacity: 1; pointer-events: auto;
+        }
+
+        /* Full Height Tactical Bars - Blooms Removed */
+        .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
+        #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
+        #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
+
+        .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
+        .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 15px; width: 100%; text-align: center; line-height: 1.2; }
+        
+        .sp-bar { width: 90%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; margin-bottom: 15px; overflow: hidden; box-shadow: var(--nm-shadow-inner); border: 1px solid rgba(0,0,0,0.05); }
+        .sp-fill { height: 100%; width: 55%; background: linear-gradient(90deg, var(--fire-clr), #ff5252); }
+        .sp-fill.player { height: 100%; width: 80%; background: linear-gradient(90deg, var(--item-clr), #4caf50); }
+        
+        /* Tactical Buttons */
+        .sp-btn { 
+            width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
+            border: 1.5px solid var(--theme-clr); 
+            background: var(--bg-panel); 
+            font-weight: 900; font-size: 10px; text-transform: uppercase; 
+            cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
+            padding: 0 10px; box-sizing: border-box;
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 2px 2px 8px var(--nm-shadow-dark);
+            color: var(--color-text);
+        }
+        /* Lesser strength hover using elemental background */
+        .sp-btn:hover { background: var(--theme-bg) !important; transform: translateY(-1px); }
+
+        .btn-icon-circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; background: rgba(255,255,255,0.08); }
+        .sp-btn i { color: var(--theme-clr); font-size: 11px; text-align: center; }
+
+        .btn-wager { background: var(--wager-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-wager i, .btn-wager .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+        .btn-attack { background: var(--attack-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-attack i, .btn-attack .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
+
+        body.dark-mode .sp-btn:not(.btn-wager):not(.btn-attack) { color: #ffffff !important; border-color: rgba(255,255,255,0.25); }
+
+        .sp-btn span { flex: 1; text-align: left; }
+        .sp-btn:active { transform: scale(0.92); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark); }
+        .sp-btn.punch-anim { animation: btnPunch 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: rgba(255, 60, 60, 0.5) !important; }
+        @keyframes btnPunch {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.85); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- DOCK & WINGS --- */
+        .u-panel { pointer-events: auto; outline: none; }
+        .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
+        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
+        .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
+        .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
+        
+        .btn-action { 
+            width: 44px !important; height: 44px !important; border-radius: 50% !important;
+            opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            background: var(--bg-glass);
+            box-shadow: 
+                3px 3px 8px rgba(0,0,0,0.15), 
+                -3px -3px 8px rgba(255,255,255,0.8),
+                inset 1px 1px 2px rgba(255,255,255,0.5),
+                inset -1px -1px 2px rgba(0,0,0,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.4) !important;
+        }
+        .btn-action::before, .u-btn::before, .kp-center-btn::before, .avatar-circle::before {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; 
+            border-radius: 50%; pointer-events: none; z-index: 0;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+        }
+        body.dark-mode .btn-action {
+             box-shadow: 
+                4px 4px 10px rgba(0,0,0,0.6), 
+                -4px -4px 10px rgba(255,255,255,0.05),
+                inset 1px 1px 2px rgba(255,255,255,0.1),
+                inset -1px -1px 2px rgba(0,0,0,0.4) !important;
+             border: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
+            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        }
+        .btn-action > i, .btn-action > span, .u-btn > i, .kp-center-btn > div, .kp-center-btn > i, .avatar-circle > i, .avatar-circle > canvas { position: relative; z-index: 1; pointer-events: none; }
+        .outer-active .btn-action { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
+        .act-n { --tx: 0px; --ty: -78px; } .act-s { --tx: 0px; --ty: 78px; } .act-e { --tx: 78px; --ty: 0px; } .act-w { --tx: -78px; --ty: 0px; }
+        .act-ne { --tx: 56px; --ty: -56px; } .act-nw { --tx: -56px; --ty: -56px; } .act-se { --tx: 56px; --ty: 56px; } .act-sw { --tx: -56px; --ty: 56px; }
+        .ac-text { font-size: 6.5px; font-weight: 900; margin-top: 3px; text-transform: uppercase; color: var(--color-text); }
+
+        /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
+        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: 600px; height: auto; align-self: end; }
+        #guides-container { display: flex; width: 100%; padding: 10px 10px 30px 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
+        #guides-container::-webkit-scrollbar { display: none; }
+        
+        /* --- GAMBLING DICE ENGINE --- */
+        #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
+        #dice-container.active { display: flex; opacity: 1; }
+        
+        .dice-player-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; color: var(--color-text); }
+        .dpz-name { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; color: var(--theme-clr, var(--color-text)); }
+        .dpz-pot { font-size: 24px; font-weight: 900; font-family: monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        .dice-table-center { display: flex; flex-direction: column; align-items: center; flex: 1; border-left: 1px solid rgba(128,128,128,0.2); border-right: 1px solid rgba(128,128,128,0.2); padding: 0 15px; }
+        .game-status { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--color-text-dim); margin-bottom: 10px; letter-spacing: 1px; text-align: center; }
+        .roll-btn { width: 100%; height: 50px; border-radius: 12px; background: var(--item-bg); border: 2px solid var(--item-clr); color: var(--color-text); font-size: 16px; font-weight: 900; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--nm-shadow-inner); }
+        .roll-btn:hover { background: var(--item-clr); color: #fff; transform: translateY(-2px); }
+        .roll-btn i { margin-right: 10px; font-size: 20px; }
+
+        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+        .card-column.focused { z-index: 30; }
+
+        @media (max-width: 750px) { 
+            .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 3 + 28px) !important; margin-left: 0 !important; }
+        }
+        @media (max-width: 500px) { 
+            .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } 
+            #input-container { max-width: calc(var(--card-w) * 1) !important; margin-left: 0 !important; }
+        }
+
+        .guide-card {
+            position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
+            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
+            justify-content: flex-start; text-align: center; color: var(--color-text); 
+            background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
+            transform-origin: top center;
+        }
+        .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
+        
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 2px 2px 10px var(--nm-shadow-dark); }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
+        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
+        .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
+        
+        /* Rigid Vertical Symmetry Zones */
+        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
+        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
+        
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
+        .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
+        
+        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-glass); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--glass-border); flex-shrink: 0; margin-bottom: 5px; }
+        .dark-mode .card-icon-3d { background: var(--bg-glass); }
+        .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+        .card-attr-fused { 
+            width: 100%; 
+            height: 35px; 
+            margin-top: auto; 
+            background: var(--bg-attr-dark); 
+            color: #ffffff;
+            font-weight: 900; 
+            font-size: 8px;
+            letter-spacing: 0px; 
+            padding: 0 8px 6px 8px; 
+            text-transform: uppercase; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+            text-align: center; 
+            line-height: 1.1; 
+            box-sizing: border-box; 
+        }
+
+        .card-tooltip {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); border-radius: 12px;
+            color: #fff; padding: 10px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            z-index: 40; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card-tooltip.show { opacity: 1; pointer-events: auto; }
+        .tt-title { font-size: 11px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
+        .tt-desc { font-size: 7.5px; margin-bottom: 8px; font-style: italic; color: rgba(255,255,255,0.7); }
+        .tt-help { font-size: 6px; font-weight: 900; color: #4caf50; animation: pulseAction 1s infinite alternate; text-transform: uppercase; }
+        @keyframes pulseAction { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+
+
+        .card-earth { --theme-clr: #5C4033; --theme-bg: #4e342e; } 
+        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
+        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
+        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; } 
+        .card-item  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
+
+        /* --- MODAL --- */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+        #launch-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; z-index: 50000; background: transparent; display: flex; flex-direction: column; align-items: center; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #launch-modal.active, #exit-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+        
+        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        .exit-title { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .exit-controls { display: flex; gap: 20px; width: 100%; justify-content: center; }
+        .exit-btn { width: 60px; height: 60px; border-radius: 50%; border: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; color: #fff; box-shadow: var(--nm-shadow-inner); transition: transform 0.2s, filter 0.2s; }
+        .exit-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .exit-btn.yes { background: var(--item-bg); border: 2px solid var(--item-clr); color: var(--item-clr); text-shadow: 0 0 8px var(--item-clr); }
+        .exit-btn.no { background: var(--fire-bg); border: 2px solid var(--fire-clr); color: var(--fire-clr); text-shadow: 0 0 8px var(--fire-clr); }
+        
+        .modal-card-hd { width: 180px; height: 265px; margin-bottom: 15px; position: relative; pointer-events: none; }
+        .modal-card-hd .guide-card { width: 100%; height: 100%; border-radius: 20px; padding-top: 5px; border-width: 1.5px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        
+        .modal-controls { display: flex; gap: 15px; width: 100%; justify-content: center; }
+        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--nm-shadow-inner); }
+        .m-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+        .m-btn.launch { background: rgba(0,0,0,0.9); border-width: 2px; }
+        .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+
+        /* --- HIGH PERFORMANCE INPUT --- */
+        #input-container { 
+            width: 100%; 
+            max-width: calc(var(--card-w) * 5 + 56px); 
+            height: 60px; display: flex; justify-content: center; align-items: center; 
+            transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 6px auto 0 auto;
+        }
+        .chat-pill { width: 100%; height: 54px; background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
+        .chat-input::placeholder { color: var(--color-text-dim); font-weight: 800; opacity: 0.8; }
+        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
+        
+        #event-log-container {
+            position: absolute;
+            bottom: 120px; /* Sits 30px above the bottom-panel which is ~90px tall */
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 900;
+            font-style: italic;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 100;
+        }
+        #event-log-container.visible {
+            opacity: 1;
+        }
+
+        /* Utility Classes for resolving linting errors */
+        .theme-green { --theme-clr: #4caf50; }
+        .theme-red { --theme-clr: #f44336; }
+        .viewport-text { color: var(--color-text-dim); font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; }
+
+        /* --- DRAGGABLE LCD EVENT PANEL --- */
+        #lcd-event-panel {
+            position: absolute;
+            top: 20%; left: 50%; transform: translateX(-50%);
+            width: 200px; /* Resizeable container */
+            min-width: 140px; max-width: 400px;
+            background: rgba(10, 20, 30, 0.4); /* Dark glass */
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
+            display: flex; flex-direction: column;
+            z-index: 40000;
+            opacity: 0; pointer-events: none; /* Auto-faded by default */
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            resize: horizontal; overflow: hidden; /* Allow Native Resizing */
+        }
+        
+        #lcd-event-panel.active, #lcd-event-panel:hover {
+            opacity: 1; pointer-events: auto;
+        }
+        
+        #lcd-event-panel:hover {
+            border-color: rgba(0, 255, 255, 0.6);
+            background: rgba(10, 20, 30, 0.6);
+        }
+
+        #lcd-header {
+            width: 100%; height: 16px;
+            background: rgba(0, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            color: rgba(0, 255, 255, 0.8);
+            font-size: 7px; font-weight: 900; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: grab; flex-shrink: 0;
+            -webkit-user-select: none; user-select: none;
+        }
+        #lcd-header:active { cursor: grabbing; }
+
+        #lcd-text {
+            flex: 1;
+            padding: 12px 15px;
+            color: #e0ffff;
+            font-family: 'Courier New', Courier, monospace; /* LCD Look */
+            font-weight: 900;
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.4);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Caps at ~8 chars visually */
+            display: flex; align-items: center; justify-content: center;
+            -webkit-user-select: none; user-select: none;
+        }
+        
+        #lcd-resize-handle {
+            position: absolute; bottom: 0; right: 0;
+            width: 15px; height: 15px;
+            cursor: ew-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(0,255,255,0.3) 50%);
+            pointer-events: none; /* Lets native CSS resize take over */
+        }
+
+        @media (min-width: 1200px) {
+            .side-panel { width: 260px; }
+            .sp-btn { height: 48px; font-size: 13px; }
+            .btn-icon-circle { width: 26px; height: 26px; font-size: 13px; margin-right: 15px; }
+            .sp-title { font-size: 18px; }
+            .sp-sub { font-size: 11px; }
+        }
+    </style>
+</head>
+<body class="focus-active">
+
+    <div id="modal-overlay" onclick="closeModal()"></div>
+
+    <div id="ui-dock">
+        <!-- Draggable LCD Event Panel -->
+        <div id="lcd-event-panel">
+            <div id="lcd-header">SYSTEM EVENTS</div>
+            <div id="lcd-text">READY_</div>
+            <div id="lcd-resize-handle"></div>
+        </div>
+        
+        <div id="encounter-zone">
+            <!-- PAX CONSOLE (Green Accent) -->
+            <div id="pax-console" class="side-panel">
+                <div class="sp-title">Yazuka Goblin</div>
+                <div class="sp-sub">ALIVE * <span class="dist-text">40 ft</span><br>Parley Chance 85%</div>
+                <div class="sp-bar"><div class="sp-fill player"></div></div>
+                <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
+                    <span>Wager</span>
+                </button>
+                <button class="sp-btn card-item" onclick="emitAction('PARLEY')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-comments"></i></div>
+                    <span>Parley</span>
+                </button>
+                <button class="sp-btn card-wind" onclick="emitAction('HIDE')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-ghost"></i></div>
+                    <span>Hide</span>
+                </button>
+            </div>
+            <!-- ACTION RAIL (Red Accent) -->
+            <div id="action-rail" class="side-panel">
+                <div class="sp-title">4/1 HP</div>
+                <div class="sp-sub">ALIVE * <span class="dist-text">40 ft</span><br>LVL 5 • AC 12</div>
+                <div class="sp-bar"><div class="sp-fill"></div></div>
+                <button class="sp-btn btn-attack" onclick="emitAction('ATTACK')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
+                    <span>Attack</span>
+                </button>
+                <button class="sp-btn card-wind" onclick="emitAction('RETREAT')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-person-running"></i></div>
+                    <span>Retreat</span>
+                </button>
+                <button class="sp-btn card-earth" onclick="emitAction('OBSERVE')">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-eye"></i></div>
+                    <span>Observe</span>
+                </button>
+            </div>
+        </div>
+
+        <style>
+            .action-icon-3d { position: absolute; top: -5px; left: -5px; width: 54px; height: 54px; pointer-events: none; z-index: 10; }
+            .action-icon-3d canvas { width: 100%; height: 100%; object-fit: contain; }
+            #lower-ui-row { display:flex; width:100%; align-items:flex-end; justify-content:space-between; }
+            .wager-card-container { position:relative; transform:none; flex: 0 0 calc(50% - 10px); cursor:pointer; }
+            .wager-pill { background:var(--wager-solid); }
+            .wager-title-text { font-size:16px; }
+            .wager-desc-text { font-size:9px; margin-bottom:5px; }
+            .wager-icon-container { width:60px; height:60px; }
+            .wager-attr-text { background:#111; color:#fff; }
+        </style>
+        <div id="lower-ui-row">
+            <div id="left-panel" class="u-wing u-panel" tabindex="1">
+                <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
+                <div class="u-btn pos-w" data-key="ArrowLeft"><i class="fa-solid fa-caret-left"></i></div>
+                <div class="kp-center-btn" data-key="Space"><i class="fa-solid fa-circle-dot"></i></div>
+                <div class="u-btn pos-e" data-key="ArrowRight"><i class="fa-solid fa-caret-right"></i></div>
+                <div class="u-btn pos-s" data-key="ArrowDown"><i class="fa-solid fa-caret-down"></i></div>
+            </div>
+
+            <div id="event-log-container"></div>
+
+            <div id="bottom-panel" class="u-panel" tabindex="2">
+                <div id="tactical-inner-wrap">
+                    <div id="launch-modal">
+                        <div id="modal-content" class="modal-card-hd"></div>
+                        <div class="modal-controls">
+                            <button class="m-btn" onclick="closeModal()">CANCEL</button>
+                            <button class="m-btn launch" id="launch-btn">OK +</button>
+                        </div>
+                    </div>
+                    <div id="exit-modal">
+                        <div class="exit-title">EXIT DUNGEON?</div>
+                        <div class="exit-controls">
+                            <button class="exit-btn no" title="No" onclick="hideExitModal()"><i class="fa-solid fa-xmark"></i></button>
+                            <button class="exit-btn yes" title="Yes" onclick="confirmExit()"><i class="fa-solid fa-check"></i></button>
+                        </div>
+                    </div>
+                    <div id="guides-container"></div>
+                    <div id="dice-container">
+                        <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
+                           <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
+                           <div class="card-title wager-title-text">BET EVEN</div>
+                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-icon-3d wager-icon-container" data-element="DICE_EVEN"><canvas></canvas></div>
+                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
+                        </div>
+                        <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_ODD', this)">
+                           <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
+                           <div class="card-title wager-title-text">BET ODD</div>
+                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-icon-3d wager-icon-container" data-element="DICE_ODD"><canvas></canvas></div>
+                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
+                        </div>
+                    </div>
+                    <div id="input-container">
+                        <div class="chat-pill">
+                            <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
+                            <i class="fa-solid fa-turn-down enter-symbol"></i>
+                            <div id="viewport-readout" class="viewport-text"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel" class="u-wing u-panel" tabindex="3">
+                <div id="action-zone">
+                    <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
+                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
+                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
+                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
+                    <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><i class="fa-solid fa-gear"></i><span class="ac-text">Set</span></div>
+                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
+                    <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text">Heal</span></div>
+                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><i class="fa-solid fa-eye"></i><span class="ac-text">View</span></div>
+                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><i class="fa-solid fa-scroll"></i><span class="ac-text">Log</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // Fix for missing toggleRing action buttons
+        window.toggleRing = function() {
+            const az = document.getElementById('action-zone');
+            if(az) az.classList.toggle('outer-active');
+        };
+
+        const defaultCategories = [
+            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
+            { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
+            { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Inferno star.', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
+            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Viscous tide.', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
+            { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Green nectar.', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
+        ];
+
+        const combatCategories = [
+            { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Basic slash.', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
+            { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Fast thrust.', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
+            { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Heavy attack.', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
+            { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Raises AC.', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
+            { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Use item.', attr: '(RESTORE)', cards: ['POTION'] }
+        ];
+
+        let categories = defaultCategories;
+
+        let focusedColIndex = 0, pendingAction = null, wheelThrottle = false;
+        const scenes = {}, dpr = window.devicePixelRatio || 1;
+        
+        let avatarMixer = null;
+        let avatarAction = null;
+        let avatarScene, avatarCamera, avatarRenderer, avatarClock;
+
+        function init3DIcons() {
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD'];
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            elements.forEach(el => {
+                const scene = new THREE.Scene();
+                scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+                const dir = new THREE.DirectionalLight(0xffffff, 2.2);
+                dir.position.set(5, 5, 5); scene.add(dir);
+                
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: { EARTH: 0x5C4033, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
+                    roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
+                });
+                
+                let group = new THREE.Group(), update;
+                if (el === 'EARTH') {
+                    // Forensic Quake fix - sharp facets, correct size
+                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), mat); group.add(rock);
+                    update = (t) => {
+                        const b = Math.abs(Math.sin(t * 1.5)); rock.position.y = (b * 0.7) - 0.35; 
+                        rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
+                        if (b < 0.2) group.position.set(Math.sin(t * 5) * (0.2-b)*2, Math.cos(t * 6) * (0.1-b/2)*2, 0);
+                        else group.position.set(0, 0, 0);
+                    };
+                } else if (el === 'FIRE') {
+                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 5, flatShading: true })); group.add(core);
+                    const flames = [];
+                    for(let i=0; i<36; i++) {
+                        const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
+                        const ang = (i / 36) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
+                        s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); group.add(s);
+                        flames.push({ m: s, s: 6 + Math.random() * 10, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 5, bx: s.position.x, bz: s.position.z });
+                    }
+                    update = (t) => {
+                        core.rotation.y = t * 1.2; core.scale.setScalar(1 + Math.sin(t * 12) * 0.08);
+                        flames.forEach(f => {
+                            const w = Math.sin(t * f.s + f.o); f.m.scale.setScalar(0.4 + w * 0.6); f.m.position.y = 0.3 + w * 0.4;
+                            f.m.position.x = f.bx + Math.sin(t * 5 + f.o) * 0.1; f.m.position.z = f.bz + Math.cos(t * 5 + f.o) * 0.1; f.m.rotation.x = t * f.rs;
+                        });
+                    };
+                } else if (el === 'WIND') {
+                    const tornado = new THREE.Group();
+                    for(let i=0; i<10; i++) {
+                        const h = i/10, r = (h*1.4)+0.4, pts = [];
+                        for(let j=0; j<=12; j++) pts.push(new THREE.Vector3(Math.cos((j/12)*Math.PI*2)*r, 0, Math.sin((j/12)*Math.PI*2)*r));
+                        const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x37474f, opacity: 0.8, transparent: true }));
+                        line.position.y = (h-0.5)*2.5; tornado.add(line);
+                    }
+                    group.add(tornado);
+                    update = (t) => { tornado.children.forEach((l, idx) => { l.rotation.y = t*(idx+70); l.position.x = Math.sin(t*8 + idx)*0.1; }); tornado.rotation.z = Math.sin(t*4)*0.1; };
+                } else if (el === 'WATER') {
+                    const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
+                    update = (t) => {
+                        const pos = geo.attributes.position;
+                        for(let i=0; i<pos.count; i++) {
+                            const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                            if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                        }
+                        pos.needsUpdate = true;
+                    };
+                } else if (el === 'ITEM') {
+                    const vial = new THREE.Group();
+                    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, flatShading: true }));
+                    const liq = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.0, 12), new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x002e03, emissiveIntensity: 0.5 }));
+                    liq.position.y = -0.3; vial.add(body, liq);
+                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
+                    cork.position.y = 1.6; vial.add(cork); group.add(vial);
+                    update = (t) => { vial.rotation.z = Math.sin(t * 2) * 0.2; liq.scale.y = 0.9 + Math.sin(t * 3) * 0.1; };
+                } else if (el === 'KATANA') {
+                    const hiltGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
+                    const hiltMat = new THREE.MeshStandardMaterial({color: 0x222222});
+                    const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+                    const bladeGeo = new THREE.BoxGeometry(0.1, 3.5, 0.4);
+                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2});
+                    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                    blade.position.y = 2.0;
+                    const guardGeo = new THREE.BoxGeometry(0.8, 0.1, 0.8);
+                    const guardMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    const guard = new THREE.Mesh(guardGeo, guardMat);
+                    guard.position.y = 0.6;
+                    group.add(hilt, blade, guard);
+                    group.position.y = -1.0;
+                    update = (t) => { group.rotation.z = Math.sin(t * 3) * 0.2; group.rotation.y = t * 0.5; };
+                } else if (el === 'SHIELD') {
+                    const shieldGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
+                    const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
+                    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                    shield.rotation.x = Math.PI / 2;
+                    const bossGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                    const bossMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    const boss = new THREE.Mesh(bossGeo, bossMat);
+                    boss.position.z = 0.1;
+                    group.add(shield, boss);
+                    update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
+                } else if (el === 'DICE_EVEN' || el === 'DICE_ODD') {
+                    const dieGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+                    const dieMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.1});
+                    const die = new THREE.Mesh(dieGeo, dieMat);
+                    
+                    const dotGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+                    const dotMat = new THREE.MeshStandardMaterial({color: el === 'DICE_EVEN' ? 0x1b5e20 : 0xb71c1c}); // Green for Even, Red for Odd
+                    
+                    // Add standard center dot mapping (1 face)
+                    const dotCenter = new THREE.Mesh(dotGeo, dotMat);
+                    dotCenter.rotation.x = Math.PI / 2;
+                    dotCenter.position.z = 0.81;
+                    die.add(dotCenter);
+
+                    // Add opposing face (6 dots)
+                    for (let x of [-0.4, 0.4]) {
+                        for (let y of [-0.4, 0, 0.4]) {
+                            const d = new THREE.Mesh(dotGeo, dotMat);
+                            d.rotation.x = -Math.PI / 2;
+                            d.position.set(x, y, -0.81);
+                            die.add(d);
+                        }
+                    }
+
+                    group.add(die);
+                    update = (t) => { 
+                        // Spin crazily
+                        die.rotation.x = t * (el === 'DICE_EVEN' ? 2.5 : -2.5); 
+                        die.rotation.y = t * 3.1; 
+                        die.rotation.z = Math.sin(t*2);
+                    };
+                }
+                scene.add(group); scenes[el] = { scene, update };
+            });
+
+            avatarClock = new THREE.Clock();
+            
+            // Single Global Camera for all 3D Icons
+            const iconCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); 
+            iconCamera.position.set(0, 0, 7.5);
+            
+            function renderLoop(time) {
+                requestAnimationFrame(renderLoop);
+                
+                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden (e.g. Combat Mode)
+                if (document.getElementById('lower-ui-row').style.display === 'none') return;
+                
+                const t = time * 0.001;
+                const delta = avatarClock.getDelta();
+                
+                if (avatarMixer) {
+                    avatarMixer.update(delta);
+                }
+                
+                if (avatarRenderer && avatarScene && avatarCamera) {
+                    const container = document.getElementById('player-avatar-container');
+                    if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+                        const w = container.clientWidth;
+                        const h = container.clientHeight;
+                        const canvas = avatarRenderer.domElement;
+                        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+                            avatarRenderer.setSize(w, h, false);
+                            avatarCamera.aspect = w / h;
+                            avatarCamera.updateProjectionMatrix();
+                        }
+                    }
+                    avatarRenderer.render(avatarScene, avatarCamera);
+                }
+
+                elements.forEach(el => {
+                    scenes[el].update(t);
+                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0) OR are Wager cards
+                    // This cuts the active WebGL contexts & drawImage calls down drastically
+                    let selector = `.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`;
+                    if (el === 'DICE_EVEN' || el === 'DICE_ODD') selector = `.wager-card .card-icon-3d[data-element="${el}"] canvas`;
+                    const canvases = document.querySelectorAll(selector);
+                    canvases.forEach(cvs => {
+                        const cw = cvs.clientWidth, ch = cvs.clientHeight;
+                        if (cw === 0 || ch === 0) return; 
+                        const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
+                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+                        renderer.setSize(cw, ch, false);
+                        
+                        // Use pre-instantiated camera to prevent massive garbage collection stalls
+                        renderer.render(scenes[el].scene, iconCamera);
+                        
+                        const ctx = cvs.getContext('2d');
+                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
+                    });
+                });
+            }
+            renderLoop(0);
+        }
+
+        function initAvatar() {
+            const container = document.getElementById('player-avatar-container');
+            if (!container) return;
+            
+            const w = container.clientWidth || 58;
+            const h = container.clientHeight || 58;
+            
+            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            avatarRenderer.setPixelRatio(window.devicePixelRatio);
+            avatarRenderer.setSize(w, h);
+            container.appendChild(avatarRenderer.domElement);
+            
+            avatarScene = new THREE.Scene();
+            avatarCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+            avatarCamera.position.set(0, 1.2, 4.5);
+            avatarCamera.lookAt(0, 1.0, 0); // Explicitly look at the avatar's chest/head height
+            
+            const ambLight = new THREE.AmbientLight(0xffffff, 1.5); // Brighter ambient light
+            avatarScene.add(ambLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2.0); // Brighter directional
+            dirLight.position.set(5, 5, 5);
+            avatarScene.add(dirLight);
+            
+            try {
+                const loader = new GLTFLoader();
+                // Adding multiple paths fallback logic like FPV does if possible, but trying relative first
+                const isLocalFile = window.location.protocol === 'file:';
+                const modelUrls = isLocalFile ? [] : [
+                    './assets/models/Player.A.Walking.glb',
+                    '../assets/models/Player.A.Walking.glb'
+                ];
+                
+                function tryLoadModel(urlIndex) {
+                    if (urlIndex >= modelUrls.length) {
+                        if (isLocalFile) {
+                            console.log("Avatar 3D load skipped: Browsers block 'file://' CORS fetch requests. Please run a local web server (e.g. `npx serve` or `python3 -m http.server`) to view the animated avatar.");
+                        } else {
+                            console.warn("Avatar failed to load natively after all attempts. Running without Player Avatar.");
+                        }
+                        container.innerHTML = '<i class="fa-solid fa-user-astronaut" style="color:var(--color-text); font-size:24px;"></i>';
+                        return;
+                    }
+                    
+                    loader.load(modelUrls[urlIndex], (gltf) => {
+                        const model = gltf.scene;
+                        
+                        // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
+                        model.position.set(0, -0.1, 0); // Moved up to add +25px bottom buffer
+                        // Rotate to face slightly right layout (isometric feel)
+                        model.rotation.y = Math.PI / 8;
+                        // Scale 
+                        model.scale.set(1.25, 1.25, 1.25);
+                        
+                        avatarScene.add(model);
+                        
+                        if (gltf.animations && gltf.animations.length > 0) {
+                            avatarMixer = new THREE.AnimationMixer(model);
+                            avatarAction = avatarMixer.clipAction(gltf.animations[0]);
+                            // Don't play initially until player moves
+                        }
+                        
+                        // Fix metallic/roughness issues that might make it render black
+                        model.traverse((child) => {
+                            if (child.isMesh && child.material) {
+                                child.material.needsUpdate = true;
+                            }
+                        });
+                        
+                    }, undefined, (e) => {
+                        console.warn(`Failed loading avatar from ${modelUrls[urlIndex]}`, e);
+                        tryLoadModel(urlIndex + 1);
+                    });
+                }
+                
+                tryLoadModel(0);
+                
+            } catch (err) {
+                console.warn("Avatar loader threw synchronous exception. Suppressing.", err);
+            }
+        }
+
+        function cycle(idx, fwd = true) {
+            const col = document.getElementById(`col-${idx}`);
+            if (!col) return;
+            const cards = Array.from(col.querySelectorAll('.guide-card'));
+            if(cards.length <= 1) return;
+            cards.forEach(c => {
+                let d = parseInt(c.dataset.depth);
+                c.dataset.depth = fwd ? (d === cards.length - 1 ? 0 : d + 1) : (d === 0 ? cards.length - 1 : d - 1);
+            });
+        }
+
+        function setup() {
+            categories.forEach((cat, idx) => {
+                const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                
+                let startY = 0, isDragging = false;
+                col.onpointerdown = (e) => { startY = e.clientY; isDragging = true; col.setPointerCapture(e.pointerId); };
+                col.onpointermove = (e) => { 
+                    if(!isDragging) return; 
+                    const deltaY = e.clientY - startY; 
+                    if(Math.abs(deltaY) > 25) { cycle(idx, deltaY > 0); startY = e.clientY; document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show')); } 
+                };
+                col.onpointerup = (e) => { isDragging = false; col.releasePointerCapture(e.pointerId); };
+
+                cat.cards.forEach((name, i) => {
+                    const card = document.createElement('div');
+                    card.className = `guide-card card-${cat.id.toLowerCase()}`;
+                    card.dataset.depth = i;
+                    card.innerHTML = `
+                        <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
+                        <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
+                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
+                        <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-tooltip">
+                            <div class="tt-title">${name}</div>
+                            <div class="tt-desc">${cat.desc}</div>
+                            <div class="tt-help">DBL-CLICK/ENTER TO USE</div>
+                        </div>
+                    `;
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        setFocus(idx);
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        if(card.dataset.depth === "0") {
+                            const tt = card.querySelector('.card-tooltip');
+                            if(tt) tt.classList.add('show');
+                        }
+                    };
+                    card.ondblclick = (e) => {
+                        e.stopPropagation();
+                        if(card.dataset.depth === "0") {
+                            document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                            emitAction(name, card);
+                        }
+                    };
+                    col.appendChild(card);
+                });
+                document.getElementById('guides-container').appendChild(col);
+            });
+            document.querySelectorAll('.u-panel').forEach(p => { 
+                p.onmouseenter = () => p.focus(); 
+                p.onmouseleave = () => p.blur(); 
+            });
+            document.getElementById('bottom-panel').onwheel = e => {
+                if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
+                e.preventDefault(); wheelThrottle = true; cycle(focusedColIndex, e.deltaY > 0); setTimeout(() => wheelThrottle = false, 150);
+            };
+            init3DIcons(); 
+            initAvatar();
+            setFocus(0, false);
+        }
+
+        function launchModal(card) {
+            pendingAction = card.querySelector('.card-title').textContent;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = card.innerHTML;
+            content.className = `modal-card-hd ${card.className}`;
+            const styles = getComputedStyle(card);
+            document.getElementById('launch-modal').style.setProperty('--modal-theme-clr', styles.getPropertyValue('--theme-clr'));
+            document.getElementById('launch-modal').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: true }, '*');
+        }
+
+        function setFocus(idx, scroll = true) {
+            focusedColIndex = idx;
+            document.querySelectorAll('.card-column').forEach((c, i) => c.classList.toggle('focused', i === idx));
+            if (scroll) {
+                const col = document.getElementById(`col-${idx}`), container = document.getElementById('guides-container');
+                container.scrollTo({ left: col.offsetLeft - (container.offsetWidth/2) + (col.offsetWidth/2), behavior: 'smooth' });
+            }
+        }
+
+        window.closeModal = () => { 
+            document.getElementById('launch-modal').classList.remove('active'); 
+            document.getElementById('modal-overlay').classList.remove('active'); 
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: false }, '*');
+        };
+        
+        // Exit Modal Logic
+        let exitModalActive = false;
+        window.showExitModal = () => {
+            if (exitModalActive) return;
+            exitModalActive = true;
+            document.getElementById('exit-modal').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: true }, '*');
+        };
+        window.hideExitModal = () => {
+            exitModalActive = false;
+            document.getElementById('exit-modal').classList.remove('active');
+            document.getElementById('modal-overlay').classList.remove('active');
+            window.parent.postMessage({ type: 'MODAL_STATE', isOpen: false }, '*');
+        };
+        window.confirmExit = () => {
+            // For now, redirect or alert
+            console.log("EXITING DUNGEON");
+            alert("Exiting Dungeon... (Redirect to world map)");
+            window.location.reload(); // Temporary fallback
+        };
+        window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
+        window.emitAction = (a, explicitBtn = null) => { 
+            window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
+            let btn = explicitBtn;
+            if (!btn && window.event && window.event.currentTarget) {
+                btn = window.event.currentTarget;
+            }
+            if (btn && btn.classList) {
+                btn.classList.add('punch-anim');
+                setTimeout(() => btn.classList.remove('punch-anim'), 300);
+            }
+            
+            // Dice UI Toggle
+            if (a === 'WAGER') {
+                const guideCont = document.getElementById('guides-container');
+                const diceCont = document.getElementById('dice-container');
+                guideCont.style.opacity = '0';
+                setTimeout(() => {
+                    guideCont.style.display = 'none';
+                    diceCont.classList.add('active');
+                }, 400); // Wait for fade out
+            }
+
+            // Deck Swapping
+            if (a === 'ATTACK') {
+                loadDeck(combatCategories);
+            } else if (a === 'RETREAT' || a === 'HIDE') {
+                loadDeck(defaultCategories);
+            }
+        };
+
+        function loadDeck(newCategories) {
+            categories = newCategories;
+            const container = document.getElementById('guides-container');
+            container.innerHTML = '';
+            
+            categories.forEach((cat, idx) => {
+                const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
+                
+                let startY = 0, isDragging = false;
+                col.onpointerdown = (e) => { 
+                    startY = e.clientY; 
+                    isDragging = true; 
+                    col.setPointerCapture(e.pointerId); 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    if (topCard) topCard.style.transition = 'none';
+                };
+                
+                col.onpointermove = (e) => { 
+                    if(!isDragging) return; 
+                    const deltaY = e.clientY - startY; 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    
+                    if (topCard) {
+                        topCard.style.transform = `translateY(${deltaY}px) scale(1)`;
+                    }
+
+                    if(Math.abs(deltaY) > 50) { 
+                        if (topCard) {
+                            topCard.style.transition = '';
+                            topCard.style.transform = '';
+                        }
+                        cycle(idx, deltaY > 0); 
+                        startY = e.clientY; 
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show')); 
+                        
+                        // Grab new top card for continuous dragging
+                        const newTop = col.querySelector('.guide-card[data-depth="0"]');
+                        if (newTop) newTop.style.transition = 'none';
+                    } 
+                };
+                
+                const endDrag = (e) => {
+                    isDragging = false; 
+                    col.releasePointerCapture(e.pointerId); 
+                    const topCard = col.querySelector('.guide-card[data-depth="0"]');
+                    if (topCard) {
+                        topCard.style.transition = '';
+                        topCard.style.transform = '';
+                    }
+                };
+                col.onpointerup = endDrag;
+                col.onpointercancel = endDrag;
+
+                cat.cards.forEach((name, i) => {
+                    const card = document.createElement('div');
+                    card.className = `guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD') ? 'item' : cat.id.toLowerCase()}`;
+                    card.dataset.depth = i;
+                    card.innerHTML = `
+                        <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
+                        <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
+                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
+                        <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-tooltip">
+                            <div class="tt-title">${name}</div>
+                            <div class="tt-desc">${cat.desc}</div>
+                            <div class="tt-help">DBL-CLICK/ENTER TO USE</div>
+                        </div>
+                    `;
+                    card.onclick = (e) => {
+                        e.stopPropagation();
+                        setFocus(idx);
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        if(card.dataset.depth === "0") {
+                            const tt = card.querySelector('.card-tooltip');
+                            if(tt) tt.classList.add('show');
+                        }
+                    };
+                    card.ondblclick = (e) => {
+                        e.stopPropagation();
+                        if(card.dataset.depth === "0") {
+                            document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                            emitAction(name, card);
+                        }
+                    };
+                    col.appendChild(card);
+                });
+                container.appendChild(col);
+            });
+            setFocus(0, false);
+            
+            // Re-attach hover focus states to newly generated UI
+            document.querySelectorAll('.u-panel').forEach(p => { 
+                p.onmouseenter = () => p.focus(); 
+                p.onmouseleave = () => p.blur(); 
+            });
+        }
+        document.getElementById('launch-btn').onclick = function(e) { 
+            e.preventDefault();
+            emitAction(pendingAction, this); 
+            closeModal(); 
+        };
+        
+        // --- LCD EVENT PANEL LOGIC ---
+        const lcdPanel = document.getElementById('lcd-event-panel');
+        const lcdHeader = document.getElementById('lcd-header');
+        const lcdText = document.getElementById('lcd-text');
+        let lcdTimeout = null;
+        let isLcdDragging = false, lcdStartX, lcdStartY, lcdStartLeft, lcdStartTop;
+
+        window.showLcdEvent = function(text) {
+            if (!lcdPanel || !lcdText) return;
+            lcdText.textContent = text.substring(0, 8); // Hardware cap ~8 chars
+            lcdPanel.classList.add('active');
+            if (lcdTimeout) clearTimeout(lcdTimeout);
+            lcdTimeout = setTimeout(() => {
+                lcdPanel.classList.remove('active');
+            }, 2000);
+        };
+
+        if (lcdHeader && lcdPanel) {
+            lcdHeader.addEventListener('pointerdown', (e) => {
+                isLcdDragging = true;
+                lcdStartX = e.clientX;
+                lcdStartY = e.clientY;
+                const rect = lcdPanel.getBoundingClientRect();
+                lcdStartLeft = rect.left;
+                lcdStartTop = rect.top;
+                // De-couple from flexible transform positioning
+                lcdPanel.style.transform = 'none';
+                lcdPanel.style.left = lcdStartLeft + 'px';
+                lcdPanel.style.top = lcdStartTop + 'px';
+                lcdHeader.setPointerCapture(e.pointerId);
+            });
+            
+            lcdHeader.addEventListener('pointermove', (e) => {
+                if (!isLcdDragging) return;
+                const dx = e.clientX - lcdStartX;
+                const dy = e.clientY - lcdStartY;
+                lcdPanel.style.left = (lcdStartLeft + dx) + 'px';
+                lcdPanel.style.top = (lcdStartTop + dy) + 'px';
+            });
+            
+            lcdHeader.addEventListener('pointerup', (e) => {
+                isLcdDragging = false;
+                lcdHeader.releasePointerCapture(e.pointerId);
+            });
+        }
+        
+        // Touch / Mouse D-Pad Controls
+        const handleDPadInput = (e, isDown) => {
+            e.preventDefault();
+            const btn = e.target.closest('[data-key]');
+            if (!btn) return;
+            const key = btn.dataset.key;
+            if (isDown) {
+                window.parent.postMessage({ type: 'KEY_DOWN', key: key, code: key }, '*');
+            } else {
+                window.parent.postMessage({ type: 'KEY_UP', key: key, code: key }, '*');
+            }
+        };
+
+        const leftPanel = document.getElementById('left-panel');
+        leftPanel.addEventListener('mousedown', e => handleDPadInput(e, true));
+        leftPanel.addEventListener('mouseup', e => handleDPadInput(e, false));
+        leftPanel.addEventListener('mouseleave', e => handleDPadInput(e, false));
+        
+        leftPanel.addEventListener('touchstart', e => handleDPadInput(e, true), {passive: false});
+        leftPanel.addEventListener('touchend', e => handleDPadInput(e, false), {passive: false});
+        leftPanel.addEventListener('touchcancel', e => handleDPadInput(e, false), {passive: false});
+
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode');
+        if (mode === 'combat') {
+            document.getElementById('lower-ui-row').style.display = 'none';
+            document.body.classList.remove('focus-active');
+        } else if (mode === 'dock') {
+            document.getElementById('encounter-zone').style.display = 'none';
+        }
+
+        window.addEventListener('keydown', e => {
+            window.parent.postMessage({ type: 'KEY_DOWN', key: e.key, code: e.code }, '*');
+            if (e.key === 'Escape') { closeModal(); if(document.activeElement.classList.contains('u-panel')) document.activeElement.blur(); return; }
+            if (e.key === 'Tab') return;
+            if (!document.activeElement.classList.contains('u-panel')) return;
+            if (document.activeElement.id === 'bottom-panel') {
+                if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                    focusedColIndex = e.key === 'ArrowLeft' ? Math.max(0, focusedColIndex - 1) : Math.min(categories.length - 1, focusedColIndex + 1);
+                    setFocus(focusedColIndex);
+                    document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                    const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+                    if(topCard) {
+                        const tt = topCard.querySelector('.card-tooltip');
+                        if(tt) tt.classList.add('show');
+                    }
+                } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    e.preventDefault();
+                    document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                    cycle(focusedColIndex, e.key === 'ArrowDown');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+                    if(topCard) {
+                        const name = topCard.querySelector('.card-title').textContent;
+                        document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                        emitAction(name, topCard);
+                    }
+                }
+            }
+        });
+        window.addEventListener('keyup', e => {
+            window.parent.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
+        });
+        setup();
+
+        // Listen for combat state changes from main relay
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'SHOW_COMBAT') {
+                document.getElementById('encounter-zone').classList.add('active');
+                if (e.data.health) {
+                    const hpTitle = document.querySelector('#action-rail .sp-title');
+                    if (hpTitle) hpTitle.textContent = `${e.data.health} HP`;
+                }
+                if (e.data.distance !== undefined) {
+                    const distTexts = document.querySelectorAll('.dist-text');
+                    // Center-to-center distance * 10, minus 10 feet for physical contact radius
+                    let distFeet = Math.max(0, (e.data.distance * 10) - 10).toFixed(0);
+                    distTexts.forEach(el => el.textContent = `${distFeet} ft`);
+                }
+            } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
+                document.getElementById('encounter-zone').classList.remove('active');
+                loadDeck(defaultCategories); // Reset deck after combat
+            } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
+                // If the player steps forward into the monster (bump attack), pop out Katana cards!
+                loadDeck(combatCategories);
+            } else if (e.data && e.data.type === 'LCD_EVENT') {
+                if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
+            } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
+                if (e.data.isMoving) {
+                    document.body.classList.add('is-moving');
+                    if (avatarAction && !avatarAction.isRunning()) avatarAction.play();
+                    hideExitModal(); // Hide if player walks away
+                }
+                else {
+                    document.body.classList.remove('is-moving');
+                    if (avatarAction) avatarAction.stop(); // Stops gracefully, returning model to standing Idle
+                }
+            } else if (e.data && e.data.type === 'SHOW_EXIT') {
+                showExitModal();
+            } else if (e.data && e.data.type === 'HIDE_EXIT') {
+                if(exitModalActive) hideExitModal();
+            }
+        });
+
+        // Viewport Readout Logic
+        function updateViewportReadout() {
+            const readout = document.getElementById('viewport-readout');
+            if (readout) {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                let device = 'Mobile';
+                if (w >= 1024) device = 'Desktop';
+                else if (w >= 640) device = 'Tablet';
+                readout.textContent = `(Viewport:${device} [${w}x${h}])`;
+            }
+        }
+        window.addEventListener('resize', updateViewportReadout);
+        setTimeout(updateViewportReadout, 100); // Initial call after DOM paints
+        updateViewportReadout();
+    </script>
+
+<script>
+setTimeout(() => {
+    const gc = document.getElementById('guides-container');
+    const ic = document.getElementById('input-container');
+    const cards = document.querySelectorAll('.card-column');
+    console.log("GC rect:", gc.getBoundingClientRect());
+    console.log("IC rect:", ic.getBoundingClientRect());
+    if (cards.length > 0) {
+        console.log("First card left:", cards[0].getBoundingClientRect().left);
+        console.log("Last card right:", cards[cards.length-1].getBoundingClientRect().right);
+    }
+}, 3000);
+</script>
+</body>
+</html>
