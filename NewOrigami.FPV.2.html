@@ -298,40 +298,24 @@
         <div id="fct-container"></div>        <div id="interaction-prompt">Press E to Interact</div>
         <div id="fps-counter">FPS: --/60</div>
 
-        <!-- UI Panels Layer (Loaded via Iframe to isolate CSS/JS overhead) -->
-        <iframe id="ui-frame" title="Game UI Interface" class="logic-frame" src="NewOrigami.Panels.html" sandbox="allow-scripts allow-same-origin allow-modals" allowtransparency="true"></iframe>
-        
-    <!-- Realtime Tuning Panel -->
-    <div id="tuning-panel">
-        <h3>Movement Tuning</h3>
-        <div class="tune-row">
-            <label><span>Speed (W)</span><span id="val-speed">2.56</span></label>
-            <input type="range" id="tune-speed" title="Speed" min="0.5" max="6.0" step="0.01" value="2.56">
-        </div>
-        <div class="tune-row">
-            <label><span>Down-step (Bob)</span><span id="val-bob">0.045</span></label>
-            <input type="range" id="tune-bob" title="Bob Amplitude" min="0.0" max="0.3" step="0.001" value="0.045">
-        </div>
-        <div class="tune-row">
-            <label><span>Sway (Shift)</span><span id="val-sway">0.015</span></label>
-            <input type="range" id="tune-sway" title="Sway Amplitude" min="0.0" max="0.1" step="0.001" value="0.015">
-        </div>
-    </div>
-
-    <!-- AI Brain Layer (Headless) -->
-        <iframe id="ai-frame" title="Game AI Brain" class="logic-frame" src="NewOrigamiAi.html" sandbox="allow-scripts allow-same-origin"></iframe>
-
-        <!-- PIP Map View Overlay -->
-        <div id="mapview-container" class="primary-view">
-            <div class="view-label" style="position: absolute; background: #000; color: #fff; padding: 2px 8px; border-radius: 9999px; font-weight: 700; font-size: 10px; letter-spacing: 0.08em; z-index: 80; cursor: grab; -webkit-user-select: none; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; top: -6px; left: 10px;">Map View</div>
-            <div class="canvas-wrapper">
-                <iframe id="map-frame" src="NewOrigami.Map.1.html" style="width:100%; height:100%; border:none; display:block; pointer-events: auto;" sandbox="allow-scripts allow-same-origin" allowtransparency="true"></iframe>
+        <!-- Realtime Tuning Panel -->
+        <div id="tuning-panel" style="position: absolute; top: 15px; right: 20px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 15px; color: #fff; font-family: monospace; z-index: 1000; width: 200px; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 14px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">Movement Tuning</h3>
+            <div class="tune-row" style="margin-bottom: 10px;">
+                <label style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;"><span>Speed (W)</span><span id="val-speed">2.56</span></label>
+                <input type="range" id="tune-speed" title="Speed" min="0.5" max="6.0" step="0.01" value="2.56" style="width: 100%; cursor: pointer;">
             </div>
-            <div class="resize-handle se"></div>
-            <div class="resize-handle sw"></div>
-            <div class="resize-handle ne"></div>
-            <div class="resize-handle nw"></div>
+            <div class="tune-row" style="margin-bottom: 10px;">
+                <label style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;"><span>Down-step (Bob)</span><span id="val-bob">0.045</span></label>
+                <input type="range" id="tune-bob" title="Bob Amplitude" min="0.0" max="0.3" step="0.001" value="0.045" style="width: 100%; cursor: pointer;">
+            </div>
+            <div class="tune-row" style="margin-bottom: 10px;">
+                <label style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;"><span>Sway (Shift)</span><span id="val-sway">0.015</span></label>
+                <input type="range" id="tune-sway" title="Sway Amplitude" min="0.0" max="0.1" step="0.001" value="0.015" style="width: 100%; cursor: pointer;">
+            </div>
         </div>
+
+        <!-- UI and Map iframes have been delegated to the Master Shell (NewOrigami.5.html) -->
     </div>
 
     <script>
@@ -595,6 +579,9 @@
             triggerCombatSequence(target) {
                 if (!target || target.userData.combatIntroTriggered) return;
                 target.userData.combatIntroTriggered = true;
+                
+                // Initialize baseY to prevent NaN float arithmetic explosions in animate loop
+                if (target.userData.baseY === undefined) target.userData.baseY = 0;
 
                 // Goblin backs up 2 grids (20 feet)
                 const dirX = -Math.sin(this.player.rot);
@@ -805,24 +792,30 @@
             initTuningUI() {
                 const sSpeed = document.getElementById('tune-speed');
                 const vSpeed = document.getElementById('val-speed');
-                sSpeed.addEventListener('input', (e) => {
-                    this.MOVE_SPEED = parseFloat(e.target.value);
-                    vSpeed.textContent = this.MOVE_SPEED.toFixed(2);
-                });
+                if (sSpeed) {
+                    sSpeed.addEventListener('input', (e) => {
+                        this.MOVE_SPEED = parseFloat(e.target.value);
+                        vSpeed.textContent = this.MOVE_SPEED.toFixed(2);
+                    });
+                }
 
                 const sBob = document.getElementById('tune-bob');
                 const vBob = document.getElementById('val-bob');
-                sBob.addEventListener('input', (e) => {
-                    this.BOB_AMP = parseFloat(e.target.value);
-                    vBob.textContent = this.BOB_AMP.toFixed(3);
-                });
+                if (sBob) {
+                    sBob.addEventListener('input', (e) => {
+                        this.BOB_AMP = parseFloat(e.target.value);
+                        vBob.textContent = this.BOB_AMP.toFixed(3);
+                    });
+                }
 
                 const sSway = document.getElementById('tune-sway');
                 const vSway = document.getElementById('val-sway');
-                sSway.addEventListener('input', (e) => {
-                    this.SWAY_AMP = parseFloat(e.target.value);
-                    vSway.textContent = this.SWAY_AMP.toFixed(3);
-                });
+                if (sSway) {
+                    sSway.addEventListener('input', (e) => {
+                        this.SWAY_AMP = parseFloat(e.target.value);
+                        vSway.textContent = this.SWAY_AMP.toFixed(3);
+                    });
+                }
             },
 
             initResizeAndDrag() {
@@ -2446,11 +2439,8 @@
                 }
             },
 
-            initComms() {
-                // Deprecated UI_ACTION removed in favor of direct message parsing below
-                // Listen to external commands (AI Brain & Master UI Router)
-                window.addEventListener('message', (e) => {
-                    if (!e.data) return;
+            handleIncomingComm(e) {
+                if (!e.data) return;
                     
                     if (e.data.type === 'FPV_ACTION') {
                         const action = e.data.action;
@@ -2684,7 +2674,23 @@
                         });
                         this.checkTriggers();
                     }
-                });
+            },
+
+            initComms() {
+                this.handleIncomingComm = this.handleIncomingComm.bind(this);
+                window.addEventListener('message', this.handleIncomingComm);
+                
+                // Initialize dedicated Web Worker for AI (with Offline fallback)
+                try {
+                    this.aiWorker = new Worker('NEWORIGAMI/js/engine/ai.worker.js');
+                    this.aiWorker.addEventListener('message', this.handleIncomingComm);
+                } catch (e) {
+                    console.warn("Offline Mode: AI Worker blocked due to file:/// CORS. Falling back to stub.", e);
+                    this.aiWorker = {
+                        postMessage: (msg) => { console.log('Offline AI Mock Received:', msg); },
+                        addEventListener: () => {}
+                    };
+                }
 
                 // Send procedural setup to parent shell (which routes to Map and AI engines)
                 this.broadcastToFrames({
@@ -2697,8 +2703,17 @@
             },
 
             broadcastToFrames(msg) {
+                if (this.aiWorker) {
+                    this.aiWorker.postMessage(msg);
+                }
+
+                // Send to parent shell (NewOrigami.5.html) for distribution
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(msg, '*');
+                }
+
                 // Centralized routing to push state down to the intelligent panels/iframes
-                ['ui-frame', 'ai-frame', 'map-frame'].forEach(id => {
+                ['ui-frame', 'map-frame'].forEach(id => {
                     const frame = document.getElementById(id);
                     if (frame && frame.contentWindow) {
                         frame.contentWindow.postMessage(msg, '*');
@@ -2806,9 +2821,9 @@
                                     }, this.weaponAnim.duration + 50);
                                 }
                                 
-                                // Recoil violently backwards for visual effect without ever stepping closer to the 3D model
-                                nextX = this.player.x + (dx * 1.5);
-                                nextZ = this.player.z + (dz * 1.5);
+                                // Safely halt player movement to prevent clipping through bounding collisions
+                                nextX = this.player.x;
+                                nextZ = this.player.z;
                                 
                                 this.broadcastToFrames({
                                     type: 'COMBAT_ATTACK',
@@ -2861,9 +2876,9 @@
                                         }
                                     }
                                     
-                                    // Recoil violently backwards
-                                    nextX = this.player.x + (dx * 1.5);
-                                    nextZ = this.player.z + (dz * 1.5);
+                                    // Recoil safely
+                                    nextX = this.player.x;
+                                    nextZ = this.player.z;
                                     
                                     // Trigger combat message to the central game orchestrator
                                     this.broadcastToFrames({
@@ -3029,20 +3044,25 @@
                             const isCombatTarget = this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.id === child.userData.id;
 
                             if (model && child.visible) {
-                                // Dynamic Translucency mapping
-                                model.traverse((n) => {
-                                    if (n.isMesh && n.material) {
-                                        const mats = Array.isArray(n.material) ? n.material : [n.material];
-                                        mats.forEach(mat => {
-                                            if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
-                                                if (targetOpacity <= 0.05) mat.opacity = 0.0; 
-                                                else mat.opacity = 1.0;
-                                            } else if (mat.name !== 'mist') { // Don't override mist physics
-                                                mat.transparent = true;
-                                                mat.opacity = Math.min(targetOpacity, 0.45); // Ghostly transparency request
-                                                // Glass properties are now statically updated by the dat.gui onChange events
-                                            }
-                                        });
+                                // Optimized Dynamic Translucency mapping
+                                if (!child.userData.cachedMats) {
+                                    child.userData.cachedMats = [];
+                                    model.traverse((n) => {
+                                        if (n.isMesh && n.material) {
+                                            const mats = Array.isArray(n.material) ? n.material : [n.material];
+                                            mats.forEach(mat => child.userData.cachedMats.push(mat));
+                                        }
+                                    });
+                                }
+                                
+                                child.userData.cachedMats.forEach(mat => {
+                                    if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
+                                        if (targetOpacity <= 0.05) mat.opacity = 0.0; 
+                                        else mat.opacity = 1.0;
+                                    } else if (mat.name !== 'mist') { // Don't override mist physics
+                                        mat.transparent = true;
+                                        mat.opacity = Math.min(targetOpacity, 0.45); // Ghostly transparency request
+                                        // Glass properties are now statically updated by the dat.gui onChange events
                                     }
                                 });
                                 
