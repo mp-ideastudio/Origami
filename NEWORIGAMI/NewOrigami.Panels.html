@@ -70,7 +70,7 @@
         #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
-            background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); 
+            background: var(--bg-glass);   
             border: var(--glass-border); padding: 20px 8px 25px 8px; 
             box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
             box-shadow: 0 15px 45px var(--nm-shadow-dark); 
@@ -103,7 +103,7 @@
             font-weight: 900; font-size: 10px; text-transform: uppercase; 
             cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
             padding: 0 10px; box-sizing: border-box;
-            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 2px 2px 8px var(--nm-shadow-dark);
             color: var(--color-text);
         }
@@ -132,7 +132,7 @@
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; }
         .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
-        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass);   border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
         .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -186,7 +186,7 @@
         #guides-container::-webkit-scrollbar { display: none; }
         
         /* --- GAMBLING DICE ENGINE --- */
-        #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
+        #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass);   border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
         #dice-container.active { display: flex; opacity: 1; }
         
         .dice-player-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; color: var(--color-text); }
@@ -228,8 +228,8 @@
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 8px;
             padding: 8px 12px;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            
+            
             transition: all 0.4s ease;
             display: flex;
             flex-direction: column;
@@ -301,7 +301,7 @@
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--color-text); 
-            background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); 
+            background: var(--bg-glass);   
             box-shadow: 2px 2px 10px var(--nm-shadow-dark); 
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
@@ -348,7 +348,7 @@
             color: #fff; padding: 10px; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+             
             z-index: 40; border: 1px solid rgba(255,255,255,0.2);
         }
         .card-tooltip.show { opacity: 1; pointer-events: auto; }
@@ -370,7 +370,7 @@
         #launch-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; z-index: 50000; background: transparent; display: flex; flex-direction: column; align-items: center; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #launch-modal.active, #exit-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
         
-        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel);   border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
         .exit-title { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         .exit-controls { display: flex; gap: 20px; width: 100%; justify-content: center; }
         .exit-btn { width: 60px; height: 60px; border-radius: 50%; border: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; color: #fff; box-shadow: var(--nm-shadow-inner); transition: transform 0.2s, filter 0.2s; }
@@ -382,7 +382,7 @@
         .modal-card-hd .guide-card { width: 100%; height: 100%; border-radius: 20px; padding-top: 5px; border-width: 1.5px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
         
         .modal-controls { display: flex; gap: 15px; width: 100%; justify-content: center; }
-        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--nm-shadow-inner); }
+        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s;   box-shadow: var(--nm-shadow-inner); }
         .m-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
         .m-btn.launch { background: rgba(0,0,0,0.9); border-width: 2px; }
         .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
@@ -391,14 +391,18 @@
         #input-container { 
             width: 100%; 
             max-width: 100%; 
-            height: auto; display: flex; justify-content: center; align-items: center; 
+            height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; 
             transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
         }
-        .chat-pill { width: 100%; height: 58px; background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-pill { width: 100%; height: 58px; background: var(--bg-glass);   box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
         .chat-input::placeholder { color: var(--color-text-dim); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
+        
+        .level-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 26px); background: #fff; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 60; pointer-events: none; text-transform: uppercase; }
+        #lang-toggle-btn { display: none; position: absolute; bottom: -40px; right: 0px; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 1px solid #ccc; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 100; }
+        #lang-flag { width: 20px; height: 20px; border-radius: 50%; background: #bc002d; }
         
         /* PIP Map */
         .pip-map {
@@ -457,7 +461,7 @@
             width: 200px; /* Resizeable container */
             min-width: 140px; max-width: 400px;
             background: rgba(10, 20, 30, 0.4); /* Dark glass */
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+             
             border: 1px solid rgba(0, 255, 255, 0.3);
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
@@ -661,8 +665,8 @@
                 gap: 15px;
                 flex-direction: row;
                 background: rgba(216, 216, 216, 0.6);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
+                
+                
                 padding: 15px;
                 border-radius: 12px;
                 box-shadow: 
@@ -797,7 +801,7 @@
                            <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
                         </div>
                     </div>
-                    <div id="input-container" style="flex-direction: column; align-items: center;">
+                    <div id="input-container">
                         <div id="event-log-history" class="event-log-box">
                             <!-- Event Log Text Appears Here -->
                         </div>
@@ -813,15 +817,15 @@
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
                 <div id="action-zone">
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
-                    <div class="level-badge" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 26px); background: #fff; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 60; pointer-events: none; text-transform: uppercase;">LVL 1</div>
+                    <div class="level-badge">LVL 1</div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
                     <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
                     <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
                     <div class="u-btn btn-action act-se" onclick="toggleSettings()"><i class="fa-solid fa-gear"></i><span class="ac-text">Settings</span></div>
                     
                     <!-- Language Toggle Popup (Hidden by default) -->
-                    <div id="lang-toggle-btn" style="display: none; position: absolute; bottom: -40px; right: 0px; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 1px solid #ccc; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 100;" onclick="switchLanguage()">
-                        <div id="lang-flag" style="width: 20px; height: 20px; border-radius: 50%; background: #bc002d;"></div> <!-- JP Flag circle default -->
+                    <div id="lang-toggle-btn" onclick="switchLanguage()">
+                        <div id="lang-flag"></div> <!-- JP Flag circle default -->
                     </div>
                     <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
                     <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text">Heal</span></div>
@@ -1050,14 +1054,24 @@
             const iconCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); 
             iconCamera.position.set(0, 0, 7.5);
             
+            const lowerUIRow = document.getElementById('lower-ui-row');
+            let lastRender = 0;
+            
+            // Cache canvases to avoid querying the DOM aggressively
+            const canvasCache = {};
+            
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 
-                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden (e.g. Combat Mode)
-                if (document.getElementById('lower-ui-row').style.display === 'none') return;
+                // Throttle 3D UI panels to 30 FPS to save global GPU bandwidth for FPV game loop
+                if (time - lastRender < 33) return;
+                lastRender = time;
+                
+                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden
+                if (lowerUIRow && lowerUIRow.style.display === 'none' && !document.getElementById('encounter-zone').classList.contains('active')) return;
                 
                 const t = time * 0.001;
-                const delta = avatarClock.getDelta();
+                const delta = avatarClock.getDelta() || 0.033;
                 
                 if (avatarMixer) {
                     avatarMixer.update(delta);
@@ -1076,37 +1090,46 @@
                         }
                     }
                     
-                    // Procedural breathing / bobbing animation for static meshes
                     if (avatarScene.children.length > 1) {
                         const avatarMesh = avatarScene.children[1];
                         if (avatarMesh) {
-                            const time = performance.now() * 0.002;
-                            avatarMesh.position.y = 0.15 + Math.sin(time) * 0.03; // Smooth bobbing
+                            avatarMesh.position.y = 0.15 + Math.sin(t * 2) * 0.03; 
                         }
                     }
 
                     avatarRenderer.render(avatarScene, avatarCamera);
                 }
 
+                
+                // Regenerate canvas cache every 500ms to avoid DOM polling spikes
+                if (time - canvasCache.lastScan > 500 || !canvasCache.lastScan) {
+                    canvasCache.lastScan = time;
+                    elements.forEach(el => {
+                        let selector = `.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`;
+                        if (el === 'DICE_EVEN' || el === 'DICE_ODD') selector = `.wager-card .card-icon-3d[data-element="${el}"] canvas`;
+                        canvasCache[el] = document.querySelectorAll(selector);
+                    });
+                }
+
                 elements.forEach(el => {
+                    if (!canvasCache[el] || canvasCache[el].length === 0) return;
+                    
                     scenes[el].update(t);
-                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0) OR are Wager cards
-                    // This cuts the active WebGL contexts & drawImage calls down drastically
-                    let selector = `.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`;
-                    if (el === 'DICE_EVEN' || el === 'DICE_ODD') selector = `.wager-card .card-icon-3d[data-element="${el}"] canvas`;
-                    const canvases = document.querySelectorAll(selector);
-                    canvases.forEach(cvs => {
+                    
+                    canvasCache[el].forEach(cvs => {
                         const cw = cvs.clientWidth, ch = cvs.clientHeight;
                         if (cw === 0 || ch === 0) return; 
                         const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
                         if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
-                        renderer.setSize(cw, ch, false);
                         
-                        // Use pre-instantiated camera to prevent massive garbage collection stalls
+                        renderer.setSize(cw, ch, false);
                         renderer.render(scenes[el].scene, iconCamera);
                         
-                        const ctx = cvs.getContext('2d');
-                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
+                        const ctx = cvs.getContext('2d', { alpha: false }); // Disable blending overhead
+                        if (ctx) { 
+                            ctx.clearRect(0, 0, w, h); 
+                            ctx.drawImage(renderer.domElement, 0, 0, w, h); 
+                        }
                     });
                 });
             }
@@ -1120,8 +1143,8 @@
             const w = container.clientWidth || 58;
             const h = container.clientHeight || 58;
             
-            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            avatarRenderer.setPixelRatio(window.devicePixelRatio);
+            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
+            avatarRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             avatarRenderer.setSize(w, h);
             container.appendChild(avatarRenderer.domElement);
             
@@ -1262,8 +1285,13 @@
                 if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
                 e.preventDefault(); wheelThrottle = true; cycle(focusedColIndex, e.deltaY > 0); setTimeout(() => wheelThrottle = false, 150);
             };
-            init3DIcons(); 
-            initAvatar();
+            
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get('mode');
+            if (mode !== 'combat') {
+                init3DIcons(); 
+                initAvatar();
+            }
             setFocus(0, false);
         }
 
@@ -1317,7 +1345,16 @@
         };
         window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
         window.emitAction = (a, explicitBtn = null) => { 
-            window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
+            let msgType = 'FPV_ACTION';
+            if (a === 'SLASH' || a === 'THRUST' || a === 'DEFEND' || a === 'STRONG ATTACK') {
+                msgType = 'EQUIP_CARD';
+            } else if (a === 'ATTACK') {
+                // Button from sidebar
+                window.parent.postMessage({ type: 'MANUAL_ATTACK' }, '*');
+                // Let the original logic run below for switching decks
+            }
+            window.parent.postMessage({ type: msgType, cardId: a, action: a }, '*');
+            
             let btn = explicitBtn;
             if (!btn && window.event && window.event.currentTarget) {
                 btn = window.event.currentTarget;

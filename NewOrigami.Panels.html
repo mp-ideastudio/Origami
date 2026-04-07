@@ -50,20 +50,18 @@
         }
 
         body.dark-mode {
-            /* 5% lighter base panel/glass color */
-            --bg-panel: rgba(35, 37, 39, 0.88);
-            --bg-circle: rgba(28, 30, 32, 0.4);
-            --bg-glass: rgba(35, 37, 39, 0.92);
-            /* New variants for tactical depths */
-            --bg-gray-variant-1: rgba(45, 47, 49, 0.88);
-            --bg-gray-variant-2: rgba(55, 57, 59, 0.88);
+            --bg-panel: #1e2022;
+            --bg-circle: #17181a;
+            --bg-glass: #232527; 
+            --bg-gray-variant-1: #2a2c2e;
+            --bg-gray-variant-2: #303336;
 
-            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.08);
             --color-text: #ffffff;
             --color-text-dim: #7f8a93;
             --nm-shadow: rgba(0, 0, 0, 0.9);
-            --nm-shadow-light: rgba(35, 40, 45, 0.4);
-            --nm-shadow-inner: inset 2px 2px 6px rgba(0,0,0,0.95), inset -2px -2px 6px rgba(255,255,255,0.03);
+            --nm-shadow-light: rgba(20, 22, 24, 0.6);
+            --nm-shadow-inner: inset 4px 4px 10px rgba(0,0,0,0.8), inset -2px -2px 6px rgba(255,255,255,0.05);
             --nm-shadow-dark: rgba(0, 0, 0, 1.0);
         }
 
@@ -80,7 +78,7 @@
         #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
-            background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); 
+            background: var(--bg-glass);   
             border: var(--glass-border); padding: 20px 8px 25px 8px; 
             box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
             box-shadow: 0 15px 45px var(--nm-shadow-dark); 
@@ -113,7 +111,7 @@
             font-weight: 900; font-size: 10px; text-transform: uppercase; 
             cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
             padding: 0 10px; box-sizing: border-box;
-            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+              transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 2px 2px 8px var(--nm-shadow-dark);
             color: var(--color-text);
         }
@@ -142,7 +140,7 @@
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; }
         .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
-        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass);   border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
         .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 76px; height: 76px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); }
@@ -192,7 +190,7 @@
         #guides-container::-webkit-scrollbar { display: none; }
         
         /* --- GAMBLING DICE ENGINE --- */
-        #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
+        #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass);   border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
         #dice-container.active { display: flex; opacity: 1; }
         
         .dice-player-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; color: var(--color-text); }
@@ -221,7 +219,7 @@
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--color-text); 
-            background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); 
+            background: var(--bg-glass);   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
             transform-origin: top center;
@@ -271,7 +269,7 @@
             color: #fff; padding: 10px; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+             
             z-index: 40; border: 1px solid rgba(255,255,255,0.2);
         }
         .card-tooltip.show { opacity: 1; pointer-events: auto; }
@@ -293,7 +291,7 @@
         #launch-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; z-index: 50000; background: transparent; display: flex; flex-direction: column; align-items: center; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #launch-modal.active, #exit-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
         
-        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
+        #exit-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; z-index: 51000; background: var(--bg-panel);   border-radius: 32px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; padding: 35px; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid rgba(255,255,255,0.15); }
         .exit-title { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         .exit-controls { display: flex; gap: 20px; width: 100%; justify-content: center; }
         .exit-btn { width: 60px; height: 60px; border-radius: 50%; border: none; outline: none; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; color: #fff; box-shadow: var(--nm-shadow-inner); transition: transform 0.2s, filter 0.2s; }
@@ -305,7 +303,7 @@
         .modal-card-hd .guide-card { width: 100%; height: 100%; border-radius: 20px; padding-top: 5px; border-width: 1.5px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
         
         .modal-controls { display: flex; gap: 15px; width: 100%; justify-content: center; }
-        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--nm-shadow-inner); }
+        .m-btn { width: 85px; height: 38px; border-radius: 19px; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.75); color: #fff; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: all 0.2s;   box-shadow: var(--nm-shadow-inner); }
         .m-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
         .m-btn.launch { background: rgba(0,0,0,0.9); border-width: 2px; }
         .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
@@ -318,7 +316,7 @@
             transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
         }
-        .chat-pill { width: 100%; height: 54px; background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-pill { width: 100%; height: 54px; background: var(--bg-glass);   box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--color-text); font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
         .chat-input::placeholder { color: var(--color-text-dim); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
@@ -354,7 +352,7 @@
             width: 200px; /* Resizeable container */
             min-width: 140px; max-width: 400px;
             background: rgba(10, 20, 30, 0.4); /* Dark glass */
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+             
             border: 1px solid rgba(0, 255, 255, 0.3);
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
@@ -561,7 +559,7 @@
         };
 
         const defaultCategories = [
-            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['QUAKE', 'FISSURE'] },
+            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', cards: ['BOULDER', 'FISSURE'] },
             { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Inferno star.', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Viscous tide.', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
@@ -589,8 +587,9 @@
 
         function init3DIcons() {
             const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setPixelRatio(dpr);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
+            renderer.setClearColor(0x000000, 0); // Critial fix to prevent black squares
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.setSize(256, 256, false); // Fixed high-res buffer to prevent FBO thrashing
             
             elements.forEach(el => {
@@ -600,7 +599,7 @@
                 dir.position.set(5, 5, 5); scene.add(dir);
                 
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
+                    color: { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
                     roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                 });
                 
@@ -614,6 +613,7 @@
                         const isDark = document.body.classList.contains('dark-mode');
                         rockMat.color.setHex(isDark ? 0x8D6E63 : 0x5C4033);
                         rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
+                        rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
                     };
                 } else if (el === 'FIRE') {
                     const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true })); group.add(core);
@@ -644,13 +644,14 @@
                     group.add(tornado);
                     update = (t) => { 
                         const isDark = document.body.classList.contains('dark-mode');
-                        const targetColor = isDark ? 0xffffff : 0x37474f;
+                        const targetColor = isDark ? 0xffffff : 0x333333;
                         tornado.children.forEach((l, idx) => { 
                             l.material.color.setHex(targetColor);
-                            l.rotation.y = t*(idx+70); 
-                            l.position.x = Math.sin(t*8 + idx)*0.1; 
+                            l.rotation.y = t * 3 + (idx * 0.5); // Fixed chaotic rotation logic 
+                            l.position.x = Math.sin(t * 4 + idx) * 0.15; 
+                            l.position.z = Math.cos(t * 3 + idx) * 0.1;
                         }); 
-                        tornado.rotation.z = Math.sin(t*4)*0.1; 
+                        tornado.rotation.z = Math.sin(t*2)*0.1; 
                     };
                 } else if (el === 'WATER') {
                     const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
@@ -742,7 +743,12 @@
                     if (el === 'DICE_CENTER') {
                         // Two completely mapped 3D Dice
                         function createDie(isBlack) {
-                            const mat = new THREE.MeshStandardMaterial({color: isBlack ? 0x111111 : 0xffffff, roughness: 0.1, metalness: 0.3});
+                            const mat = new THREE.MeshStandardMaterial({
+                                color: isBlack ? 0x111111 : 0xffffff, 
+                                emissive: isBlack ? 0x000000 : 0xffffff,
+                                emissiveIntensity: isBlack ? 0 : 0.4,
+                                roughness: 0.1, metalness: 0.3
+                            });
                             const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat);
                             
                             const dotGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
@@ -891,11 +897,20 @@
             const iconCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); 
             iconCamera.position.set(0, 0, 7.5);
             
+            let lastRender = 0;
+            const canvasCache = {};
+            
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 
+                // Throttle to 30 FPS for UI components
+                if (time - lastRender < 33) return;
+                lastRender = time;
+                
                 // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden
-                if (document.getElementById('lower-ui-row').style.display === 'none') return;
+                const encounterZone = document.getElementById('encounter-zone');
+                const uiRowHidden = document.getElementById('lower-ui-row') ? document.getElementById('lower-ui-row').style.display === 'none' : false;
+                if (uiRowHidden && (!encounterZone || !encounterZone.classList.contains('active'))) return;
                 
                 const t = time * 0.001;
                 const delta = avatarClock.getDelta();
@@ -922,30 +937,33 @@
                 // Update rotational logic for all 3D components
                 elements.forEach(el => scenes[el].update(t));
 
-                // CRITICAL OPTIMIZATION: Call generic querySelectorAll ONCE per frame, not 10 times in a loop
-                // Targets: Focused Cards (depth=0), Wager Cards, and the Center DOM button
-                const validContainers = document.querySelectorAll(
-                    '.guide-card[data-depth="0"] .card-icon-3d, .wager-card .card-icon-3d, .kp-center-btn[data-element="DICE_CENTER"], .kp-center-btn[data-icon="DICE_CENTER"]'
-                );
+                // Regenerate canvas cache every 500ms to avoid DOM polling spikes
+                if (time - canvasCache.lastScan > 500 || !canvasCache.lastScan) {
+                    canvasCache.lastScan = time;
+                    canvasCache.elements = document.querySelectorAll(
+                        '.guide-card[data-depth="0"] .card-icon-3d, .wager-card .card-icon-3d, .kp-center-btn[data-element="DICE_CENTER"], .kp-center-btn[data-icon="DICE_CENTER"]'
+                    );
+                }
 
-                validContainers.forEach(container => {
-                    const el = container.dataset.element || container.dataset.icon;
-                    if (!el || !scenes[el]) return;
-                    
-                    const cvs = container.querySelector('canvas') || (container.firstChild && container.firstChild.nodeName === 'CANVAS' ? container.firstChild : null);
-                    if (!cvs) return;
+                if (canvasCache.elements) {
+                    canvasCache.elements.forEach(container => {
+                        const el = container.dataset.element || container.dataset.icon;
+                        if (!el || !scenes[el]) return;
+                        
+                        const cvs = container.querySelector('canvas') || (container.firstChild && container.firstChild.nodeName === 'CANVAS' ? container.firstChild : null);
+                        if (!cvs) return;
 
-                    const cw = cvs.clientWidth, ch = cvs.clientHeight;
-                    if (cw === 0 || ch === 0) return; 
-                    const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
-                    if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
-                    
-                    // Use pre-instantiated camera to prevent massive garbage collection stalls
-                    renderer.render(scenes[el].scene, iconCamera);
-                    
-                    const ctx = cvs.getContext('2d');
-                    if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
-                });
+                        const cw = cvs.clientWidth, ch = cvs.clientHeight;
+                        if (cw === 0 || ch === 0) return; 
+                        const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
+                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+                        
+                        renderer.render(scenes[el].scene, iconCamera);
+                        
+                        const ctx = cvs.getContext('2d'); 
+                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
+                    });
+                }
             }
             renderLoop(0);
         }
@@ -957,8 +975,9 @@
             const w = container.clientWidth || 58;
             const h = container.clientHeight || 58;
             
-            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            avatarRenderer.setPixelRatio(window.devicePixelRatio);
+            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
+            avatarRenderer.setClearColor(0x000000, 0); // Crucial fix for black square bounds
+            avatarRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             avatarRenderer.setSize(w, h);
             container.appendChild(avatarRenderer.domElement);
             
@@ -1120,8 +1139,12 @@
                 if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
                 e.preventDefault(); wheelThrottle = true; cycle(focusedColIndex, e.deltaY > 0); setTimeout(() => wheelThrottle = false, 150);
             };
-            init3DIcons(); 
-            initAvatar();
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get('mode');
+            if (mode !== 'combat') {
+                init3DIcons(); 
+                initAvatar();
+            }
             setFocus(0, false);
         }
 

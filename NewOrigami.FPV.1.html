@@ -3041,6 +3041,38 @@
                         if (child.userData && child.userData.idlePhase !== undefined && child.userData.type !== 'player') {
                             child.position.y = (child.userData.baseY || 0) + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.1;
                         }
+                        
+                        // Dice physics and garbage collection
+                        if (child.userData && child.userData.isDice) {
+                            child.position.x += child.userData.vX;
+                            child.position.y += child.userData.vY;
+                            child.position.z += child.userData.vZ;
+                            child.userData.vY -= 0.005; // Gravity
+                            
+                            child.rotation.x += child.userData.rX;
+                            child.rotation.y += child.userData.rY;
+                            child.rotation.z += child.userData.rZ;
+                            
+                            // Fast floor collision
+                            if (child.position.y < 0.15) {
+                                child.position.y = 0.15;
+                                child.userData.vY *= -0.6; // Bounce
+                                child.userData.vX *= 0.8; // Ground friction
+                                child.userData.vZ *= 0.8;
+                                child.userData.rX *= 0.8;
+                                child.userData.rY *= 0.8;
+                                child.userData.rZ *= 0.8;
+                            }
+                            
+                            child.userData.life -= (delta * 60); // decrement based on time/frames
+                            if (child.userData.life <= 0) {
+                                child.scale.multiplyScalar(0.9);
+                                if (child.scale.x < 0.01) {
+                                    this.worldGroup.remove(child);
+                                    i--; // Adjust array index since element was removed
+                                }
+                            }
+                        }
                     }
                 }
 

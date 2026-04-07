@@ -172,14 +172,12 @@
                      break;
 
                   case 'SHOW_COMBAT':
-                     if (combatWrapper) combatWrapper.classList.add('active');
-                     notifyEngine('combat', e.data);
+                     notifyEngine('panels', e.data); // Fallback to bottom adventure UI
                      break;
 
                   case 'HIDE_COMBAT':
                   case 'HIDE_ALL':
-                     if (combatWrapper) combatWrapper.classList.remove('active');
-                     notifyEngine('combat', e.data);
+                     notifyEngine('panels', e.data); // Reset bottom UI
                      break;
 
                   case 'INIT_ENTITIES':
@@ -198,10 +196,12 @@
                   case 'APPROACH_MONSTER':
                   case 'TEXT_COMMAND':
                   case 'FPV_ACTION':
+                  case 'EQUIP_CARD':
                   case 'CHAT_SUBMIT':
                   case 'WAGER':
                   case 'PARLEY':
                   case 'ATTACK':
+                  case 'MANUAL_ATTACK':
                   case 'RETREAT':
                      notifyEngine('fpv', e.data);
                      break;
