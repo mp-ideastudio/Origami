@@ -50,9 +50,14 @@
         }
 
         body.dark-mode {
-            --bg-panel: rgba(22, 24, 26, 0.88);
-            --bg-circle: rgba(18, 20, 22, 0.4);
-            --bg-glass: rgba(22, 24, 26, 0.92);
+            /* 5% lighter base panel/glass color */
+            --bg-panel: rgba(35, 37, 39, 0.88);
+            --bg-circle: rgba(28, 30, 32, 0.4);
+            --bg-glass: rgba(35, 37, 39, 0.92);
+            /* New variants for tactical depths */
+            --bg-gray-variant-1: rgba(45, 47, 49, 0.88);
+            --bg-gray-variant-2: rgba(55, 57, 59, 0.88);
+
             --glass-border: 1px solid rgba(255, 255, 255, 0.05);
             --color-text: #ffffff;
             --color-text-dim: #7f8a93;
@@ -140,8 +145,8 @@
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
-        .avatar-circle canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 76px; height: 76px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); }
+        .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
         .btn-action { 
@@ -413,7 +418,7 @@
         }
     </style>
 </head>
-<body class="focus-active">
+<body class="dark-mode focus-active">
 
     <div id="modal-overlay" onclick="closeModal()"></div>
 
@@ -479,7 +484,7 @@
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
                 <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
                 <div class="u-btn pos-w" data-key="ArrowLeft"><i class="fa-solid fa-caret-left"></i></div>
-                <div class="kp-center-btn" data-key="Space"><i class="fa-solid fa-circle-dot"></i></div>
+                <div class="kp-center-btn" data-element="DICE_CENTER" data-key="Space"><canvas></canvas></div>
                 <div class="u-btn pos-e" data-key="ArrowRight"><i class="fa-solid fa-caret-right"></i></div>
                 <div class="u-btn pos-s" data-key="ArrowDown"><i class="fa-solid fa-caret-down"></i></div>
             </div>
@@ -577,12 +582,16 @@
         const scenes = {}, dpr = window.devicePixelRatio || 1;
         
         let avatarMixer = null;
-        let avatarAction = null;
+        let avatarActions = {};
+        let avatarCurrentAction = null;
+        let avatarIdleAction = null;
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setPixelRatio(dpr);
+            renderer.setSize(256, 256, false); // Fixed high-res buffer to prevent FBO thrashing
             
             elements.forEach(el => {
                 const scene = new THREE.Scene();
@@ -597,28 +606,31 @@
                 
                 let group = new THREE.Group(), update;
                 if (el === 'EARTH') {
-                    // Forensic Quake fix - sharp facets, correct size
-                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), mat); group.add(rock);
+                    // BOULDER - rounder chunky rock
+                    const rockMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8, flatShading: true });
+                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 2), rockMat); 
+                    group.add(rock);
                     update = (t) => {
-                        const b = Math.abs(Math.sin(t * 1.5)); rock.position.y = (b * 0.7) - 0.35; 
+                        const isDark = document.body.classList.contains('dark-mode');
+                        rockMat.color.setHex(isDark ? 0x8D6E63 : 0x5C4033);
                         rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
-                        if (b < 0.2) group.position.set(Math.sin(t * 5) * (0.2-b)*2, Math.cos(t * 6) * (0.1-b/2)*2, 0);
-                        else group.position.set(0, 0, 0);
                     };
                 } else if (el === 'FIRE') {
-                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 5, flatShading: true })); group.add(core);
+                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true })); group.add(core);
                     const flames = [];
-                    for(let i=0; i<36; i++) {
-                        const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
-                        const ang = (i / 36) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
+                    for(let i=0; i<60; i++) {
+                        const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.28, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), emissive: i % 3 === 0 ? 0xffea00 : 0xff4500, emissiveIntensity: 2.5, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
+                        const ang = (i / 60) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
                         s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); group.add(s);
-                        flames.push({ m: s, s: 6 + Math.random() * 10, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 5, bx: s.position.x, bz: s.position.z });
+                        flames.push({ m: s, s: 3 + Math.random() * 6, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 2, bx: s.position.x, bz: s.position.z }); // Reduced speed factors
                     }
                     update = (t) => {
-                        core.rotation.y = t * 1.2; core.scale.setScalar(1 + Math.sin(t * 12) * 0.08);
+                        core.rotation.y = t * 0.25; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08); // Slowed core x2
                         flames.forEach(f => {
-                            const w = Math.sin(t * f.s + f.o); f.m.scale.setScalar(0.4 + w * 0.6); f.m.position.y = 0.3 + w * 0.4;
-                            f.m.position.x = f.bx + Math.sin(t * 5 + f.o) * 0.1; f.m.position.z = f.bz + Math.cos(t * 5 + f.o) * 0.1; f.m.rotation.x = t * f.rs;
+                            f.m.rotation.x += f.rs * 0.005; f.m.rotation.y += f.rs * 0.005; 
+                            f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 2.0); // Taller flame limit, half speed
+                            const sc = Math.max(0.1, 1 - (f.m.position.y / 4.0)); // Slow stretch boundary
+                            f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5); 
                         });
                     };
                 } else if (el === 'WIND') {
@@ -630,7 +642,16 @@
                         line.position.y = (h-0.5)*2.5; tornado.add(line);
                     }
                     group.add(tornado);
-                    update = (t) => { tornado.children.forEach((l, idx) => { l.rotation.y = t*(idx+70); l.position.x = Math.sin(t*8 + idx)*0.1; }); tornado.rotation.z = Math.sin(t*4)*0.1; };
+                    update = (t) => { 
+                        const isDark = document.body.classList.contains('dark-mode');
+                        const targetColor = isDark ? 0xffffff : 0x37474f;
+                        tornado.children.forEach((l, idx) => { 
+                            l.material.color.setHex(targetColor);
+                            l.rotation.y = t*(idx+70); 
+                            l.position.x = Math.sin(t*8 + idx)*0.1; 
+                        }); 
+                        tornado.rotation.z = Math.sin(t*4)*0.1; 
+                    };
                 } else if (el === 'WATER') {
                     const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
                     update = (t) => {
@@ -642,13 +663,49 @@
                         pos.needsUpdate = true;
                     };
                 } else if (el === 'ITEM') {
+                    // Potion Flask (round bottom with narrow neck)
                     const vial = new THREE.Group();
-                    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, flatShading: true }));
-                    const liq = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.0, 12), new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x002e03, emissiveIntensity: 0.5 }));
-                    liq.position.y = -0.3; vial.add(body, liq);
-                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
-                    cork.position.y = 1.6; vial.add(cork); group.add(vial);
-                    update = (t) => { vial.rotation.z = Math.sin(t * 2) * 0.2; liq.scale.y = 0.9 + Math.sin(t * 3) * 0.1; };
+                    
+                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
+                    const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
+                    
+                    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
+                    neck.position.y = 1.4;
+                    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
+                    lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
+                    
+                    // Glowing green liquid inside sphere (Uses half-sphere plus a flat top disk to simulate 50% fluid)
+                    const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+                    const liqGroup = new THREE.Group();
+                    const liqGeo = new THREE.SphereGeometry(1.05, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI); // Equator to South Pole
+                    const liq = new THREE.Mesh(liqGeo, liqMat);
+                    const liqTop = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), liqMat);
+                    liqTop.rotation.x = -Math.PI / 2; // Flat horizontal top representing the surface
+                    liq.add(liqTop);
+                    liqGroup.add(liq);
+                    
+                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 }));
+                    cork.position.y = 1.9;
+                    
+                    vial.add(flask, neck, lip, liqGroup, cork);
+                    vial.position.y = -0.5; // Center
+                    group.add(vial);
+                    
+                    const glowLight = new THREE.PointLight(0x00ff00, 3, 6);
+                    vial.add(glowLight);
+                    
+                    update = (t) => { 
+                        vial.rotation.z = Math.sin(t * 1.5) * 0.1; 
+                        vial.rotation.y = t * 0.4; // Slower spinning
+                        
+                        // Sloshing logic - dynamically tilting the local fluid sphere oppositely to create sloshing against the identical glass surface
+                        liqGroup.rotation.x = Math.sin(t * 2.1) * 0.2;
+                        liqGroup.rotation.z = -Math.sin(t * 1.5) * 0.25 + Math.cos(t * 2.5) * 0.1;
+                        
+                        const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
+                        glowLight.intensity = 1.5 + pulse * 1.5; 
+                        liqGroup.scale.setScalar(0.98 + pulse * 0.02); // Lowered throb
+                    };
                 } else if (el === 'KATANA') {
                     const hiltGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
                     const hiltMat = new THREE.MeshStandardMaterial({color: 0x222222});
@@ -675,37 +732,155 @@
                     boss.position.z = 0.1;
                     group.add(shield, boss);
                     update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
-                } else if (el === 'DICE_EVEN' || el === 'DICE_ODD') {
+                } else if (el === 'DICE_EVEN' || el === 'DICE_ODD' || el === 'DICE_CENTER') {
                     const dieGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
-                    const dieMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.1});
-                    const die = new THREE.Mesh(dieGeo, dieMat);
+                    const dieMat = new THREE.MeshStandardMaterial({
+                        color: el === 'DICE_CENTER' ? 0xffffff : 0xffffff, 
+                        roughness: 0.2, metalness: 0.1
+                    });
                     
-                    const dotGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
-                    const dotMat = new THREE.MeshStandardMaterial({color: el === 'DICE_EVEN' ? 0x1b5e20 : 0xb71c1c}); // Green for Even, Red for Odd
-                    
-                    // Add standard center dot mapping (1 face)
-                    const dotCenter = new THREE.Mesh(dotGeo, dotMat);
-                    dotCenter.rotation.x = Math.PI / 2;
-                    dotCenter.position.z = 0.81;
-                    die.add(dotCenter);
+                    if (el === 'DICE_CENTER') {
+                        // Two completely mapped 3D Dice
+                        function createDie(isBlack) {
+                            const mat = new THREE.MeshStandardMaterial({color: isBlack ? 0x111111 : 0xffffff, roughness: 0.1, metalness: 0.3});
+                            const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat);
+                            
+                            const dotGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
+                            const dotMat = new THREE.MeshStandardMaterial({color: isBlack ? 0xffffff : 0x111111});
+                            mesh.userData.dotMat = dotMat;
+                            
+                            function addDot(x, y, z, rx, ry, rz) {
+                                const d = new THREE.Mesh(dotGeo, dotMat);
+                                d.position.set(x, y, z);
+                                if (rx) d.rotation.x = rx;
+                                if (ry) d.rotation.y = ry;
+                                if (rz) d.rotation.z = rz;
+                                mesh.add(d);
+                            }
 
-                    // Add opposing face (6 dots)
-                    for (let x of [-0.4, 0.4]) {
-                        for (let y of [-0.4, 0, 0.4]) {
-                            const d = new THREE.Mesh(dotGeo, dotMat);
-                            d.rotation.x = -Math.PI / 2;
-                            d.position.set(x, y, -0.81);
-                            die.add(d);
+                            // Side 1: +Z (1 dot)
+                            addDot(0, 0, 0.61, Math.PI/2, 0, 0);
+                            
+                            // Side 6: -Z (6 dots)
+                            for(let dx of [-0.3, 0.3]) for(let dy of [-0.3, 0, 0.3]) addDot(dx, dy, -0.61, Math.PI/2, 0, 0);
+                            
+                            // Side 2: +Y (2 dots)
+                            addDot(-0.3, 0.61, -0.3, 0, 0, 0);
+                            addDot(0.3, 0.61, 0.3, 0, 0, 0);
+
+                            // Side 5: -Y (5 dots)
+                            addDot(0, -0.61, 0, 0, 0, 0);
+                            for(let dx of [-0.3, 0.3]) for(let dz of [-0.3, 0.3]) addDot(dx, -0.61, dz, 0, 0, 0);
+
+                            // Side 3: +X (3 dots)
+                            addDot(0.61, 0, 0, 0, 0, Math.PI/2);
+                            addDot(0.61, 0.3, -0.3, 0, 0, Math.PI/2);
+                            addDot(0.61, -0.3, 0.3, 0, 0, Math.PI/2);
+
+                            // Side 4: -X (4 dots)
+                            for(let dy of [-0.3, 0.3]) for(let dz of [-0.3, 0.3]) addDot(-0.61, dy, dz, 0, 0, Math.PI/2);
+                            return mesh;
                         }
-                    }
 
-                    group.add(die);
-                    update = (t) => { 
-                        // Spin crazily
-                        die.rotation.x = t * (el === 'DICE_EVEN' ? 2.5 : -2.5); 
-                        die.rotation.y = t * 3.1; 
-                        die.rotation.z = Math.sin(t*2);
-                    };
+                        const d1 = createDie(true); d1.position.set(-0.8, 0, 0);
+                        const d2 = createDie(false); d2.position.set(0.8, 0, 0);
+                        
+                        group.add(d1, d2);
+                        update = (t) => {
+                            if (window.diceSettleTime === undefined) window.diceSettleTime = -5000;
+                            const speedMode = window.diceAttackSpin || 1.0;
+                            if (window.diceAttackSpin > 1.0) window.diceAttackSpin -= 0.5; // Decay
+                            
+                            const dt = 0.016 * speedMode;
+                            
+                            if (speedMode > 1.1) {
+                                d1.rotation.x += dt * 0.8; d1.rotation.y += dt * 1.1;
+                                d2.rotation.x -= dt * 0.8; d2.rotation.y -= dt * 1.1;
+                                window.diceSettleTime = performance.now();
+                                d1.userData.targetRx = Math.round(d1.rotation.x / (Math.PI/2)) * (Math.PI/2);
+                                d1.userData.targetRy = Math.round(d1.rotation.y / (Math.PI/2)) * (Math.PI/2);
+                                d2.userData.targetRx = Math.round(d2.rotation.x / (Math.PI/2)) * (Math.PI/2);
+                                d2.userData.targetRy = Math.round(d2.rotation.y / (Math.PI/2)) * (Math.PI/2);
+                            } else {
+                                const settleAge = performance.now() - window.diceSettleTime;
+                                if (settleAge < 5000) {
+                                    // Interpolate to locked orthogonal faces ("land on numbers")
+                                    d1.rotation.x += (d1.userData.targetRx - d1.rotation.x) * 0.15;
+                                    d1.rotation.y += (d1.userData.targetRy - d1.rotation.y) * 0.15;
+                                    d1.rotation.z += (0 - d1.rotation.z) * 0.15;
+                                    d2.rotation.x += (d2.userData.targetRx - d2.rotation.x) * 0.15;
+                                    d2.rotation.y += (d2.userData.targetRy - d2.rotation.y) * 0.15;
+                                    d2.rotation.z += (0 - d2.rotation.z) * 0.15;
+                                } else {
+                                    // Resume normal lazy roll
+                                    d1.rotation.x += dt * 0.8; d1.rotation.y += dt * 1.1;
+                                    d2.rotation.x -= dt * 0.8; d2.rotation.y -= dt * 1.1;
+                                }
+                                
+                                // Cleanly interpolate all bobbing/floating toward 0 while settled!
+                                const isFrozen = (settleAge > 0 && settleAge < 5000 && speedMode <= 1.1);
+                                const targetGrpY = isFrozen ? 0 : Math.sin(t * 0.5) * 0.3;
+                                const targetD1Y = isFrozen ? 0 : Math.sin(t*2)*0.1;
+                                const targetD2Y = isFrozen ? 0 : Math.cos(t*2)*0.1;
+                                
+                                group.rotation.y += (targetGrpY - group.rotation.y) * 0.15;
+                                d1.position.y += (targetD1Y - d1.position.y) * 0.15;
+                                d2.position.y += (targetD2Y - d2.position.y) * 0.15;
+                            }
+                            
+                            const settleAge = performance.now() - (window.diceSettleTime || 0);
+                            
+                            // 1. Keep main cube bodies dark
+                            d1.material.emissiveIntensity = 0;
+                            d2.material.emissiveIntensity = 0;
+                            
+                            // 2. Sequential Counting Sequence (Only active once landed and settled)
+                            if (speedMode <= 1.1 && settleAge > 0 && settleAge < 1500) {
+                                d1.userData.dotMat.emissive.setHex(0x00ffa5);
+                                d2.userData.dotMat.emissive.setHex(0x00ffa5);
+                                
+                                let f1 = 0, f2 = 0;
+                                if (settleAge > 200 && settleAge <= 450) { f1 = 4.0; } // Die 1 Count
+                                else if (settleAge > 600 && settleAge <= 850) { f2 = 4.0; } // Die 2 Count
+                                else if (settleAge > 1000 && settleAge <= 1150) { f1 = 4.0; f2 = 4.0; } // Blink 1
+                                else if (settleAge > 1300 && settleAge <= 1450) { f1 = 4.0; f2 = 4.0; } // Blink 2
+
+                                d1.userData.dotMat.emissiveIntensity = f1;
+                                d2.userData.dotMat.emissiveIntensity = f2;
+                            } else {
+                                d1.userData.dotMat.emissiveIntensity = 0;
+                                d2.userData.dotMat.emissiveIntensity = 0;
+                            }
+                        };
+                    } else {
+                        // Original Single Die logic
+                        const die = new THREE.Mesh(dieGeo, dieMat);
+                        const dotGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+                        const dotMat = new THREE.MeshStandardMaterial({color: el === 'DICE_EVEN' ? 0x1b5e20 : 0xb71c1c}); // Green for Even, Red for Odd
+                        
+                        // Add standard center dot mapping (1 face)
+                        const dotCenter = new THREE.Mesh(dotGeo, dotMat);
+                        dotCenter.rotation.x = Math.PI / 2;
+                        dotCenter.position.z = 0.81;
+                        die.add(dotCenter);
+
+                        // Add opposing face (6 dots)
+                        for (let x of [-0.4, 0.4]) {
+                            for (let y of [-0.4, 0, 0.4]) {
+                                const d = new THREE.Mesh(dotGeo, dotMat);
+                                d.rotation.x = -Math.PI / 2;
+                                d.position.set(x, y, -0.81);
+                                die.add(d);
+                            }
+                        }
+
+                        group.add(die);
+                        update = (t) => { 
+                            die.rotation.x = t * (el === 'DICE_EVEN' ? 2.5 : -2.5); 
+                            die.rotation.y = t * 3.1; 
+                            die.rotation.z = Math.sin(t*2);
+                        };
+                    }
                 }
                 scene.add(group); scenes[el] = { scene, update };
             });
@@ -719,7 +894,7 @@
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 
-                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden (e.g. Combat Mode)
+                // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden
                 if (document.getElementById('lower-ui-row').style.display === 'none') return;
                 
                 const t = time * 0.001;
@@ -744,26 +919,32 @@
                     avatarRenderer.render(avatarScene, avatarCamera);
                 }
 
-                elements.forEach(el => {
-                    scenes[el].update(t);
-                    // Critical Optimization: ONLY render the 3D canvases that are on the top of the deck (depth 0) OR are Wager cards
-                    // This cuts the active WebGL contexts & drawImage calls down drastically
-                    let selector = `.guide-card[data-depth="0"] .card-icon-3d[data-element="${el}"] canvas`;
-                    if (el === 'DICE_EVEN' || el === 'DICE_ODD') selector = `.wager-card .card-icon-3d[data-element="${el}"] canvas`;
-                    const canvases = document.querySelectorAll(selector);
-                    canvases.forEach(cvs => {
-                        const cw = cvs.clientWidth, ch = cvs.clientHeight;
-                        if (cw === 0 || ch === 0) return; 
-                        const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
-                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
-                        renderer.setSize(cw, ch, false);
-                        
-                        // Use pre-instantiated camera to prevent massive garbage collection stalls
-                        renderer.render(scenes[el].scene, iconCamera);
-                        
-                        const ctx = cvs.getContext('2d');
-                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
-                    });
+                // Update rotational logic for all 3D components
+                elements.forEach(el => scenes[el].update(t));
+
+                // CRITICAL OPTIMIZATION: Call generic querySelectorAll ONCE per frame, not 10 times in a loop
+                // Targets: Focused Cards (depth=0), Wager Cards, and the Center DOM button
+                const validContainers = document.querySelectorAll(
+                    '.guide-card[data-depth="0"] .card-icon-3d, .wager-card .card-icon-3d, .kp-center-btn[data-element="DICE_CENTER"], .kp-center-btn[data-icon="DICE_CENTER"]'
+                );
+
+                validContainers.forEach(container => {
+                    const el = container.dataset.element || container.dataset.icon;
+                    if (!el || !scenes[el]) return;
+                    
+                    const cvs = container.querySelector('canvas') || (container.firstChild && container.firstChild.nodeName === 'CANVAS' ? container.firstChild : null);
+                    if (!cvs) return;
+
+                    const cw = cvs.clientWidth, ch = cvs.clientHeight;
+                    if (cw === 0 || ch === 0) return; 
+                    const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
+                    if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+                    
+                    // Use pre-instantiated camera to prevent massive garbage collection stalls
+                    renderer.render(scenes[el].scene, iconCamera);
+                    
+                    const ctx = cvs.getContext('2d');
+                    if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
                 });
             }
             renderLoop(0);
@@ -783,7 +964,7 @@
             
             avatarScene = new THREE.Scene();
             avatarCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-            avatarCamera.position.set(0, 1.2, 4.5);
+            avatarCamera.position.set(0, 1.2, 4.8);
             avatarCamera.lookAt(0, 1.0, 0); // Explicitly look at the avatar's chest/head height
             
             const ambLight = new THREE.AmbientLight(0xffffff, 1.5); // Brighter ambient light
@@ -804,11 +985,12 @@
                 function tryLoadModel(urlIndex) {
                     if (urlIndex >= modelUrls.length) {
                         if (isLocalFile) {
-                            console.log("Avatar 3D load skipped: Browsers block 'file://' CORS fetch requests. Please run a local web server (e.g. `npx serve` or `python3 -m http.server`) to view the animated avatar.");
+                            console.log("Avatar 3D load skipped: Browsers block 'file://' CORS fetch requests. Using 2D portrait fallback.");
                         } else {
-                            console.warn("Avatar failed to load natively after all attempts. Running without Player Avatar.");
+                            console.warn("Avatar failed to load natively after all attempts. Falling back to 2D portrait.");
                         }
-                        container.innerHTML = '<i class="fa-solid fa-user-astronaut" style="color:var(--color-text); font-size:24px;"></i>';
+                        container.style.background = 'url("assets/models/Player.A.png") center/cover no-repeat';
+                        container.style.backgroundColor = 'rgba(0,0,0,0.5)';
                         return;
                     }
                     
@@ -826,8 +1008,29 @@
                         
                         if (gltf.animations && gltf.animations.length > 0) {
                             avatarMixer = new THREE.AnimationMixer(model);
-                            avatarAction = avatarMixer.clipAction(gltf.animations[0]);
-                            // Don't play initially until player moves
+                            gltf.animations.forEach((anim, i) => {
+                                const action = avatarMixer.clipAction(anim);
+                                avatarActions[anim.name.toLowerCase()] = action;
+                                avatarActions[i] = action;
+                            });
+                            
+                            // Map best matches
+                            avatarIdleAction = avatarActions['idle'] || avatarActions['stand'];
+                            avatarActions.walk = avatarActions['walk'] || avatarActions['run'] || avatarActions['walking'] || avatarActions[1] || avatarActions[0];
+                            avatarActions.slash = avatarActions['attack'] || avatarActions['slash'] || avatarActions[2] || avatarActions[1] || avatarActions.walk;
+                            
+                            if (!avatarIdleAction && gltf.animations.length === 1) {
+                                // If ONLY a walk cycle was loaded, don't map it to idle, otherwise it walks in place
+                                avatarIdleAction = null;
+                            } else if (!avatarIdleAction) {
+                                avatarIdleAction = avatarActions[0];
+                            }
+                            
+                            // Play idle immediately if it logically exists
+                            if (avatarIdleAction) {
+                                avatarCurrentAction = avatarIdleAction;
+                                avatarIdleAction.play();
+                            }
                         }
                         
                         // Fix metallic/roughness issues that might make it render black
@@ -1216,6 +1419,16 @@
         });
         setup();
 
+        const centerDiceBtn = document.querySelector('.kp-center-btn');
+        if (centerDiceBtn) {
+            centerDiceBtn.addEventListener('click', () => {
+                window.diceAttackSpin = 40.0;
+                const roll = Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6) + 2; // 2d6
+                window.parent.postMessage({ type: 'COMBAT_DAMAGE_MODIFIER', value: roll }, '*');
+                console.log(`[Tactical UI] Dice Clicked - Rolling 2d6 Modifier: ${roll}`);
+            });
+        }
+
         // Listen for combat state changes from main relay
         window.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'SHOW_COMBAT') {
@@ -1234,19 +1447,58 @@
                 document.getElementById('encounter-zone').classList.remove('active');
                 loadDeck(defaultCategories); // Reset deck after combat
             } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
+                window.diceAttackSpin = 40.0; // Overdrive the dice icon spin!
                 // If the player steps forward into the monster (bump attack), pop out Katana cards!
                 loadDeck(combatCategories);
+                if (avatarActions && avatarActions.slash) {
+                    const slash = avatarActions.slash;
+                    slash.reset();
+                    slash.setLoop(THREE.LoopOnce, 1);
+                    slash.clampWhenFinished = true;
+                    if (avatarCurrentAction && avatarCurrentAction !== slash) {
+                        slash.crossFadeFrom(avatarCurrentAction, 0.2, true);
+                    }
+                    slash.play();
+                    avatarCurrentAction = slash;
+                    
+                    // Return to idle/walk after animation finishes (~1sec)
+                    setTimeout(() => {
+                        const nextAction = document.body.classList.contains('is-moving') ? avatarActions.walk : avatarIdleAction;
+                        if (nextAction && nextAction !== avatarCurrentAction) {
+                            nextAction.reset();
+                            nextAction.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                            nextAction.play();
+                            avatarCurrentAction = nextAction;
+                        }
+                    }, Math.max(1000, (slash.getClip().duration * 1000) - 200));
+                }
             } else if (e.data && e.data.type === 'LCD_EVENT') {
                 if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
-                    if (avatarAction && !avatarAction.isRunning()) avatarAction.play();
                     hideExitModal(); // Hide if player walks away
+                    
+                    const walk = avatarActions ? avatarActions.walk : null;
+                    if (walk && avatarCurrentAction !== walk) {
+                        walk.reset();
+                        if (avatarCurrentAction) walk.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                        walk.play();
+                        avatarCurrentAction = walk;
+                    }
                 }
                 else {
                     document.body.classList.remove('is-moving');
-                    if (avatarAction) avatarAction.stop(); // Stops gracefully, returning model to standing Idle
+                    if (avatarIdleAction && avatarCurrentAction !== avatarIdleAction) {
+                        avatarIdleAction.reset();
+                        if (avatarCurrentAction) avatarIdleAction.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                        avatarIdleAction.play();
+                        avatarCurrentAction = avatarIdleAction;
+                    } else if (!avatarIdleAction && avatarCurrentAction) {
+                        // Return to T-pose/idle freeze if no logical idle clip exists
+                        avatarCurrentAction.fadeOut(0.3);
+                        setTimeout(() => { if (avatarCurrentAction && avatarCurrentAction.getEffectiveWeight() === 0) avatarCurrentAction.stop(); avatarCurrentAction = null; }, 300);
+                    }
                 }
             } else if (e.data && e.data.type === 'SHOW_EXIT') {
                 showExitModal();

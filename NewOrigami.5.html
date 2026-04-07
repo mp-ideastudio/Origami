@@ -78,6 +78,7 @@
         height: 100%;
         z-index: 25;
         pointer-events: none;
+        display: none;
       }
       #combat-panels-wrapper iframe {
         pointer-events: none;
@@ -85,6 +86,9 @@
         height: 100%;
         border: none;
         background: transparent;
+      }
+      #combat-panels-wrapper.active {
+        display: block;
       }
       #combat-panels-wrapper.active iframe {
         pointer-events: auto;
@@ -97,7 +101,7 @@
       
       <!-- FPV Background (Fullscreen) -->
       <div id="fpv-viewport">
-        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.2.html" allow="autoplay; fullscreen"></iframe>
+        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.1.html" allow="autoplay; fullscreen"></iframe>
       </div>
 
       <!-- Bottom Control Panel -->

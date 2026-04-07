@@ -1789,13 +1789,13 @@
                 const ceilTex = this.createDarkWoodRafterTexture();
                 const objTex = this.makePaperTexture('#444444');
 
-                // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
+                // Upgraded Standard Materials for high glossy PBR
                 const mats = {
-                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
-                    ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
-                    wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
-                    npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
-                    monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
+                    floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.4, metalness: 0.3 }),
+                    ceil: new THREE.MeshStandardMaterial({ map: ceilTex, color: 0xFFFFFF, roughness: 0.9, metalness: 0.1 }),
+                    wall: new THREE.MeshStandardMaterial({ map: wallTex, color: 0xFFFFFF, roughness: 0.9, metalness: 0.1 }),
+                    npc: new THREE.MeshStandardMaterial({ color: '#7cfc00', map: objTex, roughness: 0.5 }),
+                    monster: new THREE.MeshStandardMaterial({ color: '#b85450', map: objTex, roughness: 0.5 })
                 };
 
                 // Merge geometry for insane performance (instead of 1000s of distinct meshes)
@@ -1907,13 +1907,15 @@
                         mesh.userData.texHostile = hudTexHostile;
                         mesh.userData.texSearch = hudTexSearch;
                         
-                        // Add Flashlight Cone (invisible initially)
-                        const searchLight = new THREE.SpotLight(0xff0000, 0, this.gridSize * 8, Math.PI / 4, 0.5, 1);
+                        // Add Flashlight Hologram Cone (invisible initially)
+                        const coneGeo = new THREE.CylinderGeometry(0, this.gridSize * 4, this.gridSize * 15, 16, 1, true);
+                        coneGeo.translate(0, -this.gridSize * 7.5, 0); // Translate so tip is at local 0,0,0
+                        const coneMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending });
+                        const searchLight = new THREE.Mesh(coneGeo, coneMat);
                         searchLight.position.set(0, 1, 0); // Eye level
-                        searchLight.target.position.set(0, 1, 1); // Point down +Z (local forward after wrapper rotation)
+                        searchLight.rotation.x = -Math.PI / 2; // Point down +Z
                         searchLight.name = "searchLight";
                         mesh.add(searchLight);
-                        mesh.add(searchLight.target);
                         
                         mesh.userData.baseMat = circleMat; // Save reference for coloring later
                         mesh.userData.searchLight = searchLight;
@@ -2647,11 +2649,11 @@
                                     if (up.state === 'IDLE') {
                                         mesh.userData.baseMat.map = mesh.userData.texIdle;
                                         mesh.userData.baseMat.opacity = 0.2;
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.material.opacity = 0.0;
                                     } else if (up.state === 'HOSTILE') {
                                         mesh.userData.baseMat.map = mesh.userData.texHostile;
                                         mesh.userData.baseMat.opacity = 0.5;
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.material.opacity = 0.0;
                                     } else if (up.state === 'SEARCHING') {
                                         mesh.userData.baseMat.map = mesh.userData.texSearch;
                                         // Blinking effect logic
@@ -2659,7 +2661,7 @@
                                         mesh.userData.baseMat.opacity = (timeSecs % 2 === 0) ? 0.7 : 0.2;
                                         
                                         // Activate tracking light
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 4.0;
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.material.opacity = 0.2;
                                     }
                                 }
                                 
@@ -3157,7 +3159,7 @@
                                     }
                                     child.userData.baseMat.opacity = 0.9;
                                 }
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                if (child.userData.searchLight) child.userData.searchLight.material.opacity = 0.0;
                                 
                             } else if (aiData.state === 'SEARCH') {
                                 aiData.searchTimer += delta;
@@ -3174,7 +3176,7 @@
                                     }
                                 }
                                 
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
+                                if (child.userData.searchLight) child.userData.searchLight.material.opacity = 0.1;
 
                                 if (aiData.searchTimer > 4.0) { // 4 seconds of searching
                                     aiData.state = 'RETURN';
@@ -3203,7 +3205,7 @@
                                         child.userData.baseMat.map = this.getCachedCircleTexture('#ffaa00'); // Orange return
                                     }
                                 }
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                if (child.userData.searchLight) child.userData.searchLight.material.opacity = 0.0;
                                 
                             } else {
                                 // IDLE
@@ -3213,7 +3215,7 @@
                                     }
                                     child.userData.baseMat.opacity = 0.5;
                                 }
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                if (child.userData.searchLight) child.userData.searchLight.material.opacity = 0.0;
                             }
                             
                             // Explicit override for the side-panel logic!

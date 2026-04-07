@@ -1700,16 +1700,10 @@
                         mesh.userData.texHostile = hudTexHostile;
                         mesh.userData.texSearch = hudTexSearch;
                         
-                        // Add Flashlight Cone (invisible initially)
-                        const searchLight = new THREE.SpotLight(0xff0000, 0, this.gridSize * 8, Math.PI / 4, 0.5, 1);
-                        searchLight.position.set(0, 1, 0); // Eye level
-                        searchLight.target.position.set(0, 1, 1); // Point down +Z (local forward after wrapper rotation)
-                        searchLight.name = "searchLight";
-                        mesh.add(searchLight);
-                        mesh.add(searchLight.target);
+                        // Removed Flashlight Cone to preserve realistic lighting per user request
                         
                         mesh.userData.baseMat = circleMat; // Save reference for coloring later
-                        mesh.userData.searchLight = searchLight;
+                        // No searchLight attached
                         
                         this.testMonster = mesh;
                     } else {
@@ -2553,9 +2547,9 @@
                         
                         let colX = null, colZ = null;
                         
-                        // Active Combat Distance Lock: Intercept forward movement (bump attack) ONLY if we are physically next to the target (< 1.5 tiles)
-                        // If we are just locked onto it from afar (e.g., 4 tiles away), allow normal walking towards it!
-                        if (moveDir === 1 && this.activeTarget && this.activeTargetDist < 1.5) {
+                        // Active Combat Distance Lock: Intercept forward movement (bump attack)
+                        // By design, pressing 'W' or UP triggers combat immediately if locked on
+                        if (moveDir === 1 && this.activeTarget) {
                             const now = performance.now();
                             if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
                                 this.lastAttackTime = now;
