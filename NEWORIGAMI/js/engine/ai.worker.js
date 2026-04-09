@@ -41,8 +41,12 @@ class EntitiesManager {
                 break;
             case 'PLAYER_ATTACK':
                 // The Game Engine has forwarded an attack command from the UI
-                this.globalHostility = true; // All monsters hostile on sight
-                const dmg = 1; // 2 attacks to kill
+                const dmg = e.data.damage || 25; 
+                // Only this specific monster becomes hostile
+                const t = this.entities.get(e.data.targetId);
+                if (t && t.state !== 'HOSTILE') {
+                    t.state = 'HOSTILE';
+                }
                 this.applyDamage(e.data.targetId, dmg);
                 break;
             case 'WAGER_RESULT':
@@ -64,8 +68,8 @@ class EntitiesManager {
                 z: s.z,
                 spawnX: s.x,
                 spawnZ: s.z,
-                hp: 2, // 2 attacks to kill
-                state: 'IDLE', // IDLE, HOSTILE, SEARCHING, TALKING
+                hp: s.type === 'monster' || s.type === 'goblin' ? 50 : 100, // Enforce 50 HP limit
+                state: 'IDLE', // IDLE, STALKING, HOSTILE, SEARCHING, TALKING
                 moveEnergy: 0,
                 searchTurns: 0
             });
@@ -99,8 +103,8 @@ class EntitiesManager {
                 // AI State Machine
                 if (entity.state === 'IDLE') {
                     if (!this.globalHostility && !this.wagerWon && dist < 6) {
-                        entity.state = 'HOSTILE';
-                        updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                        entity.state = 'STALKING';
+                        updates.push({ id: entity.id, action: 'STATE', state: 'STALKING' });
                     } else if (this.wagerWon) {
                         // Walk around randomly
                         if (Math.random() < 0.2) {
@@ -121,14 +125,37 @@ class EntitiesManager {
                             updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: 'IDLE' });
                         }
                     }
+                } else if (entity.state === 'STALKING') {
+                    if (dist < 2) {
+                        entity.state = 'HOSTILE';
+                        updates.push({ id: entity.id, action: 'STATE', state: 'HOSTILE' });
+                    } else if (dist > 8) {
+                        entity.state = 'IDLE';
+                        updates.push({ id: entity.id, action: 'STATE', state: 'IDLE' });
+                    } else {
+                        // Move sideways relative to player
+                        entity.moveEnergy += 0.5;
+                        if (entity.moveEnergy >= 1) {
+                            entity.moveEnergy -= 1;
+                            // Target roughly 3 tiles away from player to try to flank
+                            const flankX = this.playerPos.x + (Math.random() > 0.5 ? 3 : -3);
+                            const flankZ = this.playerPos.z + (Math.random() > 0.5 ? 3 : -3);
+                            const path = this.findPath({x: entity.x, z: entity.z}, {x: flankX, z: flankZ});
+                            if (path && path.length > 0) {
+                                entity.x = path[0].x;
+                                entity.z = path[0].z;
+                                updates.push({ id: entity.id, action: 'MOVE', x: entity.x, z: entity.z, state: 'STALKING' });
+                            }
+                        }
+                    }
                 } else if (entity.state === 'HOSTILE') {
-                    if (!this.globalHostility && dist > 8) {
+                    if (!this.globalHostility && dist > 7) {
                         entity.state = 'SEARCHING';
                         entity.searchTurns = 0;
                         updates.push({ id: entity.id, action: 'STATE', state: 'SEARCHING' });
                     } else {
-                        // 75% Speed Accumulator
-                        entity.moveEnergy += 0.75;
+                        // Slowed down slightly to allow player kiting
+                        entity.moveEnergy += 0.65;
                         if (entity.moveEnergy >= 1) {
                             entity.moveEnergy -= 1;
                             const path = this.findPath({x: entity.x, z: entity.z}, {x: this.playerPos.x, z: this.playerPos.z});

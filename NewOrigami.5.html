@@ -47,18 +47,18 @@
       }
 
 
-      /* Bottom Control Panel */
+      /* Bottom Control Panel - Full height so encounter-zone top:50% = true screen center */
       #adventure-panel {
         position: absolute;
+        top: 0;
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 250px;
+        height: 100%;
         z-index: 30;
         display: block;
         pointer-events: none;
         background: transparent !important;
-        transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
       #adventure-panel iframe {
         pointer-events: auto;
@@ -168,11 +168,15 @@
 
                   case 'PLAYER_MOVE_STATE':
                   case 'LCD_EVENT':
+                  case 'LOG_EVENT':
+                  case 'SYNC_STATS':
                      notifyEngine('panels', e.data);
+                     notifyEngine('combat', e.data); // Make sure both mode=dock and mode=combat get events
                      break;
 
                   case 'SHOW_COMBAT':
-                     notifyEngine('panels', e.data); // Fallback to bottom adventure UI
+                     notifyEngine('panels', e.data); // mode=dock panels handle encounter zone
+                     // NOTE: Do not activate combatWrapper overlay - encounter zone is in mode=dock panels now
                      break;
 
                   case 'HIDE_COMBAT':
