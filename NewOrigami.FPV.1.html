@@ -2565,77 +2565,110 @@
                 this.worldGroup.add(coinMesh);
                 this.lootItems.push(coinMesh);
                 
-                // Tactical card loot — visual matches the game's combat card system
+                // ── Loot card: faithful guide-card replica (matches NewOrigami.Panels.html) ──
+                // Card data mirrors the actual SPELL_MAP / defaultCategories
                 const LOOT_CARDS = [
-                    { name:'FIREBALL',  el:'FIRE',  icon:'\uD83D\uDD25', borderClr:'#ff4400', glowClr: 0xff2200, bgClr:'#1a0800' },
-                    { name:'BOULDER',   el:'EARTH', icon:'\uD83E\uDEA8', borderClr:'#8B6914', glowClr: 0x7B5E3A, bgClr:'#100c04' },
-                    { name:'FISSURE',   el:'EARTH', icon:'\uD83C\uDF0B', borderClr:'#7a4f28', glowClr: 0x5C4033, bgClr:'#0f0803' },
-                    { name:'GALE',      el:'WIND',  icon:'\uD83D\uDCA8', borderClr:'#4fadd4', glowClr: 0x90caf9, bgClr:'#040c14' },
-                    { name:'SURGE',     el:'WATER', icon:'\uD83C\uDF0A', borderClr:'#0077aa', glowClr: 0x006994, bgClr:'#020b12' },
-                    { name:'SLASH',     el:'KATANA',icon:'\u2694',       borderClr:'#c8c8c8', glowClr: 0xffffff, bgClr:'#0d0d0d' },
-                    { name:'PYROBLAST', el:'FIRE',  icon:'\uD83D\uDD25', borderClr:'#ff1100', glowClr: 0xff2200, bgClr:'#1a0400' },
+                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'(STUN * 2DICE)',  emissive: 0x5C4033 },
+                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'(STUN * 3DICE)',  emissive: 0x5C4033 },
+                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'(PUSH * 3DICE)',  emissive: 0x37474f },
+                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'(DMG * 4DICE)',   emissive: 0xff2200 },
+                    { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'(DMG * 6DICE)',   emissive: 0xff2200 },
+                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'(SLOW * 4DICE)',  emissive: 0x0d47a1 },
+                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'(DMG * 1DICE)',   emissive: 0xcc0000 },
+                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'(DEFEND * 2DICE)', emissive: 0x0d47a1 },
+                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'(HEAL * 1DICE)',  emissive: 0x1b5e20 },
                 ];
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
 
+                // Element icons for the icon-3d circle
+                const ELEM_ICONS = {
+                    EARTH:'\uD83E\uDEA8', WIND:'\uD83D\uDCA8', FIRE:'\uD83D\uDD25',
+                    WATER:'\uD83C\uDF0A', ITEM:'\uD83E\uDDEA', KATANA:'\u2694\uFE0F', SHIELD:'\uD83D\uDEE1\uFE0F'
+                };
+
+                // Canvas at 2× real card proportions (84×135 → 256×410 for crisp text)
+                const CW = 256, CH = 410;
                 const cardCanvas = document.createElement('canvas');
-                cardCanvas.width = 128; cardCanvas.height = 192;
+                cardCanvas.width = CW; cardCanvas.height = CH;
                 const ctx = cardCanvas.getContext('2d');
 
-                // Background
-                ctx.fillStyle = lc.bgClr;
-                ctx.beginPath(); ctx.roundRect(0, 0, 128, 192, 10); ctx.fill();
+                // ── [1] Body: glassmorphic dark panel (dark-mode bg) ──────────────
+                ctx.fillStyle = '#1e2022';
+                ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 24); ctx.fill();
+                // Glass border
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.roundRect(1, 1, CW-2, CH-2, 24); ctx.stroke();
 
-                // Neon outer border (double-stroke for glow effect)
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = lc.borderClr + '88'; // translucent outer glow
-                ctx.beginPath(); ctx.roundRect(3, 3, 122, 186, 9); ctx.stroke();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = lc.borderClr;
-                ctx.beginPath(); ctx.roundRect(6, 6, 116, 180, 7); ctx.stroke();
+                // ── [2] Header zone (card-header): kanji left + type pill center ─
+                const pillW = 110, pillH = 36, pillX = (CW - pillW) / 2, pillY = 14;
+                ctx.fillStyle = lc.themeClr;
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 7); ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 7); ctx.stroke();
+                // Pill label (uppercase element name)
+                ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.el, CW / 2, pillY + pillH / 2);
+                // Kanji left
+                ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = lc.themeClr;
+                ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.kanji, 18, pillY + pillH / 2);
 
-                // Inner art panel (dark, slightly lighter than bg)
-                const panelGrad = ctx.createLinearGradient(14, 40, 14, 150);
-                panelGrad.addColorStop(0, lc.bgClr);
-                panelGrad.addColorStop(1, '#000000');
-                ctx.fillStyle = panelGrad;
-                ctx.beginPath(); ctx.roundRect(14, 40, 100, 110, 5); ctx.fill();
+                // ── [3] Card title (card-title: bold 11px scaled up) ─────────────
+                ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+                ctx.fillText(lc.name, CW / 2, 88);
 
-                // Element icon (large, centred)
-                ctx.font         = '54px serif';
-                ctx.textAlign    = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(lc.icon, 64, 102);
-
-                // Card name top-centre
-                ctx.font      = 'bold 11px monospace';
-                ctx.fillStyle = lc.borderClr;
+                // ── [4] Card desc (card-desc: italic dim) ────────────────────────
+                ctx.font = 'italic 16px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.42)';
                 ctx.textBaseline = 'alphabetic';
-                ctx.fillText(lc.name, 64, 30);
+                ctx.fillText(lc.desc, CW / 2, 112);
 
-                // Element label bottom-centre
-                ctx.font      = '8px monospace';
-                ctx.fillStyle = lc.borderClr + 'aa';
-                ctx.fillText(lc.el, 64, 170);
+                // ── [5] Icon circle (card-icon-3d: 45px circle with inner shadow) ─
+                const icx = CW / 2, icy = 215, icr = 72;
+                // Dark glass circle with inner shadow
+                const igrd = ctx.createRadialGradient(icx - 10, icy - 10, 5, icx, icy, icr);
+                igrd.addColorStop(0, 'rgba(0,0,0,0.55)');
+                igrd.addColorStop(0.65, 'rgba(0,0,0,0.28)');
+                igrd.addColorStop(1, 'rgba(255,255,255,0.04)');
+                ctx.beginPath(); ctx.arc(icx, icy, icr, 0, Math.PI * 2);
+                ctx.fillStyle = igrd; ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 2;
+                ctx.stroke();
+                // Soft element glow inside circle
+                const egrd = ctx.createRadialGradient(icx, icy, 0, icx, icy, icr * 0.8);
+                egrd.addColorStop(0, lc.themeClr + '66');
+                egrd.addColorStop(1, 'transparent');
+                ctx.beginPath(); ctx.arc(icx, icy, icr, 0, Math.PI * 2);
+                ctx.fillStyle = egrd; ctx.fill();
+                // Element emoji
+                ctx.font = '62px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(ELEM_ICONS[lc.el] || '\u2728', icx, icy);
 
-                // Corner pips
-                ctx.font = '10px monospace'; ctx.textAlign = 'left';
-                ctx.fillStyle = lc.borderClr;
-                ctx.fillText(lc.icon, 10, 25);
-                ctx.save(); ctx.translate(118, 167); ctx.rotate(Math.PI);
-                ctx.fillText(lc.icon, 0, 0); ctx.restore();
+                // ── [6] Attr bar (card-attr-fused: dark #101012 footer) ───────────
+                const barY = CH - 80, barH = 80;
+                ctx.fillStyle = '#101012';
+                ctx.beginPath(); ctx.roundRect(0, barY, CW, barH, [0, 0, 24, 24]); ctx.fill();
+                // Separator line
+                ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(20, barY); ctx.lineTo(CW - 20, barY); ctx.stroke();
+                // Attr text (uppercase monospace, matches card-attr-fused styling)
+                ctx.font = 'bold 17px monospace'; ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.attr, CW / 2, barY + barH / 2);
 
                 const cardTex = new THREE.CanvasTexture(cardCanvas);
-                const emissiveHex = lc.glowClr;
 
-                // Card geometry — same proportions as before
-                const cardGeo  = new THREE.BoxGeometry(0.55, 0.78, 0.035);
+                // Card geometry — thin rect standing upright, matching guide-card proportions
+                // Real card is 84×135 → aspect 0.62; we preserve that
+                const cardGeo  = new THREE.BoxGeometry(0.62, 1.0, 0.04);
                 const cardMats = [
-                    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }), // right edge
-                    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }), // left edge
-                    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 }), // top edge
-                    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 }), // bottom edge
-                    new THREE.MeshStandardMaterial({ map: cardTex, emissive: emissiveHex, emissiveIntensity: 0.25 }), // front
-                    new THREE.MeshStandardMaterial({ color: 0x0a0a0a, emissive: emissiveHex, emissiveIntensity: 0.1 }),// back
+                    new THREE.MeshStandardMaterial({ color: 0x1e2022, roughness: 0.9 }),  // right edge
+                    new THREE.MeshStandardMaterial({ color: 0x1e2022, roughness: 0.9 }),  // left edge
+                    new THREE.MeshStandardMaterial({ color: 0x2a2c2e, roughness: 0.8 }),  // top edge
+                    new THREE.MeshStandardMaterial({ color: 0x101012, roughness: 0.8 }),  // bottom edge (attr bar colour)
+                    new THREE.MeshStandardMaterial({ map: cardTex, emissive: lc.emissive, emissiveIntensity: 0.18 }), // front face
+                    new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.9, metalness: 0.1 }),              // back face
                 ];
                 const cardMesh = new THREE.Mesh(cardGeo, cardMats);
                 cardMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
