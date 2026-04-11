@@ -471,10 +471,11 @@
         <div id="mapview-container" class="primary-view">
             <div class="view-label">Map View (Drag Here)</div>
             <div class="map-controls">
-                <span>Dist</span>
+            <div class="map-controls">
+                <span>Dist (<span id="pip-dist-val">25</span>)</span>
                 <button id="pip-zoom-in" title="Zoom In (Closer)">-</button>
                 <button id="pip-zoom-out" title="Zoom Out (Further)">+</button>
-                <span style="margin-left:8px;">Angle</span>
+                <span style="margin-left:8px;">Angle (<span id="pip-angle-val">0.65</span>)</span>
                 <button id="pip-angle-down" title="Lower Angle">-</button>
                 <button id="pip-angle-up" title="Raise Angle">+</button>
             </div>
@@ -3881,14 +3882,17 @@
                 pip.addEventListener("contextmenu", e => { if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); });
                 
                 // Single-Click cleanly swaps modes (ignoring drags) using reliable MouseUp distance calculation
+                let _clickOriginatedInControls = false;
+                
                 pip.addEventListener("mouseup", (e) => {
                      if (e.button !== 0) return; // Only process standard left clicks for camera swaps
+                     if (_clickOriginatedInControls) return; // Absolute protection off-target release drops
+                     
                      const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
                      if (dist > 5) return; // It was a drag, ignore
                      
                      if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
-                         // Swap FPV/TopDown modes only on valid UI elements
-                         if (e.target.closest(".map-controls")) return; // Prevent swap if clicking inside modern slider frame
+                         if (e.target.closest(".map-controls")) return;
 
                          this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
                          const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
@@ -3907,41 +3911,52 @@
                 // Bind Dynamic Map Controls (Native Buttons)
                 const angleUpBtn = document.getElementById("pip-angle-up");
                 const angleDownBtn = document.getElementById("pip-angle-down");
+                const angleVal = document.getElementById("pip-angle-val");
+                const updateAngleVal = () => { if(angleVal && this._pipRot) angleVal.innerText = this._pipRot.phi.toFixed(2); };
+                
                 if (angleUpBtn) {
                     angleUpBtn.onclick = (e) => {
                         e.stopPropagation();
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                        this._pipRot.phi = Math.min(1.5, this._pipRot.phi + 0.1);
+                        this._pipRot.phi = Math.min(1.5, this._pipRot.phi + 0.05);
+                        updateAngleVal();
                     };
                 }
                 if (angleDownBtn) {
                     angleDownBtn.onclick = (e) => {
                         e.stopPropagation();
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                        this._pipRot.phi = Math.max(0.1, this._pipRot.phi - 0.1);
+                        this._pipRot.phi = Math.max(0.1, this._pipRot.phi - 0.05);
+                        updateAngleVal();
                     };
                 }
                 
                 const zoomInBtn = document.getElementById("pip-zoom-in");
                 const zoomOutBtn = document.getElementById("pip-zoom-out");
+                const distVal = document.getElementById("pip-dist-val");
+                const updateDistVal = () => { if(distVal && this._pipZoomScale) distVal.innerText = this._pipZoomScale.toFixed(1); };
+                
                 if (zoomInBtn) {
                     zoomInBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this._pipZoomScale = Math.max(3, (this._pipZoomScale || 25) - 3);
+                        this._pipZoomScale = Math.max(3, (this._pipZoomScale || 25) - 2);
+                        updateDistVal();
                     };
                 }
                 if (zoomOutBtn) {
                     zoomOutBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this._pipZoomScale = Math.min(80, (this._pipZoomScale || 25) + 3);
+                        this._pipZoomScale = Math.min(80, (this._pipZoomScale || 25) + 2);
+                        updateDistVal();
                     };
                 }
                 
                 pip.addEventListener("mousedown", (e) => {
                     clickStart = { x: e.clientX, y: e.clientY };
+                    _clickOriginatedInControls = !!e.target.closest(".map-controls");
                     
                     // Allow sliders to bubble naturally to let Chrome initialize Drag state
-                    if (e.target.closest(".resize-handle") || e.target.closest(".map-controls")) return; 
+                    if (e.target.closest(".resize-handle") || _clickOriginatedInControls) return; 
                     
                     e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
                     
@@ -3954,7 +3969,6 @@
                          document.addEventListener("mouseup", onRotEnd, { once: true });
                          return;
                     }
-                    
                     if (e.target.closest(".canvas-wrapper")) {
                         // Left or Middle clicking the actual canvas pans the map
                         if (e.button === 0 || e.button === 1) { 
