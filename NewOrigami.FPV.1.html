@@ -324,59 +324,6 @@
             pointer-events: auto; /* Allow map panning */
         }
 
-        #mapview-container .map-controls {
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            z-index: 2000; /* Must be above resize handles (1010) */
-            background: rgba(0,0,0,0.5);
-            padding: 2px 5px;
-            border-radius: 4px;
-            pointer-events: auto;
-        }
-        #mapview-container .map-controls span.ctrl-group {
-            color: #fff;
-            font-size: 9px;
-            font-family: sans-serif;
-            text-transform: uppercase;
-        }
-        #mapview-container .map-controls span.ctrl-group.angle-grp {
-            margin-left: 8px;
-        }
-        #mapview-container .map-controls button {
-            background: rgba(40, 40, 40, 0.9);
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 4px;
-            width: 24px;
-            height: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            margin: 0 4px;
-            padding: 0;
-            pointer-events: auto !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-            position: relative;
-            z-index: 2100;
-        }
-        #mapview-container .map-controls button:hover {
-            background: #666;
-            border-color: #aaa;
-        }
-        #mapview-container .map-controls button:active {
-            background: #222;
-        }
-
         /* Vertical zoom slider overlay for mapview */
         #mapview-container .zoom-slider-container {
             position: absolute; top: 50%; left: 10px;
@@ -475,14 +422,6 @@
         <!-- EXACT MAPVIEW-CONTAINER FROM BASELINE -->
         <div id="mapview-container" class="primary-view">
             <div class="view-label">Map View (Drag Here)</div>
-            <div class="map-controls">
-                <span class="ctrl-group">Dist (<span id="pip-dist-val">25</span>)</span>
-                <button id="pip-zoom-in" title="Zoom In (Closer)">-</button>
-                <button id="pip-zoom-out" title="Zoom Out (Further)">+</button>
-                <span class="ctrl-group angle-grp">Angle (<span id="pip-angle-val">0.65</span>)</span>
-                <button id="pip-angle-down" title="Lower Angle">-</button>
-                <button id="pip-angle-up" title="Raise Angle">+</button>
-            </div>
             <div class="canvas-wrapper">
                 <canvas id="pip-map-canvas"></canvas>
             </div>
@@ -3890,14 +3829,11 @@
                 
                 pip.addEventListener("mouseup", (e) => {
                      if (e.button !== 0) return; // Only process standard left clicks for camera swaps
-                     if (_clickOriginatedInControls) return; // Absolute protection off-target release drops
                      
                      const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
                      if (dist > 5) return; // It was a drag, ignore
                      
                      if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
-                         if (e.target.closest(".map-controls")) return;
-
                          this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
                          const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
                          window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
@@ -3912,55 +3848,11 @@
                      }
                 });
                 
-                // Bind Dynamic Map Controls (Native Buttons)
-                const angleUpBtn = document.getElementById("pip-angle-up");
-                const angleDownBtn = document.getElementById("pip-angle-down");
-                const angleVal = document.getElementById("pip-angle-val");
-                const updateAngleVal = () => { if(angleVal && this._pipRot) angleVal.innerText = this._pipRot.phi.toFixed(2); };
-                
-                if (angleUpBtn) {
-                    angleUpBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                        this._pipRot.phi = Math.min(1.5, this._pipRot.phi + 0.05);
-                        updateAngleVal();
-                    };
-                }
-                if (angleDownBtn) {
-                    angleDownBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                        this._pipRot.phi = Math.max(0.1, this._pipRot.phi - 0.05);
-                        updateAngleVal();
-                    };
-                }
-                
-                const zoomInBtn = document.getElementById("pip-zoom-in");
-                const zoomOutBtn = document.getElementById("pip-zoom-out");
-                const distVal = document.getElementById("pip-dist-val");
-                const updateDistVal = () => { if(distVal && this._pipZoomScale) distVal.innerText = this._pipZoomScale.toFixed(1); };
-                
-                if (zoomInBtn) {
-                    zoomInBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        this._pipZoomScale = Math.max(3, (this._pipZoomScale || 25) - 2);
-                        updateDistVal();
-                    };
-                }
-                if (zoomOutBtn) {
-                    zoomOutBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        this._pipZoomScale = Math.min(80, (this._pipZoomScale || 25) + 2);
-                        updateDistVal();
-                    };
-                }
-                
                 pip.addEventListener("mousedown", (e) => {
                     clickStart = { x: e.clientX, y: e.clientY };
-                    _clickOriginatedInControls = !!e.target.closest(".map-controls");
                     
-                    // Allow sliders to bubble naturally to let Chrome initialize Drag state
-                    if (e.target.closest(".resize-handle") || _clickOriginatedInControls) return; 
+                    // Let Chrome initialize Drag state
+                    if (e.target.closest(".resize-handle")) return; 
                     
                     e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
                     
@@ -4046,7 +3938,7 @@
                 
                 const onRotMove = (e) => {
                     if (!mapRotating) return;
-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
                     
                     const dx = e.clientX - rotStart.x;
                     const dy = e.clientY - rotStart.y;
@@ -4065,7 +3957,7 @@
                 const onPanMove = (e) => {
                     if (!mapPanning) return;
                     if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
                     
                     const dx = e.clientX - panStart.x;
                     const dy = e.clientY - panStart.y;
@@ -4996,11 +4888,10 @@
                     if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
                     
                     // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
-                    // Initialize phi steep (0.65) for diablo isometric look
-                    this._pipRot = this._pipRot || { theta: 0, phi: 0.65, radius: 25 };
+                    // Diablo isometric look: height ~20ft up, backed away. phi=0.96 and radius=35 means Y=(35*cos(0.96))~20
+                    this._pipRot = this._pipRot || { theta: 0, phi: 0.96, radius: 35 };
                     
-                    // Directly use _pipZoomScale which was exactly bound from the distance slider. Fallback to 25 (approx 20 feet up).
-                    const targetRadius = this._pipZoomScale || 25;
+                    const targetRadius = 35;
                     this._pipRot.radius += (targetRadius - this._pipRot.radius) * 0.1;
                     
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
