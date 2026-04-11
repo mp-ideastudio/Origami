@@ -3881,7 +3881,7 @@
                      }
                 });
                 
-                // Bind Dynamic Map Controls explicitly stopping drag propagation
+                // Bind Dynamic Map Controls (Native behavior restored)
                 const angleSlider = document.getElementById("pip-angle-slider");
                 if (angleSlider) {
                     angleSlider.oninput = (e) => {
@@ -3896,21 +3896,14 @@
                         this._pipZoomScale = parseFloat(e.target.value);
                     };
                 }
-
-                // Prevent ANY map interactions from triggering while interacting with modern sliders
-                const mapControlsPanel = pip.querySelector(".map-controls");
-                if (mapControlsPanel) {
-                    const blockEvent = (e) => e.stopPropagation();
-                    mapControlsPanel.addEventListener("mousedown", blockEvent);
-                    mapControlsPanel.addEventListener("pointerdown", blockEvent);
-                    mapControlsPanel.addEventListener("touchstart", blockEvent);
-                }
                 
                 pip.addEventListener("mousedown", (e) => {
                     clickStart = { x: e.clientX, y: e.clientY };
-                    e.stopPropagation(); // prevent FPV camera from spinning while interacting with PiP
                     
+                    // Allow sliders to bubble naturally to let Chrome initialize Drag state
                     if (e.target.closest(".resize-handle") || e.target.closest(".map-controls")) return; 
+                    
+                    e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
                     
                     if (e.button === 2) { // Right Click = Orbit map
                          e.preventDefault();
