@@ -1640,7 +1640,7 @@
                     const avatarMesh = gltf.scene;
                     
                     // Explicitly lock the 3D Map Icon size to large tactical proportions using geometry parsing (bypasses Skeleton load faults)
-                    this.scaleModelToHeight(avatarMesh, 3.8);
+                    this.scaleModelToHeight(avatarMesh, 2.4); // Player height scaled to 2.4 (matches 001.E / Small.Origami.12c baseline)
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
@@ -4907,6 +4907,35 @@
                     let tgtHH = this.gridSize * this._pipZoomScale;
                     let camWX = this.player.x * this.gridSize;
                     let camWZ = this.player.z * this.gridSize;
+
+                    // Lazy-compute room centroids for camera snapping
+                    if (!this._roomCenters) {
+                        this._roomCenters = {};
+                        for (let x = 0; x < this.mapWidth; x++) {
+                            for (let z = 0; z < this.mapHeight; z++) {
+                                const c = this.mapData[x]?.[z];
+                                if (c && c.roomId && c.roomId !== 'corridor') {
+                                    if (!this._roomCenters[c.roomId]) this._roomCenters[c.roomId] = { minX: x, maxX: x, minZ: z, maxZ: z };
+                                    else {
+                                        this._roomCenters[c.roomId].minX = Math.min(x, this._roomCenters[c.roomId].minX);
+                                        this._roomCenters[c.roomId].maxX = Math.max(x, this._roomCenters[c.roomId].maxX);
+                                        this._roomCenters[c.roomId].minZ = Math.min(z, this._roomCenters[c.roomId].minZ);
+                                        this._roomCenters[c.roomId].maxZ = Math.max(z, this._roomCenters[c.roomId].maxZ);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Snap PiP camera to center of room when player is inside one
+                    const pGridX = Math.round(this.player.x);
+                    const pGridZ = Math.round(this.player.z);
+                    const currentCell = this.mapData[pGridX]?.[pGridZ];
+                    if (currentCell && currentCell.roomId && currentCell.roomId !== 'corridor' && this._roomCenters[currentCell.roomId]) {
+                        const bounds = this._roomCenters[currentCell.roomId];
+                        camWX = ((bounds.minX + bounds.maxX) / 2) * this.gridSize;
+                        camWZ = ((bounds.minZ + bounds.maxZ) / 2) * this.gridSize;
+                    }
 
                     // Track interpolation targets to allow camera damping
                     if (this._pipOrthoTarget.cx === undefined) {
