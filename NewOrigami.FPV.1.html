@@ -2554,6 +2554,32 @@
                         ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
                         // Inner cavity shadow
                         ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
+                        
+                        // Render Native 2D Geometry directly onto the Canvas Map to optimize performance and guarantee perfect flatness
+                        ctx.save();
+                        ctx.translate(W/2, H * 0.58);
+                        ctx.shadowColor = '#000000';
+                        ctx.shadowBlur = 10;
+                        if (catId === 'SPELL') {
+                            ctx.fillStyle = '#ff00ff';
+                            ctx.beginPath();
+                            ctx.moveTo(0, -35); ctx.lineTo(35, 0); ctx.lineTo(0, 35); ctx.lineTo(-35, 0); // Diamond
+                            ctx.fill();
+                        } else if (catId === 'ITEM') {
+                            ctx.fillStyle = '#aa7722';
+                            ctx.beginPath();
+                            for (let i = 0; i < 6; i++) {
+                                const angle = (i * Math.PI / 3) + Math.PI / 6;
+                                ctx.lineTo(Math.cos(angle) * 35, Math.sin(angle) * 35); // Pointy top Hexagon
+                            }
+                            ctx.fill();
+                        } else {
+                            ctx.fillStyle = '#cccccc';
+                            ctx.beginPath();
+                            ctx.moveTo(0, -35); ctx.lineTo(35, 25); ctx.lineTo(-35, 25); // Triangle
+                            ctx.fill();
+                        }
+                        ctx.restore();
 
                         // Solid Black Bottom Block for Attributes
                         ctx.fillStyle = '#09090b';
@@ -2582,44 +2608,8 @@
                         cardGroup.add(frontMesh);
                         cardGroup.add(backMesh);
                         
-                        // Create true 2D polygon representations using CircleGeometry to completely eliminate Z-fighting from flattened 3D faces
-                        let iconGeo;
-                        let rotZ = 0;
-                        if (catId === 'SPELL') {
-                            iconGeo = new THREE.CircleGeometry(0.12, 4); // Diamond profile 
-                            rotZ = Math.PI / 4; 
-                        } else if (catId === 'ITEM') {
-                            iconGeo = new THREE.CircleGeometry(0.10, 6); // Hexagonal Gem profile
-                            rotZ = Math.PI / 6;
-                        } else {
-                            iconGeo = new THREE.CircleGeometry(0.13, 3); // Triangular profile
-                            rotZ = Math.PI / 2; // Flat bottom, points UP
-                        }
-                        
-                        const iColor = catId === 'SPELL' ? 0xff00ff : (catId === 'ITEM' ? 0xaa7722 : 0xffffff);
-                        const iEmiss = catId === 'SPELL' ? 0x550055 : (catId === 'ITEM' ? 0x332200 : 0x444444);
-                        const iconMat = new THREE.MeshStandardMaterial({ color: iColor, metalness: 0.8, roughness: 0.1, emissive: iEmiss });
-                        
-                        const iconGroup = new THREE.Group();
-                        
-                        // Use native 2D topology to eliminate sub-poly clipping
-                        const iconFront = new THREE.Mesh(iconGeo, iconMat);
-                        iconFront.rotation.z = rotZ;
-                        iconFront.position.z = 0.01; // Sits 0.005 units above the front plane
-                        iconGroup.add(iconFront);
-                        
-                        const iconBack = new THREE.Mesh(iconGeo, iconMat);
-                        iconBack.rotation.y = Math.PI; // Face backwards
-                        iconBack.rotation.z = -rotZ; // Keep upright despite Y flip
-                        iconBack.position.z = -0.01; // Sits -0.005 units above the back plane
-                        iconGroup.add(iconBack);
-                        
-                        // Set exactly in the vertical center of the cavity
-                        iconGroup.position.set(0, -0.18, 0.0); 
-                        cardGroup.add(iconGroup);
-                        
                         cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
-                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, iconMesh: iconGroup, cardDataURL: canvas.toDataURL() };
+                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, cardDataURL: canvas.toDataURL() };
                         
                         this.worldGroup.add(cardGroup);
                         this.lootItems.push(cardGroup);
@@ -4937,7 +4927,8 @@
                     // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
                     // Initializing theta to 0 aligns the map perfectly vertical (up-down hallway) at the start!
                     this._pipRot = this._pipRot || { theta: 0, phi: 0.8, radius: 20 };
-                    this._pipRot.radius += ((this._pipZoomScale * 3.5) - this._pipRot.radius) * 0.1;
+                    // Scaled radius multiplier from 3.5 to 8.5 to accommodate PerspectiveCamera's narrow ground trace
+                    this._pipRot.radius += ((this._pipZoomScale * 8.5) - this._pipRot.radius) * 0.1;
                     
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
                     // To see the "7-Tile Hallway" ahead, we offset the target forward relative to camera theta. 
