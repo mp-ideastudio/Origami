@@ -3780,7 +3780,7 @@
                     this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
                 }
                 
-                if (!this._pipZoomScale) this._pipZoomScale = 5;
+                if (!this._pipZoomScale) this._pipZoomScale = 12; // Start significantly more zoomed out to see the tactical hallway layout
                 const zoomSlider = document.getElementById('map-zoom-slider');
                 if (zoomSlider) {
                     zoomSlider.value = this._pipZoomScale;
@@ -4853,8 +4853,21 @@
                     
                     // Smooth tracking catch up WITH panning offset
                     if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
-                    const targetX = camWX + this._pipPan.x;
-                    const targetZ = camWZ + this._pipPan.z;
+                    
+                    // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
+                    // Initializing theta to 0 aligns the map perfectly vertical (up-down hallway) at the start!
+                    this._pipRot = this._pipRot || { theta: 0, phi: 0.8, radius: 20 };
+                    this._pipRot.radius += ((this._pipZoomScale * 3.5) - this._pipRot.radius) * 0.1;
+                    
+                    // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
+                    // To see the "7-Tile Hallway" ahead, we offset the target forward relative to camera theta. 
+                    // Pushing the target away from the camera slides the player towards the bottom of the viewport frame!
+                    const lookAheadDist = this._pipRot.radius * 0.35; // 35% of radius dictates how low the player sits
+                    const lookX = -Math.sin(this._pipRot.theta) * lookAheadDist;
+                    const lookZ = -Math.cos(this._pipRot.theta) * lookAheadDist;
+                    
+                    const targetX = camWX + this._pipPan.x + lookX;
+                    const targetZ = camWZ + this._pipPan.z + lookZ;
                     this._pipOrthoTarget.cx += (targetX - this._pipOrthoTarget.cx) * camTrackSpeed;
                     this._pipOrthoTarget.cz += (targetZ - this._pipOrthoTarget.cz) * camTrackSpeed;
                     
@@ -4862,11 +4875,6 @@
                     const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
                     this.topDownCamera.aspect = aspect;
                     this.topDownCamera.updateProjectionMatrix();
-                    
-                    // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
-                    // Initializing theta to 0 aligns the map perfectly vertical (up-down hallway) at the start!
-                    this._pipRot = this._pipRot || { theta: 0, phi: 0.8, radius: 20 };
-                    this._pipRot.radius += ((this._pipZoomScale * 3.5) - this._pipRot.radius) * 0.1;
                     
                     const camX = this._pipOrthoTarget.cx + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.sin(this._pipRot.theta);
                     const camY = this._pipRot.radius * Math.cos(this._pipRot.phi);
