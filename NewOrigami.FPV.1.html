@@ -4832,7 +4832,7 @@
                     const currentRoom = this.mapData[px]?.[pz];
                     const currentRoomId = currentRoom ? currentRoom.roomId : null;
                     
-                    const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+                    const zeroMatrix = new THREE.Matrix4().makeTranslation(0, -9999, 0);
                     
                     for (let x = 0; x < this.mapWidth; x++) {
                         for (let z = 0; z < this.mapHeight; z++) {
@@ -4843,7 +4843,7 @@
                             const dist = Math.max(Math.abs(x - px), Math.abs(z - pz));
                             const inRoom = currentRoomId && cell.roomId === currentRoomId;
                             
-                            if (dist <= 2 || inRoom) {
+                            if (dist <= 6 || inRoom) {
                                 cell.discovered = true;
                                 this.fogOfWarMesh.setMatrixAt(cell.fowId, zeroMatrix);
                                 fowChanged = true;
