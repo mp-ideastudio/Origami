@@ -1640,7 +1640,7 @@
                     const avatarMesh = gltf.scene;
                     
                     // Explicitly lock the 3D Map Icon size to large tactical proportions using geometry parsing (bypasses Skeleton load faults)
-                    this.scaleModelToHeight(avatarMesh, 2.4); // Player height scaled to 2.4 (matches 001.E / Small.Origami.12c baseline)
+                    this.scaleModelToHeight(avatarMesh, 0.48); // Player height scaled to 0.48 (reduced by 500% from 2.4 baseline)
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
