@@ -1566,7 +1566,7 @@
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
-                this.renderer.setPixelRatio(1.0);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
                 
                 // Shift Optical Center UP by 150px so the Monster is not blocked by the UI panels at the bottom
                 // Arguments: (fullWidth, fullHeight, xOffset, yOffset, width, height)
@@ -1634,8 +1634,18 @@
                 gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
                     const avatarMesh = gltf.scene;
                     
-                    // Static scale since GLTF SkinnedMesh bounding boxes can return 0 dynamically on load
-                    avatarMesh.scale.setScalar(0.85);
+                    // Explicitly update matrices before grabbing AABB bounds to prevent '0' scale evaluation bugs
+                    avatarMesh.updateMatrixWorld(true);
+                    
+                    const box = new THREE.Box3().setFromObject(avatarMesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // Fallback to static 100x scale if Mixamo bounds are collapsed
+                    if (size.y > 0.05) {
+                        avatarMesh.scale.setScalar(1.6 / size.y);
+                    } else {
+                        avatarMesh.scale.setScalar(100);
+                    }
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
