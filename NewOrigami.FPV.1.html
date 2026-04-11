@@ -2166,29 +2166,7 @@
                 abyssPlane.position.y = -50; 
                 abyssPlane.layers.set(2); // Exclusive to the PiP camera!
                 this.worldGroup.add(abyssPlane);
-                // --- NET-HACK FOG OF WAR ROOF ---
-                const totalCells = this.mapWidth * this.mapHeight;
-                // Add overlapping bounds to eliminate light leak at corners
-                const fowGeo = new THREE.BoxGeometry(this.gridSize * 1.05, 5, this.gridSize * 1.05);
-                const fowMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // True pitch black void
-                this.fogOfWarMesh = new THREE.InstancedMesh(fowGeo, fowMat, totalCells);
-                this.fogOfWarMesh.layers.set(3); // ONLY visible to TopDown Camera Maps
-                
-                let fowIdx = 0;
-                for (let x = 0; x < this.mapWidth; x++) {
-                    for (let z = 0; z < this.mapHeight; z++) {
-                        // Position exactly above walls to block all Mapview geometry below it
-                        dummy.position.set(x * this.gridSize, wallHeight + 2.5, z * this.gridSize);
-                        dummy.updateMatrix();
-                        this.fogOfWarMesh.setMatrixAt(fowIdx, dummy.matrix);
-                        this.mapData[x][z].fowId = fowIdx; // Map physical cell to instance ID for O(1) clearing
-                        fowIdx++;
-                    }
-                }
-                this.fogOfWarMesh.instanceMatrix.needsUpdate = true;
-                this.worldGroup.add(this.fogOfWarMesh);
-                
-                // Dynamic Mob Rendering
+                // Removed FOW as per request                // Dynamic Mob Rendering
                 const mobGeo = new THREE.BoxGeometry(1, 2, 1);
                 let monCount = 0; let npcCount = 0;
                 
@@ -4845,34 +4823,7 @@
                         }
                     }
                 }
-                // --- NET-HACK FOG OF WAR DISCOVERY ---
-                if (this.fogOfWarMesh) {
-                    let fowChanged = false;
-                    const px = Math.round(this.player.x);
-                    const pz = Math.round(this.player.z);
-                    const currentRoom = this.mapData[px]?.[pz];
-                    const currentRoomId = currentRoom ? currentRoom.roomId : null;
-                    
-                    const zeroMatrix = new THREE.Matrix4().makeTranslation(0, -9999, 0);
-                    
-                    for (let x = 0; x < this.mapWidth; x++) {
-                        for (let z = 0; z < this.mapHeight; z++) {
-                            const cell = this.mapData[x]?.[z];
-                            if (!cell || cell.discovered || cell.fowId === undefined) continue;
-                            
-                            // Discover if within 2 tiles orthogonal radius (torchlight) OR if sharing the physical Nethack Room array ID
-                            const dist = Math.max(Math.abs(x - px), Math.abs(z - pz));
-                            const inRoom = currentRoomId && cell.roomId === currentRoomId;
-                            
-                            if (dist <= 6 || inRoom) {
-                                cell.discovered = true;
-                                this.fogOfWarMesh.setMatrixAt(cell.fowId, zeroMatrix);
-                                fowChanged = true;
-                            }
-                        }
-                    }
-                    if (fowChanged) this.fogOfWarMesh.instanceMatrix.needsUpdate = true;
-                }
+                // --- FOG OF WAR REMOVED ---
 
                 // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
                 const container = document.getElementById('mapview-container');
