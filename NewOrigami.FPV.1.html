@@ -1634,25 +1634,15 @@
                 gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
                     const avatarMesh = gltf.scene;
                     
-                    // Explicitly update matrices before grabbing AABB bounds to prevent '0' scale evaluation bugs
-                    avatarMesh.updateMatrixWorld(true);
-                    
-                    const box = new THREE.Box3().setFromObject(avatarMesh);
-                    const size = box.getSize(new THREE.Vector3());
-                    
-                    // Fallback to static 100x scale if Mixamo bounds are collapsed
-                    if (size.y > 0.05) {
-                        avatarMesh.scale.setScalar(1.6 / size.y);
-                    } else {
-                        avatarMesh.scale.setScalar(100);
-                    }
+                    // Explicitly lock the 3D Map Icon size to large tactical proportions using geometry parsing (bypasses Skeleton load faults)
+                    this.scaleModelToHeight(avatarMesh, 3.8);
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
                         if (child.isMesh) {
                             child.layers.set(3);
-                            child.castShadow = true;
-                            child.receiveShadow = true;
+                            child.castShadow = false; // Prevent giant avatar from casting shadows into FPV
+                            child.receiveShadow = false;
                         }
                     });
 
@@ -2209,8 +2199,6 @@
                         
                         // Cache textures to swap based on AI state
                         mesh.userData.texIdle = hudTexIdle;
-                        mesh.userData.texHostile = hudTexHostile;
-                        mesh.userData.texSearch = hudTexSearch;
                         
                         // Removed Flashlight Cone to preserve realistic lighting per user request
                         
