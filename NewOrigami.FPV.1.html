@@ -425,9 +425,6 @@
             <div class="canvas-wrapper">
                 <canvas id="pip-map-canvas"></canvas>
             </div>
-            <div class="zoom-slider-container">
-                <input id="map-zoom-slider" type="range" min="8" max="60" step="1" aria-label="Map zoom" title="Map zoom" />
-            </div>
             <div class="resize-handle se"></div>
             <div class="resize-handle sw"></div>
             <div class="resize-handle ne"></div>
@@ -1622,7 +1619,8 @@
                 this.outerGlow = outerGlow;
                 
                 // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
-                this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 1500);
+                // Tighten Frustum culling aggressively (near 1, far 400) to massively increase depth buffer precision and eliminate Z-fighting
+                this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 1, 400);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
@@ -4836,10 +4834,17 @@
                 const pipBottom = wrapperRect ? Math.round(winH - wrapperRect.bottom) : winH - pipH - 20;
                 const webglTop = wrapperRect ? Math.round(wrapperRect.top) : 20;
                 
-                // Keep the 2D canvas size perfectly matched to the wrapper bounds
-                if (this.pipCanvasEl && (this.pipCanvasEl.width !== pipW || this.pipCanvasEl.height !== pipH)) {
-                    this.pipCanvasEl.width = pipW;
-                    this.pipCanvasEl.height = pipH;
+                // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
+                const pr = this.renderer.getPixelRatio();
+                const hdW = Math.max(1, Math.round(pipW * pr));
+                const hdH = Math.max(1, Math.round(pipH * pr));
+                
+                if (this.pipCanvasEl && (this.pipCanvasEl.width !== hdW || this.pipCanvasEl.height !== hdH)) {
+                    this.pipCanvasEl.width = hdW;
+                    this.pipCanvasEl.height = hdH;
+                    // Reset CSS style size so physical pixels scale down cleanly to logical pixels
+                    this.pipCanvasEl.style.width = pipW + 'px';
+                    this.pipCanvasEl.style.height = pipH + 'px';
                 }
 
                 // ── Update ortho zoom ──
@@ -4933,6 +4938,10 @@
                     this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
                     this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
                     this.renderer.setScissorTest(true);
+                    
+                    // CRITICAL: We MUST clear the depth buffer, or the PiP camera will physically Z-fight with geometry drawn beneath it on the entire screen!
+                    this.renderer.clearDepth();
+                    
                     this.scene.fog.density = 0.055;
                     this.renderer.setClearColor(0x06020f, 1);
                     this.renderer.render(this.scene, this.camera);
@@ -4964,6 +4973,9 @@
                         this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
                         this.renderer.setScissorTest(true);
                         
+                        // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
+                        this.renderer.clearDepth();
+                        
                         // AAA RPG Vignette
                         this.scene.fog.color.setHex(0x000000);
                         this.scene.fog.density = 1.0 / this._pipRot.radius;
@@ -4980,11 +4992,14 @@
                 if (this.pip2dCtx && this.pipCanvasEl && pipW > 0 && pipH > 0) {
                     const ctx = this.pip2dCtx;
                     const gl  = this.renderer.domElement;
-                    ctx.clearRect(0, 0, pipW, pipH);
+                    const pr = this.renderer.getPixelRatio();
                     
-                    // The srcRect aligns with the corner of gl we just drew into!
-                    // Note: Canvas drawImage coordinates have Top Left as (0,0), even for the GL canvas pixels!
-                    ctx.drawImage(gl, pipLeft, webglTop, pipW, pipH, 0, 0, pipW, pipH);
+                    const scW = Math.max(1, Math.round(pipW * pr));
+                    const scH = Math.max(1, Math.round(pipH * pr));
+                    ctx.clearRect(0, 0, scW, scH);
+                    
+                    // The srcRect offsets MUST be multiplied by pixel ratio to capture the exact HD rectangle from the WebGL physical buffer
+                    ctx.drawImage(gl, Math.round(pipLeft * pr), Math.round(webglTop * pr), scW, scH, 0, 0, scW, scH);
 
                     // 3D Avatar handles presence natively now. Legacy 2D canvas drawing removed!
                 }
