@@ -260,6 +260,136 @@
             background: radial-gradient(ellipse at center, transparent 50%, rgba(200,0,0,0.55) 100%);
         }
         #blood-vignette.active { opacity: 1; }
+        /* Mapview container using identical 10A AAA design */
+        #mapview-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            height: clamp(250px, 30vh, 400px);
+            width: clamp(250px, 30vh, 400px);
+            min-width: 200px;
+            min-height: 200px;
+            border-radius: 22px; /* Adjusted for padding */
+            /* Neumorphic Border Effect */
+            background: #222226;
+            padding: 15px;
+            box-shadow: inset 5px 5px 10px #15171c,
+              inset -5px -5px 10px #2e323c,
+              7px 7px 16px #15171c, -7px -7px 16px #2e323c;
+            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-sizing: border-box;
+            cursor: move;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden; /* Hide canvas overflow but allow handles */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #mapview-container:hover {
+            box-shadow: inset 5px 5px 10px #15171c,
+              inset -5px -5px 10px #2e323c,
+              10px 10px 20px #15171c, -10px -10px 20px #2e323c;
+        }
+
+        #mapview-container.dragging {
+            cursor: grabbing !important;
+            box-shadow: inset 5px 5px 10px #15171c,
+              inset -5px -5px 10px #2e323c,
+              15px 15px 30px #15171c, -15px -15px 30px #2e323c;
+            z-index: 1005 !important;
+        }
+
+        #mapview-container.resizing {
+            transition: none; /* Disable transitions while resizing */
+        }
+
+        #mapview-container:active {
+            cursor: grabbing;
+        }
+
+        #mapview-container .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 8px; /* Inner rounded corners for the canvas view */
+            background: transparent; /* Debug red background removed */
+        }
+
+        #mapview-container .canvas-wrapper canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Vertical zoom slider overlay for mapview */
+        #mapview-container .zoom-slider-container {
+            position: absolute; top: 50%; left: 10px;
+            transform: translateY(-50%); 
+            z-index: 50; pointer-events: auto;
+        }
+        #map-zoom-slider {
+            width: 20px; height: 160px; -webkit-appearance: slider-vertical; appearance: slider-vertical;
+            background: rgba(20,20,20,0.6);
+            border-radius: 6px;
+            outline: none;
+            cursor: ns-resize;
+        }
+        #map-zoom-slider::-webkit-slider-runnable-track {
+            width: 6px; background: transparent; 
+        }
+        #map-zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+            background: #00ffcc; border: 1px solid rgba(0,0,0,0.8);
+            box-shadow: 0 0 5px #00ffcc;
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: transparent;
+            z-index: 51;
+            pointer-events: auto;
+        }
+        .resize-handle.se {
+            bottom: 0;
+            right: 0;
+            cursor: se-resize;
+        }
+        .resize-handle.sw {
+            bottom: 0;
+            left: 0;
+            cursor: sw-resize;
+        }
+        .resize-handle.ne {
+            top: 0;
+            right: 0;
+            cursor: ne-resize;
+        }
+        .resize-handle.nw {
+            top: 0;
+            left: 0;
+            cursor: nw-resize;
+        }
+
+        #mapview-container .view-label {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Roboto', sans-serif;
+            font-weight: 800;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+            z-index: 6;
+        }
+        
+        /* -------------------------------- */
     </style>
 </head>
 <body>
@@ -288,36 +418,20 @@
         <div id="blood-vignette"></div>
         <div id="interaction-prompt">Press E to Interact</div>
         <div id="fps-counter">FPS: --/60</div>
-        
-        <!-- Circular Tactical Compass PiP (top-left) -->
-        <div id="pip-wrapper" style="
-            position: fixed;
-            top: 14px; left: 14px;
-            width: 240px; height: 240px;
-            z-index: 200;
-            pointer-events: auto;
-            cursor: pointer;
-            user-select: none;
-        ">
-            <!-- Flat 2D copy of the WebGL top-down render, circular -->
-            <canvas id="pip-display" width="200" height="200" style="
-                position: absolute;
-                top: 20px; left: 20px;
-                width: 200px; height: 200px;
-                border-radius: 50%;
-                display: block;
-                z-index: 201;
-                pointer-events: none;
-            "></canvas>
-            <!-- Directional compass dial drawn over the map -->
-            <canvas id="pip-dial" width="240" height="240" style="
-                position: absolute;
-                top: 0; left: 0;
-                width: 240px; height: 240px;
-                display: block;
-                z-index: 202;
-                pointer-events: none;
-            "></canvas>
+
+        <!-- EXACT MAPVIEW-CONTAINER FROM BASELINE -->
+        <div id="mapview-container" class="primary-view">
+            <div class="view-label">Map View</div>
+            <div class="canvas-wrapper">
+                <canvas id="pip-map-canvas"></canvas>
+            </div>
+            <div class="zoom-slider-container">
+                <input id="map-zoom-slider" type="range" min="8" max="60" step="1" aria-label="Map zoom" title="Map zoom" />
+            </div>
+            <div class="resize-handle se"></div>
+            <div class="resize-handle sw"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle nw"></div>
         </div>
 
         <!-- UI Panels Layer (Loaded via Iframe to isolate CSS/JS overhead) -->
@@ -1502,16 +1616,46 @@
                 this.headlamp = headlamp;
                 this.outerGlow = outerGlow;
                 
-                // --- TOP-DOWN PiP CAMERA (orthographic, Layer 0 only — no ceiling) ---
-                this.topDownCamera = new THREE.OrthographicCamera(
-                    -10 * this.gridSize, 10 * this.gridSize,  // Default 20-tile wide view
-                     10 * this.gridSize, -10 * this.gridSize,
-                    0.1, 60
-                );
+                // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
+                this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 1500);
                 this.topDownCamera.layers.set(0);
-                this.topDownCamera.rotation.order = 'YXZ';
-                this.topDownCamera.up.set(0, 0, -1); // -Z = "up" in top-down view
-                this.topDownCamera.lookAt(0, 0, 0);
+                this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
+                
+                // Holographic Top-Down Player Avatar
+                this.playerAvatar = new THREE.Group();
+                this.playerAvatar.layers.set(3); // Map view only
+                this.scene.add(this.playerAvatar);
+                
+                const gltfLoader = new THREE.GLTFLoader();
+                gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
+                    const avatarMesh = gltf.scene;
+                    
+                    // Standardize scale to perfectly fit our 1.53 maze scale
+                    const box = new THREE.Box3().setFromObject(avatarMesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    avatarMesh.scale.setScalar(1.6 / size.y);
+                    
+                    // Rig layers so the actual 3D character only displays on the map
+                    avatarMesh.traverse((child) => {
+                        if (child.isMesh) {
+                            child.layers.set(3);
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+
+                    // Activate the core walking loop
+                    if (gltf.animations && gltf.animations.length > 0) {
+                        const mixer = new THREE.AnimationMixer(avatarMesh);
+                        const action = mixer.clipAction(gltf.animations[0]);
+                        action.play();
+                        
+                        this.playerAvatar.userData.mixer = mixer;
+                        this.mixers.push(mixer);
+                    }
+
+                    this.playerAvatar.add(avatarMesh);
+                });
 
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
@@ -1593,7 +1737,8 @@
                 
                 // Using setRGB with values > 1.0 forces it into HDR range so UnrealBloom catches it aggressively
                 this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0); 
-                this.outlinePass.hiddenEdgeColor.setRGB(0, 4.0, 3.0);
+                // Disable hidden-edge color to prevent ethereal outlines rendering through solid walls via X-Ray depth clipping
+                this.outlinePass.hiddenEdgeColor.setHex(0x000000);
                 
                 // CRITICAL FIX: Three.js r128 OutlinePass materials do NOT support skinning by default!
                 // This causes the outline to freeze in T-Pose when approaching the camera.
@@ -1846,9 +1991,33 @@
                     floor: new THREE.MeshLambertMaterial({ map: floorTex }),
                     ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
                     wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
+                    wallTop: new THREE.MeshLambertMaterial({ color: 0x222428 }),
                     npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
                     monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
                 };
+                this.mats = mats;
+                
+                // Track parent CSS for Light/Dark mode changes to color the wall tops!
+                setInterval(() => {
+                    try {
+                        if (window.parent && window.parent.document) {
+                            const isDark = window.parent.document.body.classList.contains('dark-mode');
+                            const targetHex = isDark ? 0x222428 : 0xdddddf; // Matte black vs bright flat grey
+                            if (mats.wallTop.color.getHex() !== targetHex) {
+                                mats.wallTop.color.setHex(targetHex);
+                            }
+                        }
+                    } catch(e) {}
+                }, 500);
+
+                const wallMaterials = [
+                    mats.wall,    // Right
+                    mats.wall,    // Left
+                    mats.wallTop, // Top 
+                    mats.wall,    // Bottom
+                    mats.wall,    // Front
+                    mats.wall     // Back
+                ];
 
                 // Merge geometry for insane performance (instead of 1000s of distinct meshes)
                 // NEW: Walls are 1.33 cubes high                // 1. Grid Walls
@@ -1863,7 +2032,7 @@
                     }
                 }
 
-                const instancedWalls = new THREE.InstancedMesh(wallGeo, mats.wall, wallCount);
+                const instancedWalls = new THREE.InstancedMesh(wallGeo, wallMaterials, wallCount);
                 instancedWalls.castShadow = true;
                 instancedWalls.receiveShadow = true;
                 // Save reference so the raycaster can find it later without filtering the scene graph
@@ -1915,13 +2084,45 @@
                 ceiling.layers.set(1); // Hide ceiling from the Orthographic map camera (which only renders layer 0)
                 this.worldGroup.add(ceiling);
 
-                // Floor
-                floorTex.repeat.set(this.mapWidth, this.mapHeight); // Tile floor
-                const floorGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize, this.mapHeight * this.gridSize);
-                const floor = new THREE.Mesh(floorGeo, mats.floor);
-                floor.rotation.x = -Math.PI / 2;
-                floor.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, 0, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
-                this.worldGroup.add(floor);
+                // Tactical Grid Floor: Instead of one massive plane, we use thick procedural tiles
+                let walkCount = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type !== 'wall') walkCount++;
+                    }
+                }
+                
+                const depth = 4.0;
+                // 0.96 scale creates natural, dark grid lines between cells by exposing the black void behind!
+                const floorBoxGeo = new THREE.BoxGeometry(this.gridSize * 0.96, depth, this.gridSize * 0.96);
+                floorTex.repeat.set(1, 1); // un-tile the floor texture, map fully onto each block
+                
+                const instancedFloor = new THREE.InstancedMesh(floorBoxGeo, mats.floor, walkCount);
+                instancedFloor.receiveShadow = true; 
+                
+                let walkIdx = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        const cell = this.mapData[x]?.[z];
+                        if (!cell || cell.type === 'wall') continue;
+                        
+                        dummy.position.set(x * this.gridSize, -depth / 2, z * this.gridSize);
+                        dummy.updateMatrix();
+                        instancedFloor.setMatrixAt(walkIdx++, dummy.matrix);
+                    }
+                }
+                instancedFloor.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedFloor);
+                
+                // Abyssal Depth Plane (Map View only)
+                const abyssGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize * 3, this.mapHeight * this.gridSize * 3);
+                // Creating a deep space indigo shade beneath the floor void mapping
+                const abyssMat = new THREE.MeshBasicMaterial({ color: 0x050014, depthWrite: false }); 
+                const abyssPlane = new THREE.Mesh(abyssGeo, abyssMat);
+                abyssPlane.rotation.x = -Math.PI / 2;
+                abyssPlane.position.y = -50; 
+                abyssPlane.layers.set(2); // Exclusive to the PiP camera!
+                this.worldGroup.add(abyssPlane);
 
                 // Dynamic Mob Rendering
                 const mobGeo = new THREE.BoxGeometry(1, 2, 1);
@@ -1939,10 +2140,13 @@
                     };
                     
                     if (isMon) {
+                        // Force full scale enemy 3D models EXCLUSIVELY into Layer 1 (FPV), so they don't block the Map View
+                        mesh.traverse(c => { c.layers.set(1); });
+                        
                         // Goblins have bottom origins, place flush with floor
                         mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
                         
-                        // Make monsters have a black selection circle base
+                        // FPV Base Interaction Circle (Left on Layer 0/1 to be universally visible, but it sits totally flush anyway)
                         const hudTexIdle = this.createStatusCircleTexture('#000000');
                         const hudTexHostile = this.createStatusCircleTexture('#ff0000');
                         const hudTexSearch = this.createStatusCircleTexture('#ff0000', false, '#000000');
@@ -1950,15 +2154,25 @@
                         const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
                         const circleMat = new THREE.MeshBasicMaterial({ 
                             map: hudTexIdle,
-                            color: 0xffffff, // White overlay tints the white borders/arrows when changed
+                            color: 0xffffff,
                             transparent: true, 
                             opacity: 0.9,
                             depthWrite: false 
                         });
                         const circle = new THREE.Mesh(circleGeo, circleMat);
                         circle.rotation.x = -Math.PI / 2;
-                        circle.position.y = 0.02; // Slightly above floor to prevent z-fighting
+                        circle.position.y = 0.02; 
+                        circle.layers.set(0); // Master visibility layer
                         mesh.add(circle);
+                        const mmCircleMat = new THREE.MeshBasicMaterial({ 
+                            map: this.createStatusCircleTexture('#ff0000', true), // Hollow red outline
+                            transparent: true, opacity: 0.8, depthWrite: false 
+                        });
+                        const mmCircle = new THREE.Mesh(circleGeo, mmCircleMat);
+                        mmCircle.rotation.x = -Math.PI / 2;
+                        mmCircle.position.y = 0.04; 
+                        mmCircle.layers.set(0);  // Sync to master visibility instead of PiP layer 2
+                        mesh.add(mmCircle);
                         
                         // Cache textures to swap based on AI state
                         mesh.userData.texIdle = hudTexIdle;
@@ -2135,8 +2349,8 @@
 
                         // Local Ghost PointLight removed to eliminate volumetric scatter haze
                         
-                        // Scale model to 1.8 world units (eye-height ~6ft) - fixes Blender cm-scale exports
-                        this.scaleModelToHeight(goblin, 1.8);
+                        // Scale model to 1.53 world units (reduced by 15% from 1.8)
+                        this.scaleModelToHeight(goblin, 1.53);
                         
                         // Adjust Y position to sit exactly on the floor (circle)
                         goblin.updateMatrixWorld(true);
@@ -2201,8 +2415,8 @@
                             frontLight.position.set(0, 2.5, 1.5);
                             goblin.add(frontLight);
                             
-                            // Scale to 1.8 world units before floor-align
-                            this.scaleModelToHeight(goblin, 1.8);
+                            // Scale to 1.53 world units before floor-align (reduced by 15%)
+                            this.scaleModelToHeight(goblin, 1.53);
                             goblin.updateMatrixWorld(true);
                             const bbox = new THREE.Box3().setFromObject(goblin);
                             if (bbox.min.y !== 0) goblin.position.y -= bbox.min.y;
@@ -2220,50 +2434,137 @@
                 this.scene.add(this.worldGroup);
                 this.spawnKatana();
                 
-                // --- HALLWAY STARTER CARD: Boulder card 2 tiles ahead of entrance ---
+                // Spawn high-fidelity UI-replica 3D cards in hallway
                 if (this.entrancePos) {
-                    const cX = this.entrancePos.x;
-                    const cZ = this.entrancePos.z - 2; // 2 tiles forward (deeper into dungeon)
-                    
-                    const cardCanvas = document.createElement('canvas');
-                    cardCanvas.width = 128; cardCanvas.height = 192;
-                    const ctx = cardCanvas.getContext('2d');
-                    ctx.fillStyle = '#1a0a0a'; ctx.beginPath(); ctx.roundRect(0,0,128,192,10); ctx.fill();
-                    ctx.strokeStyle = '#5C4033'; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.roundRect(6,6,116,180,7); ctx.stroke();
-                    ctx.fillStyle = '#2c1a0a';
-                    ctx.beginPath(); ctx.roundRect(14,40,100,110,5); ctx.fill();
-                    ctx.font = 'bold 46px serif'; ctx.fillStyle = '#7B5E3A';
-                    ctx.textAlign = 'center'; ctx.fillText('\u26F0', 64, 108); // ⛰
-                    ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#d4a853';
-                    ctx.fillText('EARTH', 64, 28);
-                    ctx.font = 'bold 10px sans-serif'; ctx.fillStyle = '#a0876a';
-                    ctx.fillText('BOULDER', 64, 170);
-                    ctx.font = 'bold 12px serif'; ctx.fillStyle = '#7B5E3A';
-                    ctx.textAlign = 'left'; ctx.fillText('\u26F0', 10, 178);
-                    ctx.textAlign = 'right'; ctx.fillText('\u26F0', 118, 26);
-                    const cardTex = new THREE.CanvasTexture(cardCanvas);
-                    
-                    const cardGeo = new THREE.BoxGeometry(0.55, 0.78, 0.035);
-                    const cardMats = [
-                        new THREE.MeshStandardMaterial({ color: 0x2c1a0a, emissive: 0x3b2510, emissiveIntensity: 0.2 }),
-                        new THREE.MeshStandardMaterial({ color: 0x2c1a0a, emissive: 0x3b2510, emissiveIntensity: 0.2 }),
-                        new THREE.MeshStandardMaterial({ color: 0xd4a853, emissive: 0xaa7722, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }),
-                        new THREE.MeshStandardMaterial({ color: 0xd4a853, emissive: 0xaa7722, emissiveIntensity: 0.5, metalness: 0.6, roughness: 0.3 }),
-                        new THREE.MeshStandardMaterial({ map: cardTex, emissive: 0x3b2510, emissiveIntensity: 0.2 }),
-                        new THREE.MeshStandardMaterial({ color: 0x5C4033, emissive: 0x3b2510, emissiveIntensity: 0.3, metalness: 0.2, roughness: 0.7 })
-                    ];
-                    const hallCard = new THREE.Mesh(cardGeo, cardMats);
-                    hallCard.position.set(cX * this.gridSize, 1.2, cZ * this.gridSize);
-                    hallCard.userData = {
-                        type: 'loot_cards',
-                        floatTimer: 0,
-                        basePos: 1.2,
-                        gridX: cX,
-                        gridZ: cZ
+                    const spawnLootCard = (x, z, catId, title, desc, kanji, attr) => {
+                        const W = 256; const H = 384;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = W; canvas.height = H;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Base dark background (exactly matching dark-mode CSS)
+                        let baseColor = '#222428';
+                        let themeColor = '#66BB6A'; // Default Item
+                        
+                        // Exact CSS var mapping for accents ONLY
+                        if (catId === 'SPELL' || catId === 'WIND') themeColor = '#546E7A';
+                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#5C4033';
+                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#29B6F6';
+                        else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#EF5350';
+                        else themeColor = '#4caf50'; // ITEM
+                        
+                        ctx.fillStyle = baseColor;
+                        ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
+                        
+                        // Dark outer border
+                        ctx.strokeStyle = '#1a1a1d'; ctx.lineWidth = 4; ctx.stroke();
+                        
+                        // Inner Neumorphic shadow simulation
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 4;
+                        ctx.beginPath(); ctx.roundRect(2, 2, W-4, H-4, 22); ctx.stroke();
+
+                        // Kanji (Theme Colored)
+                        ctx.font = '900 32px sans-serif';
+                        ctx.fillStyle = themeColor;
+                        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                        ctx.fillText(kanji, 20, 20);
+
+                        // Type Pill (Theme Colored string background / border)
+                        ctx.fillStyle = themeColor;
+                        ctx.beginPath(); ctx.roundRect(W/2 - 45, 20, 90, 30, 8); ctx.fill();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+                        ctx.font = '800 16px sans-serif'; ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(catId, W/2, 35);
+
+                        // Title (Auto-scaling to prevent overflow)
+                        ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        
+                        let titleSize = 32;
+                        ctx.font = `900 ${titleSize}px sans-serif`;
+                        while (ctx.measureText(title).width > W * 0.85 && titleSize > 12) {
+                            titleSize -= 1;
+                            ctx.font = `900 ${titleSize}px sans-serif`;
+                        }
+                        ctx.fillText(title, W/2, 90);
+
+                        // Desc
+                        ctx.font = 'italic 500 18px sans-serif'; ctx.fillStyle = '#999999';
+                        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+                            const words = text.split(' '); let line = '';
+                            for(let n = 0; n < words.length; n++) {
+                                const testLine = line + words[n] + ' '; const metrics = context.measureText(testLine); const testWidth = metrics.width;
+                                if (testWidth > maxWidth && n > 0) { context.fillText(line, x, y); line = words[n] + ' '; y += lineHeight; }
+                                else { line = testLine; }
+                            }
+                            context.fillText(line, x, y);
+                        }
+                        wrapText(ctx, desc, W/2, 130, W * 0.8, 22);
+
+                        // Deep Icon Cavity
+                        ctx.fillStyle = '#15171c';
+                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
+                        // Inner cavity shadow
+                        ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
+
+                        // Solid Black Bottom Block for Attributes
+                        ctx.fillStyle = '#09090b';
+                        ctx.beginPath();
+                        ctx.roundRect(0, H - 75, W, 75, [0, 0, 24, 24]); 
+                        ctx.fill();
+
+                        // Attr inside black block
+                        ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        wrapText(ctx, attr, W/2, H - 45, W * 0.9, 22);
+
+                        const tex = new THREE.CanvasTexture(canvas);
+                        const cardMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true }); // No DoubleSide needed
+                        
+                        // We use a Group to hold a Front and Back face, effectively creating a "solid" but ultra-thin card
+                        const cardGroup = new THREE.Group();
+                        
+                        const frontMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
+                        frontMesh.position.z = 0.005; // extremely thin cardboard thickness
+                        
+                        const backMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
+                        backMesh.rotation.y = Math.PI; // Face outwards to the back, which makes text readable when spun!
+                        backMesh.position.z = -0.005;
+                        
+                        cardGroup.add(frontMesh);
+                        cardGroup.add(backMesh);
+                        
+                        // Add animated 3D Icon cavity
+                        let iconGeo;
+                        if (catId === 'SPELL') iconGeo = new THREE.OctahedronGeometry(0.12);
+                        else if (catId === 'ITEM') iconGeo = new THREE.DodecahedronGeometry(0.10);
+                        else iconGeo = new THREE.TetrahedronGeometry(0.12);
+                        
+                        const iColor = catId === 'SPELL' ? 0xff00ff : (catId === 'ITEM' ? 0xaa7722 : 0xffffff);
+                        const iEmiss = catId === 'SPELL' ? 0x550055 : (catId === 'ITEM' ? 0x332200 : 0x444444);
+                        const iconMat = new THREE.MeshStandardMaterial({ color: iColor, metalness: 0.5, roughness: 0.2, emissive: iEmiss });
+                        const iconMesh = new THREE.Mesh(iconGeo, iconMat);
+                        
+                        // Set exactly in the vertical center of the cavity. protruding identically from both sides of the 0 Z-axis plane
+                        iconMesh.position.set(0, -0.18, 0.0); 
+                        cardGroup.add(iconMesh);
+                        
+                        cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
+                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, iconMesh: iconMesh, cardDataURL: canvas.toDataURL() };
+                        
+                        this.worldGroup.add(cardGroup);
+                        this.lootItems.push(cardGroup);
                     };
-                    this.worldGroup.add(hallCard);
-                    this.lootItems.push(hallCard);
+
+                    const randomCards = [
+                        ['ITEM', 'EARTH BOULDER', 'Crush enemies with immense weight', '⛰', 'DMG 25 / CRIT 5%'],
+                        ['SPELL', 'VOID BURN', 'Consume target life force over time', '魔', 'DOT 10 / 3 TURNS'],
+                        ['THRUST', 'SPEAR DASH', 'Lunge forward striking two tiles', '槍', 'RNG 2 / DMG 20'],
+                        ['SLASH', 'WHIRLWIND', 'Strike all adjacent enemies', '旋', 'AOE / DMG 15']
+                    ];
+                    const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
+                    spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
                 }
             },
 
@@ -2586,104 +2887,84 @@
                     WATER:'\uD83C\uDF0A', ITEM:'\uD83E\uDDEA', KATANA:'\u2694\uFE0F', SHIELD:'\uD83D\uDEE1\uFE0F'
                 };
 
-                // Canvas at 2× real card proportions (84×135 → 256×410 for crisp text)
-                const CW = 256, CH = 410;
+                // Canvas drawn precisely to match HTML UI panels (scale x3 for crisp 84x135)
+                const s = 3;
+                const CW = 84 * s; 
+                const CH = 135 * s;
                 const cardCanvas = document.createElement('canvas');
                 cardCanvas.width = CW; cardCanvas.height = CH;
                 const ctx = cardCanvas.getContext('2d');
 
-                // ── [1] Body: glassmorphic dark panel (dark-mode bg) ──────────────
-                ctx.fillStyle = '#1e2022';
-                ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 24); ctx.fill();
-                // Glass border
-                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.roundRect(1, 1, CW-2, CH-2, 24); ctx.stroke();
+                // ── [1] Body: solid dark-mode background (#232527)
+                ctx.fillStyle = '#232527';
+                ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 12 * s); ctx.fill();
+                // Thin glass border
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1 * s;
+                ctx.beginPath(); ctx.roundRect(0.5*s, 0.5*s, CW - 1*s, CH - 1*s, 12 * s); ctx.stroke();
 
-                // ── [2] Header zone (card-header): kanji left + type pill center ─
-                const pillW = 110, pillH = 36, pillX = (CW - pillW) / 2, pillY = 14;
+                // ── [2] Header zone: height 26px
+                const headerH = 26 * s;
+                
+                // card-type-pill center
+                ctx.font = `900 ${8 * s}px sans-serif`;
+                const pillTextW = ctx.measureText(lc.el).width;
+                const pillPadX = 6 * s, pillPadY = 2 * s;
+                const pillW = pillTextW + (pillPadX * 2);
+                const pillH = (8 * s) + (pillPadY * 2);
+                const pillX = (CW - pillW) / 2;
+                const pillY = (headerH - pillH) / 2;
+
                 ctx.fillStyle = lc.themeClr;
-                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 7); ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 7); ctx.stroke();
-                // Pill label (uppercase element name)
-                ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5 * s;
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.stroke();
+
+                ctx.font = `900 ${8 * s}px sans-serif`;
+                ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.el, CW / 2, pillY + pillH / 2);
-                // Kanji left
-                ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = lc.themeClr;
+                ctx.fillText(lc.el, CW / 2, pillY + pillH / 2 + 0.5*s);
+
+                // card-kanji left
+                ctx.font = `900 ${11 * s}px sans-serif`;
+                ctx.fillStyle = lc.themeClr;
                 ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.kanji, 18, pillY + pillH / 2);
+                ctx.fillText(lc.kanji, 8 * s, headerH / 2 + 1*s);
 
-                // ── [3] Card title (card-title: bold 11px scaled up) ─────────────
-                ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-                ctx.fillText(lc.name, CW / 2, 88);
-
-                // ── [4] Card desc (card-desc: italic dim) ────────────────────────
-                ctx.font = 'italic 16px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.42)';
-                ctx.textBaseline = 'alphabetic';
-                ctx.fillText(lc.desc, CW / 2, 112);
-
-                // ── [5] Icon circle (card-icon-3d: 45px circle with inner shadow) ─
-                const icx = CW / 2, icy = 215, icr = 72;
-                // Dark glass circle with inner shadow
-                const igrd = ctx.createRadialGradient(icx - 10, icy - 10, 5, icx, icy, icr);
-                igrd.addColorStop(0, 'rgba(0,0,0,0.55)');
-                igrd.addColorStop(0.65, 'rgba(0,0,0,0.28)');
-                igrd.addColorStop(1, 'rgba(255,255,255,0.04)');
-                ctx.beginPath(); ctx.arc(icx, icy, icr, 0, Math.PI * 2);
-                ctx.fillStyle = igrd; ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 2;
-                ctx.stroke();
-                // Soft element glow inside circle
-                const egrd = ctx.createRadialGradient(icx, icy, 0, icx, icy, icr * 0.8);
-                egrd.addColorStop(0, lc.themeClr + '66');
-                egrd.addColorStop(1, 'transparent');
-                ctx.beginPath(); ctx.arc(icx, icy, icr, 0, Math.PI * 2);
-                ctx.fillStyle = egrd; ctx.fill();
-                // Element emoji
-                ctx.font = '62px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(ELEM_ICONS[lc.el] || '\u2728', icx, icy);
-
-                // ── [6] Attr bar (card-attr-fused: dark #101012 footer) ───────────
-                const barY = CH - 80, barH = 80;
-                ctx.fillStyle = '#101012';
-                ctx.beginPath(); ctx.roundRect(0, barY, CW, barH, [0, 0, 24, 24]); ctx.fill();
-                // Separator line
-                ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(20, barY); ctx.lineTo(CW - 20, barY); ctx.stroke();
-                // Attr text (uppercase monospace, matches card-attr-fused styling)
-                ctx.font = 'bold 17px monospace'; ctx.fillStyle = '#ffffff';
+                // ── [3] Title (11px scale)
+                ctx.font = `900 ${11 * s}px sans-serif`;
+                ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.attr, CW / 2, barY + barH / 2);
+                ctx.fillText(lc.name, CW / 2, headerH + (18 * s) / 2);
 
-                const cardTex = new THREE.CanvasTexture(cardCanvas);
+                // ── [4] Description (6px scale)
+                ctx.font = `italic 800 ${6 * s}px sans-serif`;
+                ctx.fillStyle = '#7f8a93'; 
+                ctx.fillText(lc.desc, CW / 2, headerH + 18 * s + (12 * s) / 2);
 
-                // Card geometry — thin rect standing upright, matching guide-card proportions
-                // Real card is 84×135 → aspect 0.62; we preserve that
-                const cardGeo  = new THREE.BoxGeometry(0.62, 1.0, 0.04);
-                const cardMats = [
-                    new THREE.MeshStandardMaterial({ color: 0x1e2022, roughness: 0.9 }),  // right edge
-                    new THREE.MeshStandardMaterial({ color: 0x1e2022, roughness: 0.9 }),  // left edge
-                    new THREE.MeshStandardMaterial({ color: 0x2a2c2e, roughness: 0.8 }),  // top edge
-                    new THREE.MeshStandardMaterial({ color: 0x101012, roughness: 0.8 }),  // bottom edge (attr bar colour)
-                    new THREE.MeshStandardMaterial({ map: cardTex, emissive: lc.emissive, emissiveIntensity: 0.18 }), // front face
-                    new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.9, metalness: 0.1 }),              // back face
-                ];
-                const cardMesh = new THREE.Mesh(cardGeo, cardMats);
-                cardMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
-                cardMesh.userData = {
+                // ── [5] Icon circle (45px scale)
+                const icx = CW / 2;
+                const icy = headerH + 18 * s + 12 * s + (45 * s) / 2 + 2 * s; 
+                const icr = (45 * s) / 2;
+                
+                ctx.fillStyle = '#232527';
+                // Ghost geometry for collision and floating UI tracking
+                const cardGeo = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+                const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+                const hitMesh = new THREE.Mesh(cardGeo, hitMat);
+                hitMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
+                hitMesh.userData = {
                     type:       'loot_cards',
+                    id:         Math.floor(Math.random() * 9999999),
                     floatTimer: Math.random() * Math.PI * 2,
                     basePos:    1.2,
                     gridX:      gridX,
                     gridZ:      gridZ,
                     cardName:   lc.name,
+                    cardData:   lc
                 };
 
-                
-                this.worldGroup.add(cardMesh);
-                this.lootItems.push(cardMesh);
+                this.worldGroup.add(hitMesh);
+                this.lootItems.push(hitMesh);
                 
                 window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear the clatter of dropped coins.`, logType: 'system' }, '*');
             },
@@ -2887,6 +3168,7 @@
                 let foundMonster = null;
                 let closestDist = Infinity;
                 let glowingTargets = []; // Array to hold targets that should glow
+                let anyEnemyActive = false; // Tracks if any enemy is in combat/proximity
                 
                 // Scan worldGroup for entities at the target location (forgiving distance check)
                 if (this.worldGroup) {
@@ -2949,8 +3231,13 @@
                             } else if (makesCombat) {
                                 makesGlow = true; // Always glow in combat
                             }
+                            if (child.userData.type === 'enemy') {
+                                // Add continuous ethereal floating bob in FPV
+                                child.userData.floatOffset = (child.userData.floatOffset || Math.random() * Math.PI * 2) + 0.035;
+                                child.position.y = Math.sin(child.userData.floatOffset) * 0.12;
 
-                            if (makesGlow && child.userData.type === 'enemy') {
+                                if (makesGlow) anyEnemyActive = true;
+                                
                                 if (!child.userData.glowMeshes) {
                                     child.userData.glowMeshes = [];
                                     let foundSkinned = false;
@@ -2984,6 +3271,19 @@
                 
                 // Dynamically assign which enemies get the ethereal outline glow
                 if (this.outlinePass) {
+                    if (anyEnemyActive) {
+                        this.outlinePass.edgeThickness = 0.5;
+                        this.outlinePass.edgeStrength = 8.0;
+                        this.outlinePass.edgeGlow = 0.8;
+                        this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0);
+                    } else {
+                        // Distant ethereal thin outline
+                        this.outlinePass.edgeThickness = 0.1;
+                        this.outlinePass.edgeStrength = 2.0;
+                        this.outlinePass.edgeGlow = 0.0;
+                        this.outlinePass.visibleEdgeColor.setRGB(0, 1.0, 1.0);
+                    }
+
                     let changed = false;
                     if (this.outlinePass.selectedObjects.length !== glowingTargets.length) {
                         changed = true;
@@ -3447,27 +3747,226 @@
                 }, '*');
             },
 
-            // ─── Circular PiP: wire up canvas contexts + camera-mode click toggle ───
+            // ─── Resizable PiP: wire up canvas contexts + drag logic ───
             initPipCanvases() {
-                const pipDisp = document.getElementById('pip-display');
-                const pipDial = document.getElementById('pip-dial');
-                if (pipDisp) this.pip2dCtx   = pipDisp.getContext('2d');
-                if (pipDial) this.pipDialCtx  = pipDial.getContext('2d');
+                const pipMap = document.getElementById('pip-map-canvas');
+                if (pipMap) { 
+                    this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
+                    this.pipCanvasEl = pipMap;
+                }
 
                 // Ensure ortho target state exists
                 if (!this._pipOrthoTarget) {
                     this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
                 }
-
-                // Click: toggle FPV main ↔ Top-Down main
-                const wrapper = document.getElementById('pip-wrapper');
-                if (wrapper) {
-                    wrapper.addEventListener('click', () => {
-                        this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
-                        const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
-                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
+                
+                if (!this._pipZoomScale) this._pipZoomScale = 5;
+                const zoomSlider = document.getElementById('map-zoom-slider');
+                if (zoomSlider) {
+                    zoomSlider.value = this._pipZoomScale;
+                    zoomSlider.addEventListener('mousedown', (e) => e.stopPropagation()); // prevent camera spin
+                    zoomSlider.addEventListener('input', (e) => {
+                        this._pipZoomScale = Number(e.target.value);
                     });
                 }
+
+                // Inject 10a's window management logic
+                const pip = document.getElementById("mapview-container");
+                if (!pip) return;
+
+                const MIN_W = 200;
+                const MIN_H = 200;
+
+                // Dragging the container & Map Rotation
+                let dragging = false;
+                let mapRotating = false;
+                let mapPanning = false;
+                let dragStart = { x: 0, y: 0, left: 0, top: 0 };
+                let rotStart = { x: 0, y: 0 };
+                let panStart = { x: 0, y: 0 };
+                let clickStart = { x: 0, y: 0 };
+                
+                pip.addEventListener("contextmenu", e => { if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); });
+                
+                // Single-Click cleanly swaps modes (ignoring drags) using reliable MouseUp distance calculation
+                pip.addEventListener("mouseup", (e) => {
+                     if (e.button !== 0) return; // Only process standard left clicks for camera swaps
+                     const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
+                     if (dist > 5) return; // It was a drag, ignore
+                     
+                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+                         this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
+                         const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
+                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
+                     }
+                });
+                
+                // Double-click instantly snaps panning back to player
+                pip.addEventListener("dblclick", (e) => {
+                     e.stopPropagation();
+                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+                         this._pipPan = { x: 0, z: 0 };
+                     }
+                });
+                
+                pip.addEventListener("mousedown", (e) => {
+                    clickStart = { x: e.clientX, y: e.clientY };
+                    e.stopPropagation(); // prevent FPV camera from spinning while dragging
+                    if (e.target.closest(".resize-handle") || e.target.closest(".zoom-slider-container")) return; // let resize/zoom logic handle
+                    
+                    if (e.button === 2) { // Right Click = Orbit
+                         e.preventDefault();
+                         mapRotating = true;
+                         rotStart.x = e.clientX;
+                         rotStart.y = e.clientY;
+                         document.addEventListener("mousemove", onRotMove);
+                         document.addEventListener("mouseup", onRotEnd, { once: true });
+                         return;
+                    }
+                    if (e.button === 1 || (e.button === 0 && e.shiftKey)) { // Middle click OR Shift+Left Click = Pan
+                         e.preventDefault();
+                         mapPanning = true;
+                         panStart.x = e.clientX;
+                         panStart.y = e.clientY;
+                         document.addEventListener("mousemove", onPanMove);
+                         document.addEventListener("mouseup", onPanEnd, { once: true });
+                         return;
+                    }
+                    if (e.button !== 0) return; // pure left clicks proceed down to drag
+                    
+                    const rect = pip.getBoundingClientRect();
+                    dragging = true;
+                    pip.style.willChange = "transform, left, top, width, height";
+                    pip.style.transition = "none";
+                    pip.classList.add("dragging");
+                    dragStart.x = e.clientX;
+                    dragStart.y = e.clientY;
+                    dragStart.left = rect.left;
+                    dragStart.top = rect.top;
+                    document.addEventListener("mousemove", onDragMove);
+                    document.addEventListener("mouseup", onDragEnd, { once: true });
+                });
+                
+                function clampPiPIntoViewport() {
+                    const rect = pip.getBoundingClientRect();
+                    const vw = window.innerWidth, vh = window.innerHeight;
+                    let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
+                    let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
+                    pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
+                }
+
+                function loadPiPState() {
+                    if (window.innerWidth <= 768) return; // mobile uses sticky full-width
+                    try {
+                        const raw = localStorage.getItem("mapPiPState.v1");
+                        if (!raw) return;
+                        const s = JSON.parse(raw);
+                        if (!s || typeof s !== "object") return;
+                        pip.style.position = "absolute";
+                        if (typeof s.left === "number") { pip.style.left = s.left + "px"; pip.style.right = "auto"; }
+                        if (typeof s.top === "number") pip.style.top = s.top + "px";
+                        if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
+                        if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
+                    } catch {}
+                }
+
+                function savePiPState() {
+                    if (window.innerWidth <= 768) return;
+                    const rect = pip.getBoundingClientRect();
+                    try {
+                        localStorage.setItem("mapPiPState.v1", JSON.stringify({
+                            left: rect.left, top: rect.top, width: rect.width, height: rect.height
+                        }));
+                    } catch {}
+                }
+
+                const onDragMove = (e) => {
+                    if (!dragging) return;
+                    pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
+                    pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
+                    pip.style.right = "auto";
+                };
+                const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
+                
+                const onRotMove = (e) => {
+                    if (!mapRotating) return;
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    
+                    const dx = e.clientX - rotStart.x;
+                    const dy = e.clientY - rotStart.y;
+                    rotStart.x = e.clientX;
+                    rotStart.y = e.clientY;
+                    
+                    this._pipRot.theta -= dx * 0.01;
+                    this._pipRot.phi -= dy * 0.01;
+                    
+                    // Clamp pitch (phi) to prevent going under the map or over exactly top-down
+                    this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
+                };
+                
+                const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
+                
+                const onPanMove = (e) => {
+                    if (!mapPanning) return;
+                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    
+                    const dx = e.clientX - panStart.x;
+                    const dy = e.clientY - panStart.y;
+                    panStart.x = e.clientX;
+                    panStart.y = e.clientY;
+                    
+                    // Pan relative to camera look angle
+                    const pX = dx * 0.03 * (this._pipRot.radius / 15);
+                    const pZ = dy * 0.03 * (this._pipRot.radius / 15);
+                    
+                    this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
+                    this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
+                };
+                
+                const onPanEnd = () => { mapPanning = false; document.removeEventListener("mousemove", onPanMove); };
+
+                // Resizing logic
+                let resizing = false, currentHandle = "";
+                let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
+                
+                pip.querySelectorAll(".resize-handle").forEach((handle) => {
+                    handle.addEventListener("mousedown", (e) => {
+                        e.stopPropagation(); // prevent FPV camera spin over handles
+                        if (e.button !== 0) return;
+                        e.stopPropagation();
+                        resizing = true;
+                        currentHandle = handle.className.split(" ")[1];
+                        const rect = pip.getBoundingClientRect();
+                        rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
+                        pip.classList.add("resizing");
+                        pip.style.transition = "none";
+                        pip.style.right = "auto"; // Fix to left/top
+                        pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
+                        document.addEventListener("mousemove", onResizeMove);
+                        document.addEventListener("mouseup", onResizeEnd, { once: true });
+                    });
+                });
+                const onResizeMove = (e) => {
+                    if (!resizing) return;
+                    const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
+                    let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
+                    if (currentHandle.includes("e")) nw += dx;
+                    if (currentHandle.includes("s")) nh += dy;
+                    if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
+                    if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
+                    
+                    if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
+                    if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
+                    
+                    pip.style.width = nw + "px"; pip.style.height = nh + "px";
+                    pip.style.left = nl + "px"; pip.style.top = nt + "px";
+                };
+                const onResizeEnd = () => { resizing = false; pip.classList.remove("resizing"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onResizeMove); };
+                
+                // Initialize state
+                loadPiPState();
+                clampPiPIntoViewport();
             },
 
             postToAI(msg) {
@@ -4239,8 +4738,15 @@
                         const loot = this.lootItems[i];
                         loot.userData.floatTimer += delta;
                         loot.position.y = loot.userData.basePos + Math.sin(loot.userData.floatTimer * 2.5) * 0.18;
-                        // Coin and card both face the player by spinning slowly on Y axis
+                        // All loot spins gracefully on Y axis
                         loot.rotation.y += delta * (loot.userData.type === 'loot_gold' ? 2.0 : 1.2);
+                        
+                        if (loot.userData.iconMesh) {
+                            // Removed extreme 3D spinning tumbling per user request
+                            // small flat pulse effect
+                            const s = 1.0 + Math.sin(loot.userData.floatTimer * 5.0) * 0.1;
+                            loot.userData.iconMesh.scale.set(s,s,s);
+                        }
                         
                         // Proximity Check
                         if (loot.userData.gridX === pGridX && loot.userData.gridZ === pGridZ) {
@@ -4252,6 +4758,26 @@
                             } else if (loot.userData.type === 'loot_cards') {
                                 window.parent.postMessage({ type: 'LOOT_CARDS' }, '*');
                                 this.triggerHitStop(40);
+                                
+                                // YOU GOT! Card Showcase Overlay
+                                if (loot.userData.cardDataURL) {
+                                    const pNode = document.createElement('div');
+                                    pNode.style.cssText = "position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); z-index:9000; text-align:center; pointer-events:none; animation: cardLootAnim 2.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;";
+                                    pNode.innerHTML = `
+                                        <h1 style="color:#00ffcc; font-size:62px; text-shadow:0 0 30px #00ffcc; margin-bottom: 20px; font-weight:900; letter-spacing:4px; font-family: 'Impact', sans-serif;">YOU GOT!</h1>
+                                        <img src="${loot.userData.cardDataURL}" style="width:240px; height:360px; border-radius:18px; box-shadow: 0 0 50px rgba(0,255,200,0.4);" />
+                                    `;
+                                    document.getElementById('game-container').appendChild(pNode);
+                                    
+                                    if (!document.getElementById('animStyleLoot')) {
+                                        const s = document.createElement('style');
+                                        s.id = 'animStyleLoot';
+                                        s.innerHTML = `@keyframes cardLootAnim { 0% { opacity:0; transform:translate(-50%, -40%) scale(0.5); } 15% { opacity:1; transform:translate(-50%, -50%) scale(1.1); } 30% { transform:translate(-50%, -50%) scale(1); } 80% { opacity:1; transform:translate(-50%, -50%) scale(1); } 100% { opacity:0; transform:translate(-50%, -50%) scale(1.05); } }`;
+                                        document.head.appendChild(s);
+                                    }
+                                    
+                                    setTimeout(() => pNode.remove(), 2500);
+                                }
                             }
                             
                             this.worldGroup.remove(loot);
@@ -4263,37 +4789,87 @@
                 }
 
                 // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
-                const PIP = 200, PIPM = 14;
+                const container = document.getElementById('mapview-container');
+                const canvasWrapper = container ? container.querySelector('.canvas-wrapper') : null;
+                const wrapperRect = canvasWrapper ? canvasWrapper.getBoundingClientRect() : null;
+                
+                // Track dynamic PiP dimensions
+                const pipW = wrapperRect ? Math.round(wrapperRect.width) : 200;
+                const pipH = wrapperRect ? Math.round(wrapperRect.height) : 200;
+                const pipLeft = wrapperRect ? Math.round(wrapperRect.left) : winW - pipW - 20;
+                const pipBottom = wrapperRect ? Math.round(winH - wrapperRect.bottom) : winH - pipH - 20;
+                const webglTop = wrapperRect ? Math.round(wrapperRect.top) : 20;
+                
+                // Keep the 2D canvas size perfectly matched to the wrapper bounds
+                if (this.pipCanvasEl && (this.pipCanvasEl.width !== pipW || this.pipCanvasEl.height !== pipH)) {
+                    this.pipCanvasEl.width = pipW;
+                    this.pipCanvasEl.height = pipH;
+                }
 
-                // ── Update ortho zoom: room shows room+1 tile, hallway shows 20×20 ──
+                // ── Update ortho zoom ──
                 if (this.topDownCamera) {
+                    this.topDownCamera.layers.enable(1);
                     const pGX = Math.round(this.player.x);
                     const pGZ = Math.round(this.player.z);
-                    let tgtHW = 10 * this.gridSize, tgtHH = 10 * this.gridSize;
+                    
+                    // The _pipZoomScale acts as a multiplier of gridSize to dictate FOV window size.
+                    let tgtHW = this.gridSize * this._pipZoomScale;
+                    let tgtHH = this.gridSize * this._pipZoomScale;
                     let camWX = this.player.x * this.gridSize;
                     let camWZ = this.player.z * this.gridSize;
 
-                    if (this.rooms) {
-                        for (const r of this.rooms) {
-                            if (pGX >= r.x && pGX < r.x + r.w && pGZ >= r.y && pGZ < r.y + r.h) {
-                                tgtHW = (r.w / 2 + 1) * this.gridSize;
-                                tgtHH = (r.h / 2 + 1) * this.gridSize;
-                                camWX = (r.x + r.w / 2) * this.gridSize;
-                                camWZ = (r.y + r.h / 2) * this.gridSize;
-                                break;
-                            }
-                        }
+                    // Track interpolation targets to allow camera damping
+                    if (this._pipOrthoTarget.cx === undefined) {
+                        this._pipOrthoTarget.cx = camWX;
+                        this._pipOrthoTarget.cz = camWZ;
                     }
+
+                    // Refactored TopDown into a premium Isometric perspective
                     const lf = Math.min(1, delta * 4.0);
+                    const camTrackSpeed = Math.min(1, delta * 2.5); // Smooth cinematic map tracking
+                    
                     this._pipOrthoTarget.hw += (tgtHW - this._pipOrthoTarget.hw) * lf;
                     this._pipOrthoTarget.hh += (tgtHH - this._pipOrthoTarget.hh) * lf;
-                    this.topDownCamera.left   = -this._pipOrthoTarget.hw;
-                    this.topDownCamera.right  =  this._pipOrthoTarget.hw;
-                    this.topDownCamera.top    =  this._pipOrthoTarget.hh;
-                    this.topDownCamera.bottom = -this._pipOrthoTarget.hh;
+                    
+                    // Smooth tracking catch up WITH panning offset
+                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+                    const targetX = camWX + this._pipPan.x;
+                    const targetZ = camWZ + this._pipPan.z;
+                    this._pipOrthoTarget.cx += (targetX - this._pipOrthoTarget.cx) * camTrackSpeed;
+                    this._pipOrthoTarget.cz += (targetZ - this._pipOrthoTarget.cz) * camTrackSpeed;
+                    
+                    // Maintain wrapper's aspect ratio
+                    const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
+                    this.topDownCamera.aspect = aspect;
                     this.topDownCamera.updateProjectionMatrix();
-                    this.topDownCamera.position.set(camWX, 20, camWZ);
-                    this.topDownCamera.lookAt(camWX, 0, camWZ);
+                    
+                    // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
+                    // Initializing theta to 0 aligns the map perfectly vertical (up-down hallway) at the start!
+                    this._pipRot = this._pipRot || { theta: 0, phi: 0.8, radius: 20 };
+                    this._pipRot.radius += ((this._pipZoomScale * 3.5) - this._pipRot.radius) * 0.1;
+                    
+                    const camX = this._pipOrthoTarget.cx + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.sin(this._pipRot.theta);
+                    const camY = this._pipRot.radius * Math.cos(this._pipRot.phi);
+                    const camZ = this._pipOrthoTarget.cz + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.cos(this._pipRot.theta);
+                    
+                    this.topDownCamera.position.set(camX, camY, camZ);
+                    this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
+                    
+                    // Sync ARPG Player token (Since in true 3D we need a physical representative)
+                    if (this.playerAvatar) {
+                        this.playerAvatar.position.set(camWX, 0, camWZ);
+                        // Make sure avatar faces movement direction smoothly
+                        const dx = camWX - (this.playerAvatar.userData.lastX || camWX);
+                        const dz = camWZ - (this.playerAvatar.userData.lastZ || camWZ);
+                        if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
+                            const targetRot = Math.atan2(dx, dz);
+                            // Simple lerp rotation
+                            this.playerAvatar.rotation.y += (targetRot - this.playerAvatar.rotation.y) * 0.2;
+                        }
+                        
+                        this.playerAvatar.userData.lastX = camWX;
+                        this.playerAvatar.userData.lastZ = camWZ;
+                    }
                 }
 
                 if (this.cameraMode === 'topdown' && this.topDownCamera) {
@@ -4302,13 +4878,15 @@
                     this.renderer.setViewport(0, 0, winW, winH);
                     this.renderer.setScissor(0, 0, winW, winH);
                     this.renderer.setScissorTest(true);
-                    this.scene.fog.density = 0.0;
-                    this.renderer.setClearColor(0x0c0822, 1);
+                    // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
+                    this.scene.fog.color.setHex(0x06020f);
+                    this.scene.fog.density = 0.05;
+                    this.renderer.setClearColor(0x06020f, 1);
                     this.renderer.render(this.scene, this.topDownCamera);
 
-                    // [2] Small FPV view rendered into top-left corner
-                    this.renderer.setViewport(PIPM, winH - PIPM - PIP, PIP, PIP);
-                    this.renderer.setScissor(PIPM,  winH - PIPM - PIP, PIP, PIP);
+                    // [2] Small FPV view rendered into mapview-container space
+                    this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+                    this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
                     this.renderer.setScissorTest(true);
                     this.scene.fog.density = 0.055;
                     this.renderer.setClearColor(0x06020f, 1);
@@ -4335,149 +4913,35 @@
                         this.renderer.render(this.scene, this.camera);
                     }
 
-                    // [2] Top-down PiP into top-left corner
+                    // [2] Top-down map PiP into mapview-container space
                     if (this.topDownCamera) {
-                        this.renderer.setViewport(PIPM, winH - PIPM - PIP, PIP, PIP);
-                        this.renderer.setScissor(PIPM,  winH - PIPM - PIP, PIP, PIP);
+                        this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+                        this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
                         this.renderer.setScissorTest(true);
-                        this.scene.fog.density = 0.0;
-                        this.renderer.setClearColor(0x0a0625, 1);
+                        
+                        // AAA RPG Vignette
+                        this.scene.fog.color.setHex(0x000000);
+                        this.scene.fog.density = 0.055;
+                        this.renderer.setClearColor(0x000000, 1); // True pitch black void
                         this.renderer.render(this.scene, this.topDownCamera);
+                        
+                        // Reset native FPV fog density to active default
+                        this.scene.fog.color.setHex(0x08041a);
                         this.scene.fog.density = 0.055;
                     }
                 }
 
-                // ── Copy WebGL top-left region → pip-display (circular, clipped) ──
-                if (this.pip2dCtx) {
+                // ── Copy WebGL PiP region → pip-map-canvas (so it composites with UI cleanly) ──
+                if (this.pip2dCtx && this.pipCanvasEl && pipW > 0 && pipH > 0) {
                     const ctx = this.pip2dCtx;
                     const gl  = this.renderer.domElement;
-                    ctx.clearRect(0, 0, PIP, PIP);
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(PIP / 2, PIP / 2, PIP / 2, 0, Math.PI * 2);
-                    ctx.clip();
-                    // Source rect = top-left corner of WebGL canvas (PIPM,PIPM) → no Y-flip needed
-                    ctx.drawImage(gl, PIPM, PIPM, PIP, PIP, 0, 0, PIP, PIP);
-                    ctx.restore();
+                    ctx.clearRect(0, 0, pipW, pipH);
+                    
+                    // The srcRect aligns with the corner of gl we just drew into!
+                    // Note: Canvas drawImage coordinates have Top Left as (0,0), even for the GL canvas pixels!
+                    ctx.drawImage(gl, pipLeft, webglTop, pipW, pipH, 0, 0, pipW, pipH);
 
-                    // Player dot at dead centre
-                    ctx.beginPath();
-                    ctx.arc(PIP / 2, PIP / 2, 4, 0, Math.PI * 2);
-                    ctx.fillStyle   = '#00ffcc';
-                    ctx.shadowBlur  = 8;
-                    ctx.shadowColor = '#00ffcc';
-                    ctx.fill();
-                    ctx.shadowBlur  = 0;
-
-                    // Facing-direction cone: canvas X = worldX, canvas Y = worldZ
-                    // (top-down camera up=(0,0,-1) → world-north=-Z maps to canvas-top)
-                    const rot  = this.player.rot;
-                    const fdX  = -Math.sin(rot);       // canvas horizontal direction
-                    const fdY  = -Math.cos(rot);       // canvas vertical direction (-Z = up)
-                    // Negate fdY because canvas +Y is DOWN while world -Z is UP
-                    // At rot=0: fdX=0, fdY=-1 → tip = (cx, cy+(-1)*cLen) = above centre ✓
-                    const cLen = 18, cHW = 7;
-                    const pX   = PIP / 2, pY = PIP / 2;
-                    const tipX = pX + fdX * cLen;
-                    const tipY = pY + fdY * cLen;       // fdY=-cos(rot), negative = upward ✓
-                    const perX =  Math.cos(rot);
-                    const perY = -Math.sin(rot);
-                    ctx.beginPath();
-                    ctx.moveTo(tipX, tipY);
-                    ctx.lineTo(pX + perX * cHW, pY + perY * cHW);
-                    ctx.lineTo(pX - perX * cHW, pY - perY * cHW);
-                    ctx.closePath();
-                    ctx.fillStyle   = 'rgba(0,255,200,0.85)';
-                    ctx.shadowBlur  = 8;
-                    ctx.shadowColor = '#00ffcc';
-                    ctx.fill();
-                    ctx.shadowBlur  = 0;
-                }
-
-                // ── Compass dial on pip-dial canvas ──────────────────────────────
-                if (this.pipDialCtx) {
-                    const dCtx = this.pipDialCtx;
-                    const CW = 240, CH = 240, cx = 120, cy = 120;
-                    const outerR = 118, innerR = 100;
-                    dCtx.clearRect(0, 0, CW, CH);
-
-                    // Glowing annular ring
-                    const rg = dCtx.createRadialGradient(cx, cy, innerR - 2, cx, cy, outerR + 3);
-                    rg.addColorStop(0.0, 'rgba(0,255,200,0.0)');
-                    rg.addColorStop(0.3, 'rgba(0,255,200,0.65)');
-                    rg.addColorStop(0.7, 'rgba(0,190,160,0.32)');
-                    rg.addColorStop(1.0, 'rgba(0,80,60,0.0)');
-                    dCtx.beginPath();
-                    dCtx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
-                    dCtx.lineWidth   = outerR - innerR;
-                    dCtx.strokeStyle = rg;
-                    dCtx.stroke();
-
-                    // Crisp inner border
-                    dCtx.beginPath();
-                    dCtx.arc(cx, cy, innerR, 0, Math.PI * 2);
-                    dCtx.lineWidth   = 1.5;
-                    dCtx.strokeStyle = 'rgba(0,255,200,0.85)';
-                    dCtx.stroke();
-
-                    // Rotating tick ring — dial spins with player so N stays at heading
-                    dCtx.save();
-                    dCtx.translate(cx, cy);
-                    dCtx.rotate(this.player.rot);   // clockwise when turning left ← correct compass behaviour
-
-                    const cardNames = ['N', 'E', 'S', 'W'];
-                    for (let t = 0; t < 24; t++) {
-                        const ang     = (t / 24) * Math.PI * 2;
-                        const isCard  = t % 6 === 0;
-                        const isMid   = t % 3 === 0;
-                        const tickLen = isCard ? 11 : isMid ? 7 : 4;
-                        const r0 = innerR;
-                        const r1 = innerR - tickLen;
-                        dCtx.beginPath();
-                        dCtx.moveTo(Math.sin(ang) * r0, -Math.cos(ang) * r0);
-                        dCtx.lineTo(Math.sin(ang) * r1, -Math.cos(ang) * r1);
-                        dCtx.strokeStyle = isCard ? 'rgba(0,255,200,0.95)' : isMid ? 'rgba(0,255,200,0.5)' : 'rgba(0,255,200,0.2)';
-                        dCtx.lineWidth   = isCard ? 2.5 : 1;
-                        dCtx.stroke();
-
-                        if (isCard) {
-                            const ci   = (t / 6) % 4;
-                            const labR = innerR - 17;
-                            const lx   = Math.sin(ang) * labR;
-                            const ly   = -Math.cos(ang) * labR;
-                            dCtx.save();
-                            dCtx.translate(lx, ly);
-                            dCtx.rotate(-this.player.rot);    // text stays upright
-                            dCtx.font         = ci === 0 ? 'bold 10px monospace' : '8px monospace';
-                            dCtx.fillStyle    = ci === 0 ? '#ff5555' : 'rgba(0,255,200,0.85)';
-                            dCtx.textAlign    = 'center';
-                            dCtx.textBaseline = 'middle';
-                            dCtx.fillText(cardNames[ci], 0, 0);
-                            dCtx.restore();
-                        }
-                    }
-                    dCtx.restore(); // end rotating ring
-
-                    // Fixed forward notch at top (always = "where you're heading")
-                    dCtx.save();
-                    dCtx.translate(cx, cy);
-                    dCtx.shadowBlur  = 8;
-                    dCtx.shadowColor = '#00ffcc';
-                    dCtx.fillStyle   = '#00ffcc';
-                    dCtx.beginPath();
-                    dCtx.moveTo(0, -(outerR + 5));
-                    dCtx.lineTo(-6, -(innerR + 1));
-                    dCtx.lineTo( 6, -(innerR + 1));
-                    dCtx.closePath();
-                    dCtx.fill();
-                    dCtx.restore();
-
-                    // Tiny mode label at bottom of ring
-                    dCtx.font         = 'bold 7px monospace';
-                    dCtx.fillStyle    = this.cameraMode === 'fpv' ? 'rgba(0,255,200,0.55)' : 'rgba(255,180,0,0.9)';
-                    dCtx.textAlign    = 'center';
-                    dCtx.textBaseline = 'middle';
-                    dCtx.fillText(this.cameraMode === 'fpv' ? '● MAP' : '● FPV', cx, cy + outerR - 9);
+                    // 3D Avatar handles presence natively now. Legacy 2D canvas drawing removed!
                 }
 
                 
