@@ -346,8 +346,8 @@
         }
         #mapview-container .map-controls input[type="range"] {
             flex: 1;
-            height: 4px;
             cursor: pointer;
+            margin: 0 4px;
         }
 
         /* Vertical zoom slider overlay for mapview */
@@ -3878,18 +3878,23 @@
                      }
                 });
                 
-                // Bind Dynamic Map Controls
+                // Bind Dynamic Map Controls explicitly stopping drag propagation
                 const angleSlider = document.getElementById("pip-angle-slider");
-                if (angleSlider) angleSlider.addEventListener("input", e => {
-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                    this._pipRot.phi = parseFloat(e.target.value);
-                });
+                if (angleSlider) {
+                    angleSlider.oninput = (e) => {
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
+                        this._pipRot.phi = parseFloat(e.target.value);
+                    };
+                    angleSlider.onmousedown = (e) => e.stopPropagation();
+                }
                 
                 const pipZoomCtrl = document.getElementById("pip-zoom-slider");
-                if (pipZoomCtrl) pipZoomCtrl.addEventListener("input", e => {
-                    // Direct 1:1 map to target radius
-                    this._pipZoomScale = parseFloat(e.target.value);
-                });
+                if (pipZoomCtrl) {
+                    pipZoomCtrl.oninput = (e) => {
+                        this._pipZoomScale = parseFloat(e.target.value);
+                    };
+                    pipZoomCtrl.onmousedown = (e) => e.stopPropagation();
+                }
                 
                 pip.addEventListener("mousedown", (e) => {
                     clickStart = { x: e.clientX, y: e.clientY };
