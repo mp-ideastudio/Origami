@@ -1630,40 +1630,43 @@
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
                 
-                // Holographic Top-Down Player Avatar
+                // Holographic Top-Down Player Avatar (Reverted to pure baseline 12c Tactical Vector graphics)
                 this.playerAvatar = new THREE.Group();
                 this.playerAvatar.layers.set(3); // Map view only
-                this.scene.add(this.playerAvatar);
                 
-                const gltfLoader = new THREE.GLTFLoader();
-                gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
-                    const avatarMesh = gltf.scene;
-                    
-                    // Bounding Box (Box3) physics often fail on rigged SkinnedMeshes creating wildly massive geometries. 
-                    // Bypass heuristic bounding metrics with an explicit native static scalar calibrated for the 6.0 unit grid.
-                    avatarMesh.scale.setScalar(0.12); // Statically reduce geometry to exactly 5% of its natural un-rigged volume
-                    
-                    // Rig layers so the actual 3D character only displays on the map
-                    avatarMesh.traverse((child) => {
-                        if (child.isMesh) {
-                            child.layers.set(3);
-                            child.castShadow = false; // Prevent giant avatar from casting shadows into FPV
-                            child.receiveShadow = false;
-                        }
-                    });
+                const circleRadius = this.gridSize * 0.4;
+                const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
+                const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x315B26, side: THREE.DoubleSide });
+                const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+                circle.rotation.x = -Math.PI / 2;
+                circle.position.y = 2.015; // Hover
+                circle.layers.set(3);
+                this.playerAvatar.add(circle);
 
-                    // Activate the core walking loop
-                    if (gltf.animations && gltf.animations.length > 0) {
-                        const mixer = new THREE.AnimationMixer(avatarMesh);
-                        const action = mixer.clipAction(gltf.animations[0]);
-                        action.play();
-                        
-                        this.playerAvatar.userData.mixer = mixer;
-                        this.mixers.push(mixer);
-                    }
+                const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.03), circleRadius + (this.gridSize*0.02), 64);
+                const playerBorderMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide });
+                const playerBorder = new THREE.Mesh(playerBorderGeo, playerBorderMat);
+                playerBorder.rotation.x = -Math.PI / 2;
+                playerBorder.position.y = 2.018; // Stacked
+                playerBorder.layers.set(3);
+                this.playerAvatar.add(playerBorder);
 
-                    this.playerAvatar.add(avatarMesh);
-                });
+                const arrowShape = new THREE.Shape();
+                const arrowSize = this.gridSize * 0.15;
+                arrowShape.moveTo(0, arrowSize);
+                arrowShape.lineTo(arrowSize * 0.7, -arrowSize);
+                arrowShape.lineTo(-arrowSize * 0.7, -arrowSize);
+                arrowShape.closePath();
+                const arrowGeometry = new THREE.ShapeGeometry(arrowShape);
+                const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                arrow.rotation.x = -Math.PI / 2;
+                arrow.position.z = -this.gridSize * 0.25;
+                arrow.position.y = 2.021; // Top layer
+                arrow.layers.set(3);
+                this.playerAvatar.add(arrow);
+
+                this.scene.add(this.playerAvatar);
 
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
@@ -4908,35 +4911,6 @@
                     let tgtHH = this.gridSize * this._pipZoomScale;
                     let camWX = this.player.x * this.gridSize;
                     let camWZ = this.player.z * this.gridSize;
-
-                    // Lazy-compute room centroids for camera snapping
-                    if (!this._roomCenters) {
-                        this._roomCenters = {};
-                        for (let x = 0; x < this.mapWidth; x++) {
-                            for (let z = 0; z < this.mapHeight; z++) {
-                                const c = this.mapData[x]?.[z];
-                                if (c && c.roomId && c.roomId !== 'corridor') {
-                                    if (!this._roomCenters[c.roomId]) this._roomCenters[c.roomId] = { minX: x, maxX: x, minZ: z, maxZ: z };
-                                    else {
-                                        this._roomCenters[c.roomId].minX = Math.min(x, this._roomCenters[c.roomId].minX);
-                                        this._roomCenters[c.roomId].maxX = Math.max(x, this._roomCenters[c.roomId].maxX);
-                                        this._roomCenters[c.roomId].minZ = Math.min(z, this._roomCenters[c.roomId].minZ);
-                                        this._roomCenters[c.roomId].maxZ = Math.max(z, this._roomCenters[c.roomId].maxZ);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Snap PiP camera to center of room when player is inside one
-                    const pGridX = Math.round(this.player.x);
-                    const pGridZ = Math.round(this.player.z);
-                    const currentCell = this.mapData[pGridX]?.[pGridZ];
-                    if (currentCell && currentCell.roomId && currentCell.roomId !== 'corridor' && this._roomCenters[currentCell.roomId]) {
-                        const bounds = this._roomCenters[currentCell.roomId];
-                        camWX = ((bounds.minX + bounds.maxX) / 2) * this.gridSize;
-                        camWZ = ((bounds.minZ + bounds.maxZ) / 2) * this.gridSize;
-                    }
 
                     // Track interpolation targets to allow camera damping
                     if (this._pipOrthoTarget.cx === undefined) {
