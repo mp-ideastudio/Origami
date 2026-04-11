@@ -338,11 +338,14 @@
             border-radius: 4px;
             pointer-events: auto;
         }
-        #mapview-container .map-controls span {
+        #mapview-container .map-controls span.ctrl-group {
             color: #fff;
             font-size: 9px;
             font-family: sans-serif;
             text-transform: uppercase;
+        }
+        #mapview-container .map-controls span.ctrl-group.angle-grp {
+            margin-left: 8px;
         }
         #mapview-container .map-controls button {
             background: rgba(40, 40, 40, 0.9);
@@ -361,8 +364,10 @@
             margin: 0 4px;
             padding: 0;
             pointer-events: auto !important;
-            user-select: none !important;
             -webkit-user-select: none !important;
+            user-select: none !important;
+            position: relative;
+            z-index: 2100;
         }
         #mapview-container .map-controls button:hover {
             background: #666;
@@ -471,11 +476,10 @@
         <div id="mapview-container" class="primary-view">
             <div class="view-label">Map View (Drag Here)</div>
             <div class="map-controls">
-            <div class="map-controls">
-                <span>Dist (<span id="pip-dist-val">25</span>)</span>
+                <span class="ctrl-group">Dist (<span id="pip-dist-val">25</span>)</span>
                 <button id="pip-zoom-in" title="Zoom In (Closer)">-</button>
                 <button id="pip-zoom-out" title="Zoom Out (Further)">+</button>
-                <span style="margin-left:8px;">Angle (<span id="pip-angle-val">0.65</span>)</span>
+                <span class="ctrl-group angle-grp">Angle (<span id="pip-angle-val">0.65</span>)</span>
                 <button id="pip-angle-down" title="Lower Angle">-</button>
                 <button id="pip-angle-up" title="Raise Angle">+</button>
             </div>
