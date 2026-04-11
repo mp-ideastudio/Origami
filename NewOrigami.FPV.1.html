@@ -1631,10 +1631,8 @@
                 gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
                     const avatarMesh = gltf.scene;
                     
-                    // Standardize scale to perfectly fit our 1.53 maze scale
-                    const box = new THREE.Box3().setFromObject(avatarMesh);
-                    const size = box.getSize(new THREE.Vector3());
-                    avatarMesh.scale.setScalar(1.6 / size.y);
+                    // Static scale since GLTF SkinnedMesh bounding boxes can return 0 dynamically on load
+                    avatarMesh.scale.setScalar(0.85);
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
