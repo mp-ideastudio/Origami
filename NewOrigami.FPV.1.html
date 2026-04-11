@@ -1620,6 +1620,7 @@
                 this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 1500);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
+                this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
                 
                 // Holographic Top-Down Player Avatar
                 this.playerAvatar = new THREE.Group();
@@ -4829,6 +4830,7 @@
                 // ── Update ortho zoom ──
                 if (this.topDownCamera) {
                     this.topDownCamera.layers.enable(1);
+                    this.topDownCamera.layers.enable(3); // Ensure Layer 3 (Map-only Avatar) is visible
                     const pGX = Math.round(this.player.x);
                     const pGZ = Math.round(this.player.z);
                     
