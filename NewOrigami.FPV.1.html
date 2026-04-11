@@ -2037,6 +2037,16 @@
                 instancedWalls.receiveShadow = true;
                 // Save reference so the raycaster can find it later without filtering the scene graph
                 this.walls = [instancedWalls]; 
+                
+                // AAA Architectural Trim (Crown Molding / Lip for Wall Tops)
+                // This thin overhanging geometry sits on the wall edges to give depth, structure, and hard shadow to the TopDown ARPG view!
+                const trimThick = 0.08;
+                const trimOverhang = 0.04;
+                const trimGeo = new THREE.BoxGeometry(this.gridSize + trimOverhang*2, trimThick, this.gridSize + trimOverhang*2);
+                const trimMat = new THREE.MeshStandardMaterial({ color: 0x07080a, roughness: 1.0, metalness: 0.0 });
+                const instancedTrims = new THREE.InstancedMesh(trimGeo, trimMat, wallCount);
+                instancedTrims.castShadow = true;
+                instancedTrims.receiveShadow = true;
 
                 // Build pure mathematical AABB boxes for perfect Raycasting fallback
                 this.wallBoxes = [];
@@ -2066,13 +2076,23 @@
                         if (cell.type === 'wall') {
                             dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
                             dummy.updateMatrix();
-                            instancedWalls.setMatrixAt(wallIdx++, dummy.matrix);
+                            instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            // Matrix the overhang trim flush onto the surface!
+                            dummy.position.set(x * this.gridSize, wallHeight + (trimThick / 2), z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedTrims.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            wallIdx++;
                         }
                     }
                 }
                 
                 instancedWalls.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedWalls);
+                
+                instancedTrims.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedTrims);
                 
                 // Ceiling
                 ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
