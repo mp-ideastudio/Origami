@@ -2192,8 +2192,6 @@
                         
                         // FPV Base Interaction Circle (Left on Layer 0/1 to be universally visible, but it sits totally flush anyway)
                         const hudTexIdle = this.createStatusCircleTexture('#000000');
-                        const hudTexHostile = this.createStatusCircleTexture('#ff0000');
-                        const hudTexSearch = this.createStatusCircleTexture('#ff0000', false, '#000000');
                         
                         const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
                         const circleMat = new THREE.MeshBasicMaterial({ 
@@ -4471,10 +4469,10 @@
                                 aiData.searchTimer += delta;
                                 // Stand still, scan left and right
                                 child.rotation.y += Math.sin(time * 2) * delta;
-                                // Hold solid Orange/Yellow to indicate 'Searching' state without strobe blinking
+                                // Hold solid Black for Search state
                                 if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ffaa00')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ffaa00');
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
                                     }
                                 }
                                 
@@ -4503,8 +4501,8 @@
                                 }
                                 
                                 if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ffaa00')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ffaa00'); // Orange return
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000'); // Black return
                                     }
                                 }
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
