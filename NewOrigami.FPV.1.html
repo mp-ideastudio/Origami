@@ -2076,6 +2076,7 @@
                 const instancedWalls = new THREE.InstancedMesh(wallGeo, wallMaterials, wallCount);
                 instancedWalls.castShadow = true;
                 instancedWalls.receiveShadow = true;
+                instancedWalls.frustumCulled = false; // Prevent clipping when Map view pulls far out
                 // Save reference so the raycaster can find it later without filtering the scene graph
                 this.walls = [instancedWalls]; 
                 
@@ -2088,12 +2089,14 @@
                 const trimGeoBase = new THREE.BoxGeometry(this.gridSize + overHangBase*2, 0.04, this.gridSize + overHangBase*2);
                 const instancedTrimsBase = new THREE.InstancedMesh(trimGeoBase, trimMat, wallCount);
                 instancedTrimsBase.castShadow = true; instancedTrimsBase.receiveShadow = true;
+                instancedTrimsBase.frustumCulled = false;
                 
                 // Upper tight lip
                 const overHangTop = 0.02;
                 const trimGeoTop = new THREE.BoxGeometry(this.gridSize + overHangTop*2, 0.05, this.gridSize + overHangTop*2);
                 const instancedTrimsTop = new THREE.InstancedMesh(trimGeoTop, trimMat, wallCount);
                 instancedTrimsTop.castShadow = true; instancedTrimsTop.receiveShadow = true;
+                instancedTrimsTop.frustumCulled = false;
 
                 // Build pure mathematical AABB boxes for perfect Raycasting fallback
                 this.wallBoxes = [];
@@ -2172,6 +2175,7 @@
                 
                 const instancedFloor = new THREE.InstancedMesh(floorBoxGeo, mats.floor, walkCount);
                 instancedFloor.receiveShadow = true; 
+                instancedFloor.frustumCulled = false;
                 
                 let walkIdx = 0;
                 for (let x = 0; x < this.mapWidth; x++) {
