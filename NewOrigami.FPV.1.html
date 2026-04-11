@@ -1639,8 +1639,9 @@
                 gltfLoader.load('assets/models/Player.A.Walking.glb', (gltf) => {
                     const avatarMesh = gltf.scene;
                     
-                    // Explicitly lock the 3D Map Icon size to large tactical proportions using geometry parsing (bypasses Skeleton load faults)
-                    this.scaleModelToHeight(avatarMesh, 0.48); // Player height scaled to 0.48 (reduced by 500% from 2.4 baseline)
+                    // Bounding Box (Box3) physics often fail on rigged SkinnedMeshes creating wildly massive geometries. 
+                    // Bypass heuristic bounding metrics with an explicit native static scalar calibrated for the 6.0 unit grid.
+                    avatarMesh.scale.setScalar(0.12); // Statically reduce geometry to exactly 5% of its natural un-rigged volume
                     
                     // Rig layers so the actual 3D character only displays on the map
                     avatarMesh.traverse((child) => {
