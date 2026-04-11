@@ -1595,6 +1595,12 @@
                 
                 // Base ambient light to prevent pitch black MeshStandardMaterial (walls/floors are basic mat so they remain dark)
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                
+                // Allow cinematic Map View avatar (Layer 3) to receive ambient and directional lighting
+                ambientLight.layers.enable(3);
+                dirLight.layers.enable(3);
+                hemisphereLight.layers.enable(3);
+                
                 this.scene.add(ambientLight);
                 
                 // Player Flashlight
@@ -2126,8 +2132,8 @@
                 }
                 
                 const depth = 4.0;
-                // 0.96 scale creates natural, dark grid lines between cells by exposing the black void behind!
-                const floorBoxGeo = new THREE.BoxGeometry(this.gridSize * 0.96, depth, this.gridSize * 0.96);
+                // 1.0 scale creates perfectly flush seamless architecture 
+                const floorBoxGeo = new THREE.BoxGeometry(this.gridSize * 1.0, depth, this.gridSize * 1.0);
                 floorTex.repeat.set(1, 1); // un-tile the floor texture, map fully onto each block
                 
                 const instancedFloor = new THREE.InstancedMesh(floorBoxGeo, mats.floor, walkCount);
@@ -4936,7 +4942,7 @@
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
                     // To see the "7-Tile Hallway" ahead, we offset the target forward relative to camera theta. 
                     // Pushing the target away from the camera slides the player towards the bottom of the viewport frame!
-                    const lookAheadDist = this._pipRot.radius * 0.65; // Heavily shifted (65% of radius) to strongly anchor player to the bottom edge
+                    const lookAheadDist = this._pipRot.radius * 0.05; // Slightly shifted (5% of radius) to center the player with minor forward bias
                     const lookX = -Math.sin(this._pipRot.theta) * lookAheadDist;
                     const lookZ = -Math.cos(this._pipRot.theta) * lookAheadDist;
                     
