@@ -2208,15 +2208,6 @@
                         circle.position.y = 0.02; 
                         circle.layers.set(0); // Master visibility layer
                         mesh.add(circle);
-                        const mmCircleMat = new THREE.MeshBasicMaterial({ 
-                            map: this.createStatusCircleTexture('#ff0000', true), // Hollow red outline
-                            transparent: true, opacity: 0.8, depthWrite: false 
-                        });
-                        const mmCircle = new THREE.Mesh(circleGeo, mmCircleMat);
-                        mmCircle.rotation.x = -Math.PI / 2;
-                        mmCircle.position.y = 0.04; 
-                        mmCircle.layers.set(0);  // Sync to master visibility instead of PiP layer 2
-                        mesh.add(mmCircle);
                         
                         // Cache textures to swap based on AI state
                         mesh.userData.texIdle = hudTexIdle;
@@ -4480,14 +4471,10 @@
                                 aiData.searchTimer += delta;
                                 // Stand still, scan left and right
                                 child.rotation.y += Math.sin(time * 2) * delta;
-                                // Handle SEARCH blinking logically without 0.25 second frame leak
+                                // Hold solid Orange/Yellow to indicate 'Searching' state without strobe blinking
                                 if (child.userData.baseMat) {
-                                    const isBlinkFrame = Math.floor(time * 4) % 2 === 0;
-                                    // Use cached 50/50 red-black texture for blink state, else solid black
-                                    const newMap = isBlinkFrame ? this.getCachedCircleTexture('#ff0000', false, '#000000') : this.getCachedCircleTexture('#000000');
-                                    
-                                    if (child.userData.baseMat.map !== newMap) {
-                                        child.userData.baseMat.map = newMap;
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ffaa00')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ffaa00');
                                     }
                                 }
                                 
