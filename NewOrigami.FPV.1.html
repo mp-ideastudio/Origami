@@ -3830,15 +3830,7 @@
                     this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
                 }
                 
-                if (!this._pipZoomScale) this._pipZoomScale = 12; // Start significantly more zoomed out to see the tactical hallway layout
-                const zoomSlider = document.getElementById('map-zoom-slider');
-                if (zoomSlider) {
-                    zoomSlider.value = this._pipZoomScale;
-                    zoomSlider.addEventListener('mousedown', (e) => e.stopPropagation()); // prevent camera spin
-                    zoomSlider.addEventListener('input', (e) => {
-                        this._pipZoomScale = Number(e.target.value);
-                    });
-                }
+                if (!this._pipZoomScale) this._pipZoomScale = 1.0; // Normalized baseline scale
 
                 // Inject 10a's window management logic
                 const pip = document.getElementById("mapview-container");
