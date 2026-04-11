@@ -1,0 +1,925 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice & Card Game Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --border-color-dark: rgba(75, 85, 99, 0.5);
+            --border-color-active: rgba(59, 130, 246, 0.6);
+            --border-color-attack: rgba(239, 68, 68, 0.8);
+            --glow-color: rgba(139, 92, 246, 0.6); 
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            background-color: #0d0f18; 
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 25px;
+            overflow: hidden;
+        }
+
+        #aurora-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(40vw circle at var(--x, 50%) var(--y, 50%), hsla(217, 89%, 61%, 0.2), transparent 40%),
+                        radial-gradient(30vw circle at var(--x2, 50%) var(--y2, 50%), hsla(289, 80%, 55%, 0.15), transparent 35%);
+            animation: moveAurora 25s linear infinite alternate;
+        }
+
+        @keyframes moveAurora {
+            0% { --x: 20%; --y: 30%; --x2: 80%; --y2: 70%; }
+            50% { --x: 80%; --y: 60%; --x2: 30%; --y2: 40%; }
+            100% { --x: 30%; --y: 80%; --x2: 70%; --y2: 20%; }
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr); /* Now 4 rows */
+            gap: 25px;
+            width: 100%;
+            max-width: 700px;
+            aspect-ratio: 4 / 4; /* Adjusted for new row */
+            position: relative;
+            z-index: 1001;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1rem;
+            text-align: center;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color-dark);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card.interactive {
+             cursor: pointer;
+        }
+        
+        .card.interactive:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card.interactive:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .active-mode {
+            border-color: var(--border-color-active);
+            box-shadow: 0 0 25px -5px var(--border-color-active);
+        }
+        
+        /* Red border override for active attack button */
+        .active-mode.glow-flee {
+            border-color: var(--border-color-attack);
+            box-shadow: 0 0 25px -5px var(--border-color-attack);
+        }
+
+        .inactive-mode { /* NEW CLASS */
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .action-button-row {
+            grid-row: 2 / 3;
+            grid-column: 1 / 5;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+
+        .bet-button {
+            height: 50%;
+            align-self: center;
+            background: rgba(31, 41, 55, 0.75);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border: 2px solid var(--glow-color);
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4), 
+                        -4px -4px 8px rgba(255, 255, 255, 0.05);
+        }
+        
+        .attack-button { /* Full height button */
+            height: 100%;
+            align-self: center;
+            background: rgba(31, 41, 55, 0.75);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border: 2px solid var(--glow-color);
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4), 
+                        -4px -4px 8px rgba(255, 255, 255, 0.05);
+        }
+
+        .action-button-row .card.interactive:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.5), 
+                        -6px -6px 12px rgba(255, 255, 255, 0.06);
+        }
+
+        .action-button-row .card.interactive:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.6), 
+                        inset -4px -4px 8px rgba(255, 255, 255, 0.04);
+        }
+        
+        .item-carousel-container {
+            grid-row: 3 / 4;
+            grid-column: 1 / 5;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            overflow-x: auto;
+            padding: 10px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 1rem;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .item-carousel-container.active {
+            cursor: grabbing;
+            cursor: -webkit-grabbing;
+        }
+        
+        /* Dark Scrollbar */
+        .item-carousel-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .item-carousel-container::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .item-carousel-container::-webkit-scrollbar-thumb {
+            background: rgba(75, 85, 99, 0.8); /* dark gray */
+            border-radius: 4px;
+        }
+        .item-carousel-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 1); /* lighter dark gray */
+        }
+        .item-carousel-container {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(75, 85, 99, 0.8) rgba(0,0,0,0.2);
+        }
+        
+        .item-card {
+            flex-shrink: 0;
+            width: 100px;
+            height: 100px;
+            font-size: 0.9rem;
+            padding: 5px;
+        }
+
+        .glow-attack { --glow-color: #a78bfa; --glow-color-flash: rgba(167, 139, 250, 0.8); }
+        .glow-flee { --glow-color: #ef4444; --glow-color-flash: rgba(239, 68, 68, 0.8); } /* Red */
+        .glow-odds { --glow-color: #14b8a6; --glow-color-flash: rgba(20, 184, 166, 0.8); }
+        .glow-pairs { --glow-color: #d946ef; --glow-color-flash: rgba(217, 70, 239, 0.8); }
+        .glow-triples { --glow-color: #22c55e; --glow-color-flash: rgba(34, 197, 94, 0.8); }
+        .glow-dice-games { --glow-color-flash: rgba(34, 197, 94, 0.8); }
+        .glow-card-games { --glow-color-flash: rgba(139, 92, 246, 0.8); }
+        .glow-heavy-attack { --glow-color: #f59e0b; --glow-color-flash: rgba(245, 158, 11, 0.8); }
+        .glow-defense { --glow-color: #3b82f6; --glow-color-flash: rgba(59, 130, 246, 0.8); }
+        .glow-special { --glow-color: #d946ef; --glow-color-flash: rgba(217, 70, 239, 0.8); }
+
+        .display-container {
+            grid-column: span 2;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            align-items: center;
+            perspective: 1000px;
+            perspective-origin: 50% 50%;
+            background: transparent;
+            border: none;
+        }
+        
+        .dice {
+            width: 52px; height: 52px; position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .face {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(239, 68, 68, 0.15); /* Red glass background */
+            border: 1px solid rgba(239, 68, 68, 0.25); /* Red glass border */
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            border-radius: 8px; display: flex;
+            justify-content: center; align-items: center;
+        }
+        
+        .face--front  { transform: rotateY(  0deg) translateZ(26px); }
+        .face--back   { transform: rotateY(180deg) translateZ(26px); }
+        .face--right  { transform: rotateY( 90deg) translateZ(26px); }
+        .face--left   { transform: rotateY(-90deg) translateZ(26px); }
+        .face--top    { transform: rotateX( 90deg) translateZ(26px); }
+        .face--bottom { transform: rotateX(-90deg) translateZ(26px); }
+
+        .pip-container { width: 100%; height: 100%; display: grid; padding: 6px; }
+        .pip { 
+            width: 8px; 
+            height: 8px; 
+            background-color: #ffffff; /* Bright White Pips */ 
+            filter: drop-shadow(0 0 4px #ffffff); /* Bright White Glow */
+            border-radius: 50%; 
+            align-self: center; 
+            justify-self: center; 
+        }
+        .face--1 .pip-container { grid-template-areas: ". . ." ". a ." ". . ."; }
+        .face--2 .pip-container { grid-template-areas: "a . ." ". . ." ". . b"; }
+        .face--3 .pip-container { grid-template-areas: "a . ." ". b ." ". . c"; }
+        .face--4 .pip-container { grid-template-areas: "a . b" ". . ." "c . d"; }
+        .face--5 .pip-container { grid-template-areas: "a . b" ". c ." "d . e"; }
+        .face--6 .pip-container { grid-template-areas: "a . b" "c . d" "e . f"; }
+        .pip:nth-of-type(1) { grid-area: a; } .pip:nth-of-type(2) { grid-area: b; } .pip:nth-of-type(3) { grid-area: c; } .pip:nth-of-type(4) { grid-area: d; } .pip:nth-of-type(5) { grid-area: e; } .pip:nth-of-type(6) { grid-area: f; }
+        
+        .playing-card-container {
+            width: 80px; height: 110px;
+            perspective: 1000px;
+        }
+
+        .playing-card {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .playing-card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0.75rem;
+            display: flex;
+            font-weight: 700;
+        }
+
+        .card-back {
+            background-color: #4f46e5;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M 0 50 C 16.667 50 16.667 75 33.333 75 S 50 50 66.667 50 S 83.333 75 100 75' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='4'/%3E%3Cpath d='M 0 25 C 16.667 25 16.667 50 33.333 50 S 50 25 66.667 25 S 83.333 50 100 50' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='4'/%3E%3Cpath d='M 0 75 C 16.667 75 16.667 100 33.333 100 S 50 75 66.667 75 S 83.333 100 100 100' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='4'/%3E%3Cpath d='M 0 0 C 16.667 0 16.667 25 33.333 25 S 50 0 66.667 0 S 83.333 25 100 25' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='4'/%3E%3C/svg%3E");
+            background-size: 50px 50px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-front {
+            background: #f1f5f9; /* Solid off-white */
+            border: 1px solid #cbd5e1;
+            transform: rotateY(180deg);
+            flex-direction: column;
+            justify-content: center; /* Center the single suit */
+            align-items: center;
+            padding: 0.5rem;
+        }
+
+        .card-front .value { font-size: 1rem; }
+        .card-front .suit { font-size: 2.5rem; }
+        .corner-info { position: absolute; text-align: center; }
+        .top-left { top: 0.5rem; left: 0.5rem; }
+        .bottom-right { bottom: 0.5rem; right: 0.5rem; transform: rotate(180deg); }
+        .text-red { color: #ef4444; }
+        .text-black { color: #1f2937; }
+
+        .modal-overlay-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(17, 24, 39, 0.5); backdrop-filter: blur(10px);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay-backdrop.visible {
+            opacity: 1;
+        }
+
+        .modal-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 1002; /* Above grid */
+            opacity: 0;
+            pointer-events: none; /* Container is passthrough */
+            transition: opacity 0.3s ease;
+        }
+        .modal-container.visible { 
+            opacity: 1; 
+            pointer-events: auto; /* Container is active */
+        }
+        
+        .modal-container .card {
+            pointer-events: auto;
+        }
+
+        .click-flash {
+            position: absolute; width: 200px; height: 200px;
+            background: radial-gradient(circle, var(--flash-color) 0%, transparent 60%);
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%; opacity: 0; pointer-events: none;
+            z-index: 2;
+        }
+        @keyframes clickFlashAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="aurora-bg"></div>
+    <div id="modal-backdrop" class="modal-overlay-backdrop"></div> <!-- MODAL BACKDROP -->
+    <div class="grid-container">
+        
+        <div id="quit-attack-btn" class="card interactive glow-flee"> <!-- Made Red -->
+            <span class="text-red-400">Quit</span> <!-- Made Red -->
+            <span class="text-lg font-bold text-red-400">(Attack)</span> <!-- Made Red -->
+        </div>
+
+        <div class="display-container">
+            <!-- Game elements (dice/cards) will be generated by JS --></div>
+
+        <div id="quit-flee-btn" class="card interactive glow-flee">
+            <span>Quit</span>
+            <span class="text-lg font-bold text-red-400">(Flee)</span>
+        </div>
+        
+        <div id="action-row" class="action-button-row">
+            <!-- Bet Buttons (Default) -->
+            <div id="bet-button-row" class="contents">
+                <div id="bet-evens-btn" class="card interactive glow-attack bet-button">
+                    <span>Bet</span>
+                    <span class="text-xl font-bold">Evens</span>
+                </div>
+                <div id="bet-odds-btn" class="card interactive glow-odds bet-button">
+                    <span>Bet</span>
+                    <span class="text-xl font-bold">Odds</span>
+                </div>
+                <div id="bet-pairs-btn" class="card interactive glow-pairs bet-button">
+                    <span>Bet</span>
+                    <span class="text-xl font-bold">Pairs</span>
+                </div>
+                <div id="bet-triples-btn" class="card interactive glow-triples bet-button">
+                    <span>Bet</span>
+                    <span class="text-xl font-bold">Triples</span>
+                </div>
+            </div>
+
+            <!-- Attack Buttons (Hidden) -->
+            <div id="attack-button-row" class="contents hidden">
+                <div id="attack-light-btn" class="card interactive glow-flee attack-button">
+                    <span class="text-xl font-bold text-red-400">Attack</span>
+                </div>
+                <div id="attack-heavy-btn" class="card interactive glow-heavy-attack attack-button">
+                    <span class="text-xl font-bold">Heavy Attack</span>
+                </div>
+                <div id="attack-defense-btn" class="card interactive glow-defense attack-button">
+                    <span class="text-xl font-bold">Defense</span>
+                </div>
+                <div id="attack-special-btn" class="card interactive glow-special attack-button">
+                    <span class="text-xl font-bold">Special</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="item-carousel-container" class="item-carousel-container hidden">
+            <!-- Item cards will be generated here -->
+        </div>
+        
+        <div id="dice-games-btn" class="card interactive glow-dice-games"><span class="text-xl font-bold">DICE GAMES</span></div>
+        <div id="attack-btn" class="card interactive glow-flee col-span-2"> <!-- New Attack Button -->
+             <span class="text-xl font-bold text-red-400">ATTACK</span>
+        </div>
+        <div id="card-games-btn" class="card interactive glow-card-games"><span class="text-xl font-bold">CARD GAMES</span></div>
+    </div>
+
+    <div id="result-modal" class="modal-container"> <!-- RENAMED -->
+        <div class="card w-full max-w-md p-8">
+            <h2 id="result-title" class="text-2xl font-bold mb-4">Result</h2>
+            <p id="result-text" class="text-gray-300 mb-8">Here is the result.</p>
+            <button id="result-close-btn" class="card interactive w-1/2 py-3 glow-attack font-bold">Close</button>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.interactive').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const clickedCard = e.currentTarget;
+                const existingFlash = clickedCard.querySelector('.click-flash');
+                if (existingFlash) existingFlash.remove();
+                const flash = document.createElement('div');
+                flash.className = 'click-flash';
+                flash.style.setProperty('--flash-color', getComputedStyle(clickedCard).getPropertyValue('--glow-color-flash'));
+                clickedCard.appendChild(flash);
+                const rect = clickedCard.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                flash.style.left = `${x}px`;
+                flash.style.top = `${y}px`;
+                flash.addEventListener('animationend', () => flash.remove());
+            });
+        });
+
+        const displayContainer = document.querySelector('.display-container');
+        
+        const diceGamesBtn = document.getElementById('dice-games-btn');
+        const cardGamesBtn = document.getElementById('card-games-btn');
+        const attackBtn = document.getElementById('attack-btn');
+
+        const betButtonRow = document.getElementById('bet-button-row');
+        const attackButtonRow = document.getElementById('attack-button-row');
+        const itemCarouselContainer = document.getElementById('item-carousel-container');
+
+        const betButtons = {
+            evens: document.getElementById('bet-evens-btn'),
+            odds: document.getElementById('bet-odds-btn'),
+            pairs: document.getElementById('bet-pairs-btn'),
+            triples: document.getElementById('bet-triples-btn'),
+        };
+
+        const attackButtons = {
+            light: document.getElementById('attack-light-btn'),
+            heavy: document.getElementById('attack-heavy-btn'),
+            defense: document.getElementById('attack-defense-btn'),
+            special: document.getElementById('attack-special-btn'),
+        };
+
+        const resultModal = document.getElementById('result-modal');
+        const resultModalBackdrop = document.getElementById('modal-backdrop');
+        const resultTitle = document.getElementById('result-title');
+        const resultText = document.getElementById('result-text');
+
+        let currentGameMode = 'dice';
+        let fullDeck = [];
+        const cardValues = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        const itemDeck = [
+            { name: "Wand of Sparks", type: "Wand", color: "glow-heavy-attack" },
+            { name: "Scroll of Warding", type: "Scroll", color: "glow-defense" },
+            { name: "Health Potion", type: "Potion", color: "glow-triples" },
+            { name: "Mana Potion", type: "Potion", color: "glow-attack" },
+            { name: "Scroll of Fireball", type: "Scroll", color: "glow-flee" },
+            { name: "Wand of Frost", type: "Wand", color: "glow-defense" },
+        ];
+
+        function createDeck() {
+            const suits = ['♠', '♥', '♣', '♦'];
+            fullDeck = [];
+            for (let suit of suits) {
+                for (let value of cardValues) {
+                    fullDeck.push({ suit, value });
+                }
+            }
+        }
+
+        function createDieHTML() {
+            let dieHTML = '';
+            const faces = {'front': 1, 'back': 6, 'right': 3, 'left': 4, 'top': 5, 'bottom': 2};
+            for (const [faceClass, pipCount] of Object.entries(faces)) {
+                let pipsHTML = '';
+                for (let i = 0; i < pipCount; i++) pipsHTML += '<span class="pip"></span>';
+                dieHTML += `<div class="face face--${faceClass} face--${pipCount}"><div class="pip-container">${pipsHTML}</div></div>`;
+            }
+            return dieHTML;
+        }
+        
+        function createCardHTML(cardData) {
+            const color = (cardData.suit === '♥' || cardData.suit === '♦') ? 'text-red' : 'text-black';
+            return `
+                <div class="playing-card">
+                    <div class="card-face card-back"></div>
+                    <div class="card-face card-front">
+                        <div class="corner-info top-left ${color}">
+                            <span class="value">${cardData.value}</span>
+                        </div>
+                        <span class="suit ${color}">${cardData.suit}</span>
+                        <div class="corner-info bottom-right ${color}">
+                             <span class="value">${cardData.value}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createItemCardHTML(itemData) {
+            return `
+                <div class="card interactive item-card ${itemData.color}">
+                    <span class="font-bold">${itemData.name}</span>
+                    <span class="text-sm text-gray-400">${itemData.type}</span>
+                </div>
+            `;
+        }
+
+        function renderDice() {
+            displayContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const dieElement = document.createElement('div');
+                dieElement.classList.add('dice');
+                dieElement.innerHTML = createDieHTML();
+                displayContainer.appendChild(dieElement);
+            }
+        }
+        
+        function renderCards() {
+            displayContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const cardContainer = document.createElement('div');
+                cardContainer.classList.add('playing-card-container');
+                const randomCard = fullDeck[Math.floor(Math.random() * fullDeck.length)];
+                cardContainer.innerHTML = createCardHTML(randomCard);
+                cardContainer.dataset.value = randomCard.value;
+                cardContainer.dataset.suit = randomCard.suit;
+                const initialRotation = (i - 1) * 5;
+                cardContainer.style.transform = `rotateZ(${initialRotation}deg)`;
+                cardContainer.querySelector('.playing-card').classList.add('is-flipped');
+                displayContainer.appendChild(cardContainer);
+            }
+        }
+
+        function renderItemCarousel() {
+            itemCarouselContainer.innerHTML = '';
+            itemDeck.forEach(item => {
+                itemCarouselContainer.innerHTML += createItemCardHTML(item);
+            });
+            // Re-add click flash listeners to new items
+            itemCarouselContainer.querySelectorAll('.interactive').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const clickedCard = e.currentTarget;
+                    const existingFlash = clickedCard.querySelector('.click-flash');
+                    if (existingFlash) existingFlash.remove();
+                    const flash = document.createElement('div');
+                    flash.className = 'click-flash';
+                    flash.style.setProperty('--flash-color', getComputedStyle(clickedCard).getPropertyValue('--glow-color-flash'));
+                    clickedCard.appendChild(flash);
+                    const rect = clickedCard.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    flash.style.left = `${x}px`;
+                    flash.style.top = `${y}px`;
+                    flash.addEventListener('animationend', () => flash.remove());
+                    
+                    // Item use logic
+                    showResultModal("Item Used", `You used ${item.name}!`);
+                });
+            });
+        }
+
+        function updateUIForGameMode() {
+            // Reset all active states
+            diceGamesBtn.classList.remove('active-mode');
+            cardGamesBtn.classList.remove('active-mode');
+            attackBtn.classList.remove('active-mode');
+
+            // Hide all optional rows
+            betButtonRow.classList.add('hidden');
+            attackButtonRow.classList.add('hidden');
+            itemCarouselContainer.classList.add('hidden');
+            
+            // Deactivate game mode buttons
+            diceGamesBtn.classList.remove('inactive-mode');
+            cardGamesBtn.classList.remove('inactive-mode');
+
+            if (currentGameMode === 'dice') {
+                diceGamesBtn.classList.add('active-mode');
+                betButtonRow.classList.remove('hidden');
+                betButtons.pairs.querySelector('.text-xl').textContent = 'Pairs';
+                betButtons.triples.querySelector('.text-xl').textContent = 'Triples';
+                renderDice();
+                rollMultipleDice(3);
+            } else if (currentGameMode === 'cards') {
+                cardGamesBtn.classList.add('active-mode');
+                betButtonRow.classList.remove('hidden');
+                betButtons.pairs.querySelector('.text-xl').textContent = 'High';
+                betButtons.triples.querySelector('.text-xl').textContent = 'Low';
+                renderCards();
+            } else { // attack
+                attackBtn.classList.add('active-mode');
+                attackButtonRow.classList.remove('hidden');
+                itemCarouselContainer.classList.remove('hidden');
+                
+                // Set other game modes to inactive
+                diceGamesBtn.classList.add('inactive-mode');
+                cardGamesBtn.classList.add('inactive-mode');
+                
+                renderItemCarousel();
+                renderDice(); // Keep dice for attack rolls
+                rollMultipleDice(3);
+            }
+        }
+
+        function rollDice(dieElement, onComplete) {
+            const result = Math.floor(Math.random() * 6) + 1;
+            const rotations = {1: 'rotateX(0deg) rotateY(0deg)', 2: 'rotateX(90deg) rotateY(0deg)', 3: 'rotateX(0deg) rotateY(-90deg)', 4: 'rotateX(0deg) rotateY(90deg)', 5: 'rotateX(-90deg) rotateY(0deg)', 6: 'rotateY(180deg) rotateX(0deg)'};
+            const xSpin = (Math.floor(Math.random() * 4) + 2) * 360;
+            const ySpin = (Math.floor(Math.random() * 4) + 2) * 360;
+            const zSpin = (Math.floor(Math.random() * 4) + 2) * 360;
+            dieElement.style.transform = `rotateX(${xSpin}deg) rotateY(${ySpin}deg) rotateZ(${zSpin}deg) ${rotations[result]}`;
+            dieElement.addEventListener('transitionend', function handler() {
+                dieElement.removeEventListener('transitionend', handler);
+                if (onComplete) onComplete(result);
+            });
+            return result;
+        }
+
+        function rollMultipleDice(diceCount, onComplete) {
+            const results = []; let completed = 0;
+            let diceElements = document.querySelectorAll('.dice');
+            if (diceElements.length === 0) {
+                 renderDice();
+                 diceElements = document.querySelectorAll('.dice');
+            }
+            diceElements.forEach((die, index) => {
+                setTimeout(() => {
+                    rollDice(die, (result) => {
+                        results.push(result);
+                        completed++;
+                        if (completed === diceCount && onComplete) onComplete(results);
+                    });
+                }, index * 150);
+            });
+        }
+        
+        function spinAndReveal(onComplete) {
+            const cardContainers = document.querySelectorAll('.playing-card-container');
+            let completedSpins = 0;
+
+            cardContainers.forEach(container => {
+                const card = container.querySelector('.playing-card');
+                const xSpin = (Math.floor(Math.random() * 4) + 2) * 360;
+                const ySpin = (Math.floor(Math.random() * 4) + 2) * 360;
+                const zSpin = (Math.floor(Math.random() * 4) + 2) * 360;
+                card.style.transform = `rotateX(${xSpin}deg) rotateY(${ySpin}deg) rotateZ(${zSpin}deg)`;
+                
+                card.addEventListener('transitionend', function handler() {
+                    card.removeEventListener('transitionend', handler);
+                    completedSpins++;
+                    if (completedSpins === cardContainers.length) {
+                        revealAllCards();
+                    }
+                });
+            });
+
+            function revealAllCards() {
+                const revealedCardsData = [];
+                cardContainers.forEach(container => {
+                    const randomCard = fullDeck[Math.floor(Math.random() * fullDeck.length)];
+                    container.innerHTML = createCardHTML(randomCard);
+                    container.dataset.value = randomCard.value;
+                    container.dataset.suit = randomCard.suit;
+                    revealedCardsData.push(container.dataset);
+                });
+
+                setTimeout(() => {
+                    cardContainers.forEach(container => {
+                         container.querySelector('.playing-card').classList.add('is-flipped');
+                    });
+
+                    setTimeout(() => {
+                        if (onComplete) onComplete(revealedCardsData);
+                    }, 600);
+                }, 100);
+            }
+        }
+
+
+        function handleAction(actionType) {
+            Object.values(betButtons).forEach(b => b.style.pointerEvents = 'none');
+            Object.values(attackButtons).forEach(b => b.style.pointerEvents = 'none');
+
+            if (currentGameMode === 'dice') {
+                rollMultipleDice(3, (results) => {
+                    const total = results.reduce((a, b) => a + b, 0);
+                    let isWin = false;
+                    const hasPairs = results[0] === results[1] || results[1] === results[2] || results[0] === results[2];
+                    const hasTriples = results[0] === results[1] && results[1] === results[2];
+
+                    if (actionType === 'evens') isWin = total % 2 === 0;
+                    if (actionType === 'odds') isWin = total % 2 !== 0;
+                    if (actionType === 'pairs') isWin = hasPairs && !hasTriples;
+                    if (actionType === 'triples') isWin = hasTriples;
+                    
+                    const eventData = {
+                        gameMode: "dice",
+                        betType: actionType,
+                        isWin: isWin,
+                        title: isWin ? "You Win!" : "You Lose!",
+                        results: results,
+                        total: total,
+                        description: `You bet on ${actionType}. The dice roll was ${results.join(', ')} (Total: ${total}).`
+                    };
+                    
+                    const gameEvent = new CustomEvent('gameResult', { detail: eventData });
+                    document.dispatchEvent(gameEvent);
+                    
+                    showResultModal(eventData.title, eventData.description);
+                    Object.values(betButtons).forEach(b => b.style.pointerEvents = 'auto');
+                });
+            } else if (currentGameMode === 'cards') {
+                spinAndReveal((revealedCards) => {
+                    const middleCard = revealedCards[1];
+                    const valueIndex = cardValues.indexOf(middleCard.value);
+                    let isWin = false;
+                    const betName = actionType === 'pairs' ? 'High' : actionType === 'triples' ? 'Low' : actionType;
+
+                    if (actionType === 'evens') isWin = (valueIndex + 2) % 2 === 0;
+                    if (actionType === 'odds') isWin = (valueIndex + 2) % 2 !== 0;
+                    if (actionType === 'pairs') isWin = valueIndex > 6; // High card (9+)
+                    if (actionType === 'triples') isWin = valueIndex <= 6; // Low card (2-8)
+                    
+                    const hand = revealedCards.map(c => c.value + c.suit).join(', ');
+                    const eventData = {
+                        gameMode: "cards",
+                        betType: betName,
+                        isWin: isWin,
+                        title: isWin ? "You Win!" : "You Lose!",
+                        hand: revealedCards,
+                        resultCard: middleCard,
+                        description: `You bet on ${betName}. The hand was ${hand}. Result determined by the middle card: ${middleCard.value}${middleCard.suit}.`
+                    };
+                    
+                    const gameEvent = new CustomEvent('gameResult', { detail: eventData });
+                    document.dispatchEvent(gameEvent);
+                    
+                    showResultModal(eventData.title, eventData.description);
+                     Object.values(betButtons).forEach(b => b.style.pointerEvents = 'auto');
+                });
+            } else { // attack mode
+                rollMultipleDice(3, (results) => {
+                    const total = results.reduce((a, b) => a + b, 0);
+                    let title = "Attack!";
+                    let text = `You used ${actionType.replace('_', ' ')}. Roll: ${results.join(', ')} (Total: ${total}). You dealt ${total} damage!`;
+                    let damage = total;
+                    let block = 0;
+
+                    if(actionType === 'defense') {
+                        title = "Defense!";
+                        text = `You used Defense. Roll: ${results.join(', ')} (Total: ${total}). You blocked ${total} damage!`;
+                        damage = 0;
+                        block = total;
+                    }
+                    
+                    const eventData = {
+                        gameMode: "attack",
+                        attackType: actionType.replace('_', ' '),
+                        isAttack: actionType !== 'defense',
+                        isDefense: actionType === 'defense',
+                        title: title,
+                        results: results,
+                        totalDamage: damage,
+                        totalBlock: block,
+                        description: text
+                    };
+                    
+                    const gameEvent = new CustomEvent('gameResult', { detail: eventData });
+                    document.dispatchEvent(gameEvent);
+                    
+                    showResultModal(title, text);
+                    Object.values(attackButtons).forEach(b => b.style.pointerEvents = 'auto');
+                });
+            }
+        }
+
+        Object.keys(betButtons).forEach(betType => {
+            betButtons[betType].addEventListener('click', () => handleAction(betType));
+        });
+        
+        Object.keys(attackButtons).forEach(atkType => {
+            attackButtons[atkType].addEventListener('click', () => handleAction(atkType));
+        });
+
+        diceGamesBtn.addEventListener('click', () => {
+            if (currentGameMode === 'dice') return;
+            currentGameMode = 'dice';
+            updateUIForGameMode();
+        });
+        cardGamesBtn.addEventListener('click', () => {
+            if (currentGameMode === 'cards') return;
+            currentGameMode = 'cards';
+            updateUIForGameMode();
+        });
+        attackBtn.addEventListener('click', () => {
+            if (currentGameMode === 'attack') return;
+            currentGameMode = 'attack';
+            updateUIForGameMode();
+        });
+
+        function showResultModal(title, text) {
+            resultTitle.textContent = title;
+            resultText.textContent = text;
+            resultModal.classList.add('visible');
+            resultModalBackdrop.classList.add('visible');
+        }
+        function hideResultModal() {
+            resultModal.classList.remove('visible');
+            resultModalBackdrop.classList.remove('visible');
+        }
+        
+        document.getElementById('result-close-btn').addEventListener('click', hideResultModal);
+
+        // Add swipe/scroll to carousel
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        itemCarouselContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            itemCarouselContainer.classList.add('active');
+            startX = e.pageX - itemCarouselContainer.offsetLeft;
+            scrollLeft = itemCarouselContainer.scrollLeft;
+        });
+        itemCarouselContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+            itemCarouselContainer.classList.remove('active');
+        });
+        itemCarouselContainer.addEventListener('mouseup', () => {
+            isDown = false;
+            itemCarouselContainer.classList.remove('active');
+        });
+        itemCarouselContainer.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - itemCarouselContainer.offsetLeft;
+            const walk = (x - startX) * 2; // scroll-fast
+            itemCarouselContainer.scrollLeft = scrollLeft - walk;
+        });
+        itemCarouselContainer.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) { // Check if vertical scroll, then apply horizontally
+                e.preventDefault();
+                itemCarouselContainer.scrollLeft += e.deltaY;
+            }
+        });
+        
+        window.addEventListener('load', () => {
+            createDeck();
+            updateUIForGameMode();
+        });
+        
+        /*
+        =============================================================================
+        == AI INTEGRATION HOOKS ==
+        =============================================================================
+        
+        To integrate this console with your main game AI, listen for the 'gameResult'
+        custom event on the document. The event detail will contain a JSON object
+        with the complete results of the action.
+
+        Example:
+        
+        document.addEventListener('gameResult', (e) => {
+            const result = e.detail;
+            console.log("AI RECEIVED GAME RESULT:", result);
+
+            // --- Example for DICE GAME ---
+            if (result.gameMode === 'dice') {
+                // result.isWin (boolean)
+                // result.betType (string: "evens", "pairs", etc.)
+                // result.results (array: [4, 2, 5])
+                // result.total (number: 11)
+                // result.description (string)
+            }
+
+            // --- Example for CARD GAME ---
+            if (result.gameMode === 'cards') {
+                // result.isWin (boolean)
+                // result.betType (string: "High", "Low", "Evens", "Odds")
+                // result.hand (array of 3 card objects)
+                // result.resultCard (the middle card object)
+                // result.description (string)
+            }
+            
+            // --- Example for ATTACK MODE ---
+            if (result.gameMode === 'attack') {
+                // result.attackType (string: "light", "heavy", etc.)
+                // result.results (array: [3, 1, 2])
+                // result.totalDamage (number)
+                // result.totalBlock (number)
+                // result.description (string)
+            }
+        });
+        */
+    </script>
+</body>
+</html>
+

@@ -170,6 +170,7 @@
                   case 'LCD_EVENT':
                   case 'LOG_EVENT':
                   case 'SYNC_STATS':
+                  case 'UPDATE_LOOT_CARDS':
                      notifyEngine('panels', e.data);
                      notifyEngine('combat', e.data); // Make sure both mode=dock and mode=combat get events
                      break;
