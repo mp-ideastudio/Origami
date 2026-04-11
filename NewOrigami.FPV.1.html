@@ -4908,7 +4908,7 @@
                     this.renderer.setScissorTest(true);
                     // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
                     this.scene.fog.color.setHex(0x06020f);
-                    this.scene.fog.density = 0.05;
+                    this.scene.fog.density = 1.0 / this._pipRot.radius;
                     this.renderer.setClearColor(0x06020f, 1);
                     this.renderer.render(this.scene, this.topDownCamera);
 
@@ -4949,7 +4949,7 @@
                         
                         // AAA RPG Vignette
                         this.scene.fog.color.setHex(0x000000);
-                        this.scene.fog.density = 0.055;
+                        this.scene.fog.density = 1.0 / this._pipRot.radius;
                         this.renderer.setClearColor(0x000000, 1); // True pitch black void
                         this.renderer.render(this.scene, this.topDownCamera);
                         
