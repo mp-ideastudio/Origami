@@ -2576,11 +2576,19 @@
                         cardGroup.add(frontMesh);
                         cardGroup.add(backMesh);
                         
-                        // Create flattened 2D "Sticker" representations of the 3D icons to sit perfectly flush against the card
+                        // Create true 2D polygon representations using CircleGeometry to completely eliminate Z-fighting from flattened 3D faces
                         let iconGeo;
-                        if (catId === 'SPELL') iconGeo = new THREE.OctahedronGeometry(0.12);
-                        else if (catId === 'ITEM') iconGeo = new THREE.DodecahedronGeometry(0.10);
-                        else iconGeo = new THREE.TetrahedronGeometry(0.12);
+                        let rotZ = 0;
+                        if (catId === 'SPELL') {
+                            iconGeo = new THREE.CircleGeometry(0.12, 4); // Diamond profile 
+                            rotZ = Math.PI / 4; 
+                        } else if (catId === 'ITEM') {
+                            iconGeo = new THREE.CircleGeometry(0.10, 6); // Hexagonal Gem profile
+                            rotZ = Math.PI / 6;
+                        } else {
+                            iconGeo = new THREE.CircleGeometry(0.13, 3); // Triangular profile
+                            rotZ = Math.PI / 2; // Flat bottom, points UP
+                        }
                         
                         const iColor = catId === 'SPELL' ? 0xff00ff : (catId === 'ITEM' ? 0xaa7722 : 0xffffff);
                         const iEmiss = catId === 'SPELL' ? 0x550055 : (catId === 'ITEM' ? 0x332200 : 0x444444);
@@ -2588,15 +2596,15 @@
                         
                         const iconGroup = new THREE.Group();
                         
-                        // Flatten Z axis near 0 to structurally transform 3D to 2D
+                        // Use native 2D topology to eliminate sub-poly clipping
                         const iconFront = new THREE.Mesh(iconGeo, iconMat);
-                        iconFront.scale.z = 0.001; 
+                        iconFront.rotation.z = rotZ;
                         iconFront.position.z = 0.01; // Sits 0.005 units above the front plane
                         iconGroup.add(iconFront);
                         
                         const iconBack = new THREE.Mesh(iconGeo, iconMat);
-                        iconBack.scale.z = 0.001;
-                        iconBack.rotation.y = Math.PI;
+                        iconBack.rotation.y = Math.PI; // Face backwards
+                        iconBack.rotation.z = -rotZ; // Keep upright despite Y flip
                         iconBack.position.z = -0.01; // Sits -0.005 units above the back plane
                         iconGroup.add(iconBack);
                         
