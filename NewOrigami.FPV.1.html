@@ -1406,18 +1406,23 @@
                     }
                 }
                 
-                // Carve Straight 7-tile hallway South
+                // Carve Grand 3-Wide 7-Tile Entrance Hallway South
                 const hallX = this.rooms[0].center.x;
                 const hallStartTopZ = rStartZ + roomSize;
                 
                 for(let i = 0; i < 7; i++) {
+                    this.mapData[hallX - 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
                     this.mapData[hallX][hallStartTopZ + i] = { type: 'floor', hallway: true };
+                    this.mapData[hallX + 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
                 }
                 
-                // Entrance exactly at the end of the hallway
+                // Entrance precisely at the end of the center lane
                 const entrancePos = { x: hallX, y: hallStartTopZ + 6 };
                 this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
-                this.mapData[entrancePos.x][entrancePos.y + 1] = { type: 'wall' }; // Blocking wall behind it
+                // Solid blockers placed entirely across the rear of the grand hall
+                this.mapData[hallX - 1][entrancePos.y + 1] = { type: 'wall' };
+                this.mapData[hallX][entrancePos.y + 1] = { type: 'wall' };
+                this.mapData[hallX + 1][entrancePos.y + 1] = { type: 'wall' };
                 
                 // Player Spawn Location
                 this.player.x = entrancePos.x;
@@ -2038,14 +2043,20 @@
                 this.walls = [instancedWalls]; 
                 
                 // AAA Architectural Trim (Crown Molding / Lip for Wall Tops)
-                // This thin overhanging geometry sits on the wall edges to give depth, structure, and hard shadow to the TopDown ARPG view!
-                const trimThick = 0.08;
-                const trimOverhang = 0.04;
-                const trimGeo = new THREE.BoxGeometry(this.gridSize + trimOverhang*2, trimThick, this.gridSize + trimOverhang*2);
-                const trimMat = new THREE.MeshStandardMaterial({ color: 0x07080a, roughness: 1.0, metalness: 0.0 });
-                const instancedTrims = new THREE.InstancedMesh(trimGeo, trimMat, wallCount);
-                instancedTrims.castShadow = true;
-                instancedTrims.receiveShadow = true;
+                // This overhanging geometry creates depth. We use two layered meshes to create a 'soft' physical Bevel/Chamfer instead of a hard square!
+                const trimMat = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.9, metalness: 0.1 });
+                
+                // Base wide lip
+                const overHangBase = 0.05;
+                const trimGeoBase = new THREE.BoxGeometry(this.gridSize + overHangBase*2, 0.04, this.gridSize + overHangBase*2);
+                const instancedTrimsBase = new THREE.InstancedMesh(trimGeoBase, trimMat, wallCount);
+                instancedTrimsBase.castShadow = true; instancedTrimsBase.receiveShadow = true;
+                
+                // Upper tight lip
+                const overHangTop = 0.02;
+                const trimGeoTop = new THREE.BoxGeometry(this.gridSize + overHangTop*2, 0.05, this.gridSize + overHangTop*2);
+                const instancedTrimsTop = new THREE.InstancedMesh(trimGeoTop, trimMat, wallCount);
+                instancedTrimsTop.castShadow = true; instancedTrimsTop.receiveShadow = true;
 
                 // Build pure mathematical AABB boxes for perfect Raycasting fallback
                 this.wallBoxes = [];
@@ -2077,10 +2088,14 @@
                             dummy.updateMatrix();
                             instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
                             
-                            // Matrix the overhang trim flush onto the surface!
-                            dummy.position.set(x * this.gridSize, wallHeight + (trimThick / 2), z * this.gridSize);
+                            // Matrix the overhang trim flush onto the surface! Creates a stepped bezel.
+                            dummy.position.set(x * this.gridSize, wallHeight + 0.02, z * this.gridSize);
                             dummy.updateMatrix();
-                            instancedTrims.setMatrixAt(wallIdx, dummy.matrix);
+                            instancedTrimsBase.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            dummy.position.set(x * this.gridSize, wallHeight + 0.04 + 0.025, z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedTrimsTop.setMatrixAt(wallIdx, dummy.matrix);
                             
                             wallIdx++;
                         }
@@ -2090,8 +2105,10 @@
                 instancedWalls.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedWalls);
                 
-                instancedTrims.instanceMatrix.needsUpdate = true;
-                this.worldGroup.add(instancedTrims);
+                instancedTrimsBase.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedTrimsBase);
+                instancedTrimsTop.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedTrimsTop);
                 
                 // Ceiling
                 ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
@@ -4862,7 +4879,7 @@
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
                     // To see the "7-Tile Hallway" ahead, we offset the target forward relative to camera theta. 
                     // Pushing the target away from the camera slides the player towards the bottom of the viewport frame!
-                    const lookAheadDist = this._pipRot.radius * 0.35; // 35% of radius dictates how low the player sits
+                    const lookAheadDist = this._pipRot.radius * 0.65; // Heavily shifted (65% of radius) to strongly anchor player to the bottom edge
                     const lookX = -Math.sin(this._pipRot.theta) * lookAheadDist;
                     const lookZ = -Math.cos(this._pipRot.theta) * lookAheadDist;
                     
