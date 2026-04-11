@@ -344,13 +344,32 @@
             font-family: sans-serif;
             text-transform: uppercase;
         }
-        #mapview-container .map-controls input[type="range"] {
-            flex: 1;
+        #mapview-container .map-controls button {
+            background: rgba(40, 40, 40, 0.9);
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            width: 24px;
+            height: 20px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
             margin: 0 4px;
+            padding: 0;
             pointer-events: auto !important;
-            user-select: auto !important;
-            -webkit-user-select: auto !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+        }
+        #mapview-container .map-controls button:hover {
+            background: #666;
+            border-color: #aaa;
+        }
+        #mapview-container .map-controls button:active {
+            background: #222;
         }
 
         /* Vertical zoom slider overlay for mapview */
@@ -452,8 +471,12 @@
         <div id="mapview-container" class="primary-view">
             <div class="view-label">Map View (Drag Here)</div>
             <div class="map-controls">
-                <span>Angle</span><input type="range" id="pip-angle-slider" min="0.1" max="1.5" step="0.05" value="0.65" title="Tilt Camera">
-                <span>Dist</span><input type="range" id="pip-zoom-slider" min="10" max="80" step="1" value="25" title="Camera Distance">
+                <span>Dist</span>
+                <button id="pip-zoom-in" title="Zoom In (Closer)">-</button>
+                <button id="pip-zoom-out" title="Zoom Out (Further)">+</button>
+                <span style="margin-left:8px;">Angle</span>
+                <button id="pip-angle-down" title="Lower Angle">-</button>
+                <button id="pip-angle-up" title="Raise Angle">+</button>
             </div>
             <div class="canvas-wrapper">
                 <canvas id="pip-map-canvas"></canvas>
@@ -3881,19 +3904,36 @@
                      }
                 });
                 
-                // Bind Dynamic Map Controls (Native behavior restored)
-                const angleSlider = document.getElementById("pip-angle-slider");
-                if (angleSlider) {
-                    angleSlider.oninput = (e) => {
+                // Bind Dynamic Map Controls (Native Buttons)
+                const angleUpBtn = document.getElementById("pip-angle-up");
+                const angleDownBtn = document.getElementById("pip-angle-down");
+                if (angleUpBtn) {
+                    angleUpBtn.onclick = (e) => {
+                        e.stopPropagation();
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
-                        this._pipRot.phi = parseFloat(e.target.value);
+                        this._pipRot.phi = Math.min(1.5, this._pipRot.phi + 0.1);
+                    };
+                }
+                if (angleDownBtn) {
+                    angleDownBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
+                        this._pipRot.phi = Math.max(0.1, this._pipRot.phi - 0.1);
                     };
                 }
                 
-                const pipZoomCtrl = document.getElementById("pip-zoom-slider");
-                if (pipZoomCtrl) {
-                    pipZoomCtrl.oninput = (e) => {
-                        this._pipZoomScale = parseFloat(e.target.value);
+                const zoomInBtn = document.getElementById("pip-zoom-in");
+                const zoomOutBtn = document.getElementById("pip-zoom-out");
+                if (zoomInBtn) {
+                    zoomInBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this._pipZoomScale = Math.max(3, (this._pipZoomScale || 25) - 3);
+                    };
+                }
+                if (zoomOutBtn) {
+                    zoomOutBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this._pipZoomScale = Math.min(80, (this._pipZoomScale || 25) + 3);
                     };
                 }
                 
