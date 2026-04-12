@@ -3798,14 +3798,9 @@
                                     mesh.position.z = up.z * this.gridSize;
                                 }
                                 
-                                // Keep circle flat black, no blinking or color changes
-                                if (up.state && mesh.userData.baseMat) {
-                                    mesh.userData.baseMat.map = mesh.userData.texIdle;
-                                    mesh.userData.baseMat.opacity = 0.5;
-                                    
-                                    if (mesh.userData.searchLight) {
-                                        mesh.userData.searchLight.intensity = (up.state === 'SEARCHING') ? 4.0 : 0;
-                                    }
+                                // Keep circle static
+                                if (up.state && mesh.userData.searchLight) {
+                                    mesh.userData.searchLight.intensity = (up.state === 'SEARCHING') ? 4.0 : 0;
                                 }
                                 
                                 if (up.action === 'SEARCH_TURN') {
@@ -4524,25 +4519,14 @@
                                 child.position.x += dx;
                                 child.position.z += dz;
                                 
-                                // Keep circle flat black
-                                if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
-                                    }
-                                    child.userData.baseMat.opacity = 0.5;
-                                }
+                                // Circle remains static
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                                 
                             } else if (aiData.state === 'SEARCH') {
                                 aiData.searchTimer += delta;
                                 // Stand still, scan left and right
                                 child.rotation.y += Math.sin(time * 2) * delta;
-                                // Hold solid Black for Search state
-                                if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
-                                    }
-                                }
+                                // Circle remains static
                                 
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
 
@@ -4568,31 +4552,15 @@
                                     child.position.z += dz;
                                 }
                                 
-                                if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000'); // Black return
-                                    }
-                                }
+                                // Circle remains static
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                                 
                             } else {
                                 // IDLE
-                                if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
-                                    }
-                                    child.userData.baseMat.opacity = 0.5;
-                                }
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                             }
                             
                             // Keep circle black even when in active combat engagement
-                            if (isCombatTarget && child.userData.baseMat) {
-                                if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
-                                    child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
-                                }
-                                child.userData.baseMat.opacity = 0.5;
-                            }
                         }
                     });
                 }
