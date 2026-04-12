@@ -1427,23 +1427,19 @@
                     }
                 }
                 
-                // Carve Grand 3-Wide 7-Tile Entrance Hallway South
+                // Carve 1-Wide 7-Tile Entrance Hallway South (5ft corridor)
                 const hallX = this.rooms[0].center.x;
                 const hallStartTopZ = rStartZ + roomSize;
                 
                 for(let i = 0; i < 7; i++) {
-                    this.mapData[hallX - 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
                     this.mapData[hallX][hallStartTopZ + i] = { type: 'floor', hallway: true };
-                    this.mapData[hallX + 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
                 }
                 
                 // Entrance precisely at the end of the center lane
                 const entrancePos = { x: hallX, y: hallStartTopZ + 6 };
                 this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
-                // Solid blockers placed entirely across the rear of the grand hall
-                this.mapData[hallX - 1][entrancePos.y + 1] = { type: 'wall' };
+                // Solid blocker at the rear of the hallway
                 this.mapData[hallX][entrancePos.y + 1] = { type: 'wall' };
-                this.mapData[hallX + 1][entrancePos.y + 1] = { type: 'wall' };
                 
                 // Player Spawn Location
                 this.player.x = entrancePos.x;
@@ -1591,9 +1587,6 @@
                 // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
                 this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-                // Enable shadow maps for Diablo-style PiP shadow casting
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 
                 // Shift Optical Center UP by 150px so the Monster is not blocked by the UI panels at the bottom
                 // Arguments: (fullWidth, fullHeight, xOffset, yOffset, width, height)
@@ -1665,7 +1658,7 @@
                 this.playerAvatar = new THREE.Group();
                 this.playerAvatar.layers.set(3); // Map view only
                 
-                const circleRadius = this.gridSize * 0.75;
+                const circleRadius = this.gridSize * 0.4;
                 const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
                 const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x315B26, side: THREE.DoubleSide });
                 const circle = new THREE.Mesh(circleGeometry, circleMaterial);
@@ -1683,7 +1676,7 @@
                 this.playerAvatar.add(playerBorder);
 
                 const arrowShape = new THREE.Shape();
-                const arrowSize = this.gridSize * 0.28;
+                const arrowSize = this.gridSize * 0.15;
                 arrowShape.moveTo(0, arrowSize);
                 arrowShape.lineTo(arrowSize * 0.7, -arrowSize);
                 arrowShape.lineTo(-arrowSize * 0.7, -arrowSize);
@@ -1692,7 +1685,7 @@
                 const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
                 arrow.rotation.x = -Math.PI / 2;
-                arrow.position.z = -this.gridSize * 0.45;
+                arrow.position.z = -this.gridSize * 0.25;
                 arrow.position.y = 2.021; // Top layer
                 arrow.layers.set(3);
                 this.playerAvatar.add(arrow);
@@ -4937,10 +4930,10 @@
                         lookAtX = roomCenterX;
                         lookAtZ = roomCenterZ;
                     } else {
-                        // HALLWAY MODE: Tight Diablo pursuit camera
+                        // HALLWAY MODE: Tight steep Diablo pursuit camera (~74° down)
                         targetFOV = 40;
-                        targetHeight = 24;
-                        targetBack = 14;
+                        targetHeight = 28;
+                        targetBack = 8;
                         lookAtX = camWX;
                         lookAtZ = camWZ;
                     }
@@ -4969,26 +4962,7 @@
                     this.topDownCamera.position.set(this._pipOrthoTarget.cx, this._pipHeight, this._pipOrthoTarget.cz + this._pipBack);
                     this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
 
-                    // --- PiP Shadow Light (Diablo-style dramatic top-down shadows) ---
-                    if (!this._pipShadowLight) {
-                        this._pipShadowLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-                        this._pipShadowLight.castShadow = true;
-                        this._pipShadowLight.shadow.mapSize.width = 512;
-                        this._pipShadowLight.shadow.mapSize.height = 512;
-                        this._pipShadowLight.shadow.camera.near = 1;
-                        this._pipShadowLight.shadow.camera.far = 100;
-                        this._pipShadowLight.shadow.camera.left = -30;
-                        this._pipShadowLight.shadow.camera.right = 30;
-                        this._pipShadowLight.shadow.camera.top = 30;
-                        this._pipShadowLight.shadow.camera.bottom = -30;
-                        this._pipShadowLight.shadow.bias = -0.002;
-                        this._pipShadowLight.layers.enableAll();
-                        this.scene.add(this._pipShadowLight);
-                        this.scene.add(this._pipShadowLight.target);
-                    }
-                    // Position shadow light above and slightly offset from player
-                    this._pipShadowLight.position.set(camWX + 8, 30, camWZ - 5);
-                    this._pipShadowLight.target.position.set(camWX, 0, camWZ);
+
 
                     // Sync player avatar token
                     if (this.playerAvatar) {
