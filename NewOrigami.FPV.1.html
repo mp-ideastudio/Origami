@@ -1662,24 +1662,25 @@
                 const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
                 const circleMaterial = new THREE.MeshBasicMaterial({ 
                     color: 0x44b840, side: THREE.DoubleSide,
-                    depthTest: false, depthWrite: false, transparent: true 
+                    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
                 });
                 const circle = new THREE.Mesh(circleGeometry, circleMaterial);
                 circle.rotation.x = -Math.PI / 2;
-                circle.position.y = 0.02; // Firmly on the floor to prevent parallax drift
-                circle.renderOrder = 9999;
+                circle.position.y = 0.02; // Firmly on the floor
+                circle.renderOrder = 9997; // Draw circle first
                 circle.layers.set(3);
                 this.playerAvatar.add(circle);
 
                 const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.04), circleRadius + (this.gridSize*0.04), 64);
                 const playerBorderMat = new THREE.MeshBasicMaterial({ 
                     color: 0xFFFFFF, side: THREE.DoubleSide,
-                    depthTest: false, depthWrite: false, transparent: true
+                    transparent: true,
+                    polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5
                 });
                 const playerBorder = new THREE.Mesh(playerBorderGeo, playerBorderMat);
                 playerBorder.rotation.x = -Math.PI / 2;
                 playerBorder.position.y = 0.03; // Stacked
-                playerBorder.renderOrder = 9999;
+                playerBorder.renderOrder = 9998; // Draw border over circle
                 playerBorder.layers.set(3);
                 this.playerAvatar.add(playerBorder);
 
@@ -1692,13 +1693,14 @@
                 const arrowGeometry = new THREE.ShapeGeometry(arrowShape);
                 const arrowMaterial = new THREE.MeshBasicMaterial({ 
                     color: 0xFFFFFF,
-                    depthTest: false, depthWrite: false, transparent: true
+                    transparent: true,
+                    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6
                 });
                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
                 arrow.rotation.x = -Math.PI / 2;
                 arrow.position.z = -this.gridSize * 0.35;
                 arrow.position.y = 0.04; // Top layer
-                arrow.renderOrder = 9999;
+                arrow.renderOrder = 9999; // Draw arrow absolute top
                 arrow.layers.set(3);
                 this.playerAvatar.add(arrow);
 
