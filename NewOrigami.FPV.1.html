@@ -3795,23 +3795,13 @@
                                     mesh.position.z = up.z * this.gridSize;
                                 }
                                 
-                                // Color the base circle based on AI State (Red for attacking/chasing, Soft White for idle)
+                                // Keep circle flat black, no blinking or color changes
                                 if (up.state && mesh.userData.baseMat) {
-                                    if (up.state === 'IDLE') {
-                                        mesh.userData.baseMat.map = mesh.userData.texIdle;
-                                        mesh.userData.baseMat.opacity = 0.2;
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
-                                    } else if (up.state === 'HOSTILE') {
-                                        mesh.userData.baseMat.map = mesh.userData.texHostile;
-                                        mesh.userData.baseMat.opacity = 0.5;
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
-                                    } else if (up.state === 'SEARCHING') {
-                                        mesh.userData.baseMat.map = mesh.userData.texSearch;
-                                        // Solid color for search, no blinking
-                                        mesh.userData.baseMat.opacity = 0.5;
-                                        
-                                        // Activate tracking light
-                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 4.0;
+                                    mesh.userData.baseMat.map = mesh.userData.texIdle;
+                                    mesh.userData.baseMat.opacity = 0.5;
+                                    
+                                    if (mesh.userData.searchLight) {
+                                        mesh.userData.searchLight.intensity = (up.state === 'SEARCHING') ? 4.0 : 0;
                                     }
                                 }
                                 
@@ -4531,12 +4521,12 @@
                                 child.position.x += dx;
                                 child.position.z += dz;
                                 
-                                // Update colors (Red when chasing/attacking)
+                                // Keep circle flat black
                                 if (child.userData.baseMat) {
-                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ff0000')) {
-                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ff0000');
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
                                     }
-                                    child.userData.baseMat.opacity = 0.9;
+                                    child.userData.baseMat.opacity = 0.5;
                                 }
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                                 
@@ -4593,11 +4583,12 @@
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                             }
                             
-                            // Explicit override for the side-panel logic!
-                            // :when sidepanels come up = goblin floats up in the air and circle turns red.
+                            // Keep circle black even when in active combat engagement
                             if (isCombatTarget && child.userData.baseMat) {
-                                child.userData.baseMat.map = this.getCachedCircleTexture(child.userData.stateColor || '#000000');
-                                child.userData.baseMat.opacity = 0.9;
+                                if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                    child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
+                                }
+                                child.userData.baseMat.opacity = 0.5;
                             }
                         }
                     });
