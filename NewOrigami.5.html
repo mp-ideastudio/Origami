@@ -176,13 +176,16 @@
                      break;
 
                   case 'SHOW_COMBAT':
-                     notifyEngine('panels', e.data); // mode=dock panels handle encounter zone
-                     // NOTE: Do not activate combatWrapper overlay - encounter zone is in mode=dock panels now
+                     notifyEngine('panels', e.data); // mode=dock panels
+                     notifyEngine('combat', e.data); // mode=combat side panels
+                     combatWrapper.classList.add('active'); // Reactivate left/right tactical panels
                      break;
 
                   case 'HIDE_COMBAT':
                   case 'HIDE_ALL':
                      notifyEngine('panels', e.data); // Reset bottom UI
+                     notifyEngine('combat', e.data); // Reset side UI
+                     combatWrapper.classList.remove('active'); // Hide left/right tactical panels
                      break;
 
                   case 'INIT_ENTITIES':
