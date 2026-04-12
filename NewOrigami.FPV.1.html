@@ -1627,8 +1627,9 @@
                 this.outerGlow = outerGlow;
                 
                 // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
-                // Tighten Frustum culling aggressively (near 1, far 400) to massively increase depth buffer precision and eliminate Z-fighting
-                this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 1, 400);
+                // OrthographicCamera gives us the true pure miniature "Board Game Toy" isometric projection without perspective distortion!
+                const d = 20;
+                this.topDownCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 400);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
@@ -4903,10 +4904,10 @@
                     if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
                     
                     // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
-                    // Diablo isometric look: height ~20ft up, backed away. phi=0.96 and radius=35 means Y=(35*cos(0.96))~20
-                    this._pipRot = this._pipRot || { theta: 0, phi: 0.96, radius: 35 };
+                    // True "DND Board Game Toy" Diablo isometric look: phi=0.785 (45 degrees), elevated and detached.
+                    this._pipRot = this._pipRot || { theta: 0, phi: Math.PI / 4, radius: 50 };
                     
-                    const targetRadius = 35;
+                    const targetRadius = 50;
                     this._pipRot.radius += (targetRadius - this._pipRot.radius) * 0.1;
                     
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
@@ -4923,7 +4924,15 @@
                     
                     // Maintain wrapper's aspect ratio
                     const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
-                    this.topDownCamera.aspect = aspect;
+                    if (this.topDownCamera.isOrthographicCamera) {
+                        const d = this._pipZoomScale || 20; // Exact zoom for 20-unit toy scale
+                        this.topDownCamera.left = -d * aspect;
+                        this.topDownCamera.right = d * aspect;
+                        this.topDownCamera.top = d;
+                        this.topDownCamera.bottom = -d;
+                    } else {
+                        this.topDownCamera.aspect = aspect;
+                    }
                     this.topDownCamera.updateProjectionMatrix();
                     
                     const camX = this._pipOrthoTarget.cx + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.sin(this._pipRot.theta);
@@ -4936,17 +4945,8 @@
                     // Sync ARPG Player token (Since in true 3D we need a physical representative)
                     if (this.playerAvatar) {
                         this.playerAvatar.position.set(camWX, 0, camWZ);
-                        // Make sure avatar faces movement direction smoothly
-                        const dx = camWX - (this.playerAvatar.userData.lastX || camWX);
-                        const dz = camWZ - (this.playerAvatar.userData.lastZ || camWZ);
-                        if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
-                            const targetRot = Math.atan2(dx, dz);
-                            // Simple lerp rotation
-                            this.playerAvatar.rotation.y += (targetRot - this.playerAvatar.rotation.y) * 0.2;
-                        }
-                        
-                        this.playerAvatar.userData.lastX = camWX;
-                        this.playerAvatar.userData.lastZ = camWZ;
+                        // Make sure avatar faces exactly where the player camera is facing (no backwards flipping!)
+                        this.playerAvatar.rotation.y = this.player.rot;
                     }
                 }
 
