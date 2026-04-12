@@ -1574,10 +1574,12 @@
                 // Bloom removed completely based on user feedback
                 
                 // Setup Layers
+                // Setup Layers
                 // Layer 0: Default (Walls, Floors, Lights)
-                // Layer 1: Ceiling (Hidden from map)
-                this.camera.layers.enable(1); // FPV sees ceiling
-                
+                // Layer 1: Components shared with PiP
+                // Layer 2: Ceiling (Hidden from map view! FPV uses it)
+                this.camera.layers.enable(1); // FPV sees layer 1
+                this.camera.layers.enable(2); // FPV sees ceiling
                 // --- Baseline Lighting ---
                 // Cinematic lighting: cooler sky, warmer key, subtle rim (Darkened by 25%)
                 const hemisphereLight = new THREE.HemisphereLight(0x88aaff, 0x202228, 0.315);
@@ -1595,6 +1597,7 @@
                 
                 // Base ambient light to prevent pitch black MeshStandardMaterial (walls/floors are basic mat so they remain dark)
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                this.ambientLight = ambientLight;
                 
                 // Allow cinematic Map View avatar (Layer 3) to receive ambient and directional lighting
                 ambientLight.layers.enable(3);
@@ -2035,11 +2038,23 @@
                 const wallHeight = this.gridSize * 1.53;
                 const wallGeo = new THREE.BoxGeometry(this.gridSize, wallHeight, this.gridSize);
                 
+                const isExposed = (x, z) => {
+                    for(let dx=-1; dx<=1; dx++) {
+                        for(let dz=-1; dz<=1; dz++) {
+                            const nx = x+dx, nz = z+dz;
+                            if (nx>=0 && nx<this.mapWidth && nz>=0 && nz<this.mapHeight) {
+                                if (this.mapData[nx]?.[nz]?.type !== 'wall') return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
+
                 // 2. InstancedMesh for Insane Performance (1 draw call vs 2000+)
                 let wallCount = 0;
                 for (let x = 0; x < this.mapWidth; x++) {
                     for (let z = 0; z < this.mapHeight; z++) {
-                        if (this.mapData[x]?.[z]?.type === 'wall') wallCount++;
+                        if (this.mapData[x]?.[z]?.type === 'wall' && isExposed(x, z)) wallCount++;
                     }
                 }
 
@@ -2072,7 +2087,7 @@
                 this.wallBoxes = [];
                 for (let x = 0; x < this.mapWidth; x++) {
                     for (let z = 0; z < this.mapHeight; z++) {
-                        if (this.mapData[x]?.[z]?.type === 'wall') {
+                        if (this.mapData[x]?.[z]?.type === 'wall' && isExposed(x, z)) {
                             const minX = x * this.gridSize - (this.gridSize / 2);
                             const maxX = x * this.gridSize + (this.gridSize / 2);
                             const minZ = z * this.gridSize - (this.gridSize / 2);
@@ -2093,7 +2108,7 @@
                         const cell = this.mapData[x]?.[z];
                         if (!cell) continue;
 
-                        if (cell.type === 'wall') {
+                        if (cell.type === 'wall' && isExposed(x, z)) {
                             dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
                             dummy.updateMatrix();
                             instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
@@ -2127,7 +2142,7 @@
                 ceiling.rotation.x = Math.PI / 2;
                 // Match the wall height exactly
                 ceiling.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, wallHeight, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
-                ceiling.layers.set(1); // Hide ceiling from the Orthographic map camera (which only renders layer 0)
+                ceiling.layers.set(2); // Layer 2: Exclusive FPV rendering, hid from map view
                 this.worldGroup.add(ceiling);
 
                 // Tactical Grid Floor: Instead of one massive plane, we use thick procedural tiles
@@ -4944,8 +4959,10 @@
                     // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
                     this.scene.fog.color.setHex(0x06020f);
                     this.scene.fog.density = 1.0 / this._pipRot.radius;
+                    if (this.ambientLight) this.ambientLight.intensity = 1.6;
                     this.renderer.setClearColor(0x06020f, 1);
                     this.renderer.render(this.scene, this.topDownCamera);
+                    if (this.ambientLight) this.ambientLight.intensity = 0.5;
 
                     // [2] Small FPV view rendered into mapview-container space
                     this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
@@ -4992,8 +5009,10 @@
                         // AAA RPG Vignette
                         this.scene.fog.color.setHex(0x000000);
                         this.scene.fog.density = 1.0 / this._pipRot.radius;
+                        if (this.ambientLight) this.ambientLight.intensity = 1.6; // Boost map visibility
                         this.renderer.setClearColor(0x000000, 1); // True pitch black void
                         this.renderer.render(this.scene, this.topDownCamera);
+                        if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
                         
                         // Reset native FPV fog density to active default
                         this.scene.fog.color.setHex(0x08041a);
