@@ -1658,35 +1658,47 @@
                 this.playerAvatar = new THREE.Group();
                 this.playerAvatar.layers.set(3); // Map view only
                 
-                const circleRadius = this.gridSize * 0.4;
+                const circleRadius = this.gridSize * 0.6;
                 const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
-                const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x315B26, side: THREE.DoubleSide });
+                const circleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x44b840, side: THREE.DoubleSide,
+                    depthTest: false, depthWrite: false, transparent: true 
+                });
                 const circle = new THREE.Mesh(circleGeometry, circleMaterial);
                 circle.rotation.x = -Math.PI / 2;
-                circle.position.y = 2.015; // Hover
+                circle.position.y = 0.02; // Firmly on the floor to prevent parallax drift
+                circle.renderOrder = 9999;
                 circle.layers.set(3);
                 this.playerAvatar.add(circle);
 
-                const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.03), circleRadius + (this.gridSize*0.02), 64);
-                const playerBorderMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide });
+                const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.04), circleRadius + (this.gridSize*0.04), 64);
+                const playerBorderMat = new THREE.MeshBasicMaterial({ 
+                    color: 0xFFFFFF, side: THREE.DoubleSide,
+                    depthTest: false, depthWrite: false, transparent: true
+                });
                 const playerBorder = new THREE.Mesh(playerBorderGeo, playerBorderMat);
                 playerBorder.rotation.x = -Math.PI / 2;
-                playerBorder.position.y = 2.018; // Stacked
+                playerBorder.position.y = 0.03; // Stacked
+                playerBorder.renderOrder = 9999;
                 playerBorder.layers.set(3);
                 this.playerAvatar.add(playerBorder);
 
                 const arrowShape = new THREE.Shape();
-                const arrowSize = this.gridSize * 0.15;
+                const arrowSize = this.gridSize * 0.22;
                 arrowShape.moveTo(0, arrowSize);
                 arrowShape.lineTo(arrowSize * 0.7, -arrowSize);
                 arrowShape.lineTo(-arrowSize * 0.7, -arrowSize);
                 arrowShape.closePath();
                 const arrowGeometry = new THREE.ShapeGeometry(arrowShape);
-                const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+                const arrowMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xFFFFFF,
+                    depthTest: false, depthWrite: false, transparent: true
+                });
                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
                 arrow.rotation.x = -Math.PI / 2;
-                arrow.position.z = -this.gridSize * 0.25;
-                arrow.position.y = 2.021; // Top layer
+                arrow.position.z = -this.gridSize * 0.35;
+                arrow.position.y = 0.04; // Top layer
+                arrow.renderOrder = 9999;
                 arrow.layers.set(3);
                 this.playerAvatar.add(arrow);
 
@@ -2242,7 +2254,7 @@
                         const circle = new THREE.Mesh(circleGeo, circleMat);
                         circle.rotation.x = -Math.PI / 2;
                         circle.position.y = 0.02; 
-                        circle.layers.set(0); // Master visibility layer
+                        circle.layers.set(1); // FPV only — prevent bloom bleed in PiP map
                         mesh.add(circle);
                         
                         // Cache textures to swap based on AI state
@@ -3795,9 +3807,8 @@
                                         if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
                                     } else if (up.state === 'SEARCHING') {
                                         mesh.userData.baseMat.map = mesh.userData.texSearch;
-                                        // Blinking effect logic
-                                        const timeSecs = Math.floor(Date.now() / 1000);
-                                        mesh.userData.baseMat.opacity = (timeSecs % 2 === 0) ? 0.7 : 0.2;
+                                        // Solid color for search, no blinking
+                                        mesh.userData.baseMat.opacity = 0.5;
                                         
                                         // Activate tracking light
                                         if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 4.0;
@@ -4096,6 +4107,10 @@
                 
                 // Movement
                 if ((moveDir !== 0 || this.player.autoTurnTarget !== null) && !this._haltPlayer) {
+                    // Pre-declare movement targets
+                    let nextX = this.player.x;
+                    let nextZ = this.player.z;
+                    
                     // Handle active auto-turn override
                     if (this.player.autoTurnTarget !== null) {
                         const target = this.player.autoTurnTarget;
@@ -4113,13 +4128,22 @@
                             this.player.rot += Math.sign(normDiff) * this.ROT_SPEED * 2.0 * delta;
                         }
                         
+                        // While turning, smoothly slide toward the center of the current tile
+                        // This prevents the "forcefield bounce" when entering narrow hallways
+                        const tileCenterX = Math.round(this.player.x);
+                        const tileCenterZ = Math.round(this.player.z);
+                        const centerSpeed = 3.0 * delta;
+                        nextX = this.player.x + (tileCenterX - this.player.x) * centerSpeed;
+                        nextZ = this.player.z + (tileCenterZ - this.player.z) * centerSpeed;
+                        
+                        // Also nudge slightly forward into the corridor to avoid re-triggering collision
+                        const fwdNudge = 0.5 * delta;
+                        nextX -= Math.sin(target) * fwdNudge;
+                        nextZ -= Math.cos(target) * fwdNudge;
+                        
                         // Consume the forward movement to pivot in place smoothly
                         moveDir = 0;
                     }
-
-                    // Normal movement processing if not consumed by turn
-                    let nextX = this.player.x;
-                    let nextZ = this.player.z;
 
                     if (moveDir !== 0) {
                         // Note: moveDir = 1 is forward. In 3D, forward is -z vector.
@@ -4728,6 +4752,29 @@
                     // Always face the player
                     this.activeChat.mesh.lookAt(camPos);
 
+                    // --- Viewport Clamping ---
+                    // Project the bubble's approximate center (offset from tail tip) to screen space
+                    const bubbleCenter = this.activeChat.mesh.position.clone();
+                    bubbleCenter.y += 1.2; // Approximate center of balloon above tail
+                    const projected = bubbleCenter.clone().project(this.camera);
+                    // projected.x and projected.y are in NDC [-1, 1]
+                    const margin = 0.15; // Keep 15% margin from edges
+                    const maxX = 1.0 - margin;
+                    const maxY = 1.0 - margin;
+                    
+                    if (projected.x > maxX || projected.x < -maxX || projected.y > maxY || projected.y < -maxY) {
+                        // Calculate how much to nudge in screen space
+                        const clampedX = Math.max(-maxX, Math.min(maxX, projected.x));
+                        const clampedY = Math.max(-maxY, Math.min(maxY, projected.y));
+                        
+                        // Unproject both to get the world-space delta
+                        const clampedWorld = new THREE.Vector3(clampedX, clampedY, projected.z).unproject(this.camera);
+                        const originalWorld = new THREE.Vector3(projected.x, projected.y, projected.z).unproject(this.camera);
+                        
+                        const nudge = new THREE.Vector3().subVectors(clampedWorld, originalWorld);
+                        this.activeChat.mesh.position.add(nudge);
+                    }
+
                     if (this.activeChat.fading) {
                         this.activeChat.mesh.scale.multiplyScalar(0.8);
                         if (this.activeChat.mesh.scale.x < 0.01) {
@@ -4918,15 +4965,20 @@
                     let targetFOV, targetHeight, targetBack, lookAtX, lookAtZ;
 
                     if (activeRoom) {
-                        // ROOM MODE: Show entire room + 1 tile border
+                        // ROOM MODE: Precisely frame entire room + 1 tile border
                         const roomCenterX = (activeRoom.x + activeRoom.w / 2) * this.gridSize;
                         const roomCenterZ = (activeRoom.y + activeRoom.h / 2) * this.gridSize;
                         const roomSpan = Math.max(activeRoom.w, activeRoom.h) + 2; // +1 tile each side
+                        const roomWorldSize = roomSpan * this.gridSize; // Total world units to fit
                         
-                        // Wider FOV to capture room, camera pulled higher and further back
-                        targetFOV = Math.min(65, 30 + roomSpan * 3.5);
-                        targetHeight = 10 + roomSpan * 3;
-                        targetBack = 6 + roomSpan * 2;
+                        // Camera height = room world size so we're high enough to see it all
+                        targetHeight = roomWorldSize * 1.0;
+                        targetBack = roomWorldSize * 0.35; // Slight tilt for Diablo angle
+                        
+                        // Calculate exact FOV to fit roomWorldSize in frame
+                        const camDist = Math.sqrt(targetHeight * targetHeight + targetBack * targetBack);
+                        targetFOV = 2 * Math.atan((roomWorldSize * 0.55) / camDist) * (180 / Math.PI);
+                        
                         lookAtX = roomCenterX;
                         lookAtZ = roomCenterZ;
                     } else {
