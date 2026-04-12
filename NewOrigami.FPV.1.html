@@ -1628,8 +1628,8 @@
                 
                 // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
                 // OrthographicCamera gives us the true pure miniature "Board Game Toy" isometric projection without perspective distortion!
-                const d = 20;
-                this.topDownCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 400);
+                const d = 120;
+                this.topDownCamera = new THREE.OrthographicCamera(-d, d, d, -d, 1, 1000);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
@@ -4905,9 +4905,9 @@
                     
                     // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
                     // True "DND Board Game Toy" Diablo isometric look: phi=0.785 (45 degrees), elevated and detached.
-                    this._pipRot = this._pipRot || { theta: 0, phi: Math.PI / 4, radius: 50 };
+                    this._pipRot = this._pipRot || { theta: 0, phi: Math.PI / 4, radius: 200 };
                     
-                    const targetRadius = 50;
+                    const targetRadius = 200;
                     this._pipRot.radius += (targetRadius - this._pipRot.radius) * 0.1;
                     
                     // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
@@ -4925,7 +4925,7 @@
                     // Maintain wrapper's aspect ratio
                     const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
                     if (this.topDownCamera.isOrthographicCamera) {
-                        const d = this._pipZoomScale || 20; // Exact zoom for 20-unit toy scale
+                        const d = this._pipZoomScale || 120; // 120 units gives a wide, toy-like DND board footprint
                         this.topDownCamera.left = -d * aspect;
                         this.topDownCamera.right = d * aspect;
                         this.topDownCamera.top = d;
