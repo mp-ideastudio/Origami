@@ -1653,7 +1653,45 @@
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
-                
+
+                // Holographic Top-Down Player Avatar
+                this.playerAvatar = new THREE.Group();
+                this.playerAvatar.layers.set(3); // Map view only
+                this.scene.add(this.playerAvatar);
+
+                const gltfLoaderAvatar = new THREE.GLTFLoader();
+                gltfLoaderAvatar.load('./assets/models/YakuzaGoblinGhost.2.glb', (gltf) => {
+                    const avatarModel = gltf.scene;
+                    avatarModel.traverse(c => {
+                        if (c.isMesh) {
+                            c.layers.set(3);
+                            if (c.material) {
+                                const newMat = c.material.clone();
+                                if (newMat.emissive) newMat.emissive.setHex(0x44b840);
+                                c.material = newMat;
+                            }
+                        }
+                    });
+                    
+                    this.scaleModelToHeight(avatarModel, 1.53);
+                    avatarModel.updateMatrixWorld(true);
+                    const bbox = new THREE.Box3().setFromObject(avatarModel);
+                    if (bbox.min.y !== 0) {
+                        avatarModel.position.y -= bbox.min.y; 
+                    }
+                    avatarModel.rotation.y = Math.PI; 
+
+                    if (gltf.animations && gltf.animations.length > 0) {
+                        this.playerMixer = new THREE.AnimationMixer(avatarModel);
+                        this.playerMixer._current = 'idle';
+                        const actions = gltf.animations.map(a => this.playerMixer.clipAction(a));
+                        this.playerIdleAction = actions[0]; // Usually Idle
+                        this.playerWalkAction = actions[1] || actions[0]; // Usually walk/run
+                        if(this.playerIdleAction) this.playerIdleAction.play();
+                    }
+                    this.playerAvatar.add(avatarModel);
+                });
+
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
                 this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
@@ -3936,7 +3974,7 @@
                 }
                 
                 this.mixers.forEach(mixer => mixer.update(delta));
-                
+                if (this.playerMixer) this.playerMixer.update(delta);
                 let moveDir = 0;
                 let turnDir = 0;
                 
@@ -4845,8 +4883,28 @@
 
 
                     // Sync player avatar token
-
-                }
+                    if (this.playerAvatar) {
+                        this.playerAvatar.position.set(camWX, 0, camWZ);
+                        this.playerAvatar.rotation.y = this.player.rot; // Update rotation
+                        
+                        // Handle walk animation
+                        if (this.playerMixer && this.playerWalkAction && this.playerIdleAction) {
+                            const isWalking = currentlyMoving;
+                            if (isWalking) {
+                                if (this.playerMixer._current !== 'walk') {
+                                    this.playerIdleAction.stop();
+                                    this.playerWalkAction.play();
+                                    this.playerMixer._current = 'walk';
+                                }
+                            } else {
+                                if (this.playerMixer._current !== 'idle') {
+                                    this.playerWalkAction.stop();
+                                    this.playerIdleAction.play();
+                                    this.playerMixer._current = 'idle';
+                                }
+                            }
+                        }
+                    }
 
                 if (this.cameraMode === 'topdown' && this.topDownCamera) {
                     // ── TOP-DOWN MAIN + FPV PiP ──────────────────────────────────────
