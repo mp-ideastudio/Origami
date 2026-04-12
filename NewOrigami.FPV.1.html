@@ -1654,58 +1654,6 @@
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
                 
-                // Holographic Top-Down Player Avatar (Reverted to pure baseline 12c Tactical Vector graphics)
-                this.playerAvatar = new THREE.Group();
-                this.playerAvatar.layers.set(3); // Map view only
-                
-                const circleRadius = this.gridSize * 0.6;
-                const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
-                const circleMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x44b840, side: THREE.DoubleSide,
-                    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
-                });
-                const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-                circle.rotation.x = -Math.PI / 2;
-                circle.position.y = 0.02; // Firmly on the floor
-                circle.renderOrder = 9997; // Draw circle first
-                circle.layers.set(3);
-                this.playerAvatar.add(circle);
-
-                const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.04), circleRadius + (this.gridSize*0.04), 64);
-                const playerBorderMat = new THREE.MeshBasicMaterial({ 
-                    color: 0xFFFFFF, side: THREE.DoubleSide,
-                    transparent: true,
-                    polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5
-                });
-                const playerBorder = new THREE.Mesh(playerBorderGeo, playerBorderMat);
-                playerBorder.rotation.x = -Math.PI / 2;
-                playerBorder.position.y = 0.03; // Stacked
-                playerBorder.renderOrder = 9998; // Draw border over circle
-                playerBorder.layers.set(3);
-                this.playerAvatar.add(playerBorder);
-
-                const arrowShape = new THREE.Shape();
-                const arrowSize = this.gridSize * 0.22;
-                arrowShape.moveTo(0, arrowSize);
-                arrowShape.lineTo(arrowSize * 0.7, -arrowSize);
-                arrowShape.lineTo(-arrowSize * 0.7, -arrowSize);
-                arrowShape.closePath();
-                const arrowGeometry = new THREE.ShapeGeometry(arrowShape);
-                const arrowMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xFFFFFF,
-                    transparent: true,
-                    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6
-                });
-                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
-                arrow.rotation.x = -Math.PI / 2;
-                arrow.position.z = -this.gridSize * 0.35;
-                arrow.position.y = 0.04; // Top layer
-                arrow.renderOrder = 9999; // Draw arrow absolute top
-                arrow.layers.set(3);
-                this.playerAvatar.add(arrow);
-
-                this.scene.add(this.playerAvatar);
-
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
                 this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
@@ -1961,62 +1909,7 @@
                 return tex;
             },
 
-            createStatusCircleTexture(color, blink = false, splitColor = null) {
-                const size = 256;
-                const canvas = document.createElement("canvas");
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext("2d");
-                
-                const center = size / 2;
-                const radius = (size / 2) - 12;
-                
-                if (splitColor) {
-                    ctx.fillStyle = color;
-                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI/2, Math.PI*1.5); ctx.fill();
-                    ctx.fillStyle = splitColor;
-                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI*1.5, Math.PI/2); ctx.fill();
-                } else {
-                    ctx.beginPath();
-                    ctx.arc(center, center, radius, 0, Math.PI * 2);
-                    ctx.fillStyle = color;
-                    ctx.fill();
-                }
-                
-                // White border
-                ctx.lineWidth = 12;
-                ctx.strokeStyle = "#ffffff";
-                ctx.stroke();
-                
-                // Arrow pointing forward (+Z direction is towards bottom of Canvas)
-                ctx.beginPath();
-                ctx.moveTo(center, size - 25);
-                ctx.lineTo(center - 30, size - 75);
-                ctx.lineTo(center + 30, size - 75);
-                ctx.closePath();
-                ctx.fillStyle = "#ffffff";
-                ctx.fill();
 
-                if (blink && Math.floor(Date.now() / 250) % 2 === 0) {
-                    ctx.clearRect(0,0,size,size); // Blink out
-                }
-
-                const tex = new THREE.CanvasTexture(canvas);
-                tex.needsUpdate = true;
-                return tex;
-            },
-            
-            getCachedCircleTexture(color, blink = false, splitColor = null) {
-                if (!this.circleTexCache) this.circleTexCache = {};
-                const key = color + (blink ? "_blink" : "") + (splitColor || "");
-                // Blink textures must be regenerated to animate, or we can just toggle opacity in the loop. 
-                // For simplicity, we cache solid ones.
-                if (!blink && this.circleTexCache[key]) return this.circleTexCache[key];
-                
-                const tex = this.createStatusCircleTexture(color, blink, splitColor);
-                if (!blink) this.circleTexCache[key] = tex;
-                return tex;
-            },
 
             buildWorldGeometry() {
                 // Initialize geometry container to prevent "children of undefined" crashes on reset
@@ -2242,34 +2135,7 @@
                         // Goblins have bottom origins, place flush with floor
                         mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
                         
-                        // FPV Base Interaction Circle (Left on Layer 0/1 to be universally visible, but it sits totally flush anyway)
-                        const hudTexIdle = this.createStatusCircleTexture('#000000');
-                        
-                        const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
-                        const circleMat = new THREE.MeshBasicMaterial({ 
-                            map: hudTexIdle,
-                            color: 0xffffff,
-                            transparent: true, 
-                            opacity: 0.9,
-                            depthWrite: false,
-                            polygonOffset: true,
-                            polygonOffsetFactor: -4,
-                            polygonOffsetUnits: -4
-                        });
-                        const circle = new THREE.Mesh(circleGeo, circleMat);
-                        circle.rotation.x = -Math.PI / 2;
-                        circle.position.y = 0.02; 
-                        circle.layers.set(1); // FPV only — prevent bloom bleed in PiP map
-                        mesh.add(circle);
-                        
-                        // Cache textures to swap based on AI state
-                        mesh.userData.texIdle = hudTexIdle;
-                        
-                        // Removed Flashlight Cone to preserve realistic lighting per user request
-                        
-                        mesh.userData.baseMat = circleMat; // Save reference for coloring later
-                        // No searchLight attached
-                        
+
                         this.testMonster = mesh;
                     } else {
                         // NPC boxes are centered, place at y=1
@@ -3739,9 +3605,7 @@
                             }
                             
                             // Remove selection circle entirely
-                            if (deadMesh.userData.baseMat) {
-                                deadMesh.userData.baseMat.opacity = 0;
-                            }
+
                             
                             // Spawn Physical Loot at monster location
                             this.spawnLoot(Math.round(deadMesh.position.x / this.gridSize), Math.round(deadMesh.position.z / this.gridSize));
@@ -4981,10 +4845,7 @@
 
 
                     // Sync player avatar token
-                    if (this.playerAvatar) {
-                        this.playerAvatar.position.set(camWX, 0, camWZ);
-                        this.playerAvatar.rotation.y = this.player.rot;
-                    }
+
                 }
 
                 if (this.cameraMode === 'topdown' && this.topDownCamera) {
