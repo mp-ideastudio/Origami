@@ -1587,6 +1587,10 @@
                 // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
                 this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+                // Global shadow mapping enabled with PCFSoft for performance-friendly AAA shadow blurring
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 
                 // Shift Optical Center UP by 150px so the Monster is not blocked by the UI panels at the bottom
                 // Arguments: (fullWidth, fullHeight, xOffset, yOffset, width, height)
@@ -1606,10 +1610,26 @@
                 const hemisphereLight = new THREE.HemisphereLight(0x88aaff, 0x202228, 0.315);
                 this.scene.add(hemisphereLight);
                 
-                // Warm key directional light for depth and shadows
-                const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.498);
-                dirLight.position.set(30, 60, 10);
+                // Warm key directional light for depth and shadows, radiating down from above
+                const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.6);
+                const sunCenter = 150; // Approximates map center
+                dirLight.position.set(sunCenter, 400, sunCenter + 100); // High above, shifted slightly Z so walls cast shadows backwards
+                dirLight.target.position.set(sunCenter, 0, sunCenter);
+                
+                // Efficient Shadows: PCFSoft smooths 1024 perfectly at extreme scale. No FPS drain!
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 1024;
+                dirLight.shadow.mapSize.height = 1024;
+                dirLight.shadow.camera.left = -400; 
+                dirLight.shadow.camera.right = 400;
+                dirLight.shadow.camera.top = 400;
+                dirLight.shadow.camera.bottom = -400;
+                dirLight.shadow.camera.near = 1;
+                dirLight.shadow.camera.far = 1000;
+                dirLight.shadow.bias = -0.002;
+                
                 this.scene.add(dirLight);
+                this.scene.add(dirLight.target);
                 
                 // Cool rim light from behind for silhouette separation
                 const rimLight = new THREE.DirectionalLight(0x99bbff, 0.183);
@@ -1657,40 +1677,84 @@
                 // Holographic Top-Down Player Avatar
                 this.playerAvatar = new THREE.Group();
                 this.playerAvatar.layers.set(3); // Map view only
-                this.scene.add(this.playerAvatar);
+                
+                // Black circle with white border (un-animated base)
+                const baseGroup = new THREE.Group();
+                const baseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.05, 32);
+                const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshLambertMaterial({ color: 0x000000 }));
+                baseMesh.layers.set(3);
+                
+                const borderGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.02, 32);
+                const borderMesh = new THREE.Mesh(borderGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                borderMesh.position.y = -0.015;
+                borderMesh.layers.set(3);
 
-                const gltfLoaderAvatar = new THREE.GLTFLoader();
-                gltfLoaderAvatar.load('./assets/models/YakuzaGoblinGhost.2.glb', (gltf) => {
-                    const avatarModel = gltf.scene;
-                    avatarModel.traverse(c => {
-                        if (c.isMesh) {
-                            c.layers.set(3);
-                            if (c.material) {
-                                const newMat = c.material.clone();
-                                if (newMat.emissive) newMat.emissive.setHex(0x44b840);
-                                c.material = newMat;
-                            }
+                // Small white directional 'nose' circle pointing towards -Z (forward)
+                const noseGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.03, 16);
+                const noseMesh = new THREE.Mesh(noseGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                noseMesh.position.set(0, 0, -0.85); // Pushed exclusively to the front edge
+                noseMesh.layers.set(3);
+
+                baseGroup.add(baseMesh);
+                baseGroup.add(borderMesh);
+                baseGroup.add(noseMesh);
+                // Important: Do not give the base any animation controllers, preserving the "do not animate circle" requirement
+                this.playerAvatar.add(baseGroup);
+
+                // --- Load 3D Player Avatar for Map View ---
+                this.playerMixer = null;
+                const TARGET_PLAYER_MODEL = './assets/models/Player.A.Walking.glb';
+                const FALLBACK_MODEL = 'https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/Player.A.Walking.glb';
+                const loader = new THREE.GLTFLoader();
+                if (loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
+                
+                const initAvatar = (gltf) => {
+                    const avatarMesh = gltf.scene;
+                    
+                    // Scale uniformly to roughly human scale
+                    const box = new THREE.Box3().setFromObject(avatarMesh);
+                    const currentHeight = Math.max(1e-6, box.max.y - box.min.y);
+                    const s = 1.3 / currentHeight; 
+                    avatarMesh.scale.set(s, s, s);
+                    avatarMesh.position.y += 0.02; // Lift slightly above circle
+                    
+                    // Force the avatar mesh to face the proper forward direction (-Z)
+                    avatarMesh.rotation.y = Math.PI; 
+                    
+                    avatarMesh.traverse((child) => {
+                        if (child.isMesh) {
+                            child.layers.set(3); 
+                            // MeshLambertMaterial restores dimensional shadows and rim lighting depth so it stops looking "wonky"
+                            child.material = new THREE.MeshLambertMaterial({ 
+                                color: 0xcccccc
+                            });
                         }
                     });
-                    
-                    this.scaleModelToHeight(avatarModel, 1.53);
-                    avatarModel.updateMatrixWorld(true);
-                    const bbox = new THREE.Box3().setFromObject(avatarModel);
-                    if (bbox.min.y !== 0) {
-                        avatarModel.position.y -= bbox.min.y; 
-                    }
-                    avatarModel.rotation.y = Math.PI; 
 
+                    this.playerAvatar.add(avatarMesh);
+
+                    // Setup Animations
                     if (gltf.animations && gltf.animations.length > 0) {
-                        this.playerMixer = new THREE.AnimationMixer(avatarModel);
-                        this.playerMixer._current = 'idle';
-                        const actions = gltf.animations.map(a => this.playerMixer.clipAction(a));
-                        this.playerIdleAction = actions[0]; // Usually Idle
-                        this.playerWalkAction = actions[1] || actions[0]; // Usually walk/run
-                        if(this.playerIdleAction) this.playerIdleAction.play();
+                        this.playerMixer = new THREE.AnimationMixer(avatarMesh);
+                        const idleClip = gltf.animations.find(c => c.name.toLowerCase().includes('idle'));
+                        const walkClip = gltf.animations.find(c => c.name.toLowerCase().includes('walk')) || gltf.animations[0];
+                        
+                        this.playerIdleAction = idleClip ? this.playerMixer.clipAction(idleClip) : null;
+                        this.playerWalkAction = this.playerMixer.clipAction(walkClip);
+                        
+                        if (this.playerIdleAction) {
+                            this.playerIdleAction.play();
+                            this.playerMixer._current = 'idle';
+                        }
+                        this.mixers.push(this.playerMixer);
                     }
-                    this.playerAvatar.add(avatarModel);
+                };
+                
+                loader.load(TARGET_PLAYER_MODEL, initAvatar, undefined, () => {
+                    loader.load(FALLBACK_MODEL, initAvatar);
                 });
+
+                this.scene.add(this.playerAvatar);
 
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
@@ -1759,7 +1823,7 @@
                     bloomRes,
                     0.8,    // strength
                     0.6,    // radius
-                    0.9     // threshold (tightly clamped so only the 0xffffff eyes glow)
+                    2.0     // threshold (elevated to heavily restrict bloom strictly to emissive > 2.0 elements, stopping floor/stairs from bleeding)
                 );
                 this.composer.addPass(this.bloomPass);
 
@@ -1947,7 +2011,41 @@
                 return tex;
             },
 
+            createDungeonTopTexture() {
+                const canvas = document.createElement("canvas");
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext("2d");
+                
+                // Solid neumorphic dark gray base
+                ctx.fillStyle = "#2c2e33"; 
+                ctx.fillRect(0, 0, 512, 512);
 
+                // Subtle noise for uniform concrete/stone texture
+                ctx.fillStyle = "rgba(0,0,0,0.15)";
+                for (let i = 0; i < 4000; i++) {
+                    ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+                }
+                
+                // Neumorphic Inner Bevel (Highlight top/left edges)
+                ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+                ctx.fillRect(0, 0, 512, 8); // Top edge
+                ctx.fillRect(0, 0, 8, 512); // Left edge
+                
+                // Neumorphic Inner Shadow (Dark bottom/right edges)
+                ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                ctx.fillRect(0, 504, 512, 8); // Bottom edge
+                ctx.fillRect(504, 0, 8, 512); // Right edge
+
+                // Added slightly higher opacity structure marks for raw "dungeon tile" appeal
+                ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+                ctx.fillRect(256, 0, 2, 512); // subtle center crosshair lines
+                ctx.fillRect(0, 256, 512, 2);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
 
             buildWorldGeometry() {
                 // Initialize geometry container to prevent "children of undefined" crashes on reset
@@ -1963,6 +2061,7 @@
                 // Generate premium textures
                 const floorTex = this.createDungeonFloorTexture();
                 const wallTex = this.createDungeonWallTexture();
+                const wallTopTex = this.createDungeonTopTexture();
                 const ceilTex = this.createDarkWoodRafterTexture();
                 const objTex = this.makePaperTexture('#444444');
 
@@ -1971,29 +2070,16 @@
                     floor: new THREE.MeshLambertMaterial({ map: floorTex }),
                     ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
                     wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
-                    wallTop: new THREE.MeshLambertMaterial({ color: 0x222428 }),
+                    wallTop: new THREE.MeshLambertMaterial({ map: wallTopTex, color: 0xFFFFFF }),
                     npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
                     monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
                 };
                 this.mats = mats;
-                
-                // Track parent CSS for Light/Dark mode changes to color the wall tops!
-                setInterval(() => {
-                    try {
-                        if (window.parent && window.parent.document) {
-                            const isDark = window.parent.document.body.classList.contains('dark-mode');
-                            const targetHex = isDark ? 0x222428 : 0xdddddf; // Matte black vs bright flat grey
-                            if (mats.wallTop.color.getHex() !== targetHex) {
-                                mats.wallTop.color.setHex(targetHex);
-                            }
-                        }
-                    } catch(e) {}
-                }, 500);
 
                 const wallMaterials = [
                     mats.wall,    // Right
                     mats.wall,    // Left
-                    mats.wallTop, // Top 
+                    mats.wallTop, // Top (Custom Neumorphic Dungeon Top)
                     mats.wall,    // Bottom
                     mats.wall,    // Front
                     mats.wall     // Back
@@ -2032,22 +2118,7 @@
                 this.walls = [instancedWalls]; 
                 
                 // AAA Architectural Trim (Crown Molding / Lip for Wall Tops)
-                // This overhanging geometry creates depth. We use two layered meshes to create a 'soft' physical Bevel/Chamfer instead of a hard square!
-                const trimMat = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.9, metalness: 0.1 });
-                
-                // Base wide lip
-                const overHangBase = 0.05;
-                const trimGeoBase = new THREE.BoxGeometry(this.gridSize + overHangBase*2, 0.04, this.gridSize + overHangBase*2);
-                const instancedTrimsBase = new THREE.InstancedMesh(trimGeoBase, trimMat, wallCount);
-                instancedTrimsBase.castShadow = true; instancedTrimsBase.receiveShadow = true;
-                instancedTrimsBase.frustumCulled = false;
-                
-                // Upper tight lip
-                const overHangTop = 0.02;
-                const trimGeoTop = new THREE.BoxGeometry(this.gridSize + overHangTop*2, 0.05, this.gridSize + overHangTop*2);
-                const instancedTrimsTop = new THREE.InstancedMesh(trimGeoTop, trimMat, wallCount);
-                instancedTrimsTop.castShadow = true; instancedTrimsTop.receiveShadow = true;
-                instancedTrimsTop.frustumCulled = false;
+                // Removed per user request to maintain clean top-down map aesthetic without brown blockers!
 
                 // Build pure mathematical AABB boxes for perfect Raycasting fallback
                 this.wallBoxes = [];
@@ -2079,15 +2150,6 @@
                             dummy.updateMatrix();
                             instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
                             
-                            // Matrix the overhang trim flush onto the surface! Creates a stepped bezel.
-                            dummy.position.set(x * this.gridSize, wallHeight + 0.02, z * this.gridSize);
-                            dummy.updateMatrix();
-                            instancedTrimsBase.setMatrixAt(wallIdx, dummy.matrix);
-                            
-                            dummy.position.set(x * this.gridSize, wallHeight + 0.04 + 0.025, z * this.gridSize);
-                            dummy.updateMatrix();
-                            instancedTrimsTop.setMatrixAt(wallIdx, dummy.matrix);
-                            
                             wallIdx++;
                         }
                     }
@@ -2095,11 +2157,6 @@
                 
                 instancedWalls.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedWalls);
-                
-                instancedTrimsBase.instanceMatrix.needsUpdate = true;
-                this.worldGroup.add(instancedTrimsBase);
-                instancedTrimsTop.instanceMatrix.needsUpdate = true;
-                this.worldGroup.add(instancedTrimsTop);
                 
                 // Ceiling
                 ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
@@ -2170,6 +2227,24 @@
                         // Force full scale enemy 3D models EXCLUSIVELY into Layer 1 (FPV), so they don't block the Map View
                         mesh.traverse(c => { c.layers.set(1); });
                         
+                        // Give Goblin a tactical red circle footprint with a white border visible on Layer 3 (Map View)
+                        const monBase = new THREE.Group();
+                        const mBaseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.05, 32);
+                        // Swap to Lambert so it catches shadows instead of 'glowing' flatly in FPV
+                        const mBaseMesh = new THREE.Mesh(mBaseGeo, new THREE.MeshLambertMaterial({ color: 0x881111 }));
+                        mBaseMesh.layers.set(1); mBaseMesh.layers.enable(3);
+                        mBaseMesh.receiveShadow = true;
+                        
+                        const mBorderGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.02, 32);
+                        const mBorderMesh = new THREE.Mesh(mBorderGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                        mBorderMesh.position.y = -0.015;
+                        mBorderMesh.layers.set(1); mBorderMesh.layers.enable(3);
+                        mBorderMesh.receiveShadow = true;
+                        
+                        monBase.add(mBaseMesh);
+                        monBase.add(mBorderMesh);
+                        mesh.add(monBase);
+
                         // Goblins have bottom origins, place flush with floor
                         mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
                         
@@ -2867,18 +2942,55 @@
                 this.worldGroup.add(coinMesh);
                 this.lootItems.push(coinMesh);
                 
+                // Nethack-style Gold drop token
+                const goldValue = Math.floor(Math.random() * 50) + 10;
+                
+                const gCoinGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 16);
+                const gCoinMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.8 }); // 3D Coin base
+                const gCoinMesh = new THREE.Mesh(gCoinGeo, gCoinMat);
+                
+                // $ Sprite
+                const sc = document.createElement('canvas');
+                sc.width = 64; sc.height = 64;
+                const sCtx = sc.getContext('2d');
+                sCtx.fillStyle = '#ffd700'; // Nethack gold!
+                sCtx.font = 'bold 50px sans-serif';
+                sCtx.textAlign = 'center'; sCtx.textBaseline = 'middle';
+                sCtx.fillText('$', 32, 32);
+                
+                const gSpriteTex = new THREE.CanvasTexture(sc);
+                const gSpriteMat = new THREE.SpriteMaterial({ map: gSpriteTex, depthTest: false, color: 0xffffff });
+                const gSprite = new THREE.Sprite(gSpriteMat);
+                gSprite.position.y = 0.5;
+                gSprite.scale.set(0.6, 0.6, 1);
+                gCoinMesh.add(gSprite);
+
+                gCoinMesh.position.set((gridX * this.gridSize) + 0.7, 0.5, (gridZ * this.gridSize) + 0.5);
+                gCoinMesh.userData = {
+                    type:       'loot_gold',
+                    id:         Math.floor(Math.random() * 9999999),
+                    floatTimer: Math.random() * Math.PI * 2,
+                    basePos:    0.5,
+                    gridX:      gridX,
+                    gridZ:      gridZ,
+                    amount:     goldValue
+                };
+
+                this.worldGroup.add(gCoinMesh);
+                this.lootItems.push(gCoinMesh);
+                
                 // ── Loot card: faithful guide-card replica (matches NewOrigami.Panels.html) ──
                 // Card data mirrors the actual SPELL_MAP / defaultCategories
                 const LOOT_CARDS = [
-                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'(STUN * 2DICE)',  emissive: 0x5C4033 },
-                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'(STUN * 3DICE)',  emissive: 0x5C4033 },
-                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'(PUSH * 3DICE)',  emissive: 0x37474f },
-                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'(DMG * 4DICE)',   emissive: 0xff2200 },
-                    { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'(DMG * 6DICE)',   emissive: 0xff2200 },
-                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'(SLOW * 4DICE)',  emissive: 0x0d47a1 },
-                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'(DMG * 1DICE)',   emissive: 0xcc0000 },
-                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'(DEFEND * 2DICE)', emissive: 0x0d47a1 },
-                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'(HEAL * 1DICE)',  emissive: 0x1b5e20 },
+                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'SKILL CARD',  emissive: 0x5C4033 },
+                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'SKILL CARD',  emissive: 0x5C4033 },
+                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'SKILL CARD',  emissive: 0x37474f },
+                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'SKILL CARD',   emissive: 0xff2200 },
+                    { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'SKILL CARD',   emissive: 0xff2200 },
+                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'SKILL CARD',  emissive: 0x0d47a1 },
+                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'SKILL CARD',   emissive: 0xcc0000 },
+                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'SKILL CARD', emissive: 0x0d47a1 },
+                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'SKILL CARD',  emissive: 0x1b5e20 },
                 ];
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
 
@@ -3165,6 +3277,20 @@
                 const targetX = playerGridX + dirX;
                 const targetZ = playerGridZ + dirZ;
 
+                // Exit Stairs Logic Check
+                if (this.mapData[playerGridX] && this.mapData[playerGridX][playerGridZ] && this.mapData[playerGridX][playerGridZ].type === 'stairs') {
+                    if (!this.playerSteppedOnStairs) {
+                        this.playerSteppedOnStairs = true;
+                        window.parent.postMessage({ type: 'SHOW_EXIT' }, '*');
+                    }
+                } else {
+                    if (this.playerSteppedOnStairs) {
+                        this.playerSteppedOnStairs = false;
+                        // Hiding is natively handled by the Panels UI when PLAYER_MOVE_STATE triggers, 
+                        // but resetting this flag allows the exit modal to pop up again if they step back on it.
+                    }
+                }
+
                 let foundNPC = null;
                 let foundMonster = null;
                 let closestDist = Infinity;
@@ -3435,9 +3561,7 @@
                                 }
                             }, 1500);
                             
-                        } else if (action === 'WAGER' && this.activeTarget) {
-                            this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager mode
-                        } else if ((action === 'ATTACK' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') && this.activeTarget && this.activeTarget.userData.type === 'enemy') {
+                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && !['BAG','MAP','SET','REST','HEAL','VIEW','LOG'].includes(action)) {
                             if (this.activeTargetDist > this.gridSize * 1.8) {
                                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Too far away! Move closer to strike.` }, '*');
                                 return;
@@ -4837,21 +4961,21 @@
                         const roomSpan = Math.max(activeRoom.w, activeRoom.h) + 2; // +1 tile each side
                         const roomWorldSize = roomSpan * this.gridSize; // Total world units to fit
                         
-                        // Camera height = room world size so we're high enough to see it all
-                        targetHeight = roomWorldSize * 1.0;
-                        targetBack = roomWorldSize * 0.35; // Slight tilt for Diablo angle
+                        // Physically scale camera placement to lower height and pull further back for a sharper Diablo-style angled perspective
+                        targetHeight = roomWorldSize * 0.75;
+                        targetBack = roomWorldSize * 0.65; 
                         
-                        // Calculate exact FOV to fit roomWorldSize in frame
+                        // Calculate exact FOV to fit roomWorldSize in frame natively given the new hypotenuse distance
                         const camDist = Math.sqrt(targetHeight * targetHeight + targetBack * targetBack);
-                        targetFOV = 2 * Math.atan((roomWorldSize * 0.55) / camDist) * (180 / Math.PI);
+                        targetFOV = 2 * Math.atan((roomWorldSize * 0.65) / camDist) * (180 / Math.PI);
                         
                         lookAtX = roomCenterX;
                         lookAtZ = roomCenterZ;
                     } else {
-                        // HALLWAY MODE: Tight steep Diablo pursuit camera (~74° down)
-                        targetFOV = 40;
-                        targetHeight = 28;
-                        targetBack = 8;
+                        // Increase dynamic angle for hallways as well (lower height, pushed back)
+                        targetFOV = 48;
+                        targetHeight = 22;
+                        targetBack = 12;
                         lookAtX = camWX;
                         lookAtZ = camWZ;
                     }
@@ -4888,23 +5012,24 @@
                         this.playerAvatar.rotation.y = this.player.rot; // Update rotation
                         
                         // Handle walk animation
-                        if (this.playerMixer && this.playerWalkAction && this.playerIdleAction) {
+                        if (this.playerMixer && this.playerWalkAction) {
                             const isWalking = currentlyMoving;
                             if (isWalking) {
                                 if (this.playerMixer._current !== 'walk') {
-                                    this.playerIdleAction.stop();
+                                    if (this.playerIdleAction) this.playerIdleAction.stop();
                                     this.playerWalkAction.play();
                                     this.playerMixer._current = 'walk';
                                 }
                             } else {
                                 if (this.playerMixer._current !== 'idle') {
                                     this.playerWalkAction.stop();
-                                    this.playerIdleAction.play();
+                                    if (this.playerIdleAction) this.playerIdleAction.play();
                                     this.playerMixer._current = 'idle';
                                 }
                             }
                         }
                     }
+                }
 
                 if (this.cameraMode === 'topdown' && this.topDownCamera) {
                     // ── TOP-DOWN MAIN + FPV PiP ──────────────────────────────────────
@@ -4915,9 +5040,12 @@
                     // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
                     this.scene.fog.color.setHex(0x06020f);
                     this.scene.fog.density = 0.02;
-                    if (this.ambientLight) this.ambientLight.intensity = 1.6;
+                    // Lower ambient slightly from 1.6 to 0.7 so directional shadows actually render black, but keep visibility high
+                    if (this.ambientLight) this.ambientLight.intensity = 0.7;
                     this.renderer.setClearColor(0x06020f, 1);
+                    if (this.headlamp) this.headlamp.visible = false;
                     this.renderer.render(this.scene, this.topDownCamera);
+                    if (this.headlamp) this.headlamp.visible = true;
                     if (this.ambientLight) this.ambientLight.intensity = 0.5;
 
                     // [2] Small FPV view rendered into mapview-container space
@@ -4965,9 +5093,11 @@
                         // AAA RPG Vignette
                         this.scene.fog.color.setHex(0x000000);
                         this.scene.fog.density = 0.02;
-                        if (this.ambientLight) this.ambientLight.intensity = 1.6; // Boost map visibility
+                        if (this.ambientLight) this.ambientLight.intensity = 0.7; // Lowered from 1.6 to allow solid shadows to express
                         this.renderer.setClearColor(0x000000, 1); // True pitch black void
+                        if (this.headlamp) this.headlamp.visible = false;
                         this.renderer.render(this.scene, this.topDownCamera);
+                        if (this.headlamp) this.headlamp.visible = true;
                         if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
                         
                         // Reset native FPV fog density to active default

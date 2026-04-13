@@ -1141,7 +1141,7 @@
                             avatarActions.slash = avatarActions['attack'] || avatarActions['slash'] || avatarActions[2] || avatarActions[1] || avatarActions.walk;
                             
                             if (!avatarIdleAction && gltf.animations.length === 1) {
-                                // If ONLY a walk cycle was loaded, don't map it to idle, otherwise it walks in place
+                                // Baseline behavior: if only one animation exists, do not use it as idle otherwise it will moonwalk.
                                 avatarIdleAction = null;
                             } else if (!avatarIdleAction) {
                                 avatarIdleAction = avatarActions[0];
@@ -1318,11 +1318,22 @@
             window.parent.postMessage({ type: 'MODAL_STATE', isOpen: false }, '*');
         };
         window.confirmExit = () => {
-            // For now, redirect or alert
             console.log("EXITING DUNGEON");
-            alert("Exiting Dungeon... (Redirect to world map)");
-            window.location.reload(); // Temporary fallback
+            window.location.reload(); 
+            window.parent.location.reload(); // Hard reset game
         };
+
+        // Exit Modal Keyboard Listener (Any key dismisses, only 'y' resets)
+        window.addEventListener('keydown', (e) => {
+            if (exitModalActive) {
+                if (e.key.toLowerCase() === 'y') {
+                    window.confirmExit();
+                } else {
+                    window.hideExitModal();
+                }
+            }
+        });
+
         window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
         window.emitAction = (a, explicitBtn = null) => { 
             window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
@@ -1651,6 +1662,9 @@
                         card.className = `guide-card card-${cat.id.toLowerCase()}`;
                         card.dataset.depth = "0";
                         card.style.position = 'absolute';
+                        card.style.pointerEvents = 'auto'; // Re-enable pointer events since parent is none
+                        card.style.cursor = 'pointer';
+                        
                         // Matches generateCardHTML layout pixel-perfectly
                         card.innerHTML = `
                             <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><div class="card-type-pill">${cat.id}</div></div>
@@ -1658,6 +1672,17 @@
                             <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
                             <div class="card-attr-fused">${cat.attr || ''}</div>
                         `;
+                        
+                        // Click to activate the 3D card remotely
+                        card.onclick = (e) => {
+                            e.stopPropagation();
+                            card.classList.add('launching');
+                            setTimeout(() => {
+                                card.classList.remove('launching');
+                                if (window.emitAction) window.emitAction(item.cardName, card);
+                            }, 420);
+                        };
+
                         layer.appendChild(card);
                         // Trigger cache rescan for new canvas
                         window.canvasCache = window.canvasCache || {};
@@ -1744,6 +1769,7 @@
                     const walk = avatarActions ? avatarActions.walk : null;
                     if (walk && avatarCurrentAction !== walk) {
                         walk.reset();
+                        walk.setEffectiveTimeScale(1.0);
                         if (avatarCurrentAction) walk.crossFadeFrom(avatarCurrentAction, 0.3, true);
                         walk.play();
                         avatarCurrentAction = walk;
@@ -1753,6 +1779,8 @@
                     document.body.classList.remove('is-moving');
                     if (avatarIdleAction && avatarCurrentAction !== avatarIdleAction) {
                         avatarIdleAction.reset();
+                        const isWalkCycle = (avatarActions && avatarIdleAction === avatarActions.walk);
+                        avatarIdleAction.setEffectiveTimeScale(isWalkCycle ? 0.05 : 1.0);
                         if (avatarCurrentAction) avatarIdleAction.crossFadeFrom(avatarCurrentAction, 0.3, true);
                         avatarIdleAction.play();
                         avatarCurrentAction = avatarIdleAction;
@@ -1840,6 +1868,8 @@ setTimeout(() => {
         console.log("Last card right:", cards[cards.length-1].getBoundingClientRect().right);
     }
 }, 3000);
+
+// (Dojo Shoji Texture removed; reverting side-panels to standard glass texture to match playing cards)
 </script>
 </body>
 </html>
