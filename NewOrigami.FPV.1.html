@@ -284,7 +284,7 @@
             box-sizing: border-box;
             cursor: move;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            overflow: hidden;
+            overflow: visible;
             -webkit-user-select: none;
             user-select: none;
         }
@@ -356,7 +356,8 @@
             z-index: 50; pointer-events: auto;
         }
         #map-zoom-slider {
-            width: 20px; height: 160px; -webkit-appearance: slider-vertical; appearance: slider-vertical;
+            width: 20px; height: 160px;
+            writing-mode: vertical-lr; direction: rtl;
             background: rgba(20,20,20,0.6);
             border-radius: 6px;
             outline: none;
@@ -370,6 +371,48 @@
             background: #00ffcc; border: 1px solid rgba(0,0,0,0.8);
             box-shadow: 0 0 5px #00ffcc;
         }
+
+        /* Map Camera D-Pad Controls */
+        .map-dpad {
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(145deg, #1f1f22, #141416);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10000;
+            pointer-events: auto;
+        }
+        
+        .map-dpad button {
+            position: absolute;
+            width: 24px; height: 24px;
+            background: transparent;
+            border: none; color: #ffffff; font-size: 11px;
+            cursor: pointer; outline: none;
+            display: flex; justify-content: center; align-items: center; -webkit-user-select: none; user-select: none;
+            transition: color 0.1s, transform 0.1s;
+        }
+        .map-dpad button:hover { color: #dddddd; }
+        .map-dpad button:active { color: #aaaaaa; transform: scale(0.9); }
+        
+        .map-dpad #dpad-up { top: 2px; left: 50%; transform: translateX(-50%); }
+        .map-dpad #dpad-down { bottom: 2px; left: 50%; transform: translateX(-50%); }
+        .map-dpad #dpad-left { left: 2px; top: 50%; transform: translateY(-50%); }
+        .map-dpad #dpad-right { right: 2px; top: 50%; transform: translateY(-50%); }
+        
+        .map-dpad .dpad-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 22px; height: 22px; font-size: 13px; color: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.05); border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center;
+            cursor: pointer; pointer-events: auto;
+        }
+        .map-dpad .dpad-center:active { background: rgba(255,255,255,0.1); }
 
         .resize-handle {
             position: absolute;
@@ -450,6 +493,16 @@
             <div class="canvas-wrapper">
                 <canvas id="pip-map-canvas"></canvas>
             </div>
+            
+            <!-- Map Camera Controls (Protruding outside bottom) -->
+            <div class="map-dpad">
+                <button id="dpad-up">&#9650;</button>
+                <button id="dpad-left">&#9664;</button>
+                <button class="dpad-center">&#8634;</button>
+                <button id="dpad-right">&#9654;</button>
+                <button id="dpad-down">&#9660;</button>
+            </div>
+
             <div class="resize-handle se"></div>
             <div class="resize-handle sw"></div>
             <div class="resize-handle ne"></div>
@@ -1682,18 +1735,18 @@
                 const baseGroup = new THREE.Group();
                 const baseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.05, 32);
                 const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshLambertMaterial({ color: 0x000000 }));
-                baseMesh.layers.set(3);
+                baseMesh.layers.set(1); baseMesh.layers.enable(3);
                 
                 const borderGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.02, 32);
                 const borderMesh = new THREE.Mesh(borderGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
                 borderMesh.position.y = -0.015;
-                borderMesh.layers.set(3);
+                borderMesh.layers.set(1); borderMesh.layers.enable(3);
 
                 // Small white directional 'nose' circle pointing towards -Z (forward)
                 const noseGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.03, 16);
                 const noseMesh = new THREE.Mesh(noseGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
                 noseMesh.position.set(0, 0, -0.85); // Pushed exclusively to the front edge
-                noseMesh.layers.set(3);
+                noseMesh.layers.set(1); noseMesh.layers.enable(3);
 
                 baseGroup.add(baseMesh);
                 baseGroup.add(borderMesh);
@@ -2634,10 +2687,10 @@
                     };
 
                     const randomCards = [
-                        ['ITEM', 'EARTH BOULDER', 'Crush enemies with immense weight', '⛰', 'DMG 25 / CRIT 5%'],
-                        ['SPELL', 'VOID BURN', 'Consume target life force over time', '魔', 'DOT 10 / 3 TURNS'],
-                        ['THRUST', 'SPEAR DASH', 'Lunge forward striking two tiles', '槍', 'RNG 2 / DMG 20'],
-                        ['SLASH', 'WHIRLWIND', 'Strike all adjacent enemies', '旋', 'AOE / DMG 15']
+                        ['EARTH', 'BOULDER', 'Heavy impact.', '地', '(STUN * 2DICE)'],
+                        ['FIRE', 'FIREBALL', 'Inferno star.', '火', '(DMG * 4DICE)'],
+                        ['KATANA', 'SLASH', 'Basic slash.', '斬', '(DMG * 1DICE)'],
+                        ['WIND', 'GALE', 'Forceful gust.', '風', '(PUSH * 3DICE)']
                     ];
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
                     spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
@@ -3916,6 +3969,7 @@
                     
                     // Let Chrome initialize Drag state
                     if (e.target.closest(".resize-handle")) return; 
+                    if (e.target.closest(".map-dpad")) return; // Ignore camera controls so buttons act natively
                     
                     e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
                     
@@ -5001,7 +5055,21 @@
                     this.topDownCamera.aspect = aspect;
                     this.topDownCamera.updateProjectionMatrix();
 
-                    this.topDownCamera.position.set(this._pipOrthoTarget.cx, this._pipHeight, this._pipOrthoTarget.cz + this._pipBack);
+                    // Integrate user's manual orbital controls (Pitch / Yaw)
+                    this._cameraOrbitPitch = this._cameraOrbitPitch || 0; // degrees, 0=straight down
+                    this._cameraOrbitYaw = this._cameraOrbitYaw || 0; // radians
+                    
+                    const camRadius = this._pipHeight || 80;
+                    const pitchRad = this._cameraOrbitPitch * (Math.PI / 180);
+                    
+                    // Spherical to Cartesian orbit around target
+                    const camPosY = Math.cos(pitchRad) * camRadius;
+                    const mapXZRadius = Math.sin(pitchRad) * camRadius;
+                    
+                    const camPosX = this._pipOrthoTarget.cx + Math.sin(this._cameraOrbitYaw) * mapXZRadius;
+                    const camPosZ = this._pipOrthoTarget.cz + Math.cos(this._cameraOrbitYaw) * mapXZRadius;
+
+                    this.topDownCamera.position.set(camPosX, camPosY, camPosZ);
                     this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
 
 
@@ -5149,6 +5217,60 @@
             _anim_hPos: new THREE.Vector3(),
             _anim_dirToHome: new THREE.Vector3(),
         };
+
+        // Prevent arrow keys from scrolling the viewport
+        window.addEventListener("keydown", function(e) {
+            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+        }, false);
+        
+        // Map D-Pad Control Logic - Native clean interaction
+        (function initDPad() {
+            let dpadInterval = null;
+            const updateOrbit = (btnId) => {
+                if (!Engine) return;
+                Engine._cameraOrbitPitch = Engine._cameraOrbitPitch || 0;
+                Engine._cameraOrbitYaw = Engine._cameraOrbitYaw || 0;
+                
+                if (btnId === 'dpad-down') Engine._cameraOrbitPitch -= 2.0; // Less steep
+                if (btnId === 'dpad-up') Engine._cameraOrbitPitch += 2.0; // More isometric
+                if (btnId === 'dpad-left') Engine._cameraOrbitYaw -= 0.1;
+                if (btnId === 'dpad-right') Engine._cameraOrbitYaw += 0.1;
+                
+                // Keep pitch strictly constrained so camera never flips or goes underground
+                Engine._cameraOrbitPitch = Math.max(0, Math.min(85, Engine._cameraOrbitPitch));
+            };
+
+            const handlePress = (e) => {
+                const btnId = e.target.closest('button')?.id;
+                if (!btnId) {
+                    if (e.target.closest('.dpad-center') && Engine) {
+                        Engine._cameraOrbitPitch = 0;
+                        Engine._cameraOrbitYaw = 0;
+                    }
+                    return;
+                }
+                if (dpadInterval) clearInterval(dpadInterval);
+                updateOrbit(btnId); // Immediate bump
+                dpadInterval = setInterval(() => updateOrbit(btnId), 30); // Hold iteration
+            };
+
+            const handleRelease = () => {
+                if (dpadInterval) clearInterval(dpadInterval);
+                dpadInterval = null;
+            };
+
+            const dpad = document.querySelector('.map-dpad');
+            if (dpad) {
+                // Remove stopPropagation to ensure buttons fire native interactions smoothly
+                dpad.addEventListener('mousedown', handlePress);
+                window.addEventListener('mouseup', handleRelease);
+                
+                dpad.addEventListener('touchstart', (e) => { e.preventDefault(); handlePress(e); }, {passive: false});
+                window.addEventListener('touchend', handleRelease);
+            }
+        })();
 
         window.onload = () => Engine.init();
     </script>
