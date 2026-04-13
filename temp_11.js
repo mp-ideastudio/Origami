@@ -1,0 +1,5154 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /**
+         * CORE GAME ENGINE (Three.js integration + Application Coordinator)
+         */
+        const Engine = {
+            // State
+            player: { x: 5, z: 5, rot: 0, hp: 100, maxHp: 100, gold: 0, autoTurnTarget: null },
+            lootItems: [], // Tracks physical 3D drops
+            boulders:   [], // Active boulder projectiles
+            gridSize: 2,
+            mapData: [],
+            mapWidth: 40,   // Restored to 40x40 for FPS
+            mapHeight: 40,  // Restored to 40x40 for FPS
+            headlamp: null,
+            outerGlow: null,
+            clock: null,
+            mixers: [],
+            activeTarget: null, // NPC or Monster we are adjacent to
+            frameCount: 0,
+            
+            // FCT: Floating Combat Text Spawner
+            spawnCombatText(text, type = 'hit') {
+                if (window.CombatEngine) window.CombatEngine.spawnCombatText(text, type);
+            },
+
+            // ── Goblin Slash Hit VFX ──────────────────────────────────────────
+            // Spawns three animated claw-mark lines fanning across the screen center
+            spawnSlashVFX() {
+                const overlay = document.getElementById('slash-overlay');
+                const vignette = document.getElementById('blood-vignette');
+                if (!overlay) return;
+
+                // Blood vignette pulse
+                if (vignette) {
+                    vignette.classList.add('active');
+                    setTimeout(() => vignette.classList.remove('active'), 350);
+                }
+
+                // Three slash marks: left, centre, right
+                const slashes = [
+                    { r: '-50deg', tx: '-80px', ty: '-60px', h: '180px', delay: '0ms' },
+                    { r: '-38deg', tx:   '0px', ty: '-90px', h: '220px', delay: '40ms' },
+                    { r: '-26deg', tx:  '80px', ty: '-60px', h: '180px', delay: '80ms' },
+                ];
+                slashes.forEach(s => {
+                    const el = document.createElement('div');
+                    el.className = 'slash-mark';
+                    el.style.setProperty('--r',  s.r);
+                    el.style.setProperty('--tx', s.tx);
+                    el.style.setProperty('--ty', s.ty);
+                    el.style.height = s.h;
+                    el.style.animationDelay = s.delay;
+                    overlay.appendChild(el);
+                    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 700);
+                });
+            },
+            
+            activeChat: null,
+            
+            spawnChatBubble(enText, jpText, targetMesh) {
+                const logText = jpText ? `${enText} [${jpText}]` : enText;
+                window.parent.postMessage({ type: 'LOG_EVENT', text: logText, logType: 'chat' }, '*');
+                if (this.activeChat) {
+                    if (this.activeChat.mesh) {
+                        this.scene.remove(this.activeChat.mesh);
+                        // Clean up children (extrusion mesh, text mesh, light)
+                        if (this.activeChat.mesh.children) {
+                            this.activeChat.mesh.children.forEach(c => {
+                                if (c.material && c.material.map) c.material.map.dispose();
+                                if (c.material) c.material.dispose();
+                                if (c.geometry) c.geometry.dispose();
+                            });
+                        }
+                    }
+                    this.activeChat = null;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 1000;
+                canvas.height = 1000;
+                const ctx = canvas.getContext('2d');
+
+                // Clear background completely transparent
+                ctx.clearRect(0, 0, 1000, 1000);
+
+                let enFontSize = 120;
+                let enLines = [];
+                let enLineHeight = 0;
+                let enTotalHeight = 0;
+
+                const MAX_WIDTH = 700;
+                const MAX_HEIGHT = 450;
+                
+                // Scale English text until it fits
+                while (true) {
+                    ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
+                    const words = enText.split(' ');
+                    enLines = [];
+                    let currentLine = words[0];
+
+                    for (let i = 1; i < words.length; i++) {
+                        const word = words[i];
+                        const width = ctx.measureText(currentLine + " " + word).width;
+                        if (width < MAX_WIDTH) {
+                            currentLine += " " + word;
+                        } else {
+                            enLines.push(currentLine);
+                            currentLine = word;
+                        }
+                    }
+                    if (currentLine) enLines.push(currentLine);
+
+                    enLineHeight = enFontSize * 1.15;
+                    enTotalHeight = enLines.length * enLineHeight;
+                    
+                    if (enTotalHeight <= MAX_HEIGHT || enFontSize <= 24) {
+                        let maxWordWidth = 0;
+                        for (let l of enLines) {
+                            maxWordWidth = Math.max(maxWordWidth, ctx.measureText(l).width);
+                        }
+                        if (maxWordWidth <= MAX_WIDTH || enFontSize <= 24) {
+                            break;
+                        }
+                    }
+                    enFontSize -= 2;
+                }
+
+                // Japanese Font sizing
+                let jpFontSize = Math.min(32, enFontSize * 0.5);
+                ctx.font = `bold ${jpFontSize}px sans-serif`;
+                let jpLines = [];
+                let currentJpLine = "";
+                for (let char of (jpText || "")) {
+                    let w = ctx.measureText(currentJpLine + char).width;
+                    if (w < MAX_WIDTH * 0.95) {
+                        currentJpLine += char;
+                    } else {
+                        jpLines.push(currentJpLine);
+                        currentJpLine = char;
+                    }
+                }
+                if (currentJpLine) jpLines.push(currentJpLine);
+                
+                let jpLineHeight = jpFontSize * 1.4;
+                let jpTotalHeight = jpLines.length > 0 ? (jpLines.length * jpLineHeight) : 0;
+                
+                let totalContentHeight = enTotalHeight + (jpText ? (jpTotalHeight + 30) : 0);
+                
+                // Draw English Text
+                ctx.fillStyle = '#000000';
+                ctx.font = `900 ${enFontSize}px "Impact", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                let startY = 500 - (totalContentHeight / 2) + (enFontSize / 2);
+                let currentY = startY;
+                
+                for (let i = 0; i < enLines.length; i++) {
+                    ctx.fillText(enLines[i], 500, currentY);
+                    currentY += enLineHeight;
+                }
+
+                // Draw Japanese Subtitle
+                if (jpText) {
+                    currentY += (jpFontSize / 2);
+                    ctx.fillStyle = '#444444';
+                    ctx.font = `bold ${jpFontSize}px sans-serif`;
+                    ctx.textBaseline = 'top';
+                    for (let i = 0; i < jpLines.length; i++) {
+                        ctx.fillText(jpLines[i], 500, currentY);
+                        currentY += jpLineHeight;
+                    }
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+
+                const textMaterial = new THREE.MeshBasicMaterial({ 
+                    map: texture, 
+                    transparent: true,
+                    depthTest: false,
+                    fog: false
+                });
+
+                // Perfect 2D Billboard Text Mesh
+                const geometryPlane = new THREE.PlaneGeometry(3.6, 3.6);
+                const textMesh = new THREE.Mesh(geometryPlane, textMaterial);
+                textMesh.position.z = 0.50; // Push text firmly in front of the puffiest part of the balloon
+                textMesh.renderOrder = 1000;
+
+                // Custom 3D Comic Balloon Shape using ExtrudeGeometry
+                const shape = new THREE.Shape();
+                const bWidth = 4.2;   // Increased for padding buffer
+                const bHeight = 2.8;  // Increased for padding buffer
+                const bRad = 0.5;
+                const tWidth = 0.4;
+                const tHeight = 1.0; 
+                const tOffset = 0.0; 
+
+                // Start top left
+                shape.moveTo(-bWidth/2 + bRad, bHeight/2);
+                shape.lineTo(bWidth/2 - bRad, bHeight/2);
+                shape.quadraticCurveTo(bWidth/2, bHeight/2, bWidth/2, bHeight/2 - bRad);
+                shape.lineTo(bWidth/2, -bHeight/2 + bRad);
+                shape.quadraticCurveTo(bWidth/2, -bHeight/2, bWidth/2 - bRad, -bHeight/2);
+                
+                // Bottom edge with tail pointing diagonally left towards the entity head
+                shape.lineTo(tOffset + tWidth/2, -bHeight/2);
+                shape.lineTo(tOffset - 3.5, -bHeight/2 - tHeight);    // Tip of tail stretched far left
+                shape.lineTo(tOffset - tWidth/2, -bHeight/2);
+                
+                shape.lineTo(-bWidth/2 + bRad, -bHeight/2);
+                shape.quadraticCurveTo(-bWidth/2, -bHeight/2, -bWidth/2, -bHeight/2 + bRad);
+                shape.lineTo(-bWidth/2, bHeight/2 - bRad);
+                shape.quadraticCurveTo(-bWidth/2, bHeight/2, -bWidth/2 + bRad, bHeight/2);
+
+                const extrudeSettings = {
+                    steps: 1,
+                    depth: 0.15,
+                    bevelEnabled: true,
+                    bevelThickness: 0.25, // High bevel makes it look like a rounded cloud/pill
+                    bevelSize: 0.2, 
+                    bevelOffset: 0,
+                    bevelSegments: 12 // Smooth curves
+                };
+
+                const balloonGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                
+                // We use MeshStandardMaterial to get 3D shading, but with maximum roughness
+                const balloonMat = new THREE.MeshStandardMaterial({ 
+                    color: 0xdddddd,
+                    roughness: 1.0, 
+                    metalness: 0.0,
+                    emissive: 0x050505, // Minimal glow to prevent bloom washout
+                    depthWrite: true,
+                    depthTest: true,
+                    transparent: false,
+                    fog: false
+                });
+
+                const balloonMesh = new THREE.Mesh(balloonGeo, balloonMat);
+                balloonMesh.renderOrder = 999;
+                
+                const light = new THREE.PointLight(0xffffff, 0.15, 5);
+                
+                // Offset the meshes so the tip of the tail (-3.5, -bHeight/2 - tHeight, 0)
+                // becomes the (0,0,0) origin of the Group container.
+                // -bHeight/2 - tHeight = -1.4 - 1.0 = -2.4. So shift +3.5 X and +2.4 Y.
+                balloonMesh.position.set(3.5, 2.4, -0.25);
+                textMesh.position.set(3.5, 2.4, 0.50);
+                light.position.set(3.5, 2.4, 1.0);
+
+                const group = new THREE.Group();
+                group.add(balloonMesh);
+                group.add(textMesh);
+                group.add(light);
+                group.renderOrder = 999;
+                
+                // Scale the bubble so it's large enough to read from combat distance
+                group.scale.set(0.45, 0.45, 0.45);
+                
+                this.scene.add(group);
+
+                this.activeChat = {
+                    mesh: group,
+                    target: targetMesh,
+                    light: light,
+                    expires: Infinity, // Permanent until clicked or dismissed
+                    fading: false
+                };
+            },
+            
+            triggerCombatSequence(target) {
+                if (!target || target.userData.combatIntroTriggered) return;
+                target.userData.combatIntroTriggered = true;
+
+                // Goblin backs up 2 grids (20 feet)
+                const dirX = -Math.sin(this.player.rot);
+                const dirZ = -Math.cos(this.player.rot);
+                
+                target.userData.retreatX = target.position.x + (dirX * 2.0 * this.gridSize);
+                target.userData.retreatZ = target.position.z + (dirZ * 2.0 * this.gridSize);
+                target.userData.isRetreating = true;
+
+                // Flanking Imps
+                if (this.impCache && this.impCache.length >= 2) {
+                    // Right vector
+                    const rightX = Math.cos(this.player.rot);
+                    const rightZ = -Math.sin(this.player.rot);
+
+                    for(let i=0; i<2; i++) {
+                        const impGltf = this.impCache[i];
+                        const imp = impGltf.scene.clone(); // clone the cached scene
+                        
+                        const anchor = new THREE.Group();
+                        anchor.add(imp);
+                        
+                        const sign = i === 0 ? -1 : 1;
+                        anchor.position.set(
+                            target.userData.retreatX + (rightX * 3.0 * sign * this.gridSize),
+                            0, // Keep Y at 0 for now, float happens via baseY later
+                            target.userData.retreatZ + (rightZ * 3.0 * sign * this.gridSize)
+                        );
+                        
+                        anchor.scale.set(0.01, 0.01, 0.01);
+                        anchor.userData = { 
+                            type: 'imp', 
+                            id: `imp_${Date.now()}_${i}`,
+                            targetScale: 1.0,
+                            baseY: 0
+                        };
+                        
+                        // Animations
+                        if (impGltf.animations.length > 0) {
+                            const mixer = new THREE.AnimationMixer(imp);
+                            const action = mixer.clipAction(impGltf.animations[0]);
+                            action.play();
+                            this.mixers.push(mixer);
+                            anchor.userData.mixer = mixer;
+                        }
+
+                        // Glow Mats
+                        imp.traverse((child) => {
+                            if (child.isMesh) {
+                                const mat = child.material.clone();
+                                mat.transparent = false;
+                                mat.opacity = 0.3;
+                                mat.blending = THREE.NormalBlending;
+                                mat.side = THREE.FrontSide;
+                                mat.depthWrite = true;
+                                if (mat.emissive !== undefined) {
+                                    mat.emissive.set("#00ffcc");
+                                    mat.emissiveIntensity = 0.4;
+                                }
+
+                                mat.onBeforeCompile = (shader) => {
+                                    shader.fragmentShader = shader.fragmentShader.replace(
+                                        '#include <emissivemap_fragment>',
+                                        [
+                                            '#ifdef USE_EMISSIVEMAP',
+                                            '    vec4 emissiveMapColor = texture2D( emissiveMap, vUv );',
+                                            '    totalEmissiveRadiance *= emissiveMapColor.rgb;',
+                                            '#endif',
+                                            'float baseBrightness = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));',
+                                            'if (baseBrightness > 0.65) {', 
+                                            '    totalEmissiveRadiance = vec3(2.0);', 
+                                            '    diffuseColor.rgb = vec3(0.0);', 
+                                            '}'
+                                        ].join('\n')
+                                    );
+                                };
+                                child.material = mat;
+                                child.renderOrder = 10;
+                            }
+                        });
+                        
+                        // Copy Goblin's rotation
+                        imp.rotation.y = -Math.PI / 2;
+                        
+                        let foundSkinned = false;
+                        anchor.userData.glowMeshes = [];
+                        anchor.traverse(n => {
+                            if (n.isSkinnedMesh) {
+                                anchor.userData.glowMeshes.push(n);
+                                foundSkinned = true;
+                            }
+                        });
+                        if (!foundSkinned) anchor.userData.glowMeshes.push(anchor);
+
+                        this.worldGroup.add(anchor);
+                    }
+                }
+            },
+            
+            lastFpsTime: 0,
+            currentFps: 0,
+            
+            // Global Live FX Configuration (dat.gui)
+            fxConfig: {
+                // Glass & Transparency
+                baseOpacity: 0.55,
+                transmission: 0.0,
+                roughness: 0.1,
+                ior: 1.5,
+                thickness: 0.5,
+                
+                // Emissive properties
+                emissiveIntensity: 0.6,
+                emissiveColor: "#00ffcc",
+
+                // Outline properties
+                edgeStrength: 8.0,
+                edgeGlow: 3.0,
+                edgeThickness: 4.0,
+                visibleColor: "#00ccff",
+                hiddenColor: "#00ccff",
+                
+                // Bloom properties
+                bloomRadius: 0.6,
+                bloomStrength: 0.8
+            },
+
+            // Config
+            MOVE_SPEED: 1.82, // Reset to baseline requested by user
+            ROT_SPEED: 2.2,  // Radians per second
+            BOB_AMP: 0.045,  // Vertical bounce height
+            SWAY_AMP: 0.015, // Horizontal sway width
+            
+            keys: { w: false, a: false, s: false, d: false },
+            isMoving: false,
+            lastGridX: -1,
+            lastGridZ: -1,
+            wasIdle: true,
+            bobTimer: 0,     // Tracks head-bob animation
+            bobHeight: 0,    // Current vertical offset
+            bobSway: 0,      // Current horizontal offset
+            gameTime: 0,     // Custom accumulator for turn-based time-stop effect
+            
+            composer: null,
+            bloomPass: null,
+            rgbShiftPass: null,
+
+            init() {
+                this.generateMap();
+                this.initWebGL();
+                this.initControls();
+                this.initComms();
+                this.initPipCanvases();
+                this.initTuningUI();
+                
+                this.clock = new THREE.Clock();
+                this.mixers = [];
+                
+                // Initialize layout cache
+                this.layoutData = { fpv: null };
+
+                // Expose a direct update method for the Shell to call
+                window.updateLayoutData = (data) => {
+                    this.layoutData = data;
+                };
+
+                // Start Render Loop ONLY after assets are completely loaded to prevent pop-in
+                THREE.DefaultLoadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
+                    const percent = (itemsLoaded / itemsTotal) * 100;
+                    const fill = document.getElementById('loading-bar-fill');
+                    if (fill) fill.style.width = percent + '%';
+                    
+                    const text = document.getElementById('loading-text');
+                    if (text) text.innerText = Math.round(percent) + '%';
+                    
+                    const file = document.getElementById('loading-file');
+                    if (file) {
+                        const filename = url.split('/').pop().split('?')[0];
+                        file.innerText = `Loading: ${filename}`;
+                    }
+                };
+                
+                THREE.DefaultLoadingManager.onLoad = () => {
+                    const screen = document.getElementById('loading-screen');
+                    if (screen) {
+                        screen.style.opacity = '0';
+                        setTimeout(() => { if (screen.parentNode) screen.parentNode.removeChild(screen); }, 500);
+                    }
+                    // Start rendering now that the scene is fully populated
+                    requestAnimationFrame(() => this.animate());
+                };
+            },
+            
+            // Uniformly scale an object so its total height equals targetHeight (in world units)
+            // Ported directly from Baseline.Origami..html to fix microscopic 3D model exports
+            scaleModelToHeight(object3D, targetHeight) {
+                if (!object3D) return 1;
+                object3D.updateMatrixWorld(true);
+                const box = new THREE.Box3().setFromObject(object3D);
+                const currentHeight = Math.max(1e-6, box.max.y - box.min.y);
+                const s = targetHeight / currentHeight;
+                object3D.scale.multiplyScalar(s);
+                object3D.updateMatrixWorld(true);
+                return s;
+            },
+
+            initTuningUI() {
+                const sSpeed = document.getElementById('tune-speed');
+                const vSpeed = document.getElementById('val-speed');
+                sSpeed.addEventListener('input', (e) => {
+                    this.MOVE_SPEED = parseFloat(e.target.value);
+                    vSpeed.textContent = this.MOVE_SPEED.toFixed(2);
+                });
+
+                const sBob = document.getElementById('tune-bob');
+                const vBob = document.getElementById('val-bob');
+                sBob.addEventListener('input', (e) => {
+                    this.BOB_AMP = parseFloat(e.target.value);
+                    vBob.textContent = this.BOB_AMP.toFixed(3);
+                });
+
+                const sSway = document.getElementById('tune-sway');
+                const vSway = document.getElementById('val-sway');
+                sSway.addEventListener('input', (e) => {
+                    this.SWAY_AMP = parseFloat(e.target.value);
+                    vSway.textContent = this.SWAY_AMP.toFixed(3);
+                });
+            },
+            
+            updateCombatAI(delta) {
+                // If the player has fully engaged a target (isHostile)
+                if (this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.type === 'enemy') {
+                    if (this.activeTarget.userData.isHostile && !this.activeTarget.userData.isDead) {
+                        const now = performance.now();
+                        if (!this.activeTarget.userData.lastAIStrike) this.activeTarget.userData.lastAIStrike = now;
+                        
+                        // Autonomous attack cycle: 1.8 seconds
+                        if (now - this.activeTarget.userData.lastAIStrike > 1800) {
+                            
+                            // Validate proximity limit before attacking (must be within 1.5 logical tiles in any direction)
+                            const eX = this.activeTarget.position.x / this.gridSize;
+                            const eZ = this.activeTarget.position.z / this.gridSize;
+                            const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
+                            
+                            if (dist < 1.75) {
+                                this.activeTarget.userData.lastAIStrike = now;
+                                
+                                const executeGoblinStrike = () => {
+                                    if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                        if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
+                                        this.player.hp = Math.max(0, this.player.hp - 10);
+                                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                        this.addCameraTrauma(0.6);
+                                    }
+                                };
+                                
+                                // Play native attack animation safely
+                                const mixer = this.activeTarget.userData.mixer;
+                                const slashAnim = this.activeTarget.userData.attackAction;
+                                if (mixer && slashAnim) {
+                                    mixer.stopAllAction();
+                                    slashAnim.reset();
+                                    slashAnim.setLoop(THREE.LoopOnce, 1);
+                                    slashAnim.clampWhenFinished = true;
+                                    slashAnim.play();
+                                    setTimeout(executeGoblinStrike, 250); // Connects mid-swing
+                                } else {
+                                    executeGoblinStrike();
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            generateMap() {
+                // Room definitions for future dungeon editing
+                const DUNGEON_ROOMS_SCHEMA = [
+                  {
+                    "id": 1,
+                    "name": "Large Chamber",
+                    "description": "A grand hall with multiple exits, echoing with ancient magic.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [10,5]},
+                      {"direction": "east", "position": [5,10]}
+                    ],
+                    "triggers": [
+                      {"position": [5,5], "action": "update_narrative", "value": "You enter a grand hall, its walls pulsing with arcane energy."}
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "name": "Storage Room",
+                    "description": "A cluttered room with a dusty chest in the center.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "A dusty chest sits in the center, whispering secrets."}
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "name": "Statue Room",
+                    "description": "A solemn chamber with a statue of a fallen priest.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "statue", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The statue's eyes seem to follow you."}
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "name": "Trap Room",
+                    "description": "A dangerous room with a hidden trap.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "trap", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "A trap clicks beneath your feet!"}
+                    ]
+                  },
+                  {
+                    "id": 5,
+                    "name": "Altar Room",
+                    "description": "A mystical room with a glowing altar.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "altar", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [5,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The altar hums with dark energy."}
+                    ]
+                  },
+                  {
+                    "id": 6,
+                    "name": "Library",
+                    "description": "A dusty room filled with ancient tomes.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [8,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "Ancient tomes whisper forgotten lore."}
+                    ]
+                  },
+                  {
+                    "id": 7,
+                    "name": "Throne Room",
+                    "description": "A regal hall with a crumbling throne.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "statue", "floor", "floor", "floor", "ascended", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [10,5]}
+                    ],
+                    "triggers": [
+                      {"position": [5,5], "action": "update_narrative", "value": "The throne crumbles under the weight of time."}
+                    ]
+                  },
+                  {
+                    "id": 8,
+                    "name": "Prison Cell",
+                    "description": "A dank cell with iron bars.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "wall"],
+                      ["wall", "door", "floor", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [4,2]}
+                    ],
+                    "triggers": [
+                      {"position": [2,2], "action": "update_narrative", "value": "The cell reeks of despair."}
+                    ]
+                  },
+                  {
+                    "id": 9,
+                    "name": "Garden",
+                    "description": "An overgrown garden with magical plants.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "altar", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [8,3]}
+                    ],
+                    "triggers": [
+                      {"position": [4,4], "action": "update_narrative", "value": "Magical plants sway in an eerie breeze."}
+                    ]
+                  },
+                  {
+                    "id": 10,
+                    "name": "Forge",
+                    "description": "A hot forge with glowing embers.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "chest", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "door", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "south", "position": [7,3]}
+                    ],
+                    "triggers": [
+                      {"position": [3,3], "action": "update_narrative", "value": "The forge's heat is overwhelming."}
+                    ]
+                  },
+                  {
+                    "id": 11,
+                    "name": "Straight Hallway",
+                    "description": "A long, straight corridor.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The corridor stretches endlessly."}
+                    ]
+                  },
+                  {
+                    "id": 12,
+                    "name": "L-Shaped Hallway",
+                    "description": "A corridor with a sharp bend.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "wall", "door", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,9]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The corridor turns sharply."}
+                    ]
+                  },
+                  {
+                    "id": 13,
+                    "name": "T-Shaped Hallway",
+                    "description": "A corridor splitting into three paths.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]},
+                      {"direction": "north", "position": [1,5]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "Three paths diverge ahead."}
+                    ]
+                  },
+                  {
+                    "id": 14,
+                    "name": "Crossroads Hallway",
+                    "description": "A corridor with four paths.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "door", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]},
+                      {"direction": "north", "position": [1,5]},
+                      {"direction": "south", "position": [2,5]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "A crossroads offers multiple choices."}
+                    ]
+                  },
+                  {
+                    "id": 15,
+                    "name": "Narrow Passage",
+                    "description": "A tight, claustrophobic hallway.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The walls close in tightly."}
+                    ]
+                  },
+                  {
+                    "id": 16,
+                    "name": "Wide Hallway",
+                    "description": "A spacious corridor for large groups.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"],
+                      ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "The wide hall echoes with footsteps."}
+                    ]
+                  },
+                  {
+                    "id": 17,
+                    "name": "Secret Passage",
+                    "description": "A hidden corridor behind a wall.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "A secret passage reveals itself."}
+                    ]
+                  },
+                  {
+                    "id": 18,
+                    "name": "Trapped Corridor",
+                    "description": "A hallway rigged with traps.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "trap", "floor", "floor", "trap", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,3], "action": "update_narrative", "value": "A trap springs to life!"},
+                      {"position": [2,6], "action": "update_narrative", "value": "Another trap clicks nearby!"}
+                    ]
+                  },
+                  {
+                    "id": 19,
+                    "name": "Patrolled Corridor",
+                    "description": "A hallway guarded by enemies.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "You hear the footsteps of guards."}
+                    ]
+                  },
+                  {
+                    "id": 20,
+                    "name": "Collapsed Corridor",
+                    "description": "A hallway blocked by rubble.",
+                    "grid": [
+                      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+                      ["door", "floor", "floor", "floor", "chest", "floor", "floor", "floor", "floor", "door"]
+                    ],
+                    "doors": [
+                      {"direction": "west", "position": [2,1]},
+                      {"direction": "east", "position": [2,10]}
+                    ],
+                    "triggers": [
+                      {"position": [2,5], "action": "update_narrative", "value": "Rubble blocks part of the path."}
+                    ]
+                  }
+                ];
+                
+                // Initialize rich grid map architecture [x][z]
+                this.mapData = Array.from({ length: this.mapWidth }, () => Array.from({ length: this.mapHeight }, () => ({ type: 'wall', discovered: false })));
+                this.rooms = [];
+                
+                // --- 1. PROCEDURAL ANCHOR (HALLWAY + ROOM 1) ---
+                const roomSize = 7;
+                // Anchor room placed at z=20 so the 7-tile hallway ends at z=27, player spawns at z=27 - close to goblins
+                const rStartX = Math.floor(this.mapWidth / 2) - 3;
+                const rStartZ = 20; 
+                
+                this.rooms.push({
+                    id: 1, 
+                    x: rStartX, 
+                    y: rStartZ, 
+                    w: roomSize, 
+                    h: roomSize, 
+                    center: { x: rStartX + 3, y: rStartZ + 3 }
+                });
+                
+                // Carve Room 1
+                for(let ry = rStartZ; ry < rStartZ + roomSize; ry++) {
+                    for(let rx = rStartX; rx < rStartX + roomSize; rx++) {
+                        this.mapData[rx][ry] = { type: 'floor', room: true, roomId: 1 };
+                    }
+                }
+                
+                // Carve Grand 3-Wide 7-Tile Entrance Hallway South
+                const hallX = this.rooms[0].center.x;
+                const hallStartTopZ = rStartZ + roomSize;
+                
+                for(let i = 0; i < 7; i++) {
+                    this.mapData[hallX - 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
+                    this.mapData[hallX][hallStartTopZ + i] = { type: 'floor', hallway: true };
+                    this.mapData[hallX + 1][hallStartTopZ + i] = { type: 'floor', hallway: true };
+                }
+                
+                // Entrance precisely at the end of the center lane
+                const entrancePos = { x: hallX, y: hallStartTopZ + 6 };
+                this.mapData[entrancePos.x][entrancePos.y] = { type: 'entrance' };
+                // Solid blockers placed entirely across the rear of the grand hall
+                this.mapData[hallX - 1][entrancePos.y + 1] = { type: 'wall' };
+                this.mapData[hallX][entrancePos.y + 1] = { type: 'wall' };
+                this.mapData[hallX + 1][entrancePos.y + 1] = { type: 'wall' };
+                
+                // Player Spawn Location
+                this.player.x = entrancePos.x;
+                this.player.z = entrancePos.y;
+                this.player.rot = 0;
+                this.entrancePos = { x: entrancePos.x, z: entrancePos.y }; // Store for loot placement
+                
+                // --- 2. PROCEDURAL DUNGEON GROWTH (BSP / Drunkard's Anchor) ---
+                const maxRooms = 8;
+                let attempts = 0;
+                
+                // Simple helper to check if a rect overlaps existing floor + 1 tile buffer
+                const canPlaceRoom = (rx, rz, rw, rh) => {
+                    if (rx < 2 || rz < 2 || rx + rw >= this.mapWidth - 2 || rz + rh >= this.mapHeight - 2) return false;
+                    for (let x = rx - 1; x < rx + rw + 1; x++) {
+                        for (let z = rz - 1; z < rz + rh + 1; z++) {
+                            if (this.mapData[x][z].type !== 'wall') return false;
+                        }
+                    }
+                    return true;
+                };
+
+                while (this.rooms.length < maxRooms && attempts < 100) {
+                    attempts++;
+                    // Pick a random existing room to sprout from
+                    const sourceRoom = this.rooms[Math.floor(Math.random() * this.rooms.length)];
+                    
+                    // Pick a random dimension for new room
+                    const nw = Math.floor(Math.random() * 4) + 4; // 4 to 7 wide
+                    const nh = Math.floor(Math.random() * 4) + 4; // 4 to 7 high
+                    
+                    // Pick direction (0: North, 1: East, 2: West) 
+                    // (Omit South to keep progression generally pushing forward/sideways from the start point)
+                    const dir = Math.floor(Math.random() * 3);
+                    const hallLen = Math.floor(Math.random() * 3) + 3; // 3 to 5 tiles long
+                    
+                    let newRx, newRz, hx, hz, dx, dz;
+                    
+                    if (dir === 0) { // North
+                        newRx = sourceRoom.center.x - Math.floor(nw/2);
+                        newRz = sourceRoom.y - hallLen - nh;
+                        hx = sourceRoom.center.x; hz = sourceRoom.y - 1; dx = 0; dz = -1;
+                    } else if (dir === 1) { // East
+                        newRx = sourceRoom.x + sourceRoom.w + hallLen;
+                        newRz = sourceRoom.center.y - Math.floor(nh/2);
+                        hx = sourceRoom.x + sourceRoom.w; hz = sourceRoom.center.y; dx = 1; dz = 0;
+                    } else if (dir === 2) { // West
+                        newRx = sourceRoom.x - hallLen - nw;
+                        newRz = sourceRoom.center.y - Math.floor(nh/2);
+                        hx = sourceRoom.x - 1; hz = sourceRoom.center.y; dx = -1; dz = 0;
+                    }
+                    
+                    if (canPlaceRoom(newRx, newRz, nw, nh)) {
+                        // Carve Hallway
+                        for (let i = 0; i < hallLen; i++) {
+                            this.mapData[hx + (dx * i)][hz + (dz * i)] = { type: 'floor', hallway: true };
+                        }
+                        // Carve Room
+                        for (let rx = newRx; rx < newRx + nw; rx++) {
+                            for (let rz = newRz; rz < newRz + nh; rz++) {
+                                this.mapData[rx][rz] = { type: 'floor', room: true, roomId: this.rooms.length + 1 };
+                            }
+                        }
+                        this.rooms.push({
+                            id: this.rooms.length + 1,
+                            x: newRx, y: newRz, w: nw, h: nh,
+                            center: { x: newRx + Math.floor(nw/2), y: newRz + Math.floor(nh/2) }
+                        });
+                    }
+                }
+                
+                // --- 3. ENTITY SPAWNING ---
+                this.mobSpawns = [];
+                
+                // Spawn NPC (Gambler) exclusively in the center of Room 1
+                this.mobSpawns.push({ 
+                    id: 'npc-gambler-1',
+                    name: 'Yakuza Gambler',
+                    type: 'npc', 
+                    x: this.rooms[0].center.x, 
+                    z: this.rooms[0].center.y, 
+                    homeX: this.rooms[0].center.x, 
+                    homeZ: this.rooms[0].center.y, 
+                    speed: 0.0, 
+                    hp: 50, maxHp: 50,
+                    state: 'IDLE'
+                });
+                
+                // Populate Procedural Rooms with Goblins
+                for (let i = 1; i < this.rooms.length; i++) {
+                    const r = this.rooms[i];
+                    // 1 randomly placed goblin per extra room
+                    this.mobSpawns.push({ 
+                        id: `goblin-${i}-a`,
+                        name: 'Yakuza Goblin',
+                        type: 'goblin', 
+                        x: r.center.x, 
+                        z: r.center.y, 
+                        homeX: r.center.x, 
+                        homeZ: r.center.y, 
+                        speed: 8.0, 
+                        hp: 50, maxHp: 50,
+                        state: 'IDLE', searchTimer: 0 
+                    });
+                    
+                    // 50% chance for a second goblin in the same room
+                    if (Math.random() > 0.5) {
+                        this.mobSpawns.push({ 
+                            id: `goblin-${i}-b`,
+                            name: 'Yakuza Goblin',
+                            type: 'goblin', 
+                            x: r.center.x + 1, 
+                            z: r.center.y - 1, 
+                            homeX: r.center.x + 1, 
+                            homeZ: r.center.y - 1, 
+                            speed: 8.0, 
+                            hp: 50, maxHp: 50,
+                            state: 'IDLE', searchTimer: 0 
+                        });
+                    }
+                }
+            },
+
+            carveFuzzyHallway(start, end) {
+                // Kept for signature compatibility if MapEngine relies on parsing this script directly
+            },
+
+            initWebGL() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x06020f);
+                // Ethereal dungeon haze — dense purple fog creates natural fog-of-war
+                this.scene.fog = new THREE.FogExp2(0x0a0420, 0.055);
+
+                // Base FOV narrowed from 75 down to 52 for a dramatic 30% zoom scale
+                this.camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
+                this.camera.position.set(this.player.x * this.gridSize, 1.6, this.player.z * this.gridSize); // Eye level
+                this.camera.layers.enable(1); // Ensure FPV camera can see the ceiling (Layer 1)
+                this.camera.rotation.order = "YXZ";
+                this.camera.rotation.x = -0.15; // Pitch down ~8.5 degrees statically
+                this.camera.rotation.y = this.player.rot;
+
+                const canvas = document.getElementById('fpv-canvas');
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
+                // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                
+                // Shift Optical Center UP by 150px so the Monster is not blocked by the UI panels at the bottom
+                // Arguments: (fullWidth, fullHeight, xOffset, yOffset, width, height)
+                this.camera.setViewOffset(window.innerWidth, window.innerHeight, 0, 150, window.innerWidth, window.innerHeight);
+                
+                // Bloom removed completely based on user feedback
+                
+                // Setup Layers
+                // Layer 0: Default (Walls, Floors, Lights)
+                // Layer 1: Ceiling (Hidden from map)
+                this.camera.layers.enable(1); // FPV sees ceiling
+                
+                // --- Baseline Lighting ---
+                // Cinematic lighting: cooler sky, warmer key, subtle rim (Darkened by 25%)
+                const hemisphereLight = new THREE.HemisphereLight(0x88aaff, 0x202228, 0.315);
+                this.scene.add(hemisphereLight);
+                
+                // Warm key directional light for depth and shadows
+                const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.498);
+                dirLight.position.set(30, 60, 10);
+                this.scene.add(dirLight);
+                
+                // Cool rim light from behind for silhouette separation
+                const rimLight = new THREE.DirectionalLight(0x99bbff, 0.183);
+                rimLight.position.set(-20, 40, -30);
+                this.scene.add(rimLight);
+                
+                // Base ambient light to prevent pitch black MeshStandardMaterial (walls/floors are basic mat so they remain dark)
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                
+                // Allow cinematic Map View avatar (Layer 3) to receive ambient and directional lighting
+                ambientLight.layers.enable(3);
+                dirLight.layers.enable(3);
+                hemisphereLight.layers.enable(3);
+                
+                this.scene.add(ambientLight);
+                
+                // Player Flashlight
+                const headlamp = new THREE.SpotLight(0xfff8e0, 0.1, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1); // Dropped brightness to prevent washout
+                headlamp.position.set(0, 0, 0);
+                headlamp.target.position.set(0, 0, -1);
+                
+                const outerGlow = new THREE.SpotLight(0xffffff, 0.0, this.gridSize * 20, Math.PI / 8, 0.2, 0.8); // Zeroed out to prevent massive white bloom semicircle
+                outerGlow.position.set(0, 0, 0);
+                outerGlow.target.position.set(0, 0, -1);
+                
+                this.camera.add(headlamp);
+                this.camera.add(headlamp.target);
+                this.camera.add(outerGlow);
+                this.camera.add(outerGlow.target);
+                
+                this.scene.add(this.camera); // Add camera to scene so child components render
+                
+                // Keep reference for flickering effect in animate()
+                this.headlamp = headlamp;
+                this.outerGlow = outerGlow;
+                
+                // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
+                // Tighten Frustum culling aggressively (near 1, far 400) to massively increase depth buffer precision and eliminate Z-fighting
+                this.topDownCamera = new THREE.PerspectiveCamera(55, 1, 1, 400);
+                this.topDownCamera.layers.set(0);
+                this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
+                this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
+                
+                // Holographic Top-Down Player Avatar (Reverted to pure baseline 12c Tactical Vector graphics)
+                this.playerAvatar = new THREE.Group();
+                this.playerAvatar.layers.set(3); // Map view only
+                
+                const circleRadius = this.gridSize * 0.4;
+                const circleGeometry = new THREE.CircleGeometry(circleRadius, 32);
+                const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x315B26, side: THREE.DoubleSide });
+                const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+                circle.rotation.x = -Math.PI / 2;
+                circle.position.y = 2.015; // Hover
+                circle.layers.set(3);
+                this.playerAvatar.add(circle);
+
+                const playerBorderGeo = new THREE.RingGeometry(circleRadius - (this.gridSize*0.03), circleRadius + (this.gridSize*0.02), 64);
+                const playerBorderMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide });
+                const playerBorder = new THREE.Mesh(playerBorderGeo, playerBorderMat);
+                playerBorder.rotation.x = -Math.PI / 2;
+                playerBorder.position.y = 2.018; // Stacked
+                playerBorder.layers.set(3);
+                this.playerAvatar.add(playerBorder);
+
+                const arrowShape = new THREE.Shape();
+                const arrowSize = this.gridSize * 0.15;
+                arrowShape.moveTo(0, arrowSize);
+                arrowShape.lineTo(arrowSize * 0.7, -arrowSize);
+                arrowShape.lineTo(-arrowSize * 0.7, -arrowSize);
+                arrowShape.closePath();
+                const arrowGeometry = new THREE.ShapeGeometry(arrowShape);
+                const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                arrow.rotation.x = -Math.PI / 2;
+                arrow.position.z = -this.gridSize * 0.25;
+                arrow.position.y = 2.021; // Top layer
+                arrow.layers.set(3);
+                this.playerAvatar.add(arrow);
+
+                this.scene.add(this.playerAvatar);
+
+                // PiP 2D display canvas contexts (set up after DOM is ready)
+                this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
+                this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
+                this.pip2dCtx   = null; // Initialised in initPipCanvases()
+                this.pipDialCtx = null;
+                
+                // --- Camera Trauma (AAA Hit-Stop & Visceral Feedback) ---
+                this.cameraTrauma = 0;
+                this.hitStopUntil = 0;
+                
+                this.addCameraTrauma = (amount) => {
+                    this.cameraTrauma = Math.min(this.cameraTrauma + amount, 1.0); // Cap at 1.0 (Maximum shake)
+                };
+                
+                this.triggerHitStop = (ms) => {
+                    this.hitStopUntil = performance.now() + ms;
+                };
+
+                // --- Floating Damage Numbers via DOM Projection ---
+                this.spawnDamageText = (amount, position, isPlayerDamage = false) => {
+                    const vector = position.clone();
+                    vector.y += 0.8; // Chest/Head height
+                    vector.project(this.camera);
+
+                    const x = (vector.x * .5 + .5) * window.innerWidth;
+                    const y = (vector.y * -.5 + .5) * window.innerHeight;
+
+                    const dmgEl = document.createElement('div');
+                    dmgEl.className = 'combat-dmg-text';
+                    dmgEl.style.left = `${x}px`;
+                    dmgEl.style.top = `${y}px`;
+                    
+                    if (isPlayerDamage) {
+                        dmgEl.style.color = '#ff1111';
+                        dmgEl.style.fontSize = 'clamp(44px, 10vmin, 80px)';
+                        // Player damage appears aggressively center-screen
+                        dmgEl.style.left = '50%';
+                        dmgEl.style.top = '50%';
+                        dmgEl.style.textShadow = '0 0 20px #ff0000, 3px 3px 0 #000';
+                    } else {
+                        dmgEl.style.color = '#ffffff';
+                    }
+                    
+                    dmgEl.textContent = `-${amount.toFixed(0)}`;
+                    document.getElementById('game-container').appendChild(dmgEl);
+
+                    // Garbage collection of CSS floating node
+                    setTimeout(() => {
+                        if (dmgEl && dmgEl.parentNode) {
+                            dmgEl.parentNode.removeChild(dmgEl);
+                        }
+                    }, 1200);
+                };
+
+                // -----------------------------------------------------
+                // GHOSTBUSTER POST-PROCESSING PIPELINE
+                // -----------------------------------------------------
+                this.composer = new THREE.EffectComposer(this.renderer);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+
+                // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
+                // Run bloom at half-res to save significant GPU fill-rate on Retina displays
+                const bloomRes = new THREE.Vector2(Math.floor(window.innerWidth * 0.5), Math.floor(window.innerHeight * 0.5));
+                this.bloomPass = new THREE.UnrealBloomPass(
+                    bloomRes,
+                    0.8,    // strength
+                    0.6,    // radius
+                    0.9     // threshold (tightly clamped so only the 0xffffff eyes glow)
+                );
+                this.composer.addPass(this.bloomPass);
+
+                // 2. Outline Pass (Neon Luminous Border around enemies)
+                this.outlinePass = new THREE.OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
+                this.outlinePass.edgeStrength = 3.5;
+                this.outlinePass.edgeGlow = 0.8;
+                this.outlinePass.edgeThickness = 0.5; // Thin ethereal edge
+                this.outlinePass.pulsePeriod = 0;
+                
+                // Using setRGB with values > 1.0 forces it into HDR range so UnrealBloom catches it aggressively
+                this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0); 
+                // Disable hidden-edge color to prevent ethereal outlines rendering through solid walls via X-Ray depth clipping
+                this.outlinePass.hiddenEdgeColor.setHex(0x000000);
+                
+                // CRITICAL FIX: Three.js r128 OutlinePass materials do NOT support skinning by default!
+                // This causes the outline to freeze in T-Pose when approaching the camera.
+                if (this.outlinePass.prepareMaskMaterial) this.outlinePass.prepareMaskMaterial.skinning = true;
+                if (this.outlinePass.depthMaterial) this.outlinePass.depthMaterial.skinning = true;
+                if (this.outlinePass.renderMaterial) this.outlinePass.renderMaterial.skinning = true;
+                
+                this.composer.addPass(this.outlinePass);
+
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    
+                    // Maintain the 150px optical shift dynamically upon resize
+                    this.camera.setViewOffset(window.innerWidth, window.innerHeight, 0, 150, window.innerWidth, window.innerHeight);
+                    
+                    if (this.renderer) {
+                        this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        this.composer.setSize(window.innerWidth, window.innerHeight);
+                        if (this.outlinePass) this.outlinePass.setSize(window.innerWidth, window.innerHeight);
+                    }
+                });
+
+                this.clock = new THREE.Clock();
+                this.mixers = [];
+                this.raycaster = new THREE.Raycaster(); // Initialize raycaster here
+                this.buildWorldGeometry();
+            },
+
+            // --- Baseline Procedural Textures ---
+            makePaperTexture(baseColor) {
+                const c = document.createElement('canvas'); c.width = c.height = 256; const ctx = c.getContext('2d');
+                ctx.fillStyle = baseColor; ctx.fillRect(0,0,256,256);
+                for (let i=0;i<400;i++) { 
+                    const x=Math.random()*256, y=Math.random()*256, w=Math.random()*24+6; 
+                    const a=Math.random()*0.05+0.02; ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(x,y,w,1); 
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+                for (let x=0; x<256; x+=32) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,256); ctx.stroke(); }
+                for (let y=0; y<256; y+=32) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(256,y); ctx.stroke(); }
+                const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8,8); return tex;
+            },
+
+            makeWoodTexture(baseColor) {
+                const c = document.createElement('canvas'); c.width = c.height = 512; const ctx = c.getContext('2d');
+                ctx.fillStyle = baseColor; ctx.fillRect(0,0,512,512);
+                const plankH = 40;
+                for (let y=0;y<512;y+=plankH){
+                    ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(0,y,512,plankH/2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.08)'; ctx.fillRect(0,y+plankH/2,512,plankH/2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0,y+plankH-1,512,1);
+                }
+                for (let i=0;i<700;i++){
+                    const y = Math.random()*512; const len = 40+Math.random()*120; const x = Math.random()*512; const a = Math.random()*0.12;
+                    ctx.strokeStyle = `rgba(255,255,255,${a*0.5})`; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(Math.min(512,x+len), y+Math.sin(y*0.05)*2); ctx.stroke();
+                    ctx.strokeStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.moveTo(x,y+2); ctx.lineTo(Math.min(512,x+len), y+2+Math.sin((y+2)*0.05)*2); ctx.stroke();
+                }
+                const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2,2); return tex;
+            },
+
+            createDungeonWallTexture() {
+                const canvas = document.createElement("canvas");
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#f5f5f5";
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.fillStyle = "rgba(0,0,0,0.03)";
+                for (let i = 0; i < 1000; i++) {
+                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+                }
+                ctx.strokeStyle = "#3a2d1e";
+                ctx.lineWidth = 24;
+                ctx.strokeRect(0, 0, 256, 256);
+                ctx.lineWidth = 10;
+                for (let i = 48; i < 256; i += 48) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 12);
+                    ctx.lineTo(i, 244);
+                    ctx.stroke();
+                }
+                for (let i = 64; i < 256; i += 64) {
+                    ctx.beginPath();
+                    ctx.moveTo(12, i);
+                    ctx.lineTo(244, i);
+                    ctx.stroke();
+                }
+                return new THREE.CanvasTexture(canvas);
+            },
+
+            createDungeonFloorTexture() {
+                const size = 512;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+
+                ctx.fillStyle = "#d2b48c"; // Tan stone color
+                ctx.fillRect(0, 0, size, size);
+
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const randomFactor = (Math.random() - 0.5) * 15;
+                    data[i]   += randomFactor; 
+                    data[i+1] += randomFactor; 
+                    data[i+2] += randomFactor;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.strokeStyle = 'rgba(139, 90, 43, 0.5)';
+                ctx.lineWidth = 2;
+                const step = size / 8;
+                for(let i = step; i < size; i += step) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+                }
+
+                ctx.strokeStyle = '#8b5a2b';
+                ctx.lineWidth = 12;
+                const inset = 6;
+                ctx.strokeRect(inset, inset, size - inset * 2, size - inset * 2);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+
+            createDarkWoodRafterTexture() {
+                const size = 512;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+
+                ctx.fillStyle = "#2B1810"; // Dark brown wood
+                ctx.fillRect(0, 0, size, size);
+
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const randomFactor = (Math.random() - 0.5) * 20;
+                    data[i]   += randomFactor;
+                    data[i+1] += randomFactor * 0.8;
+                    data[i+2] += randomFactor * 0.6;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                ctx.fillStyle = "#1A0F08"; 
+                const beamWidth = 40;
+                const beamSpacing = 80;
+                for (let y = 0; y < size; y += beamSpacing) {
+                    ctx.fillRect(0, y, size, beamWidth);
+                }
+
+                ctx.fillStyle = "#1A0F08";
+                const vertBeamWidth = 30;
+                const vertBeamSpacing = 120;
+                for (let x = 0; x < size; x += vertBeamSpacing) {
+                    ctx.fillRect(x, 0, vertBeamWidth, size);
+                }
+
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 50; i++) {
+                    const y = Math.random() * size;
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+                }
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+
+            createStatusCircleTexture(color, blink = false, splitColor = null) {
+                const size = 256;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+                
+                const center = size / 2;
+                const radius = (size / 2) - 12;
+                
+                if (splitColor) {
+                    ctx.fillStyle = color;
+                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI/2, Math.PI*1.5); ctx.fill();
+                    ctx.fillStyle = splitColor;
+                    ctx.beginPath(); ctx.arc(center, center, radius, Math.PI*1.5, Math.PI/2); ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(center, center, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }
+                
+                // White border
+                ctx.lineWidth = 12;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+                
+                // Arrow pointing forward (+Z direction is towards bottom of Canvas)
+                ctx.beginPath();
+                ctx.moveTo(center, size - 25);
+                ctx.lineTo(center - 30, size - 75);
+                ctx.lineTo(center + 30, size - 75);
+                ctx.closePath();
+                ctx.fillStyle = "#ffffff";
+                ctx.fill();
+
+                if (blink && Math.floor(Date.now() / 250) % 2 === 0) {
+                    ctx.clearRect(0,0,size,size); // Blink out
+                }
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.needsUpdate = true;
+                return tex;
+            },
+            
+            getCachedCircleTexture(color, blink = false, splitColor = null) {
+                if (!this.circleTexCache) this.circleTexCache = {};
+                const key = color + (blink ? "_blink" : "") + (splitColor || "");
+                // Blink textures must be regenerated to animate, or we can just toggle opacity in the loop. 
+                // For simplicity, we cache solid ones.
+                if (!blink && this.circleTexCache[key]) return this.circleTexCache[key];
+                
+                const tex = this.createStatusCircleTexture(color, blink, splitColor);
+                if (!blink) this.circleTexCache[key] = tex;
+                return tex;
+            },
+
+            buildWorldGeometry() {
+                // Initialize geometry container to prevent "children of undefined" crashes on reset
+                if (!this.worldGroup) {
+                    this.worldGroup = new THREE.Group();
+                }
+
+                // Clear old geometry
+                while (this.worldGroup.children.length > 0) {
+                    this.worldGroup.remove(this.worldGroup.children[0]);
+                }
+
+                // Generate premium textures
+                const floorTex = this.createDungeonFloorTexture();
+                const wallTex = this.createDungeonWallTexture();
+                const ceilTex = this.createDarkWoodRafterTexture();
+                const objTex = this.makePaperTexture('#444444');
+
+                // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
+                const mats = {
+                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
+                    ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
+                    wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
+                    wallTop: new THREE.MeshLambertMaterial({ color: 0x222428 }),
+                    npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
+                    monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
+                };
+                this.mats = mats;
+                
+                // Track parent CSS for Light/Dark mode changes to color the wall tops!
+                setInterval(() => {
+                    try {
+                        if (window.parent && window.parent.document) {
+                            const isDark = window.parent.document.body.classList.contains('dark-mode');
+                            const targetHex = isDark ? 0x222428 : 0xdddddf; // Matte black vs bright flat grey
+                            if (mats.wallTop.color.getHex() !== targetHex) {
+                                mats.wallTop.color.setHex(targetHex);
+                            }
+                        }
+                    } catch(e) {}
+                }, 500);
+
+                const wallMaterials = [
+                    mats.wall,    // Right
+                    mats.wall,    // Left
+                    mats.wallTop, // Top 
+                    mats.wall,    // Bottom
+                    mats.wall,    // Front
+                    mats.wall     // Back
+                ];
+
+                // Merge geometry for insane performance (instead of 1000s of distinct meshes)
+                // NEW: Walls are 1.33 cubes high                // 1. Grid Walls
+                const wallHeight = this.gridSize * 1.53;
+                const wallGeo = new THREE.BoxGeometry(this.gridSize, wallHeight, this.gridSize);
+                
+                // 2. InstancedMesh for Insane Performance (1 draw call vs 2000+)
+                let wallCount = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type === 'wall') wallCount++;
+                    }
+                }
+
+                const instancedWalls = new THREE.InstancedMesh(wallGeo, wallMaterials, wallCount);
+                instancedWalls.castShadow = true;
+                instancedWalls.receiveShadow = true;
+                instancedWalls.frustumCulled = false; // Prevent clipping when Map view pulls far out
+                // Save reference so the raycaster can find it later without filtering the scene graph
+                this.walls = [instancedWalls]; 
+                
+                // AAA Architectural Trim (Crown Molding / Lip for Wall Tops)
+                // This overhanging geometry creates depth. We use two layered meshes to create a 'soft' physical Bevel/Chamfer instead of a hard square!
+                const trimMat = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.9, metalness: 0.1 });
+                
+                // Base wide lip
+                const overHangBase = 0.05;
+                const trimGeoBase = new THREE.BoxGeometry(this.gridSize + overHangBase*2, 0.04, this.gridSize + overHangBase*2);
+                const instancedTrimsBase = new THREE.InstancedMesh(trimGeoBase, trimMat, wallCount);
+                instancedTrimsBase.castShadow = true; instancedTrimsBase.receiveShadow = true;
+                instancedTrimsBase.frustumCulled = false;
+                
+                // Upper tight lip
+                const overHangTop = 0.02;
+                const trimGeoTop = new THREE.BoxGeometry(this.gridSize + overHangTop*2, 0.05, this.gridSize + overHangTop*2);
+                const instancedTrimsTop = new THREE.InstancedMesh(trimGeoTop, trimMat, wallCount);
+                instancedTrimsTop.castShadow = true; instancedTrimsTop.receiveShadow = true;
+                instancedTrimsTop.frustumCulled = false;
+
+                // Build pure mathematical AABB boxes for perfect Raycasting fallback
+                this.wallBoxes = [];
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type === 'wall') {
+                            const minX = x * this.gridSize - (this.gridSize / 2);
+                            const maxX = x * this.gridSize + (this.gridSize / 2);
+                            const minZ = z * this.gridSize - (this.gridSize / 2);
+                            const maxZ = z * this.gridSize + (this.gridSize / 2);
+                            this.wallBoxes.push(new THREE.Box3(
+                                new THREE.Vector3(minX, -1, minZ), // Floor overlap
+                                new THREE.Vector3(maxX, wallHeight + 1, maxZ)
+                            ));
+                        }
+                    }
+                }
+
+                const dummy = new THREE.Object3D();
+                let wallIdx = 0;
+
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        const cell = this.mapData[x]?.[z];
+                        if (!cell) continue;
+
+                        if (cell.type === 'wall') {
+                            dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            // Matrix the overhang trim flush onto the surface! Creates a stepped bezel.
+                            dummy.position.set(x * this.gridSize, wallHeight + 0.02, z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedTrimsBase.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            dummy.position.set(x * this.gridSize, wallHeight + 0.04 + 0.025, z * this.gridSize);
+                            dummy.updateMatrix();
+                            instancedTrimsTop.setMatrixAt(wallIdx, dummy.matrix);
+                            
+                            wallIdx++;
+                        }
+                    }
+                }
+                
+                instancedWalls.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedWalls);
+                
+                instancedTrimsBase.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedTrimsBase);
+                instancedTrimsTop.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedTrimsTop);
+                
+                // Ceiling
+                ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
+                const ceilGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize, this.mapHeight * this.gridSize);
+                const ceiling = new THREE.Mesh(ceilGeo, mats.ceil);
+                ceiling.rotation.x = Math.PI / 2;
+                // Match the wall height exactly
+                ceiling.position.set((this.mapWidth * this.gridSize)/2 - this.gridSize/2, wallHeight, (this.mapHeight * this.gridSize)/2 - this.gridSize/2);
+                ceiling.layers.set(1); // Hide ceiling from the Orthographic map camera (which only renders layer 0)
+                this.worldGroup.add(ceiling);
+
+                // Tactical Grid Floor: Instead of one massive plane, we use thick procedural tiles
+                let walkCount = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        if (this.mapData[x]?.[z]?.type !== 'wall') walkCount++;
+                    }
+                }
+                
+                const depth = 0.001; // Eliminate massive floor edges to clean up the Isometric view
+                // 1.0 scale creates perfectly flush seamless architecture 
+                const floorBoxGeo = new THREE.BoxGeometry(this.gridSize * 1.0, depth, this.gridSize * 1.0);
+                floorTex.repeat.set(1, 1); // un-tile the floor texture, map fully onto each block
+                
+                const instancedFloor = new THREE.InstancedMesh(floorBoxGeo, mats.floor, walkCount);
+                instancedFloor.receiveShadow = true; 
+                instancedFloor.frustumCulled = false;
+                
+                let walkIdx = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        const cell = this.mapData[x]?.[z];
+                        if (!cell || cell.type === 'wall') continue;
+                        
+                        dummy.position.set(x * this.gridSize, -depth / 2, z * this.gridSize);
+                        dummy.updateMatrix();
+                        instancedFloor.setMatrixAt(walkIdx++, dummy.matrix);
+                    }
+                }
+                instancedFloor.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(instancedFloor);
+                
+                // Abyssal Depth Plane (Map View only)
+                const abyssGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize * 3, this.mapHeight * this.gridSize * 3);
+                // Creating a deep space indigo shade beneath the floor void mapping
+                const abyssMat = new THREE.MeshBasicMaterial({ color: 0x050014, depthWrite: false }); 
+                const abyssPlane = new THREE.Mesh(abyssGeo, abyssMat);
+                abyssPlane.rotation.x = -Math.PI / 2;
+                abyssPlane.position.y = -50; 
+                abyssPlane.layers.set(2); // Exclusive to the PiP camera!
+                this.worldGroup.add(abyssPlane);
+                // Removed FOW as per request                // Dynamic Mob Rendering
+                const mobGeo = new THREE.BoxGeometry(1, 2, 1);
+                let monCount = 0; let npcCount = 0;
+                
+                const buildEntity = (sp, isMon, mesh) => {
+                    const id = isMon ? `mon_${++monCount}` : `npc_${++npcCount}`;
+                    sp.id = id; // Keep track of ID to send to AI worker
+                    mesh.userData = { 
+                        id, 
+                        name: sp.name || (isMon ? 'Yakuza Goblin' : 'Yakuza Gambler'),
+                        type: isMon ? 'enemy' : 'gambler', 
+                        hp: sp.hp ?? 50, 
+                        maxHp: sp.maxHp ?? 50 
+                    };
+                    
+                    if (isMon) {
+                        // Force full scale enemy 3D models EXCLUSIVELY into Layer 1 (FPV), so they don't block the Map View
+                        mesh.traverse(c => { c.layers.set(1); });
+                        
+                        // Goblins have bottom origins, place flush with floor
+                        mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
+                        
+                        // FPV Base Interaction Circle (Left on Layer 0/1 to be universally visible, but it sits totally flush anyway)
+                        const hudTexIdle = this.createStatusCircleTexture('#000000');
+                        
+                        const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
+                        const circleMat = new THREE.MeshBasicMaterial({ 
+                            map: hudTexIdle,
+                            color: 0xffffff,
+                            transparent: true, 
+                            opacity: 0.9,
+                            depthWrite: false 
+                        });
+                        const circle = new THREE.Mesh(circleGeo, circleMat);
+                        circle.rotation.x = -Math.PI / 2;
+                        circle.position.y = 0.02; 
+                        circle.layers.set(0); // Master visibility layer
+                        mesh.add(circle);
+                        
+                        // Cache textures to swap based on AI state
+                        mesh.userData.texIdle = hudTexIdle;
+                        
+                        // Removed Flashlight Cone to preserve realistic lighting per user request
+                        
+                        mesh.userData.baseMat = circleMat; // Save reference for coloring later
+                        // No searchLight attached
+                        
+                        this.testMonster = mesh;
+                    } else {
+                        // NPC boxes are centered, place at y=1
+                        mesh.position.set(sp.x * this.gridSize, 1, sp.z * this.gridSize);
+                        this.testNPC = mesh;
+                    }
+
+                    this.worldGroup.add(mesh);
+                };
+
+                // Load replacement monster model directly from user's remote GitHub repository
+                const TARGET_ENEMY_MODEL = './assets/models/YakuzaGoblinGhost.2.glb';
+                
+                const gltfLoader = new THREE.GLTFLoader();
+                gltfLoader.setCrossOrigin?.('anonymous');
+
+                // Generate Ethereal Cinematic Mist Texture
+                const mistCanvas = document.createElement('canvas');
+                mistCanvas.width = 128; mistCanvas.height = 128;
+                const mCtx = mistCanvas.getContext('2d');
+                const mGrad = mCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                mGrad.addColorStop(0, 'rgba(80, 200, 255, 0.6)');
+                mGrad.addColorStop(0.3, 'rgba(60, 150, 255, 0.2)');
+                mGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                mCtx.fillStyle = mGrad;
+                mCtx.fillRect(0, 0, 128, 128);
+                const mistTex = new THREE.CanvasTexture(mistCanvas);
+
+                // Preload Flanking Imps
+                this.impCache = [];
+                for (let i = 0; i < 2; i++) {
+                    gltfLoader.load('./assets/models/yakuza.imp.animated.glb', (gltf) => {
+                        this.impCache.push(gltf);
+                    });
+                }
+
+                this.mobSpawns.forEach((sp, idx) => {
+                    // Preserve NPC/gambler type - only default to 'monster' if not explicitly set
+                    if (!sp.type || sp.type === 'goblin') sp.type = 'monster';
+                    
+                    gltfLoader.load(TARGET_ENEMY_MODEL, (gltf) => {
+                        // We use the raw scene directly since each spawn gets its own 'load' call (cached by browser)
+                        const goblin = gltf.scene;
+                        const entityWrapper = new THREE.Group();
+                        entityWrapper.add(goblin);
+                        
+                        // Initialize Animation Pipeline
+                        if (gltf.animations && gltf.animations.length > 0) {
+                            const mixer = new THREE.AnimationMixer(goblin);
+                            const actions = gltf.animations.map(a => mixer.clipAction(a));
+                            
+                            // Sequencer: 4=Bow, 2=Laugh, 0=Idle, 3=Look Around 
+                            // Sequence: Bow -> Idle -> Look Around -> Laugh -> repeat
+                            const seqIndices = [4, 0, 3, 2];
+                            let currentSeqStep = 0;
+                            
+                            const playNextAnim = () => {
+                                mixer.stopAllAction();
+                                // Bounds safety check in case gltf models differ
+                                const idx = seqIndices[currentSeqStep] % actions.length;
+                                const act = actions[idx];
+                                if (act) {
+                                    act.reset();
+                                    act.setLoop(THREE.LoopOnce, 1);
+                                    act.clampWhenFinished = true;
+                                    act.play();
+                                }
+                                currentSeqStep = (currentSeqStep + 1) % seqIndices.length;
+                            };
+                            
+                            mixer.addEventListener('finished', playNextAnim);
+                            playNextAnim(); // Kick off the loop immediately
+                            
+                            this.mixers.push(mixer);
+                            entityWrapper.userData.mixer = mixer;
+                            entityWrapper.userData.clips = gltf.animations;
+                            entityWrapper.userData.actions = actions;
+                            
+                            // Find specific Attack Action by Name (Prioritize Slash as requested by User)
+                            const slashClip = gltf.animations.find(a => a.name.toLowerCase().includes('slash'));
+                            const attackClip = slashClip || gltf.animations.find(a => a.name.toLowerCase().match(/attack|strike|swing/));
+                            entityWrapper.userData.attackAction = attackClip ? mixer.clipAction(attackClip) : actions[1];
+                            
+                            // Debug animation names to Event Log
+                            let animNames = [];
+                            gltf.animations.forEach((anim, i) => {
+                                animNames.push(`[${i}] ${anim.name}`);
+                            });
+                            window.parent.postMessage({ type: 'LOG_EVENT', text: 'Goblin Anims: ' + animNames.join(', '), logType: 'system' }, '*');
+                        }
+                        
+                        
+                        goblin.traverse((child) => {
+                            if (child.isMesh) {
+                                const nativeMat = child.material;
+                                const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
+                                const meshName = child.name ? child.name.toLowerCase() : "";
+                                
+                                const eyeKeywords = ['eye', 'pupil', 'sclera', 'cornea', 'lens', 'iris'];
+                                const isEye = eyeKeywords.some(kw => matName.includes(kw) || meshName.includes(kw));
+                                
+                                // Skip applying hologram transparency and neon color logic to the white eyes
+                                if (!isEye) {
+                                    // Apply neon cyan/green hologram rules directly to native material to preserve vertex colors and maps
+                                    const applyHoloLayer = (mat) => {
+                                        mat.transparent = true;  // Ghostbusters translucent spirit look
+                                        mat.opacity = 0.55;       // 55% opacity — more solid, still ethereal
+                                        mat.blending = THREE.NormalBlending;
+                                        mat.side = THREE.FrontSide; // FrontSide only: DoubleSide caused back-face bleed-through 'double goblin' artifact
+                                        mat.depthWrite = false;   // CRITICAL: prevents sorting artifacts on translucent mesh
+                                        
+                                        // Some native materials don't have emissive, so we check or fallback
+                                        if (mat.emissive !== undefined) {
+                                            mat.emissive.set(typeof Engine.fxConfig.emissiveColor === 'string' ? Engine.fxConfig.emissiveColor : "#00ffcc");
+                                            mat.emissiveIntensity = Engine.fxConfig.emissiveIntensity;
+                                        }
+
+                                        // Custom Shader Injection: Isolate bright white texture regions (the eyes) from being tinted by the hologram!
+                                        mat.onBeforeCompile = (shader) => {
+                                            shader.fragmentShader = shader.fragmentShader.replace(
+                                                '#include <emissivemap_fragment>',
+                                                [
+                                                    '#ifdef USE_EMISSIVEMAP',
+                                                    '    vec4 emissiveMapColor = texture2D( emissiveMap, vUv );',
+                                                    '    totalEmissiveRadiance *= emissiveMapColor.rgb;',
+                                                    '#endif',
+                                                    '// Check the brightness of the base texture map',
+                                                    'float baseBrightness = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));',
+                                                    'if (baseBrightness > 0.65) {', 
+                                                    '    totalEmissiveRadiance = vec3(2.0); // Extreme white emissive override',
+                                                    '    diffuseColor.rgb = vec3(0.0); // Zero out diffuse so red lights cannot reflect off it',
+                                                    '}'
+                                                ].join('\n')
+                                            );
+                                        };
+                                    };
+
+                                    if (Array.isArray(nativeMat)) {
+                                        nativeMat.forEach(applyHoloLayer);
+                                    } else {
+                                        applyHoloLayer(nativeMat);
+                                    }
+
+                                    child.material = nativeMat;
+                                } else {
+                                    // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
+                                    const eyeMat = nativeMat.clone();
+                                    if (eyeMat.color) eyeMat.color.setHex(0xffffff);
+                                    eyeMat.emissive.setHex(0xffffff);
+                                    eyeMat.emissiveIntensity = 5.0; // Extreme intensity for Bloom threshold 0.9
+                                    child.material = eyeMat;
+                                }
+                                
+                                // Fix Z-Index sorting issue against the red targeting circle
+                                child.renderOrder = 10; 
+                            }
+                        });
+
+                        // Attach a strong pure white point light slightly in front and above the monster so it is well-lit
+                        const frontLight = new THREE.PointLight(0xffffff, 4.0, this.gridSize * 1.5);
+                        frontLight.position.set(0, 2.5, 1.5); // Above and in front (world +Z)
+                        goblin.add(frontLight);
+
+                        // Local Ghost PointLight removed to eliminate volumetric scatter haze
+                        
+                        // Scale model to 1.53 world units (reduced by 15% from 1.8)
+                        this.scaleModelToHeight(goblin, 1.53);
+                        
+                        // Adjust Y position to sit exactly on the floor (circle)
+                        goblin.updateMatrixWorld(true);
+                        const bbox = new THREE.Box3().setFromObject(goblin);
+                        if (bbox.min.y !== 0) {
+                            goblin.position.y -= bbox.min.y; 
+                        }
+                        
+                        // Fix Rotation: Force to -Math.PI/2 to swing from 90 degrees Left to 90 degrees Right (facing player)
+                        goblin.rotation.y = -Math.PI / 2;
+                        
+                        // Outline pass assignment moved to checkTriggers dynamically based on proximity
+                        
+
+                        buildEntity(sp, true, entityWrapper);
+                    }, undefined, (primaryErr) => {
+                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying CDN...`, primaryErr?.message);
+                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+                            const goblin = fallbackGltf.scene;
+                            const entityWrapper = new THREE.Group();
+                            entityWrapper.add(goblin);
+                            
+                            // Apply full animation pipeline (same as primary load)
+                            if (fallbackGltf.animations && fallbackGltf.animations.length > 0) {
+                                const mixer = new THREE.AnimationMixer(goblin);
+                                const actions = fallbackGltf.animations.map(a => mixer.clipAction(a));
+                                const seqIndices = [4, 0, 3, 2];
+                                let currentSeqStep = 0;
+                                const playNextAnim = () => {
+                                    mixer.stopAllAction();
+                                    const i = seqIndices[currentSeqStep] % actions.length;
+                                    const act = actions[i];
+                                    if (act) { act.reset(); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.play(); }
+                                    currentSeqStep = (currentSeqStep + 1) % seqIndices.length;
+                                };
+                                mixer.addEventListener('finished', playNextAnim);
+                                playNextAnim();
+                                this.mixers.push(mixer);
+                                entityWrapper.userData.mixer = mixer;
+                                entityWrapper.userData.clips = fallbackGltf.animations;
+                                entityWrapper.userData.actions = actions;
+                                const slashClip = fallbackGltf.animations.find(a => a.name.toLowerCase().includes('slash'));
+                                const attackClip = slashClip || fallbackGltf.animations.find(a => a.name.toLowerCase().match(/attack|strike|swing/));
+                                entityWrapper.userData.attackAction = attackClip ? mixer.clipAction(attackClip) : actions[1];
+                            }
+                            
+                            // Apply hologram shader (same as primary load)
+                            goblin.traverse((child) => {
+                                if (child.isMesh) {
+                                    const nativeMat = child.material;
+                                    const applyHoloLayer = (mat) => {
+                                        mat.transparent = true; mat.opacity = 0.55;
+                                        mat.blending = THREE.NormalBlending; mat.side = THREE.FrontSide; mat.depthWrite = false;
+                                        if (mat.emissive !== undefined) { mat.emissive.set(Engine.fxConfig.emissiveColor || '#00ffcc'); mat.emissiveIntensity = Engine.fxConfig.emissiveIntensity; }
+                                    };
+                                    if (Array.isArray(nativeMat)) nativeMat.forEach(applyHoloLayer); else applyHoloLayer(nativeMat);
+                                    child.renderOrder = 10;
+                                }
+                            });
+                            
+                            const frontLight = new THREE.PointLight(0xffffff, 4.0, this.gridSize * 1.5);
+                            frontLight.position.set(0, 2.5, 1.5);
+                            goblin.add(frontLight);
+                            
+                            // Scale to 1.53 world units before floor-align (reduced by 15%)
+                            this.scaleModelToHeight(goblin, 1.53);
+                            goblin.updateMatrixWorld(true);
+                            const bbox = new THREE.Box3().setFromObject(goblin);
+                            if (bbox.min.y !== 0) goblin.position.y -= bbox.min.y;
+                            goblin.rotation.y = -Math.PI / 2;
+                            
+                            buildEntity(sp, true, entityWrapper);
+                        }, undefined, (fallbackErr) => {
+                            console.warn('CDN also failed. Using BoxGeometry placeholder.', fallbackErr?.message);
+                            const mesh = new THREE.Mesh(mobGeo, mats.monster);
+                            buildEntity(sp, true, mesh);
+                        });
+                    });
+                });
+
+                this.scene.add(this.worldGroup);
+                this.spawnKatana();
+                
+                // Spawn high-fidelity UI-replica 3D cards in hallway
+                if (this.entrancePos) {
+                    const spawnLootCard = (x, z, catId, title, desc, kanji, attr) => {
+                        const W = 256; const H = 384;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = W; canvas.height = H;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Base dark background (exactly matching dark-mode CSS)
+                        let baseColor = '#222428';
+                        let themeColor = '#66BB6A'; // Default Item
+                        
+                        // Exact CSS var mapping for accents ONLY
+                        if (catId === 'SPELL' || catId === 'WIND') themeColor = '#546E7A';
+                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#5C4033';
+                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#29B6F6';
+                        else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#EF5350';
+                        else themeColor = '#4caf50'; // ITEM
+                        
+                        ctx.fillStyle = baseColor;
+                        ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
+                        
+                        // Dark outer border
+                        ctx.strokeStyle = '#1a1a1d'; ctx.lineWidth = 4; ctx.stroke();
+                        
+                        // Inner Neumorphic shadow simulation
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 4;
+                        ctx.beginPath(); ctx.roundRect(2, 2, W-4, H-4, 22); ctx.stroke();
+
+                        // Kanji (Theme Colored)
+                        ctx.font = '900 32px sans-serif';
+                        ctx.fillStyle = themeColor;
+                        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                        ctx.fillText(kanji, 20, 20);
+
+                        // Type Pill (Theme Colored string background / border)
+                        ctx.fillStyle = themeColor;
+                        ctx.beginPath(); ctx.roundRect(W/2 - 45, 20, 90, 30, 8); ctx.fill();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+                        ctx.font = '800 16px sans-serif'; ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText(catId, W/2, 35);
+
+                        // Title (Auto-scaling to prevent overflow)
+                        ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        
+                        let titleSize = 32;
+                        ctx.font = `900 ${titleSize}px sans-serif`;
+                        while (ctx.measureText(title).width > W * 0.85 && titleSize > 12) {
+                            titleSize -= 1;
+                            ctx.font = `900 ${titleSize}px sans-serif`;
+                        }
+                        ctx.fillText(title, W/2, 90);
+
+                        // Desc
+                        ctx.font = 'italic 500 18px sans-serif'; ctx.fillStyle = '#999999';
+                        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+                            const words = text.split(' '); let line = '';
+                            for(let n = 0; n < words.length; n++) {
+                                const testLine = line + words[n] + ' '; const metrics = context.measureText(testLine); const testWidth = metrics.width;
+                                if (testWidth > maxWidth && n > 0) { context.fillText(line, x, y); line = words[n] + ' '; y += lineHeight; }
+                                else { line = testLine; }
+                            }
+                            context.fillText(line, x, y);
+                        }
+                        wrapText(ctx, desc, W/2, 130, W * 0.8, 22);
+
+                        // Deep Icon Cavity
+                        ctx.fillStyle = '#15171c';
+                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
+                        // Inner cavity shadow
+                        ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
+                        
+                        // Render Native 2D Geometry directly onto the Canvas Map to optimize performance and guarantee perfect flatness
+                        ctx.save();
+                        ctx.translate(W/2, H * 0.58);
+                        ctx.shadowColor = '#000000';
+                        ctx.shadowBlur = 10;
+                        if (catId === 'SPELL') {
+                            ctx.fillStyle = '#ff00ff';
+                            ctx.beginPath();
+                            ctx.moveTo(0, -35); ctx.lineTo(35, 0); ctx.lineTo(0, 35); ctx.lineTo(-35, 0); // Diamond
+                            ctx.fill();
+                        } else if (catId === 'ITEM') {
+                            ctx.fillStyle = '#aa7722';
+                            ctx.beginPath();
+                            for (let i = 0; i < 6; i++) {
+                                const angle = (i * Math.PI / 3) + Math.PI / 6;
+                                ctx.lineTo(Math.cos(angle) * 35, Math.sin(angle) * 35); // Pointy top Hexagon
+                            }
+                            ctx.fill();
+                        } else {
+                            ctx.fillStyle = '#cccccc';
+                            ctx.beginPath();
+                            ctx.moveTo(0, -35); ctx.lineTo(35, 25); ctx.lineTo(-35, 25); // Triangle
+                            ctx.fill();
+                        }
+                        ctx.restore();
+
+                        // Solid Black Bottom Block for Attributes
+                        ctx.fillStyle = '#09090b';
+                        ctx.beginPath();
+                        ctx.roundRect(0, H - 75, W, 75, [0, 0, 24, 24]); 
+                        ctx.fill();
+
+                        // Attr inside black block
+                        ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        wrapText(ctx, attr, W/2, H - 45, W * 0.9, 22);
+
+                        const tex = new THREE.CanvasTexture(canvas);
+                        const cardMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true }); // No DoubleSide needed
+                        
+                        // We use a Group to hold a Front and Back face, effectively creating a "solid" but ultra-thin card
+                        const cardGroup = new THREE.Group();
+                        
+                        const frontMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
+                        frontMesh.position.z = 0.005; // extremely thin cardboard thickness
+                        
+                        const backMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
+                        backMesh.rotation.y = Math.PI; // Face outwards to the back, which makes text readable when spun!
+                        backMesh.position.z = -0.005;
+                        
+                        cardGroup.add(frontMesh);
+                        cardGroup.add(backMesh);
+                        
+                        cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
+                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, cardDataURL: canvas.toDataURL() };
+                        
+                        this.worldGroup.add(cardGroup);
+                        this.lootItems.push(cardGroup);
+                    };
+
+                    const randomCards = [
+                        ['ITEM', 'EARTH BOULDER', 'Crush enemies with immense weight', '⛰', 'DMG 25 / CRIT 5%'],
+                        ['SPELL', 'VOID BURN', 'Consume target life force over time', '魔', 'DOT 10 / 3 TURNS'],
+                        ['THRUST', 'SPEAR DASH', 'Lunge forward striking two tiles', '槍', 'RNG 2 / DMG 20'],
+                        ['SLASH', 'WHIRLWIND', 'Strike all adjacent enemies', '旋', 'AOE / DMG 15']
+                    ];
+                    const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
+                    spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
+                }
+            },
+
+            spawnKatana() {
+                const kGroup = new THREE.Group();
+                kGroup.position.set(5 * this.gridSize, 1.0, 2 * this.gridSize); // Tile 3 straight ahead from player
+
+                // Blade
+                const bladeGeo = new THREE.BoxGeometry(0.1, 1.5, 0.05);
+                const bladeMat = new THREE.MeshBasicMaterial({ color: 0xe0e0e0, transparent: true, opacity: 0.8 });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.position.y = 0.5;
+                kGroup.add(blade);
+                
+                // Inner Glow Core (Neon effect)
+                const coreGeo = new THREE.BoxGeometry(0.02, 1.4, 0.08);
+                const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const core = new THREE.Mesh(coreGeo, coreMat);
+                core.position.y = 0.5;
+                kGroup.add(core);
+                
+                // Hilt
+                const hiltGeo = new THREE.BoxGeometry(0.15, 0.4, 0.1);
+                const hiltMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+                const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+                hilt.position.y = -0.45;
+                kGroup.add(hilt);
+                
+                // Guard
+                const guardGeo = new THREE.BoxGeometry(0.4, 0.05, 0.2);
+                const guardMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+                const guard = new THREE.Mesh(guardGeo, guardMat);
+                guard.position.y = -0.25;
+                kGroup.add(guard);
+
+                // Add Sprite Label
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0,0,256,64);
+                ctx.fillStyle = '#ffaa00';
+                ctx.font = 'bold 36px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('KATANA SWORD', 128, 32);
+                
+                const tex = new THREE.CanvasTexture(canvas);
+                const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.9, depthTest: false });
+                const sprite = new THREE.Sprite(spriteMat);
+                sprite.position.y = 1.3;
+                sprite.scale.set(1.5, 0.375, 1);
+                kGroup.add(sprite);
+
+                // Add gentle float
+                kGroup.userData = { isKatana: true, basePos: kGroup.position.y, floatTimer: 0 };
+                
+                // Slant it dramatically like an RPG item
+                blade.rotation.z = Math.PI / 4;
+                core.rotation.z = Math.PI / 4;
+                hilt.rotation.z = Math.PI / 4;
+                guard.rotation.z = Math.PI / 4;
+                
+                // Offset visual meshes so group origin is bottom
+                const visualGroup = new THREE.Group();
+                visualGroup.add(blade); visualGroup.add(core); visualGroup.add(hilt); visualGroup.add(guard);
+                kGroup.add(visualGroup);
+                
+                this.scene.add(kGroup);
+                this.katanaRef = kGroup; // Save for render loop floating
+            },
+
+            handleHaltedAttack() {
+                if (this._haltPlayer && this.activeTarget && this.activeChat) {
+                    window.parent.postMessage({ type: 'FPV_ACTION', action: 'ATTACK' }, '*');
+                    
+                    fetch('js/data/haikus.json')
+                        .then(r => r.json())
+                        .then(data => {
+                            const hList = data.combat_haikus || [];
+                            const haiku = hList[Math.floor(Math.random() * hList.length)];
+                            if (this.activeChat && this.activeChat.mesh) {
+                                // Find text mesh (mesh with custom canvas map)
+                                const textMesh = this.activeChat.mesh.children.find(c => c.material && c.material.map && c.material.map.image instanceof HTMLCanvasElement);
+                                if (textMesh) {
+                                    const canvas = textMesh.material.map.image;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                    
+                                    ctx.fillStyle = '#000000';
+                                    ctx.font = '900 65px "Impact", sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    ctx.fillText("Oh you wish to attack...", 500, 320);
+                                    
+                                    ctx.fillStyle = '#660000';
+                                    ctx.font = 'bold 40px "sans-serif"';
+                                    const splits = haiku.split('/');
+                                    let cY = 460;
+                                    splits.forEach(s => {
+                                        ctx.fillText((s || '').trim(), 500, cY);
+                                        cY += 60;
+                                    });
+                                    textMesh.material.map.needsUpdate = true;
+                                    
+                                    const logText = `Oh you wish to attack... [${haiku.replace(/\//g, ' ')}]`;
+                                    window.parent.postMessage({ type: 'LOG_EVENT', text: logText, logType: 'chat' }, '*');
+                                }
+                            }
+                        }).catch(e => console.warn(e));
+                    
+                    // Release the halt immediately so they can fight!
+                    this._haltPlayer = false; 
+                    return true;
+                }
+                return false;
+            },
+
+            initControls() {
+                // Receive keyboard polling state from the Shell
+                window.addEventListener('message', (event) => {
+                    const data = event.data;
+                    if (!data || !data.type) return;
+
+                    if (data.type === 'KEY_DOWN') {
+                        const k = data.key.toLowerCase();
+                        if (k === 'w' || data.key === 'ArrowUp') {
+                            if (!this.handleHaltedAttack()) this.keys.w = true;
+                        }
+                        if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = true;
+                        if (k === 's' || data.key === 'ArrowDown') this.keys.s = true;
+                        if (k === 'd' || data.key === 'ArrowRight') this.keys.d = true;
+                    } else if (data.type === 'KEY_UP') {
+                        const k = data.key.toLowerCase();
+                        if (k === 'w' || data.key === 'ArrowUp') this.keys.w = false;
+                        if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = false;
+                        if (k === 's' || data.key === 'ArrowDown') this.keys.s = false;
+                        if (k === 'd' || data.key === 'ArrowRight') this.keys.d = false;
+                    }
+                });
+
+                // Click to dismiss Chat Bubble
+                window.addEventListener('pointerdown', () => {
+                    if (this.activeChat && !this.activeChat.fading) {
+                        this.activeChat.fading = true;
+                        this._haltPlayer = false; // Release movement lock
+                    }
+                });
+
+                // Add local keyboard listeners in case the FPV iframe receives direct focus
+                window.addEventListener('keydown', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || e.key === 'ArrowUp') {
+                        if (!this.handleHaltedAttack()) this.keys.w = true;
+                    }
+                    if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = true;
+                    if (k === 's' || e.key === 'ArrowDown') this.keys.s = true;
+                    if (k === 'd' || e.key === 'ArrowRight') this.keys.d = true;
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || e.key === 'ArrowUp') this.keys.w = false;
+                    if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = false;
+                    if (k === 's' || e.key === 'ArrowDown') this.keys.s = false;
+                    if (k === 'd' || e.key === 'ArrowRight') this.keys.d = false;
+                });
+            },
+
+            checkCollision(gx, gz, radiusInGridUnits) {                
+                // Check 4 corners of bounding box around (gx, gz)
+                const points = [
+                    { x: gx - radiusInGridUnits, z: gz - radiusInGridUnits },
+                    { x: gx + radiusInGridUnits, z: gz - radiusInGridUnits },
+                    { x: gx - radiusInGridUnits, z: gz + radiusInGridUnits },
+                    { x: gx + radiusInGridUnits, z: gz + radiusInGridUnits },
+                ];
+                let hitEntity = null;
+                for (let p of points) {
+                    let cx = Math.round(p.x);
+                    let cz = Math.round(p.z);
+                    const validation = this.isValidGridSpace(cx, cz);
+                    
+                    if (validation === false) return true; // Hard wall collision
+                    if (validation !== true && typeof validation === 'object') {
+                        hitEntity = validation; // We struck a specific entity Mesh
+                    }
+                }
+                return hitEntity ? hitEntity : false; // Return the entity if hit, otherwise False means space is clear
+            },
+
+            isValidGridSpace(cx, cz) {
+                if(cx < 0 || cx >= this.mapWidth || cz < 0 || cz >= this.mapHeight) return false;
+                if(this.mapData[cx]?.[cz]?.type === 'wall') return false;
+                
+                // Entity collision check
+                if (this.worldGroup) {
+                    for (const child of this.worldGroup.children) {
+                        if (child.userData && child.userData.id) {
+                            const eX = Math.round(child.position.x / this.gridSize);
+                            const eZ = Math.round(child.position.z / this.gridSize);
+                            if(cx === eX && cz === eZ) return child; // Return the exact object hit instead of boolean block
+                        }
+                    }
+                }
+                
+                return true;
+            },
+            
+            checkGridLoS(x1, z1, x2, z2) {
+                // Digital Differential Analyzer (DDA) for mathematically pure grid traversal
+                let x = Math.round(x1);
+                let z = Math.round(z1);
+                const endX = Math.round(x2);
+                const endZ = Math.round(z2);
+
+                const dx = x2 - x1;
+                const dz = z2 - z1;
+
+                const stepX = Math.sign(dx);
+                const stepZ = Math.sign(dz);
+
+                // Infinity prevents division by zero if ray is perfectly straight
+                const tDeltaX = stepX !== 0 ? Math.abs(1 / dx) : Infinity;
+                const tDeltaZ = stepZ !== 0 ? Math.abs(1 / dz) : Infinity;
+
+                // Grid boundaries are at 0.5 offsets because cells are integer aligned
+                let tMaxX = stepX === 0 ? Infinity : (stepX > 0 ? (x + 0.5 - x1) * tDeltaX : (x1 - (x - 0.5)) * tDeltaX);
+                let tMaxZ = stepZ === 0 ? Infinity : (stepZ > 0 ? (z + 0.5 - z1) * tDeltaZ : (z1 - (z - 0.5)) * tDeltaZ);
+
+                let maxSteps = 100;
+
+                while (maxSteps-- > 0) {
+                    if (x >= 0 && x < this.mapWidth && z >= 0 && z < this.mapHeight) {
+                        if (this.mapData[x] && this.mapData[x][z] && this.mapData[x][z].type === 'wall') {
+                            return false;
+                        }
+                    } else {
+                        return false; // Out of bounds
+                    }
+
+                    if (x === endX && z === endZ) return true; // Safely reached target
+
+                    if (tMaxX < tMaxZ) {
+                        tMaxX += tDeltaX;
+                        x += stepX;
+                    } else {
+                        tMaxZ += tDeltaZ;
+                        z += stepZ;
+                    }
+                }
+                return true;
+            },
+
+            // Pre-allocated Global Vectors for checkTriggers GC optimization
+            _ct_mPos: new THREE.Vector3(),
+            _ct_cPos: new THREE.Vector3(),
+            _ct_dirFromPlayer3D: new THREE.Vector3(),
+            _ct_camDir: new THREE.Vector3(),
+
+            spawnLoot(gridX, gridZ) {
+                // Procedural 3D Japanese Yen Coin (Circular with square hole)
+                const coinShape = new THREE.Shape();
+                coinShape.absarc(0, 0, 0.4, 0, Math.PI * 2, false);
+                const holePath = new THREE.Path();
+                holePath.moveTo(-0.15, -0.15);
+                holePath.lineTo(0.15, -0.15);
+                holePath.lineTo(0.15, 0.15);
+                holePath.lineTo(-0.15, 0.15);
+                holePath.lineTo(-0.15, -0.15);
+                coinShape.holes.push(holePath);
+
+                const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+                const coinGeo = new THREE.ExtrudeGeometry(coinShape, extrudeSettings);
+                const coinMat = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFD700, emissive: 0xFFD700, emissiveIntensity: 0.2, 
+                    metalness: 1.0, roughness: 0.2 
+                });
+                
+                const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+                // Center the extrusion
+                coinGeo.computeBoundingBox();
+                const centerOffset = -0.5 * (coinGeo.boundingBox.max.z - coinGeo.boundingBox.min.z);
+                coinGeo.translate(0, 0, centerOffset);
+                
+                coinMesh.position.set(gridX * this.gridSize, 1.2, gridZ * this.gridSize);
+                // Stand upright so face points toward player. Extrude goes along Z, so rotate to stand on edge.
+                coinMesh.rotation.x = 0;  // Face UP (upright coin showing the yen face)
+                coinMesh.rotation.z = Math.PI / 2; // Tilt slightly for drama
+                coinMesh.userData = { 
+                    type: 'loot_gold', 
+                    value: Math.floor(Math.random() * 41) + 10, // 10-50 gold
+                    floatTimer: Math.random() * Math.PI * 2,
+                    basePos: 1.2,
+                    gridX: gridX,
+                    gridZ: gridZ
+                };
+                
+                this.worldGroup.add(coinMesh);
+                this.lootItems.push(coinMesh);
+                
+                // ── Loot card: faithful guide-card replica (matches NewOrigami.Panels.html) ──
+                // Card data mirrors the actual SPELL_MAP / defaultCategories
+                const LOOT_CARDS = [
+                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'(STUN * 2DICE)',  emissive: 0x5C4033 },
+                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'(STUN * 3DICE)',  emissive: 0x5C4033 },
+                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'(PUSH * 3DICE)',  emissive: 0x37474f },
+                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'(DMG * 4DICE)',   emissive: 0xff2200 },
+                    { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'(DMG * 6DICE)',   emissive: 0xff2200 },
+                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'(SLOW * 4DICE)',  emissive: 0x0d47a1 },
+                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'(DMG * 1DICE)',   emissive: 0xcc0000 },
+                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'(DEFEND * 2DICE)', emissive: 0x0d47a1 },
+                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'(HEAL * 1DICE)',  emissive: 0x1b5e20 },
+                ];
+                const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
+
+                // Element icons for the icon-3d circle
+                const ELEM_ICONS = {
+                    EARTH:'\uD83E\uDEA8', WIND:'\uD83D\uDCA8', FIRE:'\uD83D\uDD25',
+                    WATER:'\uD83C\uDF0A', ITEM:'\uD83E\uDDEA', KATANA:'\u2694\uFE0F', SHIELD:'\uD83D\uDEE1\uFE0F'
+                };
+
+                // Canvas drawn precisely to match HTML UI panels (scale x3 for crisp 84x135)
+                const s = 3;
+                const CW = 84 * s; 
+                const CH = 135 * s;
+                const cardCanvas = document.createElement('canvas');
+                cardCanvas.width = CW; cardCanvas.height = CH;
+                const ctx = cardCanvas.getContext('2d');
+
+                // ── [1] Body: solid dark-mode background (#232527)
+                ctx.fillStyle = '#232527';
+                ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 12 * s); ctx.fill();
+                // Thin glass border
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1 * s;
+                ctx.beginPath(); ctx.roundRect(0.5*s, 0.5*s, CW - 1*s, CH - 1*s, 12 * s); ctx.stroke();
+
+                // ── [2] Header zone: height 26px
+                const headerH = 26 * s;
+                
+                // card-type-pill center
+                ctx.font = `900 ${8 * s}px sans-serif`;
+                const pillTextW = ctx.measureText(lc.el).width;
+                const pillPadX = 6 * s, pillPadY = 2 * s;
+                const pillW = pillTextW + (pillPadX * 2);
+                const pillH = (8 * s) + (pillPadY * 2);
+                const pillX = (CW - pillW) / 2;
+                const pillY = (headerH - pillH) / 2;
+
+                ctx.fillStyle = lc.themeClr;
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5 * s;
+                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.stroke();
+
+                ctx.font = `900 ${8 * s}px sans-serif`;
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.el, CW / 2, pillY + pillH / 2 + 0.5*s);
+
+                // card-kanji left
+                ctx.font = `900 ${11 * s}px sans-serif`;
+                ctx.fillStyle = lc.themeClr;
+                ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.kanji, 8 * s, headerH / 2 + 1*s);
+
+                // ── [3] Title (11px scale)
+                ctx.font = `900 ${11 * s}px sans-serif`;
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(lc.name, CW / 2, headerH + (18 * s) / 2);
+
+                // ── [4] Description (6px scale)
+                ctx.font = `italic 800 ${6 * s}px sans-serif`;
+                ctx.fillStyle = '#7f8a93'; 
+                ctx.fillText(lc.desc, CW / 2, headerH + 18 * s + (12 * s) / 2);
+
+                // ── [5] Icon circle (45px scale)
+                const icx = CW / 2;
+                const icy = headerH + 18 * s + 12 * s + (45 * s) / 2 + 2 * s; 
+                const icr = (45 * s) / 2;
+                
+                ctx.fillStyle = '#232527';
+                // Ghost geometry for collision and floating UI tracking
+                const cardGeo = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+                const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+                const hitMesh = new THREE.Mesh(cardGeo, hitMat);
+                hitMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
+                hitMesh.userData = {
+                    type:       'loot_cards',
+                    id:         Math.floor(Math.random() * 9999999),
+                    floatTimer: Math.random() * Math.PI * 2,
+                    basePos:    1.2,
+                    gridX:      gridX,
+                    gridZ:      gridZ,
+                    cardName:   lc.name,
+                    cardData:   lc
+                };
+
+                this.worldGroup.add(hitMesh);
+                this.lootItems.push(hitMesh);
+                
+                window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear the clatter of dropped coins.`, logType: 'system' }, '*');
+            },
+
+            // ─────────────────────────────────────────────────────────────────
+            // BOULDER: Physics Projectile System
+            // ─────────────────────────────────────────────────────────────────
+            spawnBoulder() {
+                const fwdX = -Math.sin(this.player.rot);
+                const fwdZ = -Math.cos(this.player.rot);
+
+                // Launch from just in front of player at knee height
+                const startX = this.player.x * this.gridSize + fwdX * this.gridSize * 0.9;
+                const startZ = this.player.z * this.gridSize + fwdZ * this.gridSize * 0.9;
+
+                // Procedural stone texture (mottled grey with cracks)
+                const sc = document.createElement('canvas');
+                sc.width = sc.height = 128;
+                const sCtx = sc.getContext('2d');
+                sCtx.fillStyle = '#888';
+                sCtx.fillRect(0, 0, 128, 128);
+                for (let i = 0; i < 300; i++) {
+                    const px = Math.random() * 128, py = Math.random() * 128;
+                    const r = Math.random() * 10 + 2;
+                    const v = Math.floor(80 + Math.random() * 80);
+                    sCtx.fillStyle = `rgba(${v},${v - 8},${v - 18},0.55)`;
+                    sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
+                }
+                sCtx.strokeStyle = 'rgba(25,15,5,0.6)';
+                sCtx.lineWidth = 2;
+                for (let i = 0; i < 12; i++) {
+                    sCtx.beginPath();
+                    sCtx.moveTo(Math.random() * 128, Math.random() * 128);
+                    sCtx.quadraticCurveTo(Math.random() * 128, Math.random() * 128, Math.random() * 128, Math.random() * 128);
+                    sCtx.stroke();
+                }
+                const stoneTex = new THREE.CanvasTexture(sc);
+
+                const boulderGeo = new THREE.SphereGeometry(0.55, 10, 10);
+                const boulderMat = new THREE.MeshStandardMaterial({
+                    map: stoneTex, roughness: 0.95, metalness: 0.02, color: 0xbbbbaa
+                });
+                const boulder = new THREE.Mesh(boulderGeo, boulderMat);
+                boulder.position.set(startX, 0.8, startZ);
+
+                // Spin axis perpendicular to forward direction for realistic rolling
+                const spinAxis = new THREE.Vector3(fwdZ, 0, -fwdX).normalize();
+
+                boulder.userData = {
+                    isBoulder: true,
+                    vX: fwdX * 14.0,   // 14 world units/sec forward
+                    vY: 1.8,            // Gentle upward arc
+                    vZ: fwdZ * 14.0,
+                    spinAxis,
+                    dmg: 25,
+                    active: true
+                };
+
+                this.scene.add(boulder);
+                this.boulders.push(boulder);
+                this.addCameraTrauma(0.2);
+                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: '\u{1FAA8} BOULDER launched!' }, '*');
+            },
+
+            // Rock explosion VFX at impact point (wall or goblin)
+            spawnRockExplosion(pos) {
+                const stoneColors = [0x8B7355, 0x6B5B45, 0xA09080, 0x575050, 0xccbb99];
+                for (let i = 0; i < 20; i++) {
+                    const size = 0.06 + Math.random() * 0.22;
+                    const fragGeo = Math.random() > 0.4
+                        ? new THREE.BoxGeometry(size, size * 0.7, size * 1.2)
+                        : new THREE.SphereGeometry(size, 4, 4);
+                    const fragMat = new THREE.MeshStandardMaterial({
+                        color: stoneColors[Math.floor(Math.random() * stoneColors.length)],
+                        roughness: 0.93
+                    });
+                    const frag = new THREE.Mesh(fragGeo, fragMat);
+                    frag.position.copy(pos);
+                    frag.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+                    const angle = (i / 20) * Math.PI * 2 + Math.random() * 0.6;
+                    const elev  = 0.2 + Math.random() * 0.8;
+                    const spd   = 3.5 + Math.random() * 5.0;
+                    frag.userData = {
+                        isRockFrag: true,
+                        vX: Math.cos(angle) * Math.cos(elev) * spd,
+                        vY: Math.sin(elev) * spd * 0.7 + 1.5,
+                        vZ: Math.sin(angle) * Math.cos(elev) * spd,
+                        rX: (Math.random() - 0.5) * 0.45,
+                        rY: (Math.random() - 0.5) * 0.45,
+                        rZ: (Math.random() - 0.5) * 0.45,
+                        life: 55 + Math.floor(Math.random() * 30)
+                    };
+                    this.worldGroup.add(frag);
+                }
+                // Flash point light at impact point
+                const flash = new THREE.PointLight(0xcc8833, 10.0, this.gridSize * 4);
+                flash.position.copy(pos);
+                this.scene.add(flash);
+                setTimeout(() => this.scene.remove(flash), 250);
+                this.addCameraTrauma(0.85);
+                this.triggerHitStop(80);
+            },
+
+            // Goblin flatten animation — squash Y, spread XZ, then fade-death or spring back
+            flattenGoblin(mesh, damage) {
+                if (!mesh || mesh.userData.isDead) return;
+
+                mesh.userData.hp = Math.max(0, mesh.userData.hp - damage);
+                window.parent.postMessage({
+                    type: 'SHOW_COMBAT',
+                    health: mesh.userData.hp,
+                    maxHp: mesh.userData.maxHp ?? 50,
+                    name: mesh.userData.name || 'Yakuza Goblin',
+                    entityType: 'enemy'
+                }, '*');
+                this.spawnDamageText(damage, mesh.position, false);
+                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `\u{1FAA8} BOULDER crushes for ${damage} DMG!` }, '*');
+                this.addCameraTrauma(0.9);
+                this.triggerHitStop(100);
+
+                if (mesh.userData.mixer) mesh.userData.mixer.stopAllAction();
+                const lethal = mesh.userData.hp <= 0;
+                if (lethal) mesh.userData.isDead = true;
+
+                const childMeshes = [];
+                mesh.traverse(n => { if (n.isMesh) childMeshes.push(n); });
+                const origScale = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
+                const flatStart = performance.now();
+                const flatDur   = lethal ? 380 : 230;
+
+                const flatAnim = () => {
+                    if (!mesh.parent) return;
+                    const t = Math.min(1.0, (performance.now() - flatStart) / flatDur);
+                    const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+                    mesh.scale.x = origScale.x * (1.0 + e * 2.4);
+                    mesh.scale.y = origScale.y * Math.max(0.04, 1.0 - e * 0.97);
+                    mesh.scale.z = origScale.z * (1.0 + e * 2.4);
+                    childMeshes.forEach(cm => {
+                        if (cm.material && cm.material.emissive) {
+                            cm.material.emissive.setHex(0xdd4400);
+                            cm.material.emissiveIntensity = 4.0 * (1.0 - e);
+                        }
+                    });
+                    if (t < 1.0) {
+                        requestAnimationFrame(flatAnim);
+                    } else if (lethal) {
+                        // Fade out flat corpse, then trigger AI_DEATH cleanup
+                        const fadeStart = performance.now();
+                        const fadeDur   = 750;
+                        const fadeAnim  = () => {
+                            if (!mesh.parent) return;
+                            const ft = Math.min(1.0, (performance.now() - fadeStart) / fadeDur);
+                            childMeshes.forEach(cm => {
+                                if (cm.material && cm.material.transparent) {
+                                    cm.material.opacity = Math.max(0, 0.55 * (1.0 - ft));
+                                }
+                            });
+                            if (ft < 1.0) requestAnimationFrame(fadeAnim);
+                            else window.postMessage({ type: 'AI_DEATH', id: mesh.userData.id }, '*');
+                        };
+                        requestAnimationFrame(fadeAnim);
+                    } else {
+                        // Survived — spring back to original scale over 350ms
+                        const bnStart = performance.now();
+                        const bnDur   = 350;
+                        const bounceAnim = () => {
+                            if (!mesh.parent) return;
+                            const bt  = Math.min(1.0, (performance.now() - bnStart) / bnDur);
+                            const inv = 1.0 - bt;
+                            mesh.scale.x = origScale.x * (1.0 + inv * 2.4);
+                            mesh.scale.y = origScale.y * Math.max(0.04 + bt * 0.96, 0.04);
+                            mesh.scale.z = origScale.z * (1.0 + inv * 2.4);
+                            if (bt < 1.0) {
+                                requestAnimationFrame(bounceAnim);
+                            } else {
+                                mesh.scale.set(origScale.x, origScale.y, origScale.z);
+                                // Resume idle animation
+                                if (mesh.userData.mixer && mesh.userData.actions && mesh.userData.actions.length > 0) {
+                                    const idle = mesh.userData.actions[0];
+                                    idle.reset(); idle.setLoop(THREE.LoopRepeat); idle.play();
+                                }
+                            }
+                        };
+                        requestAnimationFrame(bounceAnim);
+                    }
+                };
+                requestAnimationFrame(flatAnim);
+            },
+
+            checkTriggers() {
+                // Calculate the exact grid coordinate 1 tile directly in front of the player
+                const dirX = Math.round(-Math.sin(this.player.rot));
+                const dirZ = Math.round(-Math.cos(this.player.rot));
+                const playerGridX = Math.round(this.player.x);
+                const playerGridZ = Math.round(this.player.z);
+                
+                const targetX = playerGridX + dirX;
+                const targetZ = playerGridZ + dirZ;
+
+                let foundNPC = null;
+                let foundMonster = null;
+                let closestDist = Infinity;
+                let glowingTargets = []; // Array to hold targets that should glow
+                let anyEnemyActive = false; // Tracks if any enemy is in combat/proximity
+                
+                // Scan worldGroup for entities at the target location (forgiving distance check)
+                if (this.worldGroup) {
+                    for (const child of this.worldGroup.children) {
+                        if (child.userData && child.userData.id) {
+                            const eX = child.position.x / this.gridSize;
+                            const eZ = child.position.z / this.gridSize;
+                            
+                            // Check distance instead of exact grid match since models sit at exact center
+                            const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
+                            
+                            // True 3D FPV calculations utilizing Global vectors to prevent GC spills
+                            this._ct_mPos.copy(child.position);
+                            this._ct_mPos.y += 1.0;
+                            this._ct_cPos.copy(this.camera.position);
+                            const dist3D = this._ct_cPos.distanceTo(this._ct_mPos);
+                            
+                            this._ct_dirFromPlayer3D.subVectors(this._ct_mPos, this._ct_cPos).normalize();
+                            this.camera.getWorldDirection(this._ct_camDir);
+                            const dot = this._ct_camDir.dot(this._ct_dirFromPlayer3D);
+                            
+                            let panelHasLoS = false;
+                            
+                            // Tactical RPG Distance Rules:
+                            // 1. The combat panels ready themselves when a monster is close (<= 10.0 tiles)
+                            // 2. You must be facing the monster (dot > 0.4)
+                            let makesCombat = false;
+                            
+                            // Once locked, it stays locked up to 12.0 tiles for retreat/recoil, but ONLY if still in view
+                            const isActiveTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
+                            
+                            if (isActiveTarget && dist <= 12.0 && dot > 0.25) {
+                                makesCombat = true; 
+                            } else if (dist <= 4.0 && dot > 0.4) {
+                                makesCombat = true; 
+                            }
+                            
+                            // 20-Foot Chat Bubble Halt (2 tiles = 20 feet)
+                            if (dist <= 2.0 && dot > 0.707 && child.userData.type === 'enemy') {
+                                if (!child.userData.chatSpawned) {
+                                    child.userData.chatSpawned = true;
+                                    this.spawnChatBubble(
+                                        "Stop Fool!  Where do you think you're going?   Make a wager or duel - your choice.  Its a fool's wager!",
+                                        "止まれ、愚か者め！どこへ行くつもりだ？ 賭けをするか、決闘をするか…選べ。 愚か者の賭けだがな！",
+                                        child
+                                    );
+                                    // Halt forward movement at interaction
+                                    this._haltPlayer = true;
+                                    this.keys.w = false;
+                                    this.keys.a = false;
+                                    this.keys.s = false;
+                                    this.keys.d = false;
+                                }
+                            }
+
+                            // Eerie Ghost Glow triggers when interacting with player (<= 2.0 tiles / 20 feet)
+                            let makesGlow = false;
+                            if (dist <= 2.0 && dot > 0.707) {
+                                makesGlow = true;
+                            } else if (makesCombat) {
+                                makesGlow = true; // Always glow in combat
+                            }
+                            if (child.userData.type === 'enemy') {
+                                // Add continuous ethereal floating bob in FPV
+                                child.userData.floatOffset = (child.userData.floatOffset || Math.random() * Math.PI * 2) + 0.035;
+                                child.position.y = Math.sin(child.userData.floatOffset) * 0.12;
+
+                                if (makesGlow) anyEnemyActive = true;
+                                
+                                if (!child.userData.glowMeshes) {
+                                    child.userData.glowMeshes = [];
+                                    let foundSkinned = false;
+                                    child.traverse(n => {
+                                        if (n.isSkinnedMesh) {
+                                            child.userData.glowMeshes.push(n);
+                                            foundSkinned = true;
+                                        }
+                                    });
+                                    // Fallback if no skinned mesh found
+                                    if (!foundSkinned) child.userData.glowMeshes.push(child);
+                                }
+                                glowingTargets.push(...child.userData.glowMeshes);
+                            }
+
+                            if (makesCombat) {
+                                panelHasLoS = true;
+                                
+                                if (dist < closestDist) {
+                                    closestDist = dist;
+                                    if (child.userData.type === 'gambler') {
+                                        foundNPC = child;
+                                    } else if (child.userData.type === 'enemy') {
+                                        foundMonster = child;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Dynamically assign which enemies get the ethereal outline glow
+                if (this.outlinePass) {
+                    if (anyEnemyActive) {
+                        this.outlinePass.edgeThickness = 0.5;
+                        this.outlinePass.edgeStrength = 8.0;
+                        this.outlinePass.edgeGlow = 0.8;
+                        this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0);
+                    } else {
+                        // Distant ethereal thin outline
+                        this.outlinePass.edgeThickness = 0.1;
+                        this.outlinePass.edgeStrength = 2.0;
+                        this.outlinePass.edgeGlow = 0.0;
+                        this.outlinePass.visibleEdgeColor.setRGB(0, 1.0, 1.0);
+                    }
+
+                    let changed = false;
+                    if (this.outlinePass.selectedObjects.length !== glowingTargets.length) {
+                        changed = true;
+                    } else {
+                        for(let i=0; i<glowingTargets.length; i++) {
+                            if (this.outlinePass.selectedObjects[i] !== glowingTargets[i]) {
+                                changed = true; break;
+                            }
+                        }
+                    }
+                    if (changed) {
+                        this.outlinePass.selectedObjects = glowingTargets;
+                    }
+                }
+                
+                let currentCmd = 'HIDE_COMBAT';
+                let currentExitCmd = 'HIDE_EXIT';
+                let newTargetId = null;
+
+                if (foundNPC) {
+                    this.activeTarget = foundNPC;
+                    this.activeTargetDist = closestDist;
+                    newTargetId = foundNPC.userData.id;
+                    currentCmd = 'SHOW_GAMBLING';
+                } else if (foundMonster) {
+                    this.activeTarget = foundMonster;
+                    this.activeTargetDist = closestDist;
+                    newTargetId = foundMonster.userData.id;
+                    currentCmd = 'SHOW_COMBAT';
+                } else {
+                    this.activeTarget = null;
+                    this.activeTargetDist = Infinity;
+                }
+                
+                // Only postMessage if the active UI state actually changed, avoiding 60FPS DOM spam
+                if (this._lastCombatCmd !== currentCmd || this._lastTargetId !== newTargetId) {
+                    this._lastCombatCmd = currentCmd;
+                    this._lastTargetId = newTargetId;
+                    this._lastSentDist = this.activeTargetDist;
+                    
+                    if (currentCmd === 'SHOW_GAMBLING') {
+                        window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
+                    } else if (currentCmd === 'SHOW_COMBAT') {
+                        // Trigger combat float altitude
+                        // We rely entirely on model.position.y lerping now to prevent the targeting circle from lifting
+                        window.parent.postMessage({ 
+                            type: 'SHOW_COMBAT', 
+                            health: foundMonster.userData.hp ?? 50,
+                            maxHp: foundMonster.userData.maxHp ?? 50,
+                            name: foundMonster.userData.name || 'Yakuza Goblin',
+                            entityType: foundMonster.userData.type || 'enemy',
+                            distance: this.activeTargetDist 
+                        }, '*');
+                    } else {
+                        // Reset all monster altitudes when combat drops
+                        window.parent.postMessage({ type: 'HIDE_COMBAT' }, '*');
+                    }
+                } else if (currentCmd === 'SHOW_COMBAT' && Math.abs(this._lastSentDist - this.activeTargetDist) > 0.1) {
+                    // Update distance dynamically if it changes significantly while UI is open
+                    this._lastSentDist = this.activeTargetDist;
+                    window.parent.postMessage({ 
+                        type: 'SHOW_COMBAT', 
+                        health: foundMonster.userData.hp ?? 50,
+                        maxHp: foundMonster.userData.maxHp ?? 50,
+                        name: foundMonster.userData.name || 'Yakuza Goblin',
+                        entityType: foundMonster.userData.type || 'enemy',
+                        distance: this.activeTargetDist 
+                    }, '*');
+                }
+                
+                // --- Exit Dungeon Trigger ---
+                // The entrance is always at x = Math.floor(this.mapWidth / 2), y = this.mapHeight - 2
+                const entranceX = Math.floor(this.mapWidth / 2);
+                const entranceZ = this.mapHeight - 2;
+                
+                if (playerGridX === entranceX && playerGridZ === entranceZ) {
+                    // Check if player is facing the stairs (+Z direction)
+                    const fZ = -Math.cos(this.player.rot); 
+                    if (fZ < -0.8) { // Facing deeply south
+                        currentExitCmd = 'SHOW_EXIT';
+                    }
+                }
+                
+                if (this._lastExitCmd !== currentExitCmd) {
+                    this._lastExitCmd = currentExitCmd;
+                    window.parent.postMessage({ type: currentExitCmd }, '*');
+                }
+            },
+
+            initComms() {
+                // Deprecated UI_ACTION removed in favor of direct message parsing below
+                // Listen to external commands (AI Brain & Master UI Router)
+                window.addEventListener('message', (e) => {
+                    if (!e.data) return;
+                    
+                    if (e.data.type === 'FPV_ACTION') {
+                        const action = e.data.action.toUpperCase();
+                        if (action === 'BET EVEN' || action === 'BET ODD') {
+                            this.spawnCombatText(action === 'BET EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
+                            
+                            // Spawn 3D Bouncing Dice in front of Player/Target
+                            let spawnX = this.player.x * this.gridSize;
+                            let spawnZ = this.player.z * this.gridSize;
+                            let spawnY = 2; // Drop from above
+                            
+                            if (this.activeTarget) {
+                                spawnX = (spawnX + this.activeTarget.position.x) / 2;
+                                spawnZ = (spawnZ + this.activeTarget.position.z) / 2;
+                                this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager
+                            } else {
+                                spawnX -= Math.sin(this.player.rot) * 1.5;
+                                spawnZ -= Math.cos(this.player.rot) * 1.5;
+                            }
+                            
+                            for(let i=0; i<2; i++) {
+                                const dieGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                                const dieMat = new THREE.MeshStandardMaterial({
+                                    color: action === 'BET_EVEN' ? 0x1b5e20 : 0xb71c1c, 
+                                    roughness: 0.2, 
+                                    metalness: 0.1
+                                });
+                                const die = new THREE.Mesh(dieGeo, dieMat);
+                                die.position.set(spawnX + (i * 0.4 - 0.2), spawnY, spawnZ);
+                                
+                                die.userData = {
+                                    isDice: true,
+                                    vY: 0.1, // Toss up slightly
+                                    vX: (Math.random() - 0.5) * 0.15,
+                                    vZ: (Math.random() - 0.5) * 0.15,
+                                    rX: Math.random() * 0.5,
+                                    rY: Math.random() * 0.5,
+                                    rZ: Math.random() * 0.5,
+                                    life: 240 // 4 seconds at 60fps
+                                };
+                                this.worldGroup.add(die);
+                            }
+                            this.scene.userData.hasActiveDice = true;
+                            
+                            setTimeout(() => {
+                                let wOutcome = { won: false, multiplier: 1 };
+                                if (window.CombatEngine) wOutcome = window.CombatEngine.resolveWager(action);
+                                this.postToAI({ type: 'WAGER_RESULT', won: wOutcome.won, multiplier: wOutcome.multiplier });
+                                
+                                // Clear chat bubble on wager conclusion
+                                if (this.activeChat) {
+                                    this.scene.remove(this.activeChat.mesh);
+                                    this.activeChat = null;
+                                }
+                            }, 1500);
+                            
+                        } else if (action === 'WAGER' && this.activeTarget) {
+                            this.activeTarget.userData.stateColor = '#00ff00'; // Green for wager mode
+                        } else if ((action === 'ATTACK' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') && this.activeTarget && this.activeTarget.userData.type === 'enemy') {
+                            if (this.activeTargetDist > this.gridSize * 1.8) {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Too far away! Move closer to strike.` }, '*');
+                                return;
+                            }
+                            this.activeTarget.userData.stateColor = '#ff0000'; // Red for attack
+                            this.triggerCombatSequence(this.activeTarget);
+                            // Mark as hostile so updateCombatAI fires retaliations autonomously
+                            this.activeTarget.userData.isHostile = true;
+                            const now = performance.now();
+                            if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
+                                this.lastAttackTime = now;
+                                
+                                this.triggerHitStop(40);     // 40ms frame freeze
+                                
+                                // Delegate Math to Combat Engine (THAC0 Style)
+                                const finalDamage = window.CombatEngine ? window.CombatEngine.resolveMeleeStrike('Player', 25) : 25;
+
+                                // Visceral JRPG Overlay
+                                this.spawnDamageText(finalDamage, this.activeTarget.position, false);
+                                
+                                // Broadcast Player Attack to Event Log
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You STRIKE for ${finalDamage} DMG!` }, '*');
+                                
+                                // Physical Knockback Stagger
+                                const knockDir = new THREE.Vector3().subVectors(this.activeTarget.position, this.camera.position).normalize();
+                                knockDir.y = 0;
+                                this.activeTarget.position.addScaledVector(knockDir, 0.4);
+                                
+                                // Trigger Goblin Retaliation automatically (Turn Based Simulator)
+                                setTimeout(() => {
+                                    if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                        this.activeTarget.userData.lastAIStrike = performance.now(); // Postpone Real-time AI
+                                        
+                                        const mixer = this.activeTarget.userData.mixer;
+                                        const slashAnim = this.activeTarget.userData.attackAction 
+                                            || (this.activeTarget.userData.actions && this.activeTarget.userData.actions[1])
+                                            || (this.activeTarget.userData.actions && this.activeTarget.userData.actions[0]);
+                                        if (mixer && slashAnim) {
+                                            mixer.stopAllAction();
+                                            slashAnim.reset();
+                                            slashAnim.setLoop(THREE.LoopOnce, 1);
+                                            slashAnim.clampWhenFinished = true;
+                                            slashAnim.play();
+                                        }
+                                        
+                                        const executeGoblinStrike = () => {
+                                            if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                                if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10); 
+                                                this.player.hp = Math.max(0, this.player.hp - 10);
+                                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                                
+                                                this.spawnDamageText(10, new THREE.Vector3(), true); // JRPG UI Text
+                                            }
+                                        };
+                                        
+                                        // Programmatic Lunge
+                                        const origPos = this.activeTarget.position.clone();
+                                        const lungeDir = new THREE.Vector3().subVectors(this.camera.position, this.activeTarget.position).normalize();
+                                        lungeDir.y = 0;
+                                        this.activeTarget.position.addScaledVector(lungeDir, 0.8);
+                                        
+                                        setTimeout(() => {
+                                            // Recoil back exactly when attack completes
+                                            if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                                this.activeTarget.position.copy(origPos);
+                                            }
+                                            executeGoblinStrike();
+                                            this.addCameraTrauma(0.5); // Screen shake on goblin hit
+                                        }, 150);
+                                    }
+                                }, 300); // 300ms reaction delay
+                                // Natively process damage since AI worker is disconnected
+                                this.activeTarget.userData.hp -= finalDamage;
+                                
+                                // Broadcast updated health to UI Panels
+                                window.parent.postMessage({ type: 'SHOW_COMBAT', health: this.activeTarget.userData.hp, maxHp: this.activeTarget.userData.maxHp ?? 50, name: this.activeTarget.userData.name || 'Yakuza Goblin', entityType: this.activeTarget.userData.type || 'enemy' }, '*');
+                                
+                            // Check for Death natively (post to self to handle animation)
+                            if (this.activeTarget.userData.hp <= 0) {
+                                window.postMessage({ type: 'AI_DEATH', id: this.activeTarget.userData.id }, '*');
+                            }
+                            }
+                        } else if (action === 'retreat') {
+                            // Force player backward safely on grid
+                            const dx = Math.sin(this.player.rot) * 1.0;
+                            const dz = Math.cos(this.player.rot) * 1.0;
+                            if (!this.checkCollision(this.player.x + dx, this.player.z + dz, 0.35)) {
+                                this.player.x += dx;
+                                this.player.z += dz;
+                            }
+                            this._haltPlayer = false; // Player retreated, they can move again
+                        }
+                        // --- SPELL CARD IMPACT SYSTEM ---
+                        // Maps card names → element → visual + damage
+                        const SPELL_MAP = {
+                            'FIREBALL':   { el:'FIRE',  color:0xff4400, dmg:30, trauma:0.7, label:'\uD83D\uDD25 FIREBALL',       range: 8.0 },
+                            'PYROBLAST':  { el:'FIRE',  color:0xff2200, dmg:45, trauma:0.9, label:'\uD83D\uDD25 PYROBLAST',      range: 8.0 },
+                            'COMET':      { el:'FIRE',  color:0xff9900, dmg:35, trauma:0.8, label:'\u2604 COMET',           range: 8.0 },
+                            'BOULDER':    { el:'EARTH', color:0x7B5E3A, dmg:25, trauma:0.6, label:'\u{1FAA8} BOULDER',        range: Infinity }, // Projectile: no lock-on needed
+                            'FISSURE':    { el:'EARTH', color:0x5C4033, dmg:35, trauma:0.7, label:'\uD83C\uDF0B FISSURE',        range: 5.0 },
+                            'GALE':       { el:'WIND',  color:0x90caf9, dmg:20, trauma:0.4, label:'\uD83D\uDCA8 GALE',           range: 5.0 },
+                            'TIDE':       { el:'WATER', color:0x0288d1, dmg:20, trauma:0.5, label:'\uD83C\uDF0A TIDE',           range: 4.0 },
+                            'SURGE':      { el:'WATER', color:0x006994, dmg:30, trauma:0.6, label:'\uD83C\uDF0A SURGE',          range: 5.0 },
+                            'POTION':     { el:'ITEM',  color:0x00e676, dmg:-20, trauma:0.0, label:'\uD83E\uDDEA POTION (HEAL)', range: Infinity },
+                            'SCROLL OF IDENTITY': { el:'ITEM', color:0xffd740, dmg:0, trauma:0.0, label:'\uD83D\uDCDC SCROLL',  range: Infinity },
+                            'SLASH':      { el:'KATANA',color:0xffffff, dmg:20, trauma:0.5, label:'\u2694 SLASH',          range: Infinity }, // Gated by melee block
+                            'THRUST':     { el:'KATANA',color:0xcccccc, dmg:18, trauma:0.4, label:'\u2694 THRUST',         range: Infinity }, // Gated by melee block
+                            'STRONG ATTACK':{ el:'KATANA',color:0xffd700, dmg:40, trauma:0.8, label:'\u2694 STRONG ATTACK',range: 2.5 },
+                        };
+                        const spell = SPELL_MAP[action];
+                        if (spell) {
+                            // ── BOULDER: directional physics projectile — no target lock-on needed ──
+                            if (action === 'BOULDER') { this.spawnBoulder(); return; }
+
+                            const target = this.activeTarget;
+                            // Range check: activeTargetDist is in grid tiles (1 tile = gridSize world units)
+                            if (target && !target.userData.isDead && spell.range !== Infinity && this.activeTargetDist > spell.range) {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spell.label} out of range! (${this.activeTargetDist.toFixed(1)} / ${spell.range} tiles)` }, '*');
+                            } else if (!target || target.userData.isDead) {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `No target in range for ${spell.label}!` }, '*');
+                            } else {
+                                // Snap to hostile
+                                target.userData.isHostile = true;
+                                target.userData.stateColor = '#ff4400';
+                                
+                                // Camera shake
+                                if (spell.trauma > 0) this.addCameraTrauma(spell.trauma);
+                                this.triggerHitStop(30);
+                                
+                                // Deal damage or heal
+                                if (spell.el === 'ITEM' && spell.dmg < 0) {
+                                    this.player.hp = Math.min(100, this.player.hp + Math.abs(spell.dmg));
+                                    window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spell.label} restores ${Math.abs(spell.dmg)} HP!` }, '*');
+                                } else if (spell.dmg > 0) {
+                                    target.userData.hp -= spell.dmg;
+                                    window.parent.postMessage({ type: 'SHOW_COMBAT', health: target.userData.hp, maxHp: target.userData.maxHp ?? 50, name: target.userData.name || 'Yakuza Goblin', entityType: target.userData.type || 'enemy' }, '*');
+                                    this.spawnDamageText(spell.dmg, target.position, false);
+                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${spell.label} hits for ${spell.dmg} DMG!` }, '*');
+                                    if (target.userData.hp <= 0) window.postMessage({ type: 'AI_DEATH', id: target.userData.id }, '*');
+                                }
+                                
+                                // Spawn impact particles at target
+                                const impactPos = target.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+                                const count = spell.el === 'WIND' ? 6 : 10;
+                                for (let p = 0; p < count; p++) {
+                                    const pGeo = spell.el === 'EARTH'
+                                        ? new THREE.BoxGeometry(0.12, 0.12, 0.12)
+                                        : new THREE.SphereGeometry(spell.el === 'WIND' ? 0.18 : 0.09, 4, 4);
+                                    const pMat = new THREE.MeshStandardMaterial({
+                                        color: spell.color, emissive: spell.color,
+                                        emissiveIntensity: spell.el === 'ITEM' ? 1.5 : 2.5,
+                                        transparent: true, opacity: 1.0
+                                    });
+                                    const pMesh = new THREE.Mesh(pGeo, pMat);
+                                    pMesh.position.copy(impactPos);
+                                    const angle = (p / count) * Math.PI * 2;
+                                    const spread = 0.08 + Math.random() * 0.12;
+                                    pMesh.userData = {
+                                        isSpellParticle: true,
+                                        vX: Math.cos(angle) * spread,
+                                        vY: 0.12 + Math.random() * 0.1,
+                                        vZ: Math.sin(angle) * spread,
+                                        life: 45
+                                    };
+                                    this.worldGroup.add(pMesh);
+                                }
+                                
+                                // Flash point light at impact
+                                const impactLight = new THREE.PointLight(spell.color, 6.0, this.gridSize * 2);
+                                impactLight.position.copy(impactPos);
+                                this.scene.add(impactLight);
+                                setTimeout(() => this.scene.remove(impactLight), 180);
+                            }
+                        }
+                    } else if (e.data.type === 'COMBAT_UPDATE') {
+                        // Sync UI with the AI's math
+                        window.parent.postMessage(
+                            { type: 'SHOW_COMBAT', health: e.data.newHp }, 
+                            '*'
+                        );
+                    } else if (e.data && e.data.type === 'AI_DEATH') {
+                        // Implement sinking death animation
+                        const deadMesh = this.worldGroup.children.find(m => m.userData && m.userData.id === e.data.id);
+                        if (deadMesh) {
+                            if (this.activeTarget && this.activeTarget.userData.id === e.data.id) {
+                                this.activeTarget = null;
+                                window.parent.postMessage({ type: 'HIDE_ALL' }, '*');
+                            }
+                            
+                            if (this.activeChat && this.activeChat.target && this.activeChat.target.userData.id === e.data.id) {
+                                this.scene.remove(this.activeChat.mesh);
+                                this.activeChat = null;
+                            }
+                            
+                            // Flag as dead to prevent queued retaliation attacks
+                            deadMesh.userData.isDead = true;
+                            
+                            // Stop any walking/idle animations
+                            if (deadMesh.userData.mixer) {
+                                deadMesh.userData.mixer.stopAllAction();
+                            }
+                            
+                            // Remove selection circle entirely
+                            if (deadMesh.userData.baseMat) {
+                                deadMesh.userData.baseMat.opacity = 0;
+                            }
+                            
+                            // Spawn Physical Loot at monster location
+                            this.spawnLoot(Math.round(deadMesh.position.x / this.gridSize), Math.round(deadMesh.position.z / this.gridSize));
+                            
+                            // Explosive Death Animation!
+                            let frameCount = 0;
+                            const deathBurst = () => {
+                                frameCount++;
+                                
+                                if (frameCount < 10) {
+                                    // Burst out and flash pure white!
+                                    const grow = 1.0 + (frameCount * 0.04);
+                                    deadMesh.rotation.x -= 0.1;
+                                    deadMesh.traverse((child) => {
+                                        if (child.isMesh && child.material) {
+                                            child.scale.set(grow, grow, grow);
+                                            if (child.material.emissive) {
+                                                child.material.emissive.setHex(0xffffff);
+                                                child.material.emissiveIntensity = 8.0;
+                                            }
+                                        }
+                                    });
+                                    requestAnimationFrame(deathBurst);
+                                } else if (frameCount < 30) {
+                                    // Implode into dust
+                                    const shrink = Math.max(0.01, 1.4 - ((frameCount - 10) * 0.15));
+                                    deadMesh.rotation.y += 0.5; // Spin rapidly while shrinking
+                                    deadMesh.traverse((child) => {
+                                        if (child.isMesh && child.material) {
+                                            child.scale.set(shrink, shrink, shrink);
+                                            if (child.material.transparent) {
+                                                child.material.opacity = Math.max(0, child.material.opacity - 0.1);
+                                            }
+                                            if (child.material.emissiveIntensity !== undefined) {
+                                                child.material.emissiveIntensity = Math.max(0, child.material.emissiveIntensity - 0.5);
+                                            }
+                                        }
+                                    });
+                                    requestAnimationFrame(deathBurst);
+                                } else {
+                                    this.worldGroup.remove(deadMesh);
+                                }
+                            };
+                            
+                            requestAnimationFrame(deathBurst);
+                        }
+                    } else if (e.data && e.data.type === 'AI_UPDATES') {
+                        // Process commands from the A* brain
+                        e.data.updates.forEach(up => {
+                            const mesh = this.worldGroup.children.find(m => m.userData && m.userData.id === up.id);
+                            if (mesh) {
+                                if (up.action === 'MOVE') {
+                                    // Normally we'd lerp this in the animate loop for smoothness,
+                                    // but snapping to grid cells works for this retro grid crawler aesthetic.
+                                    mesh.position.x = up.x * this.gridSize;
+                                    mesh.position.z = up.z * this.gridSize;
+                                }
+                                
+                                // Color the base circle based on AI State (Red for attacking/chasing, Soft White for idle)
+                                if (up.state && mesh.userData.baseMat) {
+                                    if (up.state === 'IDLE') {
+                                        mesh.userData.baseMat.map = mesh.userData.texIdle;
+                                        mesh.userData.baseMat.opacity = 0.2;
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
+                                    } else if (up.state === 'HOSTILE') {
+                                        mesh.userData.baseMat.map = mesh.userData.texHostile;
+                                        mesh.userData.baseMat.opacity = 0.5;
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 0;
+                                    } else if (up.state === 'SEARCHING') {
+                                        mesh.userData.baseMat.map = mesh.userData.texSearch;
+                                        // Blinking effect logic
+                                        const timeSecs = Math.floor(Date.now() / 1000);
+                                        mesh.userData.baseMat.opacity = (timeSecs % 2 === 0) ? 0.7 : 0.2;
+                                        
+                                        // Activate tracking light
+                                        if (mesh.userData.searchLight) mesh.userData.searchLight.intensity = 4.0;
+                                    }
+                                }
+                                
+                                if (up.action === 'SEARCH_TURN') {
+                                    // Make the ghost snap 90 degrees randomly to search
+                                    const turnDir = (Math.random() > 0.5) ? (Math.PI / 2) : (-Math.PI / 2);
+                                    if (!mesh.userData.mockRot) mesh.userData.mockRot = 0;
+                                    mesh.userData.mockRot += turnDir;
+                                    mesh.rotation.y = mesh.userData.mockRot;
+                                }
+                            }
+                        });
+                        this.checkTriggers();
+                    }
+                });
+
+                // Send procedural setup to parent shell (which routes to Map and AI engines)
+                window.parent.postMessage({
+                    type: 'INIT_ENTITIES',
+                    // The Map and AI brain need the dungeon layout
+                    mapData: this.mapData, 
+                    spawns: this.mobSpawns,
+                    playerSpawn: { x: this.player.x, z: this.player.z }
+                }, '*');
+            },
+
+            // ─── Resizable PiP: wire up canvas contexts + drag logic ───
+            initPipCanvases() {
+                const pipMap = document.getElementById('pip-map-canvas');
+                if (pipMap) { 
+                    this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
+                    this.pipCanvasEl = pipMap;
+                }
+
+                // Ensure ortho target state exists
+                if (!this._pipOrthoTarget) {
+                    this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
+                }
+                
+                if (!this._pipZoomScale) this._pipZoomScale = 1.0; // Normalized baseline scale
+
+                // Inject 10a's window management logic
+                const pip = document.getElementById("mapview-container");
+                if (!pip) return;
+
+                const MIN_W = 200;
+                const MIN_H = 200;
+
+                // Dragging the container & Map Rotation
+                let dragging = false;
+                let mapRotating = false;
+                let mapPanning = false;
+                let dragStart = { x: 0, y: 0, left: 0, top: 0 };
+                let rotStart = { x: 0, y: 0 };
+                let panStart = { x: 0, y: 0 };
+                let clickStart = { x: 0, y: 0 };
+                
+                pip.addEventListener("contextmenu", e => { if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); });
+                
+                // Single-Click cleanly swaps modes (ignoring drags) using reliable MouseUp distance calculation
+                let _clickOriginatedInControls = false;
+                
+                pip.addEventListener("mouseup", (e) => {
+                     if (e.button !== 0) return; // Only process standard left clicks for camera swaps
+                     if (_clickOriginatedInControls) return; // Absolute protection off-target release drops
+                     
+                     const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
+                     if (dist > 5) return; // It was a drag, ignore
+                     
+                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+                         if (e.target.closest(".map-controls")) return;
+
+                         this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
+                         const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
+                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
+                     }
+                });
+                
+                // Double-click instantly snaps panning back to player
+                pip.addEventListener("dblclick", (e) => {
+                     e.stopPropagation();
+                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+                         this._pipPan = { x: 0, z: 0 };
+                     }
+                });
+                
+                // Bind Dynamic Map Controls (Native Buttons)
+                const angleUpBtn = document.getElementById("pip-angle-up");
+                const angleDownBtn = document.getElementById("pip-angle-down");
+                const angleVal = document.getElementById("pip-angle-val");
+                const updateAngleVal = () => { if(angleVal && this._pipRot) angleVal.innerText = this._pipRot.phi.toFixed(2); };
+                
+                if (angleUpBtn) {
+                    angleUpBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
+                        this._pipRot.phi = Math.min(1.5, this._pipRot.phi + 0.05);
+                        updateAngleVal();
+                    };
+                }
+                if (angleDownBtn) {
+                    angleDownBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.65, radius: 25 };
+                        this._pipRot.phi = Math.max(0.1, this._pipRot.phi - 0.05);
+                        updateAngleVal();
+                    };
+                }
+                
+                const zoomInBtn = document.getElementById("pip-zoom-in");
+                const zoomOutBtn = document.getElementById("pip-zoom-out");
+                const distVal = document.getElementById("pip-dist-val");
+                const updateDistVal = () => { if(distVal && this._pipZoomScale) distVal.innerText = this._pipZoomScale.toFixed(1); };
+                
+                if (zoomInBtn) {
+                    zoomInBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this._pipZoomScale = Math.max(3, (this._pipZoomScale || 25) - 2);
+                        updateDistVal();
+                    };
+                }
+                if (zoomOutBtn) {
+                    zoomOutBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this._pipZoomScale = Math.min(80, (this._pipZoomScale || 25) + 2);
+                        updateDistVal();
+                    };
+                }
+                
+                pip.addEventListener("mousedown", (e) => {
+                    clickStart = { x: e.clientX, y: e.clientY };
+                    _clickOriginatedInControls = !!e.target.closest(".map-controls");
+                    
+                    // Allow sliders to bubble naturally to let Chrome initialize Drag state
+                    if (e.target.closest(".resize-handle") || _clickOriginatedInControls) return; 
+                    
+                    e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
+                    
+                    if (e.button === 2) { // Right Click = Orbit map
+                         e.preventDefault();
+                         mapRotating = true;
+                         rotStart.x = e.clientX;
+                         rotStart.y = e.clientY;
+                         document.addEventListener("mousemove", onRotMove);
+                         document.addEventListener("mouseup", onRotEnd, { once: true });
+                         return;
+                    }
+                    if (e.target.closest(".canvas-wrapper")) {
+                        // Left or Middle clicking the actual canvas pans the map
+                        if (e.button === 0 || e.button === 1) { 
+                             e.preventDefault();
+                             mapPanning = true;
+                             panStart.x = e.clientX;
+                             panStart.y = e.clientY;
+                             document.addEventListener("mousemove", onPanMove);
+                             document.addEventListener("mouseup", onPanEnd, { once: true });
+                             return;
+                        }
+                    } else if (e.target.closest(".view-label")) {
+                        // Clicking the Map View header moves the PiP container around the viewport screen
+                        if (e.button === 0) {
+                            const rect = pip.getBoundingClientRect();
+                            dragging = true;
+                            pip.style.willChange = "transform, left, top, width, height";
+                            pip.style.transition = "none";
+                            pip.classList.add("dragging");
+                            dragStart.x = e.clientX;
+                            dragStart.y = e.clientY;
+                            dragStart.left = rect.left;
+                            dragStart.top = rect.top;
+                            document.addEventListener("mousemove", onDragMove);
+                            document.addEventListener("mouseup", onDragEnd, { once: true });
+                            return;
+                        }
+                    }
+                });
+                
+                function clampPiPIntoViewport() {
+                    const rect = pip.getBoundingClientRect();
+                    const vw = window.innerWidth, vh = window.innerHeight;
+                    let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
+                    let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
+                    pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
+                }
+
+                function loadPiPState() {
+                    if (window.innerWidth <= 768) return; // mobile uses sticky full-width
+                    try {
+                        const raw = localStorage.getItem("mapPiPState.v1");
+                        if (!raw) return;
+                        const s = JSON.parse(raw);
+                        if (!s || typeof s !== "object") return;
+                        pip.style.position = "absolute";
+                        if (typeof s.left === "number") { pip.style.left = s.left + "px"; pip.style.right = "auto"; }
+                        if (typeof s.top === "number") pip.style.top = s.top + "px";
+                        if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
+                        if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
+                    } catch {}
+                }
+
+                function savePiPState() {
+                    if (window.innerWidth <= 768) return;
+                    const rect = pip.getBoundingClientRect();
+                    try {
+                        localStorage.setItem("mapPiPState.v1", JSON.stringify({
+                            left: rect.left, top: rect.top, width: rect.width, height: rect.height
+                        }));
+                    } catch {}
+                }
+
+                const onDragMove = (e) => {
+                    if (!dragging) return;
+                    pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
+                    pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
+                    pip.style.right = "auto";
+                };
+                const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
+                
+                const onRotMove = (e) => {
+                    if (!mapRotating) return;
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    
+                    const dx = e.clientX - rotStart.x;
+                    const dy = e.clientY - rotStart.y;
+                    rotStart.x = e.clientX;
+                    rotStart.y = e.clientY;
+                    
+                    this._pipRot.theta -= dx * 0.01;
+                    this._pipRot.phi -= dy * 0.01;
+                    
+                    // Clamp pitch (phi) to prevent going under the map or over exactly top-down
+                    this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
+                };
+                
+                const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
+                
+                const onPanMove = (e) => {
+                    if (!mapPanning) return;
+                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.8, radius: 20 };
+                    
+                    const dx = e.clientX - panStart.x;
+                    const dy = e.clientY - panStart.y;
+                    panStart.x = e.clientX;
+                    panStart.y = e.clientY;
+                    
+                    // Pan relative to camera look angle
+                    const pX = dx * 0.03 * (this._pipRot.radius / 15);
+                    const pZ = dy * 0.03 * (this._pipRot.radius / 15);
+                    
+                    this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
+                    this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
+                };
+                
+                const onPanEnd = () => { mapPanning = false; document.removeEventListener("mousemove", onPanMove); };
+
+                // Resizing logic
+                let resizing = false, currentHandle = "";
+                let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
+                
+                pip.querySelectorAll(".resize-handle").forEach((handle) => {
+                    handle.addEventListener("mousedown", (e) => {
+                        e.stopPropagation(); // prevent FPV camera spin over handles
+                        if (e.button !== 0) return;
+                        e.stopPropagation();
+                        resizing = true;
+                        currentHandle = handle.className.split(" ")[1];
+                        const rect = pip.getBoundingClientRect();
+                        rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
+                        pip.classList.add("resizing");
+                        pip.style.transition = "none";
+                        pip.style.right = "auto"; // Fix to left/top
+                        pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
+                        document.addEventListener("mousemove", onResizeMove);
+                        document.addEventListener("mouseup", onResizeEnd, { once: true });
+                    });
+                });
+                const onResizeMove = (e) => {
+                    if (!resizing) return;
+                    const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
+                    let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
+                    if (currentHandle.includes("e")) nw += dx;
+                    if (currentHandle.includes("s")) nh += dy;
+                    if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
+                    if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
+                    
+                    if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
+                    if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
+                    
+                    pip.style.width = nw + "px"; pip.style.height = nh + "px";
+                    pip.style.left = nl + "px"; pip.style.top = nt + "px";
+                };
+                const onResizeEnd = () => { resizing = false; pip.classList.remove("resizing"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onResizeMove); };
+                
+                // Initialize state
+                loadPiPState();
+                clampPiPIntoViewport();
+            },
+
+            postToAI(msg) {
+                // Route through the parent shell to avoid cross-origin DOM access errors
+                window.parent.postMessage(msg, '*');
+            },
+
+            // Main Loop
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Update delta time for glTF Skeletal Animations
+                let delta = this.clock.getDelta();
+                
+                // --- Visceral Hit-Stop Freeze ---
+                if (performance.now() < this.hitStopUntil) {
+                    delta = 0; // Swallow elapsed time perfectly to freeze the simulation
+                }
+                
+                this.mixers.forEach(mixer => mixer.update(delta));
+                
+                let moveDir = 0;
+                let turnDir = 0;
+                
+                if (this.keys.w) moveDir = 1;
+                if (this.keys.s) moveDir = -1;
+                if (this.keys.a) turnDir = 1;
+                if (this.keys.d) turnDir = -1;
+
+                const currentlyMoving = (moveDir !== 0 || turnDir !== 0);
+                
+                if (this._lastIsMoving !== currentlyMoving) {
+                    this._lastIsMoving = currentlyMoving;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: currentlyMoving }, '*');
+                }
+                
+                // Rotation
+                this.camera.rotation.x = 0; // Baseline X before applying trauma
+                if (turnDir !== 0) {
+                    this.player.rot += turnDir * this.ROT_SPEED * delta;
+                }
+                this.camera.rotation.y = this.player.rot;
+                
+                // Movement
+                if ((moveDir !== 0 || this.player.autoTurnTarget !== null) && !this._haltPlayer) {
+                    // Handle active auto-turn override
+                    if (this.player.autoTurnTarget !== null) {
+                        const target = this.player.autoTurnTarget;
+                        const diff = target - this.player.rot;
+                        
+                        // Normalize diff to -PI .. PI range
+                        let normDiff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                        
+                        // Aggressive snap if we're very close (0.05 radians ~ 2.8 degrees)
+                        if (Math.abs(normDiff) < 0.05) {
+                            this.player.rot = target;
+                            this.player.autoTurnTarget = null;
+                        } else {
+                            // Steer aggressively towards target (twice normal turn speed)
+                            this.player.rot += Math.sign(normDiff) * this.ROT_SPEED * 2.0 * delta;
+                        }
+                        
+                        // Consume the forward movement to pivot in place smoothly
+                        moveDir = 0;
+                    }
+
+                    // Normal movement processing if not consumed by turn
+                    let nextX = this.player.x;
+                    let nextZ = this.player.z;
+
+                    if (moveDir !== 0) {
+                        // Note: moveDir = 1 is forward. In 3D, forward is -z vector.
+                        const speed = this.MOVE_SPEED * delta * moveDir;
+                        const dx = Math.sin(this.player.rot) * speed;
+                        const dz = Math.cos(this.player.rot) * speed;
+                        
+                        let colX = null, colZ = null;
+                        
+                        // Standard wandering physics and physical collision sweeps
+                        nextX -= dx; 
+                        nextZ -= dz;
+                        
+                        const radius = 0.35; // Collision radius (grid units)
+                        
+                        colX = this.checkCollision(nextX, this.player.z, radius);
+                        if (colX) nextX = this.player.x;
+                        
+                        colZ = this.checkCollision(nextX, nextZ, radius);
+                        if (colZ) nextZ = this.player.z;
+                        
+                        // Active Combat Distance Lock: Intercept forward movement ONLY if physically bumping the target
+                        if (moveDir === 1 && (typeof colX === 'object' || typeof colZ === 'object')) {
+                            const targetMesh = typeof colX === 'object' ? colX : colZ;
+                            const now = performance.now();
+                            if (targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
+                                this.lastAttackTime = now;
+                                
+                                if (targetMesh.userData.type === 'enemy') {
+                                    
+                                    // FIRST STRIKE WAGER EVENT (Goblin Retreats & Player Advances)
+                                    if (!targetMesh.userData.firstStrikeIssued) {
+                                        targetMesh.userData.firstStrikeIssued = true;
+                                        
+                                        // Grid vectors (-sin/cos face forward in Three.js coordinate system)
+                                        const dxGrid = -Math.sin(this.player.rot);
+                                        const dzGrid = -Math.cos(this.player.rot);
+                                        
+                                        // Calculate the target grid for the Goblin's retreat
+                                        const retreatGridX = (targetMesh.position.x / this.gridSize) + dxGrid;
+                                        const retreatGridZ = (targetMesh.position.z / this.gridSize) + dzGrid;
+                                        
+                                        // Check if the wall behind the Goblin is solid
+                                        if (!this.checkCollision(retreatGridX, retreatGridZ, 0.4)) {
+                                            // Safe to push Goblin backward 1 full grid tile (World Coordinates)
+                                            targetMesh.position.x += dxGrid * this.gridSize;
+                                            targetMesh.position.z += dzGrid * this.gridSize;
+                                            
+                                            // Pull Player forwards 1 grid tile into vacated spot (Logical Grid Coordinates)
+                                            nextX = this.player.x + dxGrid;
+                                            nextZ = this.player.z + dzGrid;
+                                            this.player.x = nextX;
+                                            this.player.z = nextZ;
+                                        }
+                                        // If blocked by a wall, they both just hold their ground to talk!
+                                        
+                                        // Pop the Wager Chat
+                                        fetch('js/data/haikus.json').then(r=>r.json()).then(data => {
+                                            const hList = data.combat_haikus || [];
+                                            const haiku = hList[Math.floor(Math.random() * hList.length)].replace(/\//g, ' ');
+                                            this.spawnChatBubble("Are you sure you wish to gamble only your life?", haiku, targetMesh);
+                                        }).catch(e => console.warn(e));
+                                        
+                                        // Bypass actual combat hit and return!
+                                        return; 
+                                    }
+
+                                    // SECOND STRIKE: Goblin becomes hostile!
+                                    if (!targetMesh.userData.isHostile) {
+                                        targetMesh.userData.isHostile = true;
+                                        // Spawn hostile text instantly on breaking wager
+                                        fetch('js/data/haikus.json').then(r=>r.json()).then(data => {
+                                            const mList = data.mad_haikus || ["You reject my wager?! Let the dice roll!"];
+                                            const haiku = mList[Math.floor(Math.random() * mList.length)].replace(/\//g, ' ');
+                                            this.spawnChatBubble("FOOLISH GAMBLER!", haiku, targetMesh);
+                                        }).catch(e => {
+                                            this.spawnChatBubble("FOOLISH GAMBLER!", "You reject my wager?! Let the dice roll!", targetMesh);
+                                        });
+                                    }
+
+                                    // Trigger combat messsage
+                                    const finalDamage = window.CombatEngine ? window.CombatEngine.resolveMeleeStrike('Player', 25) : 25;
+                                    
+                                    this.addCameraTrauma(0.4);
+                                    this.triggerHitStop(40);
+                                    
+                                    // Execute Player Melee Logic
+                                    // Retaliation is now handled natively via the new updateCombatAI loop!
+                                    // By uncoupling the counter-attack from the physics bump, the monster fights dynamically!
+                                    // (Visual weapon hit swing handled by engine if user attacks again).
+                                    
+                                    window.parent.postMessage({
+                                        type: 'COMBAT_ATTACK',
+                                        targetId: targetMesh.userData.id,
+                                        damage: finalDamage,
+                                        x: Math.round(targetMesh.position.x / this.gridSize),
+                                        z: Math.round(targetMesh.position.z / this.gridSize)
+                                    }, '*');
+                                    
+                                    // Deal actual math damage natively
+                                    targetMesh.userData.hp -= finalDamage;
+                                    window.parent.postMessage({ type: 'SHOW_COMBAT', health: targetMesh.userData.hp, maxHp: targetMesh.userData.maxHp ?? 50, name: targetMesh.userData.name || 'Yakuza Goblin', entityType: targetMesh.userData.type || 'enemy' }, '*');
+                                    
+                                    if (targetMesh.userData.hp <= 0) {
+                                        window.postMessage({ type: 'AI_DEATH', id: targetMesh.userData.id }, '*');
+                                    }
+                                    
+                                    // Physical bump initiates turn-based counter-attack
+                                    setTimeout(() => {
+                                        if (targetMesh && !targetMesh.userData.isDead) {
+                                            targetMesh.userData.lastAIStrike = performance.now(); // Postpone Real-time AI
+                                            
+                                            const mixer = targetMesh.userData.mixer;
+                                            const slashAnim = targetMesh.userData.attackAction;
+                                            
+                                            const executeGoblinStrike = () => {
+                                                if (targetMesh && !targetMesh.userData.isDead) {
+                                                    if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
+                                                    this.player.hp = Math.max(0, this.player.hp - 10);
+                                                    window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                                    this.addCameraTrauma(0.6);
+                                                }
+                                            };
+                                            
+                                            if (mixer && slashAnim) {
+                                                mixer.stopAllAction();
+                                                slashAnim.reset();
+                                                slashAnim.setLoop(THREE.LoopOnce, 1);
+                                                slashAnim.clampWhenFinished = true;
+                                                slashAnim.play();
+                                                setTimeout(executeGoblinStrike, 250);
+                                            } else {
+                                                executeGoblinStrike();
+                                            }
+                                        }
+                                    }, 300);
+                                    
+                                }
+                                
+                                // Violent spatial recoil removed to prevent Auto-Turn collision snapping.
+                                // The player will simply stand adjacent to trade blows.
+                                nextX = this.player.x;
+                                nextZ = this.player.z;
+                            }
+                        }
+
+                        // Trigger Auto-Turn Feature
+                        const justAttacked = this.lastAttackTime && (performance.now() - this.lastAttackTime < 800);
+                        if (moveDir === 1 && turnDir === 0 && (colX || colZ) && !this.activeTarget && this.player.autoTurnTarget === null && !justAttacked) {
+
+                            // Snap current rotation to nearest cardinal direction to prevent mid-turn check failure
+                            const cardinalRot = Math.round(this.player.rot / (Math.PI/2)) * (Math.PI/2);
+                                
+                                const checkDist = 1.0; 
+                                const leftRot = cardinalRot + Math.PI/2;
+                                const rightRot = cardinalRot - Math.PI/2;
+                                
+                                const leftBlocked = this.checkCollision(this.player.x - Math.sin(leftRot)*checkDist, this.player.z - Math.cos(leftRot)*checkDist, radius);
+                                const rightBlocked = this.checkCollision(this.player.x - Math.sin(rightRot)*checkDist, this.player.z - Math.cos(rightRot)*checkDist, radius);
+                                
+                                if (!leftBlocked && rightBlocked) {
+                                    this.player.autoTurnTarget = leftRot; 
+                                } else if (!rightBlocked && leftBlocked) {
+                                    this.player.autoTurnTarget = rightRot; 
+                                } else if (!leftBlocked && !rightBlocked) {
+                                    // T-Junction: Pick a consistent direction (Right-Hand Rule)
+                                    this.player.autoTurnTarget = rightRot; 
+                                }
+                        }
+                    }
+                    
+                    this.player.x = nextX;
+                    this.player.z = nextZ;
+                }
+                
+                // Grid change detection for AI and Triggers
+                const curGridX = Math.round(this.player.x);
+                const curGridZ = Math.round(this.player.z);
+                const curRotDirX = Math.round(-Math.sin(this.player.rot));
+                const curRotDirZ = Math.round(-Math.cos(this.player.rot));
+                if (this.lastGridX !== curGridX || this.lastGridZ !== curGridZ || this.lastRotDirX !== curRotDirX || this.lastRotDirZ !== curRotDirZ) {
+                    this.lastGridX = curGridX;
+                    this.lastGridZ = curGridZ;
+                    this.lastRotDirX = curRotDirX;
+                    this.lastRotDirZ = curRotDirZ;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ }, '*');
+                }
+                
+                // Check LoS triggers securely per frame instead of bound to integer positions, protecting against fast rotations
+                this.checkTriggers();
+                
+                // State emission for UI styling (e.g. guide panels fading)
+                if (currentlyMoving && !this.isMoving) {
+                    this.isMoving = true;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: true }, '*');
+                } else if (!currentlyMoving && this.isMoving) {
+                    this.isMoving = false;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: false }, '*');
+                    window.parent.postMessage({ type: 'PLAYER_IDLE' }, '*');
+                }
+                
+                // Camera Realism: Head Bobbing & Sway
+                // ---------------------------------------------------------------------
+                const BOB_FREQ = 12.0;   // How fast the steps are
+                
+                if (currentlyMoving) {
+                    this.bobTimer += delta * BOB_FREQ;
+                    // The 'Math.abs(Math.sin)' makes a sharp bounce on each footfall, typical of old-school crawlers
+                    this.bobHeight = Math.abs(Math.sin(this.bobTimer)) * this.BOB_AMP;
+                    this.bobSway = Math.cos(this.bobTimer / 2) * this.SWAY_AMP; // Half speed sway for weight shift
+                } else {
+                    // Smoothly ease back to rest position when stopped (clamped to prevent delta explosion on lag)
+                    this.bobTimer = 0;
+                    const lerpFactor = Math.min(1.0, 10 * delta); // PREVENT EXPLOSION!
+                    this.bobHeight += (0 - this.bobHeight) * lerpFactor;
+                    this.bobSway += (0 - this.bobSway) * lerpFactor;
+                }
+                
+                // Apply final smoothed transforms to the camera
+                let camX = (this.player.x * this.gridSize) + (Math.cos(this.camera.rotation.y) * this.bobSway);
+                let camY = 1.84 + this.bobHeight; // Eye level + bob bounce
+                let camZ = (this.player.z * this.gridSize) + (Math.sin(this.camera.rotation.y) * this.bobSway);
+                let camRotZ = this.bobSway * -0.5; // Slight tilt during weight shift
+                
+                // --- Camera Trauma (AAA Hit Feedback) ---
+                if (this.cameraTrauma > 0) {
+                    // Decay trauma over time (recover fully in 0.5 seconds at 60fps)
+                    // If hitStop is currently active, don't decay the trauma so the pause feels maximal
+                    if (performance.now() >= this.hitStopUntil) {
+                        this.cameraTrauma = Math.max(0, this.cameraTrauma - (delta * 2.0));
+                    }
+                    
+                    const traumaSquare = this.cameraTrauma * this.cameraTrauma;
+                    const maxOffset = 0.5; // Half a grid unit maximum violent shake
+                    const maxRot = Math.PI / 16;
+                    
+                    camX += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camY += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camZ += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camRotZ += maxRot * traumaSquare * (Math.random() * 2 - 1);
+                    this.camera.rotation.x += maxRot * traumaSquare * (Math.random() * 2 - 1);
+                    this.camera.rotation.y += maxRot * traumaSquare * (Math.random() * 2 - 1);
+                }
+                
+                this.camera.position.set(camX, camY, camZ);
+                this.camera.rotation.z = camRotZ;
+                
+                // Procedural Breathing & State Machine AI (IDLE, CHASE, SEARCH, RETURN)
+                // TIME-STOP / TURN-BASED: Freeze time and logic if player is idle
+                if (currentlyMoving) {
+                    this.gameTime += delta; 
+                }
+                const time = this.gameTime * 2.5; // Equivalent scaling to the old Date.now() * 0.0025
+                
+                if (this.worldGroup && currentlyMoving) {
+                    
+                    // Raycaster setup for LoS
+                    const pPos = new THREE.Vector3(this.player.x * this.gridSize, 1.0, this.player.z * this.gridSize);
+                    
+                    // Use the walls array generated during buildWorldGeometry()
+                    const walls = this.walls || [];
+
+                    this.worldGroup.children.forEach(child => {
+                        if (child.userData && child.userData.type === 'enemy') {
+                            const model = child.children[0];
+                            const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
+                            
+                            // 1. Calculate Grid Distance to camera for Proximity Fading
+                            const mPosV = new THREE.Vector3().copy(child.position);
+                            mPosV.y += 1.0; 
+                            const cPosV = new THREE.Vector3().copy(this.camera.position);
+                            const distToPlayerGrid = cPosV.distanceTo(mPosV) / this.gridSize;
+
+                            // Monsters are always visible — scene fog handles natural distance fade
+                            child.visible = !child.userData.isDead;
+                            let targetOpacity = this.fxConfig.baseOpacity;
+                            
+                            const isCombatTarget = this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.id === child.userData.id;
+
+                            if (model && child.visible) {
+                                // Dynamic Translucency mapping
+                                model.traverse((n) => {
+                                    if (n.isMesh && n.material) {
+                                        const mats = Array.isArray(n.material) ? n.material : [n.material];
+                                        mats.forEach(mat => {
+                                            if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
+                                                if (targetOpacity <= 0.05) mat.opacity = 0.0; 
+                                                else mat.opacity = 1.0;
+                                            } else if (mat.name !== 'mist') { // Don't override mist physics
+                                                mat.transparent = true;
+                                                mat.opacity = Math.min(targetOpacity, 0.45); // Ghostly transparency request
+                                                // Glass properties are now statically updated by the dat.gui onChange events
+                                            }
+                                        });
+                                    }
+                                });
+                                
+                                // Ethereal Float Engine
+                                if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
+                                if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
+                                
+                                // "yakuza goblin needs to gently float up and down by 1 foot either direction" (1 foot = 0.1 units)
+                                const isInteracting = (isCombatTarget || distToPlayerGrid <= 2.0);
+                                const floatAmp = isInteracting ? 0.15 : 0.1; 
+                                const floatOffset = isInteracting ? 1.0 : 0.1; // Gentle hover to prevent clipping
+                                
+                                // Lerp the model's Y position physically into the air relative to its original bounding box base
+                                const targetY = model.userData.baseY + floatOffset + Math.sin(time * 2.0 + child.userData.bobPhase) * floatAmp;
+                                model.position.y += (targetY - model.position.y) * 0.1;
+                            }
+                            
+                            if (model && !child.userData.mixer) {
+                                // Swirl Mist Particles
+                                if (child.userData.mistGroup) {
+                                    child.userData.mistGroup.rotation.y += delta * 0.4; // Rotate entire cloud slowly
+                                    child.userData.mistGroup.children.forEach(sprite => {
+                                        sprite.position.y = 0.2 + Math.abs(Math.sin(time * sprite.userData.speed + sprite.userData.angleOffset)) * 1.5;
+                                        const s = 3.0 + Math.sin(time * sprite.userData.speed * 2.0) * 1.2;
+                                        sprite.scale.set(s, s, s);
+                                        sprite.material.opacity = 0.6 + Math.sin(time * sprite.userData.speed) * 0.4;
+                                    });
+                                }
+                            }
+                            
+                            if (!aiData) return;
+                            
+                            // Line of Sight Check (True 3D Raycaster as requested)
+                            this._anim_mPos.copy(child.position);
+                            this._anim_mPos.y += 1.0; // Aim at chest height
+                            this._anim_cPos.copy(this.camera.position);
+                            
+                            const distToPlayer3D = this._anim_cPos.distanceTo(this._anim_mPos);
+                            this._anim_dirToPlayer3D.subVectors(this._anim_cPos, this._anim_mPos).normalize();
+                            this._anim_dirFromPlayer3D.subVectors(this._anim_mPos, this._anim_cPos).normalize();
+                            
+                            let hasLoS = true;
+                            // Limit sight strictly to 40 feet (4 grids * approx dist)
+                            if (distToPlayer3D > (4.0 * this.gridSize)) {
+                                hasLoS = false;
+                            } else {
+                                this._anim_ray.set(this._anim_cPos, this._anim_dirFromPlayer3D);
+                                // Mathematical AABB loop
+                                for (const box of this.wallBoxes) {
+                                    if (this._anim_ray.intersectBox(box, this._anim_target)) {
+                                        if (this._anim_cPos.distanceTo(this._anim_target) < (distToPlayer3D - 0.5)) {
+                                            hasLoS = false; // Blocked by wall AABB
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 90-degree frontal arc check for the monster (Front is local +Z)
+                            // Calculate if player is in front of the monster's current rotation
+                            this._anim_mFacingDir.set(0, 0, 1);
+                            this._anim_mFacingDir.applyAxisAngle(this._anim_upAxis, child.rotation.y);
+                            const monsterDot = this._anim_dirToPlayer3D.dot(this._anim_mFacingDir);
+                            
+                            // If the monster is IDLE or RETURN, it can only spot the player if within frontal arc (~90 degrees -> dot > ~0.707)
+                            if (hasLoS && monsterDot < 0.707 && (aiData.state === 'IDLE' || aiData.state === 'RETURN')) {
+                                hasLoS = false; 
+                            }
+
+                            // State Machine Transitions
+                            if (hasLoS) {
+                                aiData.state = 'CHASE';
+                                aiData.searchTimer = 0;
+                            } else if (aiData.state === 'CHASE') {
+                                aiData.state = 'SEARCH';
+                                aiData.searchTimer = 0;
+                            }
+                            
+                            // State Execution
+                            let viewAngle = 0; // Where is the monster looking?
+                            
+                            if (aiData.state === 'CHASE') {
+                                // Move towards player
+                                const angle = Math.atan2(this._anim_dirToPlayer3D.x, this._anim_dirToPlayer3D.z);
+                                // The model itself and the arrow face local +Z. Rotate wrapper to point +Z at player.
+                                child.rotation.y = angle; 
+                                
+                                const dx = Math.sin(angle) * (aiData.speed * 0.75) * delta;
+                                const dz = Math.cos(angle) * (aiData.speed * 0.75) * delta;
+                                child.position.x += dx;
+                                child.position.z += dz;
+                                
+                                // Update colors (Red when chasing/attacking)
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#ff0000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#ff0000');
+                                    }
+                                    child.userData.baseMat.opacity = 0.9;
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                
+                            } else if (aiData.state === 'SEARCH') {
+                                aiData.searchTimer += delta;
+                                // Stand still, scan left and right
+                                child.rotation.y += Math.sin(time * 2) * delta;
+                                // Hold solid Black for Search state
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
+                                    }
+                                }
+                                
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
+
+                                if (aiData.searchTimer > 4.0) { // 4 seconds of searching
+                                    aiData.state = 'RETURN';
+                                }
+                                
+                            } else if (aiData.state === 'RETURN') {
+                                this._anim_hPos.set(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
+                                this._anim_dirToHome.subVectors(this._anim_hPos, this._anim_mPos);
+                                const distToHome = this._anim_dirToHome.length();
+                                
+                                if (distToHome < 0.5) {
+                                    aiData.state = 'IDLE';
+                                } else {
+                                    this._anim_dirToHome.normalize();
+                                    const angle = Math.atan2(this._anim_dirToHome.x, this._anim_dirToHome.z);
+                                    child.rotation.y = angle;
+                                    
+                                    const dx = Math.sin(angle) * aiData.speed * delta;
+                                    const dz = Math.cos(angle) * aiData.speed * delta;
+                                    child.position.x += dx;
+                                    child.position.z += dz;
+                                }
+                                
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000'); // Black return
+                                    }
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                                
+                            } else {
+                                // IDLE
+                                if (child.userData.baseMat) {
+                                    if (child.userData.baseMat.map !== this.getCachedCircleTexture('#000000')) {
+                                        child.userData.baseMat.map = this.getCachedCircleTexture('#000000');
+                                    }
+                                    child.userData.baseMat.opacity = 0.5;
+                                }
+                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+                            }
+                            
+                            // Explicit override for the side-panel logic!
+                            // :when sidepanels come up = goblin floats up in the air and circle turns red.
+                            if (isCombatTarget && child.userData.baseMat) {
+                                child.userData.baseMat.map = this.getCachedCircleTexture(child.userData.stateColor || '#000000');
+                                child.userData.baseMat.opacity = 0.9;
+                            }
+                        }
+                    });
+                }
+                
+                // ---------------------------------------------------------------------
+                // RENDER PASSES
+                // ---------------------------------------------------------------------
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                
+                // Render FPV Frame — viewport/scissor now set per-mode inside the RENDER PASSES block below
+
+                // --- ENTITY IDLE ANIMATIONS & COMBAT LEVITATION ---
+                if (this.worldGroup) {
+                    for (let i = 0; i < this.worldGroup.children.length; i++) {
+                        const child = this.worldGroup.children[i];
+                        
+                        // Smooth Levitation Interpolation for Combat Intros (moves the "floor base" up)
+                        if (child.userData && child.userData.targetY !== undefined) {
+                            child.userData.baseY += (child.userData.targetY - child.userData.baseY) * 2.0 * delta;
+                        }
+
+                        // Goblin Retreat
+                        if (child.userData.isRetreating) {
+                            child.position.x += (child.userData.retreatX - child.position.x) * 4.0 * delta;
+                            child.position.z += (child.userData.retreatZ - child.position.z) * 4.0 * delta;
+                            child.userData.baseY += (1.0 - child.userData.baseY) * 2.0 * delta; // Float up
+                            
+                            if (Math.abs(child.position.x - child.userData.retreatX) < 0.1 && 
+                                Math.abs(child.position.z - child.userData.retreatZ) < 0.1) {
+                                child.userData.isRetreating = false;
+                            }
+                        }
+
+                        // Imp positioning and floating
+                        if (child.userData.type === 'imp') {
+                            child.userData.baseY += (1.5 - child.userData.baseY) * 2.0 * delta;
+                            
+                            // Specific clock logic based on original design
+                            child.position.y = child.userData.baseY + Math.sin(this.clock.getElapsedTime() * 2.0 + (child.userData.id.endsWith('_0') ? 0 : Math.PI)) * 0.2;
+                            
+                            // Face player constantly
+                            const angle = Math.atan2(this.camera.position.x - child.position.x, this.camera.position.z - child.position.z);
+                            child.rotation.y = angle;
+                        }
+                        
+                        // Slow ethereal ghost float for entities elevated off the floor (baseY > 0.05)
+                        if (child.userData && child.userData.idlePhase !== undefined && child.userData.type !== 'player') {
+                            const baseY = child.userData.baseY || 0;
+                            if (baseY > 0.05) {
+                                // Slow ghostly hover: 0.7hz, 0.35 amplitude — looks supernatural in the air
+                                child.position.y = baseY + Math.sin(this.clock.getElapsedTime() * 0.7 + child.userData.idlePhase) * 0.35;
+                            } else {
+                                // Subtle idle floor bob when standing
+                                child.position.y = baseY + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.07;
+                            }
+                        }
+                        
+                        // Dice physics and garbage collection
+                        if (child.userData && child.userData.isDice) {
+                            child.position.x += child.userData.vX;
+                            child.position.y += child.userData.vY;
+                            child.position.z += child.userData.vZ;
+                            child.userData.vY -= 0.005; // Gravity
+                            
+                            child.rotation.x += child.userData.rX;
+                            child.rotation.y += child.userData.rY;
+                            child.rotation.z += child.userData.rZ;
+                            
+                            // Fast floor collision
+                            if (child.position.y < 0.15) {
+                                child.position.y = 0.15;
+                                child.userData.vY *= -0.6; // Bounce
+                                child.userData.vX *= 0.8; // Ground friction
+                                child.userData.vZ *= 0.8;
+                                child.userData.rX *= 0.8;
+                                child.userData.rY *= 0.8;
+                                child.userData.rZ *= 0.8;
+                            }
+                            
+                            child.userData.life -= (delta * 60); // decrement based on time/frames
+                            if (child.userData.life <= 0) {
+                                child.scale.multiplyScalar(0.9);
+                                if (child.scale.x < 0.01) {
+                                    this.worldGroup.remove(child);
+                                    i--; // Adjust array index since element was removed
+                                }
+                            }
+                        }
+                        
+                        // Spell impact particle physics & fade
+                        if (child.userData && child.userData.isSpellParticle) {
+                            child.position.x += child.userData.vX;
+                            child.position.y += child.userData.vY;
+                            child.position.z += child.userData.vZ;
+                            child.userData.vY -= 0.006;
+                            child.userData.vX *= 0.94;
+                            child.userData.vZ *= 0.94;
+                            child.userData.life--;
+                            if (child.material) child.material.opacity = Math.max(0, child.userData.life / 45);
+                            if (child.userData.life <= 0) {
+                                if (child.material) child.material.dispose();
+                                if (child.geometry) child.geometry.dispose();
+                                this.worldGroup.remove(child); i--;
+                            }
+                        }
+
+                        // --- ROCK FRAGMENT PHYSICS (boulder explosion debris) ---
+                        if (child.userData?.isRockFrag) {
+                            child.position.x += child.userData.vX * 0.016;
+                            child.position.y += child.userData.vY * 0.016;
+                            child.position.z += child.userData.vZ * 0.016;
+                            child.userData.vY -= 0.008;   // gravity at ~60fps
+                            child.userData.vX *= 0.98;
+                            child.userData.vZ *= 0.98;
+                            child.rotation.x  += child.userData.rX;
+                            child.rotation.y  += child.userData.rY;
+                            child.rotation.z  += child.userData.rZ;
+                            if (child.position.y < 0.08) {
+                                child.position.y  = 0.08;
+                                child.userData.vY *= -0.18;   // low bounce — heavy debris
+                                child.userData.vX *= 0.60;
+                                child.userData.vZ *= 0.60;
+                            }
+                            child.userData.life--;
+                            if (child.userData.life <= 0) {
+                                if (child.material) child.material.dispose();
+                                if (child.geometry) child.geometry.dispose();
+                                this.worldGroup.remove(child); i--;
+                            }
+                        }
+                    }
+                }
+
+                // Active Chat Bubble Tracking & Billboarding
+                if (this.activeChat && this.activeChat.mesh && this.activeChat.target) {
+                    const tPos = new THREE.Vector3();
+                    this.activeChat.target.getWorldPosition(tPos);
+                    
+                    this.activeChat.mesh.position.copy(tPos);
+                    // The origin of the chat group is the tip of its tail.
+                    // Pin it lower down on the Gobin's body so it stays comfortably in the camera frame at close range.
+                    this.activeChat.mesh.position.y += 0.8; 
+                    
+                    // Push chat bubble slightly towards the camera by 0.6 units so the tail tip points OUTSIDE the monster's face
+                    const camPos = new THREE.Vector3();
+                    this.camera.getWorldPosition(camPos);
+                    const toCam = new THREE.Vector3().subVectors(camPos, tPos).normalize();
+                    this.activeChat.mesh.position.addScaledVector(toCam, 0.6); 
+                    
+                    // Always face the player
+                    this.activeChat.mesh.lookAt(camPos);
+
+                    if (this.activeChat.fading) {
+                        this.activeChat.mesh.scale.multiplyScalar(0.8);
+                        if (this.activeChat.mesh.scale.x < 0.01) {
+                            this.scene.remove(this.activeChat.mesh);
+                            this.activeChat = null;
+                        }
+                    }
+                }
+
+                // --- Autonomous Monster Combat Logic ---
+                // Locked behind player movement to maintain a True Turn-Based system when holding ground!
+                if (currentlyMoving) {
+                    this.updateCombatAI(delta);
+                }
+
+                // --- BOULDER PHYSICS ---
+                for (let bi = this.boulders.length - 1; bi >= 0; bi--) {
+                    const b = this.boulders[bi];
+
+                    // Gravity arc
+                    b.userData.vY -= 18.0 * delta;
+                    b.position.x += b.userData.vX * delta;
+                    b.position.y += b.userData.vY * delta;
+                    b.position.z += b.userData.vZ * delta;
+
+                    // Realistic rolling spin on axis perpendicular to travel
+                    if (b.userData.spinAxis) {
+                        const spd2D = Math.hypot(b.userData.vX, b.userData.vZ);
+                        b.rotateOnWorldAxis(b.userData.spinAxis, spd2D * delta * 0.6);
+                    }
+
+                    // Floor bounce (damped — heavy rock)
+                    if (b.position.y < 0.55) {
+                        b.position.y = 0.55;
+                        b.userData.vY = Math.abs(b.userData.vY) * 0.28;
+                        b.userData.vX *= 0.88;
+                        b.userData.vZ *= 0.88;
+                    }
+
+                    // Wall AABB collision check
+                    const bGX = Math.round(b.position.x / this.gridSize);
+                    const bGZ = Math.round(b.position.z / this.gridSize);
+                    const bWallHit = (bGX < 0 || bGX >= this.mapWidth || bGZ < 0 || bGZ >= this.mapHeight)
+                                  || (this.mapData[bGX]?.[bGZ]?.type === 'wall');
+
+                    if (bWallHit) {
+                        const ep = b.position.clone();
+                        this.scene.remove(b);
+                        this.boulders.splice(bi, 1);
+                        this.spawnRockExplosion(ep);
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: '\uD83D\uDCA5 BOULDER smashes the wall!' }, '*');
+                        continue;
+                    }
+
+                    // Entity collision (1.1 world-unit hit radius)
+                    let bHitEntity = false;
+                    if (this.worldGroup) {
+                        for (const child of [...this.worldGroup.children]) {
+                            if (child.userData?.type === 'enemy' && !child.userData.isDead) {
+                                if (b.position.distanceTo(child.position) < 1.1) {
+                                    const ep = b.position.clone();
+                                    this.scene.remove(b);
+                                    this.boulders.splice(bi, 1);
+                                    this.flattenGoblin(child, b.userData.dmg);
+                                    this.spawnRockExplosion(ep);
+                                    bHitEntity = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (bHitEntity) continue;
+                }
+
+                // --- ITEM SPINS ---
+                if (this.katanaRef) {
+                    this.katanaRef.userData.floatTimer += delta;
+                    this.katanaRef.position.y = this.katanaRef.userData.basePos + Math.sin(this.katanaRef.userData.floatTimer * 3.0) * 0.15;
+                    this.katanaRef.rotation.y += delta * 0.8;
+                }
+
+                // --- PROCEDURAL LOOT PHYSICS ---
+                if (this.lootItems && this.lootItems.length > 0) {
+                    const pGridX = Math.round(this.player.x);
+                    const pGridZ = Math.round(this.player.z);
+
+                    for (let i = this.lootItems.length - 1; i >= 0; i--) {
+                        const loot = this.lootItems[i];
+                        loot.userData.floatTimer += delta;
+                        loot.position.y = loot.userData.basePos + Math.sin(loot.userData.floatTimer * 2.5) * 0.18;
+                        // All loot spins gracefully on Y axis
+                        loot.rotation.y += delta * (loot.userData.type === 'loot_gold' ? 2.0 : 1.2);
+                        
+                        if (loot.userData.iconMesh) {
+                            // Removed extreme 3D spinning tumbling per user request
+                            // small flat pulse effect
+                            const s = 1.0 + Math.sin(loot.userData.floatTimer * 5.0) * 0.1;
+                            loot.userData.iconMesh.scale.set(s,s,s);
+                        }
+                        
+                        // Proximity Check
+                        if (loot.userData.gridX === pGridX && loot.userData.gridZ === pGridZ) {
+                            if (loot.userData.type === 'loot_gold') {
+                                this.player.gold += loot.userData.value;
+                                window.parent.postMessage({ type: 'LOG_EVENT', text: `Looted ${loot.userData.value} Gold!`, logType: 'system' }, '*');
+                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                this.triggerHitStop(20); // Small audio/visual bump
+                            } else if (loot.userData.type === 'loot_cards') {
+                                window.parent.postMessage({ type: 'LOOT_CARDS' }, '*');
+                                this.triggerHitStop(40);
+                                
+                                // YOU GOT! Card Showcase Overlay
+                                if (loot.userData.cardDataURL) {
+                                    const pNode = document.createElement('div');
+                                    pNode.style.cssText = "position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); z-index:9000; text-align:center; pointer-events:none; animation: cardLootAnim 2.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;";
+                                    pNode.innerHTML = `
+                                        <h1 style="color:#00ffcc; font-size:62px; text-shadow:0 0 30px #00ffcc; margin-bottom: 20px; font-weight:900; letter-spacing:4px; font-family: 'Impact', sans-serif;">YOU GOT!</h1>
+                                        <img src="${loot.userData.cardDataURL}" style="width:240px; height:360px; border-radius:18px; box-shadow: 0 0 50px rgba(0,255,200,0.4);" />
+                                    `;
+                                    document.getElementById('game-container').appendChild(pNode);
+                                    
+                                    if (!document.getElementById('animStyleLoot')) {
+                                        const s = document.createElement('style');
+                                        s.id = 'animStyleLoot';
+                                        s.innerHTML = `@keyframes cardLootAnim { 0% { opacity:0; transform:translate(-50%, -40%) scale(0.5); } 15% { opacity:1; transform:translate(-50%, -50%) scale(1.1); } 30% { transform:translate(-50%, -50%) scale(1); } 80% { opacity:1; transform:translate(-50%, -50%) scale(1); } 100% { opacity:0; transform:translate(-50%, -50%) scale(1.05); } }`;
+                                        document.head.appendChild(s);
+                                    }
+                                    
+                                    setTimeout(() => pNode.remove(), 2500);
+                                }
+                            }
+                            
+                            this.worldGroup.remove(loot);
+                            if (loot.material) loot.material.dispose();
+                            if (loot.geometry) loot.geometry.dispose();
+                            this.lootItems.splice(i, 1);
+                        }
+                    }
+                }
+                // --- FOG OF WAR REMOVED ---
+
+                // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
+                const container = document.getElementById('mapview-container');
+                const canvasWrapper = container ? container.querySelector('.canvas-wrapper') : null;
+                const wrapperRect = canvasWrapper ? canvasWrapper.getBoundingClientRect() : null;
+                
+                // Track dynamic PiP dimensions
+                const pipW = wrapperRect ? Math.round(wrapperRect.width) : 200;
+                const pipH = wrapperRect ? Math.round(wrapperRect.height) : 200;
+                const pipLeft = wrapperRect ? Math.round(wrapperRect.left) : winW - pipW - 20;
+                const pipBottom = wrapperRect ? Math.round(winH - wrapperRect.bottom) : winH - pipH - 20;
+                const webglTop = wrapperRect ? Math.round(wrapperRect.top) : 20;
+                
+                // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
+                const pr = this.renderer.getPixelRatio();
+                const hdW = Math.max(1, Math.round(pipW * pr));
+                const hdH = Math.max(1, Math.round(pipH * pr));
+                
+                if (this.pipCanvasEl && (this.pipCanvasEl.width !== hdW || this.pipCanvasEl.height !== hdH)) {
+                    this.pipCanvasEl.width = hdW;
+                    this.pipCanvasEl.height = hdH;
+                    // Reset CSS style size so physical pixels scale down cleanly to logical pixels
+                    this.pipCanvasEl.style.width = pipW + 'px';
+                    this.pipCanvasEl.style.height = pipH + 'px';
+                }
+
+                // ── Update ortho zoom ──
+                if (this.topDownCamera) {
+                    this.topDownCamera.layers.enable(1);
+                    this.topDownCamera.layers.enable(3); // Ensure Layer 3 (Map-only Avatar) is visible
+                    const pGX = Math.round(this.player.x);
+                    const pGZ = Math.round(this.player.z);
+                    
+                    // The _pipZoomScale acts as a multiplier of gridSize to dictate FOV window size.
+                    let tgtHW = this.gridSize * this._pipZoomScale;
+                    let tgtHH = this.gridSize * this._pipZoomScale;
+                    let camWX = this.player.x * this.gridSize;
+                    let camWZ = this.player.z * this.gridSize;
+
+                    // Track interpolation targets to allow camera damping
+                    if (this._pipOrthoTarget.cx === undefined) {
+                        this._pipOrthoTarget.cx = camWX;
+                        this._pipOrthoTarget.cz = camWZ;
+                    }
+
+                    // Refactored TopDown into a premium Isometric perspective
+                    const lf = Math.min(1, delta * 4.0);
+                    const camTrackSpeed = Math.min(1, delta * 2.5); // Smooth cinematic map tracking
+                    
+                    this._pipOrthoTarget.hw += (tgtHW - this._pipOrthoTarget.hw) * lf;
+                    this._pipOrthoTarget.hh += (tgtHH - this._pipOrthoTarget.hh) * lf;
+                    
+                    // Smooth tracking catch up WITH panning offset
+                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+                    
+                    // Cinematic ARPG Diablo Offset using Orbit Spherical Coords
+                    // Initialize phi steep (0.65) for diablo isometric look
+                    this._pipRot = this._pipRot || { theta: 0, phi: 0.65, radius: 25 };
+                    
+                    // Directly use _pipZoomScale which was exactly bound from the distance slider. Fallback to 25 (approx 20 feet up).
+                    const targetRadius = this._pipZoomScale || 25;
+                    this._pipRot.radius += (targetRadius - this._pipRot.radius) * 0.1;
+                    
+                    // NEW: PUSH PLAYER TO BOTTOM OF SCREEN!
+                    // To see the "7-Tile Hallway" ahead, we offset the target forward relative to camera theta. 
+                    // Pushing the target away from the camera slides the player towards the bottom of the viewport frame!
+                    const lookAheadDist = this._pipRot.radius * 0.05; // Slightly shifted (5% of radius) to center the player with minor forward bias
+                    const lookX = -Math.sin(this._pipRot.theta) * lookAheadDist;
+                    const lookZ = -Math.cos(this._pipRot.theta) * lookAheadDist;
+                    
+                    const targetX = camWX + this._pipPan.x + lookX;
+                    const targetZ = camWZ + this._pipPan.z + lookZ;
+                    this._pipOrthoTarget.cx += (targetX - this._pipOrthoTarget.cx) * camTrackSpeed;
+                    this._pipOrthoTarget.cz += (targetZ - this._pipOrthoTarget.cz) * camTrackSpeed;
+                    
+                    // Maintain wrapper's aspect ratio
+                    const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
+                    this.topDownCamera.aspect = aspect;
+                    this.topDownCamera.updateProjectionMatrix();
+                    
+                    const camX = this._pipOrthoTarget.cx + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.sin(this._pipRot.theta);
+                    const camY = this._pipRot.radius * Math.cos(this._pipRot.phi);
+                    const camZ = this._pipOrthoTarget.cz + this._pipRot.radius * Math.sin(this._pipRot.phi) * Math.cos(this._pipRot.theta);
+                    
+                    this.topDownCamera.position.set(camX, camY, camZ);
+                    this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
+                    
+                    // Sync ARPG Player token (Since in true 3D we need a physical representative)
+                    if (this.playerAvatar) {
+                        this.playerAvatar.position.set(camWX, 0, camWZ);
+                        // Make sure avatar faces movement direction smoothly
+                        const dx = camWX - (this.playerAvatar.userData.lastX || camWX);
+                        const dz = camWZ - (this.playerAvatar.userData.lastZ || camWZ);
+                        if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
+                            const targetRot = Math.atan2(dx, dz);
+                            // Simple lerp rotation
+                            this.playerAvatar.rotation.y += (targetRot - this.playerAvatar.rotation.y) * 0.2;
+                        }
+                        
+                        this.playerAvatar.userData.lastX = camWX;
+                        this.playerAvatar.userData.lastZ = camWZ;
+                    }
+                }
+
+                if (this.cameraMode === 'topdown' && this.topDownCamera) {
+                    // ── TOP-DOWN MAIN + FPV PiP ──────────────────────────────────────
+                    // [1] Full-screen top-down
+                    this.renderer.setViewport(0, 0, winW, winH);
+                    this.renderer.setScissor(0, 0, winW, winH);
+                    this.renderer.setScissorTest(true);
+                    // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
+                    this.scene.fog.color.setHex(0x06020f);
+                    this.scene.fog.density = 1.0 / this._pipRot.radius;
+                    this.renderer.setClearColor(0x06020f, 1);
+                    this.renderer.render(this.scene, this.topDownCamera);
+
+                    // [2] Small FPV view rendered into mapview-container space
+                    this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+                    this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
+                    this.renderer.setScissorTest(true);
+                    
+                    // CRITICAL: We MUST clear the depth buffer, or the PiP camera will physically Z-fight with geometry drawn beneath it on the entire screen!
+                    this.renderer.clearDepth();
+                    
+                    this.scene.fog.density = 0.055;
+                    this.renderer.setClearColor(0x06020f, 1);
+                    this.renderer.render(this.scene, this.camera);
+
+                } else {
+                    // ── FPV MAIN + TOP-DOWN PiP (default) ────────────────────────────
+                    // [1] FPV main render with scissor/viewport
+                    this.renderer.setClearColor(0x06020f, 1);
+                    this.scene.fog.density = 0.055;
+                    if (this.layoutData && this.layoutData.fpv) {
+                        const fRect = this.layoutData.fpv;
+                        this.renderer.setViewport(fRect.left, fRect.bottom, fRect.width, fRect.height);
+                        this.renderer.setScissor(fRect.left, fRect.bottom, fRect.width, fRect.height);
+                        this.renderer.setScissorTest(true);
+                    } else {
+                        this.renderer.setViewport(0, 0, winW, winH);
+                        this.renderer.setScissor(0, 0, winW, winH);
+                        this.renderer.setScissorTest(true);
+                    }
+                    if (this.composer) {
+                        this.composer.render();
+                    } else {
+                        this.renderer.render(this.scene, this.camera);
+                    }
+
+                    // [2] Top-down map PiP into mapview-container space
+                    if (this.topDownCamera) {
+                        this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+                        this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
+                        this.renderer.setScissorTest(true);
+                        
+                        // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
+                        this.renderer.clearDepth();
+                        
+                        // AAA RPG Vignette
+                        this.scene.fog.color.setHex(0x000000);
+                        this.scene.fog.density = 1.0 / this._pipRot.radius;
+                        this.renderer.setClearColor(0x000000, 1); // True pitch black void
+                        this.renderer.render(this.scene, this.topDownCamera);
+                        
+                        // Reset native FPV fog density to active default
+                        this.scene.fog.color.setHex(0x08041a);
+                        this.scene.fog.density = 0.055;
+                    }
+                }
+
+                // ── Copy WebGL PiP region → pip-map-canvas (so it composites with UI cleanly) ──
+                if (this.pip2dCtx && this.pipCanvasEl && pipW > 0 && pipH > 0) {
+                    const ctx = this.pip2dCtx;
+                    const gl  = this.renderer.domElement;
+                    const pr = this.renderer.getPixelRatio();
+                    
+                    const scW = Math.max(1, Math.round(pipW * pr));
+                    const scH = Math.max(1, Math.round(pipH * pr));
+                    ctx.clearRect(0, 0, scW, scH);
+                    
+                    // The srcRect offsets MUST be multiplied by pixel ratio to capture the exact HD rectangle from the WebGL physical buffer
+                    ctx.drawImage(gl, Math.round(pipLeft * pr), Math.round(webglTop * pr), scW, scH, 0, 0, scW, scH);
+
+                    // 3D Avatar handles presence natively now. Legacy 2D canvas drawing removed!
+                }
+
+                
+                // --- FPS Counter ---
+                this.frameCount++;
+                const now = performance.now();
+                if (now - this.lastFpsTime >= 1000) {
+                    this.currentFps = this.frameCount;
+                    this.frameCount = 0;
+                    this.lastFpsTime = now;
+                    const fpsEl = document.getElementById('fps-counter');
+                    if (fpsEl) {
+                        fpsEl.textContent = `FPS: ${this.currentFps}/60`;
+                    }
+                }
+            }, // Closing brace for animate() function
+            
+            // Pre-allocated Global Vectors for animate GC optimization
+            _anim_mPos: new THREE.Vector3(),
+            _anim_cPos: new THREE.Vector3(),
+            _anim_dirToPlayer3D: new THREE.Vector3(),
+            _anim_dirFromPlayer3D: new THREE.Vector3(),
+            _anim_mFacingDir: new THREE.Vector3(0, 0, 1),
+            _anim_upAxis: new THREE.Vector3(0, 1, 0),
+            _anim_ray: new THREE.Ray(),
+            _anim_target: new THREE.Vector3(),
+            _anim_hPos: new THREE.Vector3(),
+            _anim_dirToHome: new THREE.Vector3(),
+        };
+
+        window.onload = () => Engine.init();
+    
