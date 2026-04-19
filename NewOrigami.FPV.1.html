@@ -161,6 +161,16 @@
             z-index: 90; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none;
             -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
         }
+
+        #turn-counter {
+            position: absolute; top: 15px; right: 15px; 
+            background: rgba(0,0,0,0.6); color: #ffcc00; padding: 6px 16px; border-radius: 6px;
+            border: 1px solid rgba(255, 204, 0, 0.4); font-family: 'Inter', sans-serif; font-size: 1.1rem;
+            z-index: 90; font-weight: 800; letter-spacing: 0.1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: none;
+            -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+            text-transform: uppercase;
+        }
         /* Floating Combat Text (WoW Style) */
         #fct-container {
             position: absolute;
@@ -270,43 +280,24 @@
             min-width: 200px;
             min-height: 200px;
             border-radius: 18px;
-            /* Deep Diablo Neumorphic Shell */
             background: linear-gradient(145deg, #1a1a1e, #111114);
             padding: 6px;
-            box-shadow: 
-                inset 2px 2px 6px rgba(0,0,0,0.8),
-                inset -1px -1px 4px rgba(60,55,45,0.15),
-                8px 8px 20px rgba(0,0,0,0.7),
-                -4px -4px 12px rgba(40,35,30,0.12),
-                0 0 30px rgba(180,120,40,0.06);
             z-index: 1000;
             border: 1px solid rgba(180,140,60,0.25);
             box-sizing: border-box;
             cursor: move;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease;
             overflow: visible;
             -webkit-user-select: none;
             user-select: none;
         }
 
         #mapview-container:hover {
-            box-shadow: 
-                inset 2px 2px 6px rgba(0,0,0,0.8),
-                inset -1px -1px 4px rgba(60,55,45,0.15),
-                10px 10px 24px rgba(0,0,0,0.75),
-                -5px -5px 14px rgba(40,35,30,0.14),
-                0 0 40px rgba(200,140,40,0.1);
             border-color: rgba(200,150,60,0.35);
         }
 
         #mapview-container.dragging {
             cursor: grabbing !important;
-            box-shadow: 
-                inset 2px 2px 6px rgba(0,0,0,0.9),
-                inset -1px -1px 4px rgba(60,55,45,0.2),
-                16px 16px 36px rgba(0,0,0,0.8),
-                -8px -8px 20px rgba(40,35,30,0.15),
-                0 0 50px rgba(220,160,40,0.12);
             z-index: 1005 !important;
         }
 
@@ -327,20 +318,21 @@
             background: #0a0a0c;
         }
 
-        /* Diablo vignette overlay — dark edges, amber corona */
+        /* Tilt-Shift / Diorama Spotlight Vignette */
         #mapview-container .canvas-wrapper::after {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 12px;
-            background: radial-gradient(ellipse at center,
-                transparent 50%,
-                rgba(0,0,0,0.3) 70%,
-                rgba(0,0,0,0.7) 90%,
-                rgba(0,0,0,0.95) 100%);
+            background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+            mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
             pointer-events: none;
-            z-index: 2;
+            z-index: 10;
         }
+
+
 
         #mapview-container .canvas-wrapper canvas {
             display: block;
@@ -372,47 +364,7 @@
             box-shadow: 0 0 5px #00ffcc;
         }
 
-        /* Map Camera D-Pad Controls */
-        .map-dpad {
-            position: absolute;
-            bottom: -35px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(145deg, #1f1f22, #141416);
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            z-index: 10000;
-            pointer-events: auto;
-        }
-        
-        .map-dpad button {
-            position: absolute;
-            width: 24px; height: 24px;
-            background: transparent;
-            border: none; color: #ffffff; font-size: 11px;
-            cursor: pointer; outline: none;
-            display: flex; justify-content: center; align-items: center; -webkit-user-select: none; user-select: none;
-            transition: color 0.1s, transform 0.1s;
-        }
-        .map-dpad button:hover { color: #dddddd; }
-        .map-dpad button:active { color: #aaaaaa; transform: scale(0.9); }
-        
-        .map-dpad #dpad-up { top: 2px; left: 50%; transform: translateX(-50%); }
-        .map-dpad #dpad-down { bottom: 2px; left: 50%; transform: translateX(-50%); }
-        .map-dpad #dpad-left { left: 2px; top: 50%; transform: translateY(-50%); }
-        .map-dpad #dpad-right { right: 2px; top: 50%; transform: translateY(-50%); }
-        
-        .map-dpad .dpad-center {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 22px; height: 22px; font-size: 13px; color: rgba(255,255,255,0.8);
-            background: rgba(255,255,255,0.05); border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center;
-            cursor: pointer; pointer-events: auto;
-        }
-        .map-dpad .dpad-center:active { background: rgba(255,255,255,0.1); }
+
 
         .resize-handle {
             position: absolute;
@@ -487,27 +439,7 @@
         <div id="interaction-prompt">Press E to Interact</div>
         <div id="fps-counter">FPS: --/60</div>
 
-        <!-- EXACT MAPVIEW-CONTAINER FROM BASELINE -->
-        <div id="mapview-container" class="primary-view">
-            <div class="view-label">Map View (Drag Here)</div>
-            <div class="canvas-wrapper">
-                <canvas id="pip-map-canvas"></canvas>
-            </div>
-            
-            <!-- Map Camera Controls (Protruding outside bottom) -->
-            <div class="map-dpad">
-                <button id="dpad-up">&#9650;</button>
-                <button id="dpad-left">&#9664;</button>
-                <button class="dpad-center">&#8634;</button>
-                <button id="dpad-right">&#9654;</button>
-                <button id="dpad-down">&#9660;</button>
-            </div>
 
-            <div class="resize-handle se"></div>
-            <div class="resize-handle sw"></div>
-            <div class="resize-handle ne"></div>
-            <div class="resize-handle nw"></div>
-        </div>
 
         <!-- UI Panels Layer (Loaded via Iframe to isolate CSS/JS overhead) -->
         <iframe id="ui-frame" title="Game UI Interface" class="logic-frame" src="NewOrigami.Panels.html" sandbox="allow-scripts allow-same-origin allow-modals" allowtransparency="true"></iframe>
@@ -950,6 +882,8 @@
             bobTimer: 0,     // Tracks head-bob animation
             bobHeight: 0,    // Current vertical offset
             bobSway: 0,      // Current horizontal offset
+            turnCount: 0,    // Hybrid turn counter
+            actionTimePool: 0, // Injected time pool when an action occurs
             gameTime: 0,     // Custom accumulator for turn-based time-stop effect
             
             composer: null,
@@ -1727,25 +1661,34 @@
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
 
-                // Holographic Top-Down Player Avatar
+                // Holographic Top-Down Player Avatar (Premium Diorama Toy)
                 this.playerAvatar = new THREE.Group();
                 this.playerAvatar.layers.set(3); // Map view only
                 
-                // Black circle with white border (un-animated base)
                 const baseGroup = new THREE.Group();
-                const baseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.05, 32);
-                const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshLambertMaterial({ color: 0x000000 }));
-                baseMesh.layers.set(1); baseMesh.layers.enable(3);
                 
-                const borderGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.02, 32);
-                const borderMesh = new THREE.Mesh(borderGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-                borderMesh.position.y = -0.015;
+                // White Border Base
+                const borderGeo = new THREE.CircleGeometry(0.85, 32);
+                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+                borderMesh.rotation.x = -Math.PI / 2;
+                borderMesh.position.y = 0.01;
                 borderMesh.layers.set(1); borderMesh.layers.enable(3);
+                
+                // Black Circle Core
+                const baseGeo = new THREE.CircleGeometry(0.7, 32);
+                const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                baseMesh.rotation.x = -Math.PI / 2;
+                baseMesh.position.y = 0.02;
+                baseMesh.layers.set(1); baseMesh.layers.enable(3);
 
-                // Small white directional 'nose' circle pointing towards -Z (forward)
-                const noseGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.03, 16);
-                const noseMesh = new THREE.Mesh(noseGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-                noseMesh.position.set(0, 0, -0.85); // Pushed exclusively to the front edge
+                // White Directional Arrow (Nose)
+                const noseGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
+                const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const noseMesh = new THREE.Mesh(noseGeo, noseMat);
+                noseMesh.rotation.x = -Math.PI / 2;
+                noseMesh.position.set(0, 0.03, -0.6); // Pushed to front edge
                 noseMesh.layers.set(1); noseMesh.layers.enable(3);
 
                 baseGroup.add(baseMesh);
@@ -1790,7 +1733,7 @@
                     if (gltf.animations && gltf.animations.length > 0) {
                         this.playerMixer = new THREE.AnimationMixer(avatarMesh);
                         const idleClip = gltf.animations.find(c => c.name.toLowerCase().includes('idle'));
-                        const walkClip = gltf.animations.find(c => c.name.toLowerCase().includes('walk')) || gltf.animations[0];
+                        const walkClip = gltf.animations.find(c => c.name.toLowerCase().includes('walk') || c.name.toLowerCase().includes('run')) || gltf.animations[1] || gltf.animations[0];
                         
                         this.playerIdleAction = idleClip ? this.playerMixer.clipAction(idleClip) : null;
                         this.playerWalkAction = this.playerMixer.clipAction(walkClip);
@@ -2070,31 +2013,18 @@
                 canvas.height = 512;
                 const ctx = canvas.getContext("2d");
                 
-                // Solid neumorphic dark gray base
-                ctx.fillStyle = "#2c2e33"; 
+                // Solid premium dark slate base (Seamless)
+                ctx.fillStyle = "#1a1c1e"; 
                 ctx.fillRect(0, 0, 512, 512);
 
-                // Subtle noise for uniform concrete/stone texture
+                // Subtle noise for uniform matte texture
                 ctx.fillStyle = "rgba(0,0,0,0.15)";
                 for (let i = 0; i < 4000; i++) {
                     ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
                 }
                 
-                // Neumorphic Inner Bevel (Highlight top/left edges)
-                ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-                ctx.fillRect(0, 0, 512, 8); // Top edge
-                ctx.fillRect(0, 0, 8, 512); // Left edge
+                // Purely seamless, no borders, no bevels, no crosshairs.
                 
-                // Neumorphic Inner Shadow (Dark bottom/right edges)
-                ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-                ctx.fillRect(0, 504, 512, 8); // Bottom edge
-                ctx.fillRect(504, 0, 8, 512); // Right edge
-
-                // Added slightly higher opacity structure marks for raw "dungeon tile" appeal
-                ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-                ctx.fillRect(256, 0, 2, 512); // subtle center crosshair lines
-                ctx.fillRect(0, 256, 512, 2);
-
                 const tex = new THREE.CanvasTexture(canvas);
                 tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
                 return tex;
@@ -2110,6 +2040,9 @@
                 while (this.worldGroup.children.length > 0) {
                     this.worldGroup.remove(this.worldGroup.children[0]);
                 }
+                
+                this.pathVisualsGroup = new THREE.Group();
+                this.worldGroup.add(this.pathVisualsGroup);
 
                 // Generate premium textures
                 const floorTex = this.createDungeonFloorTexture();
@@ -2123,6 +2056,7 @@
                     floor: new THREE.MeshLambertMaterial({ map: floorTex }),
                     ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
                     wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
+                    pipWall: new THREE.MeshLambertMaterial({ color: 0x111111, transparent: true, opacity: 0.15, depthWrite: false }),
                     wallTop: new THREE.MeshLambertMaterial({ map: wallTopTex, color: 0xFFFFFF }),
                     npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
                     monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
@@ -2136,6 +2070,15 @@
                     mats.wall,    // Bottom
                     mats.wall,    // Front
                     mats.wall     // Back
+                ];
+
+                const pipWallMaterials = [
+                    mats.pipWall,    // Right
+                    mats.pipWall,    // Left
+                    mats.wallTop,    // Top
+                    mats.pipWall,    // Bottom
+                    mats.pipWall,    // Front
+                    mats.pipWall     // Back
                 ];
 
                 // Merge geometry for insane performance (instead of 1000s of distinct meshes)
@@ -2157,9 +2100,12 @@
 
                 // 2. InstancedMesh for Insane Performance (1 draw call vs 2000+)
                 let wallCount = 0;
-                for (let x = 0; x < this.mapWidth; x++) {
-                    for (let z = 0; z < this.mapHeight; z++) {
-                        if (this.mapData[x]?.[z]?.type === 'wall' && isExposed(x, z)) wallCount++;
+                const PADDING = 20;
+                for (let x = -PADDING; x < this.mapWidth + PADDING; x++) {
+                    for (let z = -PADDING; z < this.mapHeight + PADDING; z++) {
+                        const isMapArea = x >= 0 && x < this.mapWidth && z >= 0 && z < this.mapHeight;
+                        const type = isMapArea ? this.mapData[x]?.[z]?.type : 'wall';
+                        if (type === 'wall') wallCount++;
                     }
                 }
 
@@ -2167,6 +2113,12 @@
                 instancedWalls.castShadow = true;
                 instancedWalls.receiveShadow = true;
                 instancedWalls.frustumCulled = false; // Prevent clipping when Map view pulls far out
+                instancedWalls.layers.set(1); // Force FPV only
+
+                const pipInstancedWalls = new THREE.InstancedMesh(wallGeo, pipWallMaterials, wallCount);
+                pipInstancedWalls.frustumCulled = false;
+                pipInstancedWalls.layers.set(3); // Force PiP only
+
                 // Save reference so the raycaster can find it later without filtering the scene graph
                 this.walls = [instancedWalls]; 
                 
@@ -2193,15 +2145,16 @@
                 const dummy = new THREE.Object3D();
                 let wallIdx = 0;
 
-                for (let x = 0; x < this.mapWidth; x++) {
-                    for (let z = 0; z < this.mapHeight; z++) {
-                        const cell = this.mapData[x]?.[z];
-                        if (!cell) continue;
+                for (let x = -PADDING; x < this.mapWidth + PADDING; x++) {
+                    for (let z = -PADDING; z < this.mapHeight + PADDING; z++) {
+                        const isMapArea = x >= 0 && x < this.mapWidth && z >= 0 && z < this.mapHeight;
+                        const type = isMapArea ? this.mapData[x]?.[z]?.type : 'wall';
 
-                        if (cell.type === 'wall' && isExposed(x, z)) {
+                        if (type === 'wall') {
                             dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
                             dummy.updateMatrix();
                             instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
+                            pipInstancedWalls.setMatrixAt(wallIdx, dummy.matrix);
                             
                             wallIdx++;
                         }
@@ -2209,7 +2162,12 @@
                 }
                 
                 instancedWalls.instanceMatrix.needsUpdate = true;
+                pipInstancedWalls.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedWalls);
+                this.worldGroup.add(pipInstancedWalls);
+                
+                // --- 3. Rounded Wall Edge Fillets ("Dug Out" effect) ---
+                // Removed per user request to maintain clean square corners without visual artifacts.
                 
                 // Ceiling
                 ceilTex.repeat.set(this.mapWidth/2, this.mapHeight/2);
@@ -2280,23 +2238,38 @@
                         // Force full scale enemy 3D models EXCLUSIVELY into Layer 1 (FPV), so they don't block the Map View
                         mesh.traverse(c => { c.layers.set(1); });
                         
-                        // Give Goblin a tactical red circle footprint with a white border visible on Layer 3 (Map View)
+                        // Give Goblin a tactical footprint visible on Layer 3 (Map View)
                         const monBase = new THREE.Group();
-                        const mBaseGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.05, 32);
-                        // Swap to Lambert so it catches shadows instead of 'glowing' flatly in FPV
-                        const mBaseMesh = new THREE.Mesh(mBaseGeo, new THREE.MeshLambertMaterial({ color: 0x881111 }));
+                        monBase.name = "monBase";
+                        const mBaseGeo = new THREE.CircleGeometry(0.7, 64);
+                        const mBaseMesh = new THREE.Mesh(mBaseGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.85, depthWrite: false }));
+                        mBaseMesh.rotation.x = -Math.PI / 2;
+                        mBaseMesh.position.y = 0.04; // Sit cleanly above floor, no Z-fight
                         mBaseMesh.layers.set(1); mBaseMesh.layers.enable(3);
-                        mBaseMesh.receiveShadow = true;
+                        mBaseMesh.renderOrder = 999;
                         
-                        const mBorderGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.02, 32);
-                        const mBorderMesh = new THREE.Mesh(mBorderGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-                        mBorderMesh.position.y = -0.015;
+                        const mBorderGeo = new THREE.RingGeometry(0.7, 0.78, 64);
+                        const mBorderMesh = new THREE.Mesh(mBorderGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }));
+                        mBorderMesh.rotation.x = -Math.PI / 2;
+                        mBorderMesh.position.y = 0.05;
                         mBorderMesh.layers.set(1); mBorderMesh.layers.enable(3);
-                        mBorderMesh.receiveShadow = true;
+                        mBorderMesh.renderOrder = 1000;
+                        
+                        const mArrowGeo = new THREE.CircleGeometry(0.2, 3);
+                        const mArrowMesh = new THREE.Mesh(mArrowGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }));
+                        mArrowMesh.rotation.x = -Math.PI / 2;
+                        mArrowMesh.rotation.z = -Math.PI / 2;
+                        mArrowMesh.position.set(0, 0.05, 0.8);
+                        mArrowMesh.layers.set(1); mArrowMesh.layers.enable(3);
+                        mArrowMesh.renderOrder = 1000;
                         
                         monBase.add(mBaseMesh);
                         monBase.add(mBorderMesh);
-                        mesh.add(monBase);
+                        monBase.add(mArrowMesh);
+                        
+                        // Keep monBase flat on floor by avoiding parenting to floating mesh
+                        this.worldGroup.add(monBase);
+                        mesh.userData.monBase = monBase;
 
                         // Goblins have bottom origins, place flush with floor
                         mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
@@ -2626,31 +2599,7 @@
                         // Inner cavity shadow
                         ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
                         
-                        // Render Native 2D Geometry directly onto the Canvas Map to optimize performance and guarantee perfect flatness
-                        ctx.save();
-                        ctx.translate(W/2, H * 0.58);
-                        ctx.shadowColor = '#000000';
-                        ctx.shadowBlur = 10;
-                        if (catId === 'SPELL') {
-                            ctx.fillStyle = '#ff00ff';
-                            ctx.beginPath();
-                            ctx.moveTo(0, -35); ctx.lineTo(35, 0); ctx.lineTo(0, 35); ctx.lineTo(-35, 0); // Diamond
-                            ctx.fill();
-                        } else if (catId === 'ITEM') {
-                            ctx.fillStyle = '#aa7722';
-                            ctx.beginPath();
-                            for (let i = 0; i < 6; i++) {
-                                const angle = (i * Math.PI / 3) + Math.PI / 6;
-                                ctx.lineTo(Math.cos(angle) * 35, Math.sin(angle) * 35); // Pointy top Hexagon
-                            }
-                            ctx.fill();
-                        } else {
-                            ctx.fillStyle = '#cccccc';
-                            ctx.beginPath();
-                            ctx.moveTo(0, -35); ctx.lineTo(35, 25); ctx.lineTo(-35, 25); // Triangle
-                            ctx.fill();
-                        }
-                        ctx.restore();
+                        // We do not draw the 2D geo symbols anymore, we'll attach real 3D models!
 
                         // Solid Black Bottom Block for Attributes
                         ctx.fillStyle = '#09090b';
@@ -2679,8 +2628,173 @@
                         cardGroup.add(frontMesh);
                         cardGroup.add(backMesh);
                         
+                        // Add real 3D Model matching the UI panels
+                        const createLootIcon = () => {
+                            let iconMesh = new THREE.Group();
+                            let customUpdate = null;
+                            const matColor = { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[catId] || 0x444444;
+                            const mat = new THREE.MeshStandardMaterial({ 
+                                color: matColor, roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
+                            });
+
+                            if (catId === 'EARTH') {
+                                const rockMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8, flatShading: true });
+                                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 2), rockMat); 
+                                iconMesh.add(rock);
+                                customUpdate = (t) => {
+                                    rock.rotation.x = t * 1.8;
+                                    rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
+                                };
+                            } else if (catId === 'FIRE') {
+                                const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true })); 
+                                iconMesh.add(core);
+                                const flames = [];
+                                for(let i=0; i<60; i++) {
+                                    const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.28, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), emissive: i % 3 === 0 ? 0xffea00 : 0xff4500, emissiveIntensity: 2.5, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
+                                    const ang = (i / 60) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
+                                    s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); iconMesh.add(s);
+                                    flames.push({ m: s, s: 3 + Math.random() * 6, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 2 });
+                                }
+                                customUpdate = (t) => {
+                                    core.rotation.y = t * 0.25; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
+                                    flames.forEach(f => {
+                                        f.m.rotation.x += f.rs * 0.005; f.m.rotation.y += f.rs * 0.005; 
+                                        f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 2.0);
+                                        const sc = Math.max(0.1, 1 - (f.m.position.y / 4.0));
+                                        f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5); 
+                                    });
+                                };
+                            } else if (catId === 'WIND') {
+                                const tornado = new THREE.Group();
+                                const numSpirals = 4; 
+                                const lmat = new THREE.LineDashedMaterial({ color: 0xcccccc, opacity: 0.85, transparent: true, dashSize: 0.2, gapSize: 0.15 });
+                                for(let i=0; i<numSpirals; i++) {
+                                    const pts = [];
+                                    const phaseOffset = (i / numSpirals) * Math.PI * 2;
+                                    for(let j=0; j<=45; j++) {
+                                        const h = j / 45; 
+                                        const r = Math.pow(h, 2.0) * 1.5 + 0.15; 
+                                        const y = (h - 0.5) * 2.8; 
+                                        const angle = h * Math.PI * 16 + phaseOffset; 
+                                        pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
+                                    }
+                                    const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+                                    const line = new THREE.Line(geometry, lmat);
+                                    line.computeLineDistances(); 
+                                    tornado.add(line);
+                                }
+                                tornado.position.y = -0.2;
+                                iconMesh.add(tornado);
+                                customUpdate = (t) => { 
+                                    tornado.rotation.y = t * -10.0; 
+                                    tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
+                                };
+                            } else if (catId === 'WATER') {
+                                const geo = new THREE.SphereGeometry(2.8, 32, 24); 
+                                const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; iconMesh.add(mesh);
+                                customUpdate = (t) => {
+                                    const pos = geo.attributes.position;
+                                    for(let i=0; i<pos.count; i++) {
+                                        const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                                        if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                                    }
+                                    pos.needsUpdate = true;
+                                };
+                            } else if (catId === 'KATANA') {
+                                const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.3), new THREE.MeshStandardMaterial({color: 0x222222}));
+                                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.5, 0.4), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
+                                blade.position.y = 2.0;
+                                const guard = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                                guard.position.y = 0.6;
+                                iconMesh.add(hilt, blade, guard);
+                                iconMesh.position.y = -1.0;
+                                customUpdate = (t) => { 
+                                    iconMesh.rotation.y = t * 0.5; 
+                                };
+                            } else if (catId === 'MISSILE') {
+                                const starMat = new THREE.MeshStandardMaterial({color: 0x888888, metalness: 0.9, roughness: 0.1});
+                                const star1 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.3), starMat);
+                                const star2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 1.8), starMat);
+                                iconMesh.add(star1, star2);
+                                customUpdate = (t) => { iconMesh.rotation.y = t * 8.0; iconMesh.rotation.x = Math.sin(t * 2) * 0.4; };
+                            } else if (catId === 'SHIELD') {
+                                const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
+                                const shield = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32), shieldMat);
+                                shield.rotation.x = Math.PI / 2;
+                                const boss = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                                boss.position.z = 0.1;
+                                iconMesh.add(shield, boss);
+                                customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; iconMesh.rotation.x = Math.sin(t * 2) * 0.2; };
+                            } else if (catId === 'ITEM') {
+                                const vial = new THREE.Group();
+                                const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
+                                const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
+                                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
+                                neck.position.y = 1.4;
+                                const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
+                                lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
+                                
+                                const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+                                const liqGroup = new THREE.Group();
+                                const liqGeo = new THREE.SphereGeometry(1.05, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI); 
+                                const liq = new THREE.Mesh(liqGeo, liqMat);
+                                const liqTop = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), liqMat);
+                                liqTop.rotation.x = -Math.PI / 2; 
+                                liq.add(liqTop);
+                                liqGroup.add(liq);
+                                
+                                const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 }));
+                                cork.position.y = 1.9;
+                                
+                                vial.add(flask, neck, lip, liqGroup, cork);
+                                vial.position.y = -0.5;
+                                iconMesh.add(vial);
+                                
+                                customUpdate = (t) => { 
+                                    vial.rotation.y = t * 0.4; 
+                                    liqGroup.rotation.x = Math.sin(t * 2.1) * 0.2;
+                                    const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
+                                    liqGroup.scale.setScalar(0.98 + pulse * 0.02); 
+                                };
+                            } else {
+                                // DICE fallback
+                                const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
+                                const die = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), dieMat);
+                                iconMesh.add(die);
+                                customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; iconMesh.rotation.x = Math.sin(t * 2) * 0.5; };
+                            }
+
+                            return { iconMesh, customUpdate };
+                        };
+
+                        const frontModel = createLootIcon();
+                        const backModel = createLootIcon();
+                        
+                        const iconWrapper = new THREE.Group();
+                        
+                        // Scale exactly to fit entirely within the black cavity radius and flatten Z-axis
+                        const EXACT_SCALE = 0.07;
+                        
+                        // Attach to front of card (z = +0.01 to hover just above front card face)
+                        frontModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, 0.001);
+                        frontModel.iconMesh.position.set(0, -0.096, 0.01);
+                        iconWrapper.add(frontModel.iconMesh);
+
+                        // Attach to back of card (z = -0.01 to hover just above back card face)
+                        backModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, 0.001);
+                        backModel.iconMesh.position.set(0, -0.096, -0.01);
+                        backModel.iconMesh.rotation.y = Math.PI; // Face outwards
+                        iconWrapper.add(backModel.iconMesh);
+                        
+                        cardGroup.add(iconWrapper);
+                        
+                        const combinedUpdate = (t) => {
+                            if (frontModel.customUpdate) frontModel.customUpdate(t);
+                            if (backModel.customUpdate) backModel.customUpdate(t);
+                        };
+                        
                         cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
-                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, cardDataURL: canvas.toDataURL() };
+                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, cardDataURL: canvas.toDataURL(), iconMesh: iconWrapper, customUpdate: combinedUpdate };
                         
                         this.worldGroup.add(cardGroup);
                         this.lootItems.push(cardGroup);
@@ -2813,12 +2927,15 @@
             },
 
             initControls() {
+                this.autoWalkPath = []; // Init autowalk array
+
                 // Receive keyboard polling state from the Shell
                 window.addEventListener('message', (event) => {
                     const data = event.data;
                     if (!data || !data.type) return;
 
                     if (data.type === 'KEY_DOWN') {
+                        this.clearAutoWalk(); // Interrupt autowalk
                         const k = data.key.toLowerCase();
                         if (k === 'w' || data.key === 'ArrowUp') {
                             if (!this.handleHaltedAttack()) this.keys.w = true;
@@ -2835,17 +2952,30 @@
                     }
                 });
 
-                // Click to dismiss Chat Bubble
-                window.addEventListener('pointerdown', () => {
+                // Click to dismiss Chat Bubble or Walk
+                window.addEventListener('pointerdown', (e) => {
                     if (this.activeChat && !this.activeChat.fading) {
                         this.activeChat.fading = true;
                         this._haltPlayer = false; // Release movement lock
+                    } else if (e.target === this.renderer.domElement) {
+                        // FPV Raycaster for click-to-move
+                        const rect = this.renderer.domElement.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                        const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                        
+                        this.raycaster.setFromCamera({x, y}, this.camera);
+                        const intersects = this.raycaster.intersectObjects(this.worldGroup.children, true);
+                        if (intersects.length > 0) {
+                            const point = intersects[0].point;
+                            this.setWaypointPath(point.x / this.gridSize, point.z / this.gridSize);
+                        }
                     }
                 });
 
                 // Add local keyboard listeners in case the FPV iframe receives direct focus
                 window.addEventListener('keydown', (e) => {
                     const k = e.key.toLowerCase();
+                    this.clearAutoWalk(); // Interrupt autowalk
                     if (k === 'w' || e.key === 'ArrowUp') {
                         if (!this.handleHaltedAttack()) this.keys.w = true;
                     }
@@ -2861,6 +2991,114 @@
                     if (k === 's' || e.key === 'ArrowDown') this.keys.s = false;
                     if (k === 'd' || e.key === 'ArrowRight') this.keys.d = false;
                 });
+            },
+
+            clearAutoWalk() {
+                this.autoWalkPath = [];
+                if (this.player.autoTurnTarget !== null && this.keys.w === false) {
+                    this.player.autoTurnTarget = null;
+                }
+                if (this.pathVisualsGroup) {
+                    while (this.pathVisualsGroup.children.length > 0) {
+                        this.pathVisualsGroup.remove(this.pathVisualsGroup.children[0]);
+                    }
+                }
+            },
+
+            findPath(startX, startZ, endX, endZ) {
+                // A* Algorithm
+                const startNode = { x: Math.round(startX), z: Math.round(startZ), g: 0, h: 0, f: 0, parent: null };
+                const endNode = { x: Math.round(endX), z: Math.round(endZ), g: 0, h: 0, f: 0, parent: null };
+                
+                if (!this.isValidGridSpace(endNode.x, endNode.z)) return [];
+                
+                let openList = [startNode];
+                let closedList = [];
+                
+                const getH = (curr, end) => Math.abs(curr.x - end.x) + Math.abs(curr.z - end.z);
+                const isEq = (a, b) => a.x === b.x && a.z === b.z;
+                
+                let maxIter = 500;
+                while (openList.length > 0 && maxIter-- > 0) {
+                    let lowestIdx = 0;
+                    for (let i = 0; i < openList.length; i++) {
+                        if (openList[i].f < openList[lowestIdx].f) lowestIdx = i;
+                    }
+                    
+                    let currNode = openList.splice(lowestIdx, 1)[0];
+                    closedList.push(currNode);
+                    
+                    if (isEq(currNode, endNode)) {
+                        let path = [];
+                        let curr = currNode;
+                        while (curr != null) {
+                            path.push({ x: curr.x, z: curr.z });
+                            curr = curr.parent;
+                        }
+                        return path.reverse();
+                    }
+                    
+                    const neighbors = [
+                        { x: currNode.x, z: currNode.z - 1 }, // N
+                        { x: currNode.x, z: currNode.z + 1 }, // S
+                        { x: currNode.x - 1, z: currNode.z }, // W
+                        { x: currNode.x + 1, z: currNode.z }  // E
+                    ];
+                    
+                    for (let n of neighbors) {
+                        if (!this.isValidGridSpace(n.x, n.z)) continue;
+                        if (closedList.find(c => isEq(c, n))) continue;
+                        
+                        let gScore = currNode.g + 1;
+                        let gScoreIsBest = false;
+                        
+                        let inOpen = openList.find(o => isEq(o, n));
+                        if (!inOpen) {
+                            gScoreIsBest = true;
+                            n.h = getH(n, endNode);
+                            openList.push(n);
+                        } else if (gScore < inOpen.g) {
+                            gScoreIsBest = true;
+                            n = inOpen; // Update the one already in the list
+                        }
+                        
+                        if (gScoreIsBest) {
+                            n.parent = currNode;
+                            n.g = gScore;
+                            n.f = n.g + n.h;
+                        }
+                    }
+                }
+                return [];
+            },
+
+            setWaypointPath(targetGridX, targetGridZ) {
+                this.clearAutoWalk();
+                
+                const sx = Math.round(this.player.x);
+                const sz = Math.round(this.player.z);
+                
+                const path = this.findPath(sx, sz, targetGridX, targetGridZ);
+                if (path.length > 1) {
+                    // Shift off the current tile
+                    path.shift();
+                    this.autoWalkPath = path;
+                    
+                    // Render path visuals
+                    const wayGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
+                    const destGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 32);
+                    const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.5, depthWrite: false });
+                    
+                    for (let i = 0; i < path.length; i++) {
+                        const pt = path[i];
+                        const isDest = (i === path.length - 1);
+                        const mesh = new THREE.Mesh(isDest ? destGeo : wayGeo, mat);
+                        mesh.position.set(pt.x * this.gridSize, 0.05, pt.z * this.gridSize);
+                        mesh.layers.set(1);
+                        mesh.layers.enable(3); // Visible in PiP too
+                        this.pathVisualsGroup.add(mesh);
+                    }
+                }
             },
 
             checkCollision(gx, gz, radiusInGridUnits) {                
@@ -3136,9 +3374,9 @@
             },
 
             // ─────────────────────────────────────────────────────────────────
-            // BOULDER: Physics Projectile System
+            // PROJECTILE: Physics System (Boulders, Shurikens, Arrows)
             // ─────────────────────────────────────────────────────────────────
-            spawnBoulder() {
+            spawnProjectile(action, spellData) {
                 const fwdX = -Math.sin(this.player.rot);
                 const fwdZ = -Math.cos(this.player.rot);
 
@@ -3146,53 +3384,217 @@
                 const startX = this.player.x * this.gridSize + fwdX * this.gridSize * 0.9;
                 const startZ = this.player.z * this.gridSize + fwdZ * this.gridSize * 0.9;
 
-                // Procedural stone texture (mottled grey with cracks)
-                const sc = document.createElement('canvas');
-                sc.width = sc.height = 128;
-                const sCtx = sc.getContext('2d');
-                sCtx.fillStyle = '#888';
-                sCtx.fillRect(0, 0, 128, 128);
-                for (let i = 0; i < 300; i++) {
-                    const px = Math.random() * 128, py = Math.random() * 128;
-                    const r = Math.random() * 10 + 2;
-                    const v = Math.floor(80 + Math.random() * 80);
-                    sCtx.fillStyle = `rgba(${v},${v - 8},${v - 18},0.55)`;
-                    sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
+                let projectileMesh = new THREE.Group();
+                let speed = 25.0;
+                let vY = 0;
+                let isBoulder = false;
+                
+                if (spellData.el === 'EARTH') {
+                    isBoulder = true;
+                    speed = 14.0;
+                    vY = 1.8;
+                    if (!this._boulderSharedMat) {
+                        const sc = document.createElement('canvas');
+                        sc.width = sc.height = 128;
+                        const sCtx = sc.getContext('2d');
+                        sCtx.fillStyle = '#888'; sCtx.fillRect(0, 0, 128, 128);
+                        for (let i = 0; i < 300; i++) {
+                            const px = Math.random() * 128, py = Math.random() * 128, r = Math.random() * 10 + 2, v = Math.floor(80 + Math.random() * 80);
+                            sCtx.fillStyle = `rgba(${v},${v - 8},${v - 18},0.55)`; sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
+                        }
+                        sCtx.strokeStyle = 'rgba(25,15,5,0.6)'; sCtx.lineWidth = 2;
+                        for (let i = 0; i < 12; i++) { sCtx.beginPath(); sCtx.moveTo(Math.random() * 128, Math.random() * 128); sCtx.quadraticCurveTo(Math.random() * 128, Math.random() * 128, Math.random() * 128, Math.random() * 128); sCtx.stroke(); }
+                        this._boulderSharedMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(sc), roughness: 0.95, metalness: 0.02, color: 0xbbbbaa });
+                        this._boulderSharedGeo = new THREE.SphereGeometry(0.55, 10, 10);
+                    }
+                    projectileMesh.add(new THREE.Mesh(this._boulderSharedGeo, this._boulderSharedMat));
+                } else if (spellData.el === 'FIRE') {
+                    speed = 18.0;
+                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true }));
+                    projectileMesh.add(core);
+                    projectileMesh.userData.isFireball = true;
+                } else if (spellData.el === 'WIND') {
+                    speed = 12.0;
+                    const tornado = new THREE.Group();
+                    const lmat = new THREE.LineDashedMaterial({ color: 0xcccccc, opacity: 0.85, transparent: true, dashSize: 0.2, gapSize: 0.15 });
+                    for(let i=0; i<4; i++) {
+                        const pts = []; const phaseOffset = (i / 4) * Math.PI * 2;
+                        for(let j=0; j<=45; j++) {
+                            const h = j / 45, r = Math.pow(h, 2.0) * 1.5 + 0.15, y = (h - 0.5) * 2.8, angle = h * Math.PI * 16 + phaseOffset; 
+                            pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
+                        }
+                        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lmat);
+                        line.computeLineDistances(); tornado.add(line);
+                    }
+                    tornado.scale.set(0.3, 0.3, 0.3);
+                    projectileMesh.add(tornado);
+                    projectileMesh.userData.isTornado = true;
+                } else if (spellData.el === 'WATER') {
+                    speed = 15.0;
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x0275d8, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
+                    const geo = new THREE.SphereGeometry(0.6, 16, 12);
+                    projectileMesh.add(new THREE.Mesh(geo, mat));
+                    projectileMesh.userData.isWater = true;
+                } else if (action === 'SHURIKEN') {
+                    const starMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 1.0, roughness: 0.1});
+                    const star1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.05), starMat);
+                    const star2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.3), starMat);
+                    // Stand the flat cross up vertically on its side
+                    star1.rotation.x = Math.PI / 2;
+                    star2.rotation.x = Math.PI / 2;
+                    // Add a center hole just for visual detail
+                    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8), new THREE.MeshBasicMaterial({color: 0x000000}));
+                    hole.rotation.x = Math.PI / 2;
+                    projectileMesh.add(star1, star2, hole);
+                    // Spin it around the X-axis later in animate loop, or here it will just sit upright
+                } else if (spellData.el === 'MISSILE') {
+                    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), new THREE.MeshStandardMaterial({color: 0x5C4033})); shaft.rotation.x = Math.PI / 2;
+                    const head = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8})); head.rotation.x = Math.PI / 2; head.position.z = -0.4;
+                    projectileMesh.add(shaft, head);
+                    projectileMesh.rotation.y = this.player.rot;
                 }
-                sCtx.strokeStyle = 'rgba(25,15,5,0.6)';
-                sCtx.lineWidth = 2;
-                for (let i = 0; i < 12; i++) {
-                    sCtx.beginPath();
-                    sCtx.moveTo(Math.random() * 128, Math.random() * 128);
-                    sCtx.quadraticCurveTo(Math.random() * 128, Math.random() * 128, Math.random() * 128, Math.random() * 128);
-                    sCtx.stroke();
-                }
-                const stoneTex = new THREE.CanvasTexture(sc);
 
-                const boulderGeo = new THREE.SphereGeometry(0.55, 10, 10);
-                const boulderMat = new THREE.MeshStandardMaterial({
-                    map: stoneTex, roughness: 0.95, metalness: 0.02, color: 0xbbbbaa
+                projectileMesh.position.set(startX, 0.8, startZ);
+
+                projectileMesh.userData = Object.assign(projectileMesh.userData || {}, {
+                    type: action,
+                    isBoulder: isBoulder,
+                    vX: fwdX * speed,
+                    vY: vY,
+                    vZ: fwdZ * speed,
+                    spinAxis: new THREE.Vector3(0, 1, 0),
+                    dmg: spellData ? spellData.dmg : 25,
+                    active: true,
+                    element: spellData.el,
+                    color: spellData.color,
+                    trauma: spellData.trauma
                 });
-                const boulder = new THREE.Mesh(boulderGeo, boulderMat);
-                boulder.position.set(startX, 0.8, startZ);
 
-                // Spin axis perpendicular to forward direction for realistic rolling
-                const spinAxis = new THREE.Vector3(fwdZ, 0, -fwdX).normalize();
-
-                boulder.userData = {
-                    isBoulder: true,
-                    vX: fwdX * 14.0,   // 14 world units/sec forward
-                    vY: 1.8,            // Gentle upward arc
-                    vZ: fwdZ * 14.0,
-                    spinAxis,
-                    dmg: 25,
-                    active: true
-                };
-
-                this.scene.add(boulder);
-                this.boulders.push(boulder);
+                this.scene.add(projectileMesh);
+                this.boulders.push(projectileMesh);
                 this.addCameraTrauma(0.2);
-                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: '\u{1FAA8} BOULDER launched!' }, '*');
+                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${spellData.label} launched!` }, '*');
+            },
+
+            spawnPotionUse(action, spellData) {
+                const fwdX = -Math.sin(this.player.rot);
+                const fwdZ = -Math.cos(this.player.rot);
+
+                const vial = new THREE.Group();
+                const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
+                const flask = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), glassMat);
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.08, 16), glassMat); neck.position.y = 0.14;
+                const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95 });
+                const liq = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), liqMat);
+                vial.add(flask, neck, liq);
+
+                // Place right in front of camera
+                const startPos = new THREE.Vector3(
+                    this.camera.position.x + fwdX * 0.4,
+                    this.camera.position.y - 0.2,
+                    this.camera.position.z + fwdZ * 0.4
+                );
+                vial.position.copy(startPos);
+                
+                // Tilt to face camera somewhat
+                vial.lookAt(this.camera.position);
+                this.scene.add(vial);
+
+                let frame = 0;
+                const anim = () => {
+                    frame++;
+                    vial.rotation.x -= 0.08; // Tilt back
+                    vial.position.y += 0.01; // Raise slightly
+                    if (frame < 15) {
+                        requestAnimationFrame(anim);
+                    } else if (frame < 30) {
+                        // Drop green particles
+                        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.02, 4, 4), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+                        drop.position.copy(vial.position);
+                        drop.position.y += 0.1;
+                        this.scene.add(drop);
+                        setTimeout(() => this.scene.remove(drop), 100);
+                        vial.position.y -= 0.02; // lower
+                        requestAnimationFrame(anim);
+                    } else {
+                        this.scene.remove(vial);
+                        
+                        // Apply effect
+                        this.player.hp = Math.min(100, this.player.hp + Math.abs(spellData.dmg));
+                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spellData.label} restores ${Math.abs(spellData.dmg)} HP!` }, '*');
+                        
+                        // Screen flash green
+                        const flash = document.createElement('div');
+                        flash.style.position = 'fixed'; flash.style.top = 0; flash.style.left = 0; flash.style.width = '100%'; flash.style.height = '100%';
+                        flash.style.backgroundColor = 'rgba(0, 255, 0, 0.4)'; flash.style.pointerEvents = 'none'; flash.style.transition = 'opacity 0.5s ease'; flash.style.zIndex = 9999;
+                        document.body.appendChild(flash);
+                        setTimeout(() => flash.style.opacity = '0', 50);
+                        setTimeout(() => document.body.removeChild(flash), 550);
+                    }
+                };
+                requestAnimationFrame(anim);
+            },
+
+            spawnMeleeSlash(action, spellData) {
+                const fwdX = -Math.sin(this.player.rot);
+                const fwdZ = -Math.cos(this.player.rot);
+
+                const slashGroup = new THREE.Group();
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.8, 0.06), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
+                blade.position.y = 0.4;
+                slashGroup.add(blade);
+
+                const startPos = new THREE.Vector3(
+                    this.camera.position.x + fwdX * 0.5 - Math.cos(this.player.rot)*0.3,
+                    this.camera.position.y - 0.2,
+                    this.camera.position.z + fwdZ * 0.5 + Math.sin(this.player.rot)*0.3
+                );
+                slashGroup.position.copy(startPos);
+                
+                // Angle blade
+                slashGroup.rotation.y = this.player.rot;
+                slashGroup.rotation.x = Math.PI / 4;
+                slashGroup.rotation.z = -Math.PI / 3; // start cocked back
+
+                this.scene.add(slashGroup);
+
+                // Swing animation
+                let frame = 0;
+                const anim = () => {
+                    frame++;
+                    slashGroup.rotation.z += 0.25; // swing forward
+                    if (frame < 8) {
+                        requestAnimationFrame(anim);
+                    } else {
+                        this.scene.remove(slashGroup);
+                        
+                        // Hit detection raycast
+                        const target = this.activeTarget;
+                        if (target && !target.userData.isDead && this.activeTargetDist <= spellData.range) {
+                            this.triggerCombatSequence(target);
+                            target.userData.isHostile = true;
+                            target.userData.stateColor = '#ff4400';
+                            
+                            if (spellData.trauma > 0) this.addCameraTrauma(spellData.trauma);
+                            this.triggerHitStop(30);
+                            
+                            target.userData.hp -= spellData.dmg;
+                            window.parent.postMessage({ type: 'SHOW_COMBAT', health: target.userData.hp, maxHp: target.userData.maxHp ?? 50, name: target.userData.name || 'Yakuza Goblin', entityType: target.userData.type || 'enemy' }, '*');
+                            this.spawnDamageText(spellData.dmg, target.position, false);
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${spellData.label} hits for ${spellData.dmg} DMG!` }, '*');
+                            
+                            const knockDir = new THREE.Vector3().subVectors(target.position, this.camera.position).normalize();
+                            knockDir.y = 0;
+                            target.position.addScaledVector(knockDir, 0.4);
+                            
+                            if (target.userData.hp <= 0) window.postMessage({ type: 'AI_DEATH', id: target.userData.id }, '*');
+                        } else {
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spellData.label} swings through the air!` }, '*');
+                        }
+                    }
+                };
+                requestAnimationFrame(anim);
             },
 
             // Rock explosion VFX at impact point (wall or goblin)
@@ -3559,8 +3961,59 @@
                 window.addEventListener('message', (e) => {
                     if (!e.data) return;
                     
+                    if (e.data.type === 'PIP_SYNC_RECT') {
+                        if (!this._pipRect) this._pipRect = { width: 300, height: 300, left: 0, top: 0, bottom: 0 };
+                        this._pipRect.width = e.data.width;
+                        this._pipRect.height = e.data.height;
+                        this._pipRect.left = e.data.left;
+                        this._pipRect.top = e.data.top;
+                        this._pipRect.bottom = e.data.bottom;
+                        return;
+                    } else if (e.data.type === 'PIP_ZOOM') {
+                        if (!this._pipZoomScale) this._pipZoomScale = 0.5;
+                        this._pipZoomScale += e.data.delta * 0.1;
+                        this._pipZoomScale = Math.max(0.2, Math.min(2.0, this._pipZoomScale));
+                        return;
+                    } else if (e.data.type === 'PIP_TOGGLE') {
+                        this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
+                        const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
+                        this._pipPan = { x: 0, z: 0 };
+                        return;
+                    } else if (e.data.type === 'PIP_ROTATE') {
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+                        this._pipRot.theta -= e.data.dx * 0.01;
+                        this._pipRot.phi -= e.data.dy * 0.01;
+                        this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
+                        return;
+                    } else if (e.data.type === 'PIP_PAN') {
+                        if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+                        const pX = e.data.dx * 0.03 * (this._pipRot.radius / 15);
+                        const pZ = e.data.dy * 0.03 * (this._pipRot.radius / 15);
+                        this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
+                        this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
+                        return;
+                    } else if (e.data.type === 'PIP_CLICK') {
+                        if (!this.pipCamera) return;
+                        this.raycaster.setFromCamera({x: e.data.x, y: e.data.y}, this.pipCamera);
+                        const intersects = this.raycaster.intersectObjects(this.worldGroup.children, true);
+                        if (intersects.length > 0) {
+                            const point = intersects[0].point;
+                            this.setWaypointPath(point.x / this.gridSize, point.z / this.gridSize);
+                        }
+                        return;
+                    }
+                    
                     if (e.data.type === 'FPV_ACTION') {
                         const action = e.data.action.toUpperCase();
+                        
+                        // Hybrid Turn Advance
+                        this.turnCount++;
+                        this.actionTimePool += 1.0;
+                        const turnValEl = document.getElementById('turn-val');
+                        if (turnValEl) turnValEl.textContent = this.turnCount;
+                        
                         if (action === 'BET EVEN' || action === 'BET ODD') {
                             this.spawnCombatText(action === 'BET EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
                             
@@ -3614,7 +4067,7 @@
                                 }
                             }, 1500);
                             
-                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && !['BAG','MAP','SET','REST','HEAL','VIEW','LOG'].includes(action)) {
+                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && !['BAG','MAP','SET','REST','HEAL','VIEW','LOG','WAGER'].includes(action)) {
                             if (this.activeTargetDist > this.gridSize * 1.8) {
                                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Too far away! Move closer to strike.` }, '*');
                                 return;
@@ -3724,71 +4177,18 @@
                             'SLASH':      { el:'KATANA',color:0xffffff, dmg:20, trauma:0.5, label:'\u2694 SLASH',          range: Infinity }, // Gated by melee block
                             'THRUST':     { el:'KATANA',color:0xcccccc, dmg:18, trauma:0.4, label:'\u2694 THRUST',         range: Infinity }, // Gated by melee block
                             'STRONG ATTACK':{ el:'KATANA',color:0xffd700, dmg:40, trauma:0.8, label:'\u2694 STRONG ATTACK',range: 2.5 },
+                            'SHURIKEN':{ el:'MISSILE',color:0x888888, dmg:15, trauma:0.2, label:'\u2734 SHURIKEN',range: 6.0 },
+                            'SHORT BOW':  { el:'MISSILE',color:0xaa8800, dmg:25, trauma:0.4, label:'\uD83C\uDFF9 SHORT BOW',   range: 10.0 },
+                            'LONG BOW':   { el:'MISSILE',color:0xaa6600, dmg:45, trauma:0.7, label:'\uD83C\uDFF9 LONG BOW',    range: 15.0 },
                         };
                         const spell = SPELL_MAP[action];
                         if (spell) {
-                            // ── BOULDER: directional physics projectile — no target lock-on needed ──
-                            if (action === 'BOULDER') { this.spawnBoulder(); return; }
-
-                            const target = this.activeTarget;
-                            // Range check: activeTargetDist is in grid tiles (1 tile = gridSize world units)
-                            if (target && !target.userData.isDead && spell.range !== Infinity && this.activeTargetDist > spell.range) {
-                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spell.label} out of range! (${this.activeTargetDist.toFixed(1)} / ${spell.range} tiles)` }, '*');
-                            } else if (!target || target.userData.isDead) {
-                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `No target in range for ${spell.label}!` }, '*');
+                            if (spell.el === 'ITEM' || action === 'POTION' || action === 'SCROLL OF IDENTITY') {
+                                this.spawnPotionUse(action, spell);
+                            } else if (spell.el === 'KATANA' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') {
+                                this.spawnMeleeSlash(action, spell);
                             } else {
-                                // Snap to hostile
-                                target.userData.isHostile = true;
-                                target.userData.stateColor = '#ff4400';
-                                
-                                // Camera shake
-                                if (spell.trauma > 0) this.addCameraTrauma(spell.trauma);
-                                this.triggerHitStop(30);
-                                
-                                // Deal damage or heal
-                                if (spell.el === 'ITEM' && spell.dmg < 0) {
-                                    this.player.hp = Math.min(100, this.player.hp + Math.abs(spell.dmg));
-                                    window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
-                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spell.label} restores ${Math.abs(spell.dmg)} HP!` }, '*');
-                                } else if (spell.dmg > 0) {
-                                    target.userData.hp -= spell.dmg;
-                                    window.parent.postMessage({ type: 'SHOW_COMBAT', health: target.userData.hp, maxHp: target.userData.maxHp ?? 50, name: target.userData.name || 'Yakuza Goblin', entityType: target.userData.type || 'enemy' }, '*');
-                                    this.spawnDamageText(spell.dmg, target.position, false);
-                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${spell.label} hits for ${spell.dmg} DMG!` }, '*');
-                                    if (target.userData.hp <= 0) window.postMessage({ type: 'AI_DEATH', id: target.userData.id }, '*');
-                                }
-                                
-                                // Spawn impact particles at target
-                                const impactPos = target.position.clone().add(new THREE.Vector3(0, 1.0, 0));
-                                const count = spell.el === 'WIND' ? 6 : 10;
-                                for (let p = 0; p < count; p++) {
-                                    const pGeo = spell.el === 'EARTH'
-                                        ? new THREE.BoxGeometry(0.12, 0.12, 0.12)
-                                        : new THREE.SphereGeometry(spell.el === 'WIND' ? 0.18 : 0.09, 4, 4);
-                                    const pMat = new THREE.MeshStandardMaterial({
-                                        color: spell.color, emissive: spell.color,
-                                        emissiveIntensity: spell.el === 'ITEM' ? 1.5 : 2.5,
-                                        transparent: true, opacity: 1.0
-                                    });
-                                    const pMesh = new THREE.Mesh(pGeo, pMat);
-                                    pMesh.position.copy(impactPos);
-                                    const angle = (p / count) * Math.PI * 2;
-                                    const spread = 0.08 + Math.random() * 0.12;
-                                    pMesh.userData = {
-                                        isSpellParticle: true,
-                                        vX: Math.cos(angle) * spread,
-                                        vY: 0.12 + Math.random() * 0.1,
-                                        vZ: Math.sin(angle) * spread,
-                                        life: 45
-                                    };
-                                    this.worldGroup.add(pMesh);
-                                }
-                                
-                                // Flash point light at impact
-                                const impactLight = new THREE.PointLight(spell.color, 6.0, this.gridSize * 2);
-                                impactLight.position.copy(impactPos);
-                                this.scene.add(impactLight);
-                                setTimeout(() => this.scene.remove(impactLight), 180);
+                                this.spawnProjectile(action, spell);
                             }
                         }
                     } else if (e.data.type === 'COMBAT_UPDATE') {
@@ -3819,8 +4219,12 @@
                                 deadMesh.userData.mixer.stopAllAction();
                             }
                             
-                            // Remove selection circle entirely
-
+                            // Selection circle is already in worldGroup, just detach it logically
+                            const monBase = deadMesh.userData.monBase;
+                            if (monBase) {
+                                deadMesh.userData.detachedBase = monBase;
+                                deadMesh.userData.monBase = null; // stop syncing position
+                            }
                             
                             // Spawn Physical Loot at monster location
                             this.spawnLoot(Math.round(deadMesh.position.x / this.gridSize), Math.round(deadMesh.position.z / this.gridSize));
@@ -3862,6 +4266,10 @@
                                     requestAnimationFrame(deathBurst);
                                 } else {
                                     this.worldGroup.remove(deadMesh);
+                                    if (deadMesh.userData.detachedBase) {
+                                        this.worldGroup.remove(deadMesh.userData.detachedBase);
+                                    }
+                                    this.scene.userData.activeEnemies--;
                                 }
                             };
                             
@@ -3909,229 +4317,13 @@
 
             // ─── Resizable PiP: wire up canvas contexts + drag logic ───
             initPipCanvases() {
-                const pipMap = document.getElementById('pip-map-canvas');
-                if (pipMap) { 
-                    this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
-                    this.pipCanvasEl = pipMap;
-                }
-
-                // Ensure ortho target state exists
+                // Canvas context is now polled dynamically in animate() from the parent frames                // Ensure ortho target state exists
                 if (!this._pipOrthoTarget) {
                     this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
                 }
                 
                 if (!this._pipZoomScale) this._pipZoomScale = 1.0; // Normalized baseline scale
 
-                // Inject 10a's window management logic
-                const pip = document.getElementById("mapview-container");
-                if (!pip) return;
-
-                const MIN_W = 200;
-                const MIN_H = 200;
-
-                // Dragging the container & Map Rotation
-                let dragging = false;
-                let mapRotating = false;
-                let mapPanning = false;
-                let dragStart = { x: 0, y: 0, left: 0, top: 0 };
-                let rotStart = { x: 0, y: 0 };
-                let panStart = { x: 0, y: 0 };
-                let clickStart = { x: 0, y: 0 };
-                
-                pip.addEventListener("contextmenu", e => { if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); });
-                
-                // Single-Click cleanly swaps modes (ignoring drags) using reliable MouseUp distance calculation
-                let _clickOriginatedInControls = false;
-                
-                pip.addEventListener("mouseup", (e) => {
-                     if (e.button !== 0) return; // Only process standard left clicks for camera swaps
-                     
-                     const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
-                     if (dist > 5) return; // It was a drag, ignore
-                     
-                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
-                         this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
-                         const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
-                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
-                     }
-                });
-                
-                // Double-click instantly snaps panning back to player
-                pip.addEventListener("dblclick", (e) => {
-                     e.stopPropagation();
-                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
-                         this._pipPan = { x: 0, z: 0 };
-                     }
-                });
-                
-                pip.addEventListener("mousedown", (e) => {
-                    clickStart = { x: e.clientX, y: e.clientY };
-                    
-                    // Let Chrome initialize Drag state
-                    if (e.target.closest(".resize-handle")) return; 
-                    if (e.target.closest(".map-dpad")) return; // Ignore camera controls so buttons act natively
-                    
-                    e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
-                    
-                    if (e.button === 2) { // Right Click = Orbit map
-                         e.preventDefault();
-                         mapRotating = true;
-                         rotStart.x = e.clientX;
-                         rotStart.y = e.clientY;
-                         document.addEventListener("mousemove", onRotMove);
-                         document.addEventListener("mouseup", onRotEnd, { once: true });
-                         return;
-                    }
-                    if (e.target.closest(".canvas-wrapper")) {
-                        // Left or Middle clicking the actual canvas pans the map
-                        if (e.button === 0 || e.button === 1) { 
-                             e.preventDefault();
-                             mapPanning = true;
-                             panStart.x = e.clientX;
-                             panStart.y = e.clientY;
-                             document.addEventListener("mousemove", onPanMove);
-                             document.addEventListener("mouseup", onPanEnd, { once: true });
-                             return;
-                        }
-                    } else if (e.target.closest(".view-label")) {
-                        // Clicking the Map View header moves the PiP container around the viewport screen
-                        if (e.button === 0) {
-                            const rect = pip.getBoundingClientRect();
-                            dragging = true;
-                            pip.style.willChange = "transform, left, top, width, height";
-                            pip.style.transition = "none";
-                            pip.classList.add("dragging");
-                            dragStart.x = e.clientX;
-                            dragStart.y = e.clientY;
-                            dragStart.left = rect.left;
-                            dragStart.top = rect.top;
-                            document.addEventListener("mousemove", onDragMove);
-                            document.addEventListener("mouseup", onDragEnd, { once: true });
-                            return;
-                        }
-                    }
-                });
-                
-                function clampPiPIntoViewport() {
-                    const rect = pip.getBoundingClientRect();
-                    const vw = window.innerWidth, vh = window.innerHeight;
-                    let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
-                    let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
-                    pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
-                }
-
-                function loadPiPState() {
-                    if (window.innerWidth <= 768) return; // mobile uses sticky full-width
-                    try {
-                        const raw = localStorage.getItem("mapPiPState.v1");
-                        if (!raw) return;
-                        const s = JSON.parse(raw);
-                        if (!s || typeof s !== "object") return;
-                        pip.style.position = "absolute";
-                        if (typeof s.left === "number") { pip.style.left = s.left + "px"; pip.style.right = "auto"; }
-                        if (typeof s.top === "number") pip.style.top = s.top + "px";
-                        if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
-                        if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
-                    } catch {}
-                }
-
-                function savePiPState() {
-                    if (window.innerWidth <= 768) return;
-                    const rect = pip.getBoundingClientRect();
-                    try {
-                        localStorage.setItem("mapPiPState.v1", JSON.stringify({
-                            left: rect.left, top: rect.top, width: rect.width, height: rect.height
-                        }));
-                    } catch {}
-                }
-
-                const onDragMove = (e) => {
-                    if (!dragging) return;
-                    pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
-                    pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
-                    pip.style.right = "auto";
-                };
-                const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
-                
-                const onRotMove = (e) => {
-                    if (!mapRotating) return;
-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
-                    
-                    const dx = e.clientX - rotStart.x;
-                    const dy = e.clientY - rotStart.y;
-                    rotStart.x = e.clientX;
-                    rotStart.y = e.clientY;
-                    
-                    this._pipRot.theta -= dx * 0.01;
-                    this._pipRot.phi -= dy * 0.01;
-                    
-                    // Clamp pitch (phi) to prevent going under the map or over exactly top-down
-                    this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
-                };
-                
-                const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
-                
-                const onPanMove = (e) => {
-                    if (!mapPanning) return;
-                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
-                    
-                    const dx = e.clientX - panStart.x;
-                    const dy = e.clientY - panStart.y;
-                    panStart.x = e.clientX;
-                    panStart.y = e.clientY;
-                    
-                    // Pan relative to camera look angle
-                    const pX = dx * 0.03 * (this._pipRot.radius / 15);
-                    const pZ = dy * 0.03 * (this._pipRot.radius / 15);
-                    
-                    this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
-                    this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
-                };
-                
-                const onPanEnd = () => { mapPanning = false; document.removeEventListener("mousemove", onPanMove); };
-
-                // Resizing logic
-                let resizing = false, currentHandle = "";
-                let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
-                
-                pip.querySelectorAll(".resize-handle").forEach((handle) => {
-                    handle.addEventListener("mousedown", (e) => {
-                        e.stopPropagation(); // prevent FPV camera spin over handles
-                        if (e.button !== 0) return;
-                        e.stopPropagation();
-                        resizing = true;
-                        currentHandle = handle.className.split(" ")[1];
-                        const rect = pip.getBoundingClientRect();
-                        rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
-                        pip.classList.add("resizing");
-                        pip.style.transition = "none";
-                        pip.style.right = "auto"; // Fix to left/top
-                        pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
-                        document.addEventListener("mousemove", onResizeMove);
-                        document.addEventListener("mouseup", onResizeEnd, { once: true });
-                    });
-                });
-                const onResizeMove = (e) => {
-                    if (!resizing) return;
-                    const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
-                    let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
-                    if (currentHandle.includes("e")) nw += dx;
-                    if (currentHandle.includes("s")) nh += dy;
-                    if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
-                    if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
-                    
-                    if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
-                    if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
-                    
-                    pip.style.width = nw + "px"; pip.style.height = nh + "px";
-                    pip.style.left = nl + "px"; pip.style.top = nt + "px";
-                };
-                const onResizeEnd = () => { resizing = false; pip.classList.remove("resizing"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onResizeMove); };
-                
-                // Initialize state
-                loadPiPState();
-                clampPiPIntoViewport();
             },
 
             postToAI(msg) {
@@ -4168,9 +4360,45 @@
                     window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: currentlyMoving }, '*');
                 }
                 
+                // --- Autowalk Logic ---
+                if (this.autoWalkPath && this.autoWalkPath.length > 0) {
+                    const targetNode = this.autoWalkPath[0];
+                    const dx = targetNode.x - this.player.x;
+                    const dz = targetNode.z - this.player.z;
+                    const distSq = dx * dx + dz * dz;
+                    
+                    if (distSq < 0.05) {
+                        // Reached waypoint!
+                        this.autoWalkPath.shift();
+                        
+                        // Remove the corresponding visual from the group
+                        if (this.pathVisualsGroup && this.pathVisualsGroup.children.length > 0) {
+                            this.pathVisualsGroup.remove(this.pathVisualsGroup.children[0]);
+                        }
+                        
+                        if (this.autoWalkPath.length === 0) {
+                            moveDir = 0;
+                            this.player.autoTurnTarget = null;
+                        }
+                    } else {
+                        // Move and turn towards target
+                        this.player.autoTurnTarget = Math.atan2(dx, dz);
+                        
+                        // Only move forward if we are roughly facing the correct direction
+                        const diff = this.player.autoTurnTarget - this.player.rot;
+                        let normDiff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                        if (Math.abs(normDiff) < 0.5) {
+                            moveDir = 1;
+                        } else {
+                            moveDir = 0; // stop and turn first!
+                        }
+                    }
+                }
+
                 // Rotation
                 this.camera.rotation.x = 0; // Baseline X before applying trauma
                 if (turnDir !== 0) {
+                    this.clearAutoWalk(); // Manual turn interrupts autowalk
                     this.player.rot += turnDir * this.ROT_SPEED * delta;
                 }
                 this.camera.rotation.y = this.player.rot;
@@ -4687,6 +4915,12 @@
                             // Face player constantly
                             const angle = Math.atan2(this.camera.position.x - child.position.x, this.camera.position.z - child.position.z);
                             child.rotation.y = angle;
+                            
+                            // Sync monster floor circle if alive
+                            if (child.userData.monBase) {
+                                child.userData.monBase.position.set(child.position.x, 0, child.position.z);
+                                child.userData.monBase.rotation.y = child.rotation.y;
+                            }
                         }
                         
                         // Slow ethereal ghost float for entities elevated off the floor (baseY > 0.05)
@@ -4698,6 +4932,11 @@
                             } else {
                                 // Subtle idle floor bob when standing
                                 child.position.y = baseY + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.07;
+                            }
+                            // Always sync base circle to floor — independent of Y float, never blinks
+                            if (child.userData.monBase) {
+                                child.userData.monBase.position.set(child.position.x, 0, child.position.z);
+                                child.userData.monBase.rotation.y = child.rotation.y;
                             }
                         }
                         
@@ -4829,33 +5068,62 @@
                 }
 
                 // --- Autonomous Monster Combat Logic ---
-                // Locked behind player movement to maintain a True Turn-Based system when holding ground!
-                if (currentlyMoving) {
+                // Hybrid Turn-Based System!
+                // AI gets to move if player is moving OR if the player injected action time by using a card.
+                if (currentlyMoving || this.actionTimePool > 0) {
                     this.updateCombatAI(delta);
+                    if (!currentlyMoving && this.actionTimePool > 0) {
+                        this.actionTimePool -= delta;
+                        if (this.actionTimePool < 0) this.actionTimePool = 0;
+                    }
                 }
 
-                // --- BOULDER PHYSICS ---
+                // --- PROJECTILE PHYSICS ---
                 for (let bi = this.boulders.length - 1; bi >= 0; bi--) {
                     const b = this.boulders[bi];
 
-                    // Gravity arc
-                    b.userData.vY -= 18.0 * delta;
+                    // Gravity arc if boulder
+                    if (b.userData.isBoulder) {
+                        b.userData.vY -= 18.0 * delta;
+                    }
+                    
                     b.position.x += b.userData.vX * delta;
                     b.position.y += b.userData.vY * delta;
                     b.position.z += b.userData.vZ * delta;
 
-                    // Realistic rolling spin on axis perpendicular to travel
-                    if (b.userData.spinAxis) {
-                        const spd2D = Math.hypot(b.userData.vX, b.userData.vZ);
-                        b.rotateOnWorldAxis(b.userData.spinAxis, spd2D * delta * 0.6);
+                    // Realistic rolling/spinning dynamically perpendicular to actual travel direction
+                    const spd2D = Math.hypot(b.userData.vX, b.userData.vZ);
+                    if (spd2D > 0.01) {
+                        if (b.userData.type === 'SHURIKEN') {
+                            const dynamicSpinAxis = new THREE.Vector3(b.userData.vZ / spd2D, 0, -b.userData.vX / spd2D);
+                            b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 2.5); // Spin vertically
+                        } else if (b.userData.isBoulder) {
+                            const dynamicSpinAxis = new THREE.Vector3(b.userData.vZ / spd2D, 0, -b.userData.vX / spd2D);
+                            b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 0.6);
+                        }
                     }
 
                     // Floor bounce (damped — heavy rock)
-                    if (b.position.y < 0.55) {
+                    if (b.userData.isBoulder && b.position.y <= 0.55) {
                         b.position.y = 0.55;
-                        b.userData.vY = Math.abs(b.userData.vY) * 0.28;
-                        b.userData.vX *= 0.88;
-                        b.userData.vZ *= 0.88;
+                        if (b.userData.vY < -1.5) {
+                            // Hard bounce
+                            b.userData.vY = Math.abs(b.userData.vY) * 0.8; // More bouncy pinball!
+                            b.userData.vX *= 0.95;
+                            b.userData.vZ *= 0.95;
+                        } else {
+                            // Rolling on floor
+                            b.userData.vY = 0;
+                            b.userData.vX *= 0.99; // Less friction for pinball!
+                            b.userData.vZ *= 0.99;
+                        }
+                    }
+
+                    // Remove if completely stopped or fell off map
+                    if (b.position.y < -5 || (b.position.y <= 0.55 && Math.hypot(b.userData.vX, b.userData.vZ) < 0.2)) {
+                        this.scene.remove(b);
+                        this.boulders.splice(bi, 1);
+                        continue;
                     }
 
                     // Wall AABB collision check
@@ -4865,12 +5133,32 @@
                                   || (this.mapData[bGX]?.[bGZ]?.type === 'wall');
 
                     if (bWallHit) {
-                        const ep = b.position.clone();
-                        this.scene.remove(b);
-                        this.boulders.splice(bi, 1);
-                        this.spawnRockExplosion(ep);
-                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: '\uD83D\uDCA5 BOULDER smashes the wall!' }, '*');
-                        continue;
+                        if (b.userData.isBoulder) {
+                            // Pinball bounce normal based on which cell boundary we crossed
+                            const cellCenterX = bGX * this.gridSize;
+                            const cellCenterZ = bGZ * this.gridSize;
+                            
+                            const dx = b.position.x - cellCenterX;
+                            const dz = b.position.z - cellCenterZ;
+                            
+                            if (Math.abs(dx) > Math.abs(dz)) {
+                                // Hit the X-facing wall
+                                b.userData.vX *= -1.0; // PERFECT BOUNCE!
+                                b.position.x += b.userData.vX * delta * 2; // push out
+                            } else {
+                                // Hit the Z-facing wall
+                                b.userData.vZ *= -1.0; // PERFECT BOUNCE!
+                                b.position.z += b.userData.vZ * delta * 2;
+                            }
+                            // Spawn a tiny bit of dust/sparks on wall hit
+                            this.spawnRockExplosion(b.position.clone());
+                        } else {
+                            // Missiles stick and disappear
+                            this.spawnRockExplosion(b.position.clone());
+                            this.scene.remove(b);
+                            this.boulders.splice(bi, 1);
+                            continue;
+                        }
                     }
 
                     // Entity collision (1.1 world-unit hit radius)
@@ -4913,10 +5201,14 @@
                         loot.rotation.y += delta * (loot.userData.type === 'loot_gold' ? 2.0 : 1.2);
                         
                         if (loot.userData.iconMesh) {
-                            // Removed extreme 3D spinning tumbling per user request
-                            // small flat pulse effect
-                            const s = 1.0 + Math.sin(loot.userData.floatTimer * 5.0) * 0.1;
-                            loot.userData.iconMesh.scale.set(s,s,s);
+                            // Call the mirrored animation update logic
+                            if (loot.userData.customUpdate) {
+                                loot.userData.customUpdate(loot.userData.floatTimer);
+                            } else {
+                                // small flat pulse effect fallback
+                                const s = 1.0 + Math.sin(loot.userData.floatTimer * 5.0) * 0.1;
+                                loot.userData.iconMesh.scale.set(s,s,s);
+                            }
                         }
                         
                         // Proximity Check
@@ -4927,7 +5219,10 @@
                                 window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
                                 this.triggerHitStop(20); // Small audio/visual bump
                             } else if (loot.userData.type === 'loot_cards') {
-                                window.parent.postMessage({ type: 'LOOT_CARDS' }, '*');
+                                window.parent.postMessage({ type: 'LOG_EVENT', text: `Acquired Skill Card!`, logType: 'system' }, '*');
+                                window.parent.postMessage({ type: 'ADD_CARD', card: loot.userData.cardName }, '*');
+                                
+                                // Clean up the physical model
                                 this.triggerHitStop(40);
                                 
                                 // YOU GOT! Card Showcase Overlay
@@ -4961,16 +5256,27 @@
                 // --- FOG OF WAR REMOVED ---
 
                 // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
-                const container = document.getElementById('mapview-container');
-                const canvasWrapper = container ? container.querySelector('.canvas-wrapper') : null;
-                const wrapperRect = canvasWrapper ? canvasWrapper.getBoundingClientRect() : null;
+                // If the canvas is missing, try to find it in the Panels iframe
+                if (!this.pip2dCtx && window.location.protocol !== 'file:') {
+                    try {
+                        const panelsIframe = window.parent.document.getElementById('panels-iframe');
+                        if (panelsIframe && panelsIframe.contentDocument) {
+                            const pipMap = panelsIframe.contentDocument.getElementById('pip-map-canvas');
+                            if (pipMap) {
+                                this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
+                                this.pipCanvasEl = pipMap;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (!this._pipRect) this._pipRect = { width: 300, height: 300 };
                 
-                // Track dynamic PiP dimensions
-                const pipW = wrapperRect ? Math.round(wrapperRect.width) : 200;
-                const pipH = wrapperRect ? Math.round(wrapperRect.height) : 200;
-                const pipLeft = wrapperRect ? Math.round(wrapperRect.left) : winW - pipW - 20;
-                const pipBottom = wrapperRect ? Math.round(winH - wrapperRect.bottom) : winH - pipH - 20;
-                const webglTop = wrapperRect ? Math.round(wrapperRect.top) : 20;
+                const pipW = Math.round(this._pipRect.width);
+                const pipH = Math.round(this._pipRect.height);
+                const pipLeft = Math.round(this._pipRect.left || 0); // Render directly behind the UI container
+                const pipBottom = Math.max(0, Math.round(winH - (this._pipRect.top || 0) - pipH)); // Bottom offset for WebGL scissor
+                const webglTop = Math.round(this._pipRect.top || 0); // Top coordinate for drawImage
                 
                 // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
                 const pr = this.renderer.getPixelRatio();
@@ -5016,8 +5322,8 @@
                         const roomWorldSize = roomSpan * this.gridSize; // Total world units to fit
                         
                         // Physically scale camera placement to lower height and pull further back for a sharper Diablo-style angled perspective
-                        targetHeight = roomWorldSize * 0.75;
-                        targetBack = roomWorldSize * 0.65; 
+                        targetHeight = roomWorldSize * 0.75 * this._pipZoomScale;
+                        targetBack = roomWorldSize * 0.65 * this._pipZoomScale; 
                         
                         // Calculate exact FOV to fit roomWorldSize in frame natively given the new hypotenuse distance
                         const camDist = Math.sqrt(targetHeight * targetHeight + targetBack * targetBack);
@@ -5028,8 +5334,8 @@
                     } else {
                         // Increase dynamic angle for hallways as well (lower height, pushed back)
                         targetFOV = 48;
-                        targetHeight = 22;
-                        targetBack = 12;
+                        targetHeight = 22 * this._pipZoomScale;
+                        targetBack = 12 * this._pipZoomScale;
                         lookAtX = camWX;
                         lookAtZ = camWZ;
                     }
@@ -5055,22 +5361,32 @@
                     this.topDownCamera.aspect = aspect;
                     this.topDownCamera.updateProjectionMatrix();
 
-                    // Integrate user's manual orbital controls (Pitch / Yaw)
-                    this._cameraOrbitPitch = this._cameraOrbitPitch || 0; // degrees, 0=straight down
-                    this._cameraOrbitYaw = this._cameraOrbitYaw || 0; // radians
+                    // Initialize or use interactive PiP orbit controls
+                    if (!this._pipRot) this._pipRot = { theta: 0, phi: 0.8 };
                     
-                    const camRadius = this._pipHeight || 80;
-                    const pitchRad = this._cameraOrbitPitch * (Math.PI / 180);
+                    // Lock PiP rotation to FPV to maintain proper alignment
+                    this._pipRot.theta = this.player.rot;
                     
-                    // Spherical to Cartesian orbit around target
-                    const camPosY = Math.cos(pitchRad) * camRadius;
-                    const mapXZRadius = Math.sin(pitchRad) * camRadius;
+                    // Use directly smoothed height and back offsets for fluid zoom/pan
+                    const camPosY = this._pipHeight;
+                    const mapXZRadius = this._pipBack;
                     
-                    const camPosX = this._pipOrthoTarget.cx + Math.sin(this._cameraOrbitYaw) * mapXZRadius;
-                    const camPosZ = this._pipOrthoTarget.cz + Math.cos(this._cameraOrbitYaw) * mapXZRadius;
+                    const camPosX = this._pipOrthoTarget.cx + Math.sin(this._pipRot.theta) * mapXZRadius;
+                    const camPosZ = this._pipOrthoTarget.cz + Math.cos(this._pipRot.theta) * mapXZRadius;
 
-                    this.topDownCamera.position.set(camPosX, camPosY, camPosZ);
-                    this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
+                    // Offset camera forward so player appears near the bottom of the screen (only in hallways)
+                    const targetForwardOffset = activeRoom ? 0 : (8 * this._pipZoomScale);
+                    if (this._pipForwardOffset === undefined) this._pipForwardOffset = targetForwardOffset;
+                    this._pipForwardOffset += (targetForwardOffset - this._pipForwardOffset) * camTrackSpeed;
+                    
+                    const offX = -Math.sin(this._pipRot.theta) * this._pipForwardOffset;
+                    const offZ = -Math.cos(this._pipRot.theta) * this._pipForwardOffset;
+                    
+                    const panX = this._pipPan ? this._pipPan.x : 0;
+                    const panZ = this._pipPan ? this._pipPan.z : 0;
+
+                    this.topDownCamera.position.set(camPosX + offX + panX, camPosY, camPosZ + offZ + panZ);
+                    this.topDownCamera.lookAt(this._pipOrthoTarget.cx + offX + panX, 0, this._pipOrthoTarget.cz + offZ + panZ);
 
 
 
@@ -5081,17 +5397,20 @@
                         
                         // Handle walk animation
                         if (this.playerMixer && this.playerWalkAction) {
-                            const isWalking = currentlyMoving;
-                            if (isWalking) {
+                            if (currentlyMoving) {
                                 if (this.playerMixer._current !== 'walk') {
                                     if (this.playerIdleAction) this.playerIdleAction.stop();
+                                    this.playerWalkAction.reset();
                                     this.playerWalkAction.play();
                                     this.playerMixer._current = 'walk';
                                 }
                             } else {
                                 if (this.playerMixer._current !== 'idle') {
                                     this.playerWalkAction.stop();
-                                    if (this.playerIdleAction) this.playerIdleAction.play();
+                                    if (this.playerIdleAction) {
+                                        this.playerIdleAction.reset();
+                                        this.playerIdleAction.play();
+                                    }
                                     this.playerMixer._current = 'idle';
                                 }
                             }
@@ -5225,52 +5544,7 @@
             }
         }, false);
         
-        // Map D-Pad Control Logic - Native clean interaction
-        (function initDPad() {
-            let dpadInterval = null;
-            const updateOrbit = (btnId) => {
-                if (!Engine) return;
-                Engine._cameraOrbitPitch = Engine._cameraOrbitPitch || 0;
-                Engine._cameraOrbitYaw = Engine._cameraOrbitYaw || 0;
-                
-                if (btnId === 'dpad-down') Engine._cameraOrbitPitch -= 2.0; // Less steep
-                if (btnId === 'dpad-up') Engine._cameraOrbitPitch += 2.0; // More isometric
-                if (btnId === 'dpad-left') Engine._cameraOrbitYaw -= 0.1;
-                if (btnId === 'dpad-right') Engine._cameraOrbitYaw += 0.1;
-                
-                // Keep pitch strictly constrained so camera never flips or goes underground
-                Engine._cameraOrbitPitch = Math.max(0, Math.min(85, Engine._cameraOrbitPitch));
-            };
 
-            const handlePress = (e) => {
-                const btnId = e.target.closest('button')?.id;
-                if (!btnId) {
-                    if (e.target.closest('.dpad-center') && Engine) {
-                        Engine._cameraOrbitPitch = 0;
-                        Engine._cameraOrbitYaw = 0;
-                    }
-                    return;
-                }
-                if (dpadInterval) clearInterval(dpadInterval);
-                updateOrbit(btnId); // Immediate bump
-                dpadInterval = setInterval(() => updateOrbit(btnId), 30); // Hold iteration
-            };
-
-            const handleRelease = () => {
-                if (dpadInterval) clearInterval(dpadInterval);
-                dpadInterval = null;
-            };
-
-            const dpad = document.querySelector('.map-dpad');
-            if (dpad) {
-                // Remove stopPropagation to ensure buttons fire native interactions smoothly
-                dpad.addEventListener('mousedown', handlePress);
-                window.addEventListener('mouseup', handleRelease);
-                
-                dpad.addEventListener('touchstart', (e) => { e.preventDefault(); handlePress(e); }, {passive: false});
-                window.addEventListener('touchend', handleRelease);
-            }
-        })();
 
         window.onload = () => Engine.init();
     </script>

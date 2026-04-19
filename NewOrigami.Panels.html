@@ -232,6 +232,14 @@
         }
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
         
+        .card-badge {
+            position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; 
+            border-radius: 50%; background: var(--theme-clr, #00ffff); color: #000;
+            font-size: 11px; font-weight: 900; display: flex; align-items: center; 
+            justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 2px solid var(--item-bg); z-index: 10;
+        }
+        
         .guide-card[data-depth="0"]:hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
 
         /* === CARD BLOOM SELECTION STATE === */
@@ -307,6 +315,26 @@
             text-align: center; 
             line-height: 1.1; 
             box-sizing: border-box; 
+        }
+
+        .card-click-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 100;
+            cursor: pointer;
+        }
+        
+        .card-charge-badge {
+            position: absolute;
+            top: 5px; right: 5px;
+            background: #ff0055;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
         /* card-tooltip removed: bloom glow IS the selection feedback */
@@ -560,7 +588,118 @@
             .log-entry.system { color: #ffeb3b; }
             .log-entry.combat { color: #ff9800; }
             .log-entry.chat { color: #81d4fa; font-style: normal; font-family: inherit; font-weight: 800; letter-spacing: 0.5px; }
+
+            /* Mapview container using identical 10A AAA design */
+            #mapview-container {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                height: clamp(250px, 30vh, 400px);
+                width: clamp(250px, 30vh, 400px);
+                min-width: 200px;
+                min-height: 200px;
+                border-radius: 18px;
+                background: linear-gradient(145deg, #1a1a1e, #111114);
+                padding: 6px;
+                z-index: 10000;
+                border: 1px solid rgba(180,140,60,0.25);
+                box-sizing: border-box;
+                cursor: move;
+                transition: transform 0.3s ease;
+                overflow: visible;
+                -webkit-user-select: none;
+                user-select: none;
+                pointer-events: auto; /* Required to capture events over pointer-events: none body */
+                display: none; /* Only visible in dock mode */
+            }
+
+            #mapview-container:hover {
+                border-color: rgba(200,150,60,0.35);
+            }
+
+            #mapview-container.dragging {
+                cursor: grabbing !important;
+                z-index: 10005 !important;
+            }
+
+            #mapview-container.resizing {
+                transition: none;
+            }
+
+            #mapview-container:active {
+                cursor: grabbing;
+            }
+
+            #mapview-container .canvas-wrapper {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                border-radius: 12px;
+                background: #0a0a0c;
+            }
+
+            /* Tilt-Shift / Diorama Spotlight Vignette */
+            #mapview-container .canvas-wrapper::after {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
+                -webkit-backdrop-filter: blur(4px);
+                backdrop-filter: blur(4px);
+                -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+                mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+                pointer-events: none;
+                z-index: 10;
+            }
+
+            #mapview-container .canvas-wrapper canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+                pointer-events: auto;
+            }
+
+            .resize-handle {
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                background: transparent;
+                z-index: 51;
+                pointer-events: auto;
+            }
+            .resize-handle.se { bottom: 0; right: 0; cursor: se-resize; }
+            .resize-handle.sw { bottom: 0; left: 0; cursor: sw-resize; }
+            .resize-handle.ne { top: 0; right: 0; cursor: ne-resize; }
+            .resize-handle.nw { top: 0; left: 0; cursor: nw-resize; }
+
+            #mapview-container .view-label {
+                position: absolute;
+                top: 6px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-family: 'Roboto', sans-serif;
+                font-weight: 800;
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                color: rgba(255,255,255,0.3);
+                pointer-events: none;
+                z-index: 6;
+            }
         </style>
+        
+        <!-- Map View Container -->
+        <div id="mapview-container" class="primary-view">
+            <div class="view-label">Map View (Drag Here)</div>
+            <div class="canvas-wrapper">
+                <canvas id="pip-map-canvas"></canvas>
+            </div>
+            <div class="resize-handle se"></div>
+            <div class="resize-handle sw"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle nw"></div>
+        </div>
+
         <div id="lower-ui-row">
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
                 <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
@@ -648,6 +787,7 @@
             { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Inferno star.', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Viscous tide.', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
+            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Ranged attack.', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
             { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Green nectar.', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
         ];
 
@@ -655,6 +795,9 @@
             { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Basic slash.', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
             { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Fast thrust.', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
             { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Heavy attack.', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
+            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Ranged attack.', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
+            { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Quick shot.', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
+            { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Heavy shot.', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
             { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Raises AC.', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
             { id: 'ITEM', kanji: '薬', icon: 'fa-flask', desc: 'Use item.', attr: '(RESTORE)', cards: ['POTION'] }
         ];
@@ -671,7 +814,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'MISSILE', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
             renderer.setClearColor(0x000000, 0); // Critial fix to prevent black squares
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -697,7 +840,8 @@
                     update = (t) => {
                         const isDark = document.body.classList.contains('dark-mode');
                         rockMat.color.setHex(isDark ? 0x8D6E63 : 0x5C4033);
-                        rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
+                        rock.rotation.x = t * 1.8; 
+                        // Z ROTATION REMOVED TO PREVENT Z-AXIS PROTRUSION
                         rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
                     };
                 } else if (el === 'FIRE') {
@@ -753,7 +897,7 @@
                         
                         // Dynamic swirling lean to look organic
                         tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
-                        tornado.rotation.z = Math.cos(t * 4.2) * 0.1;
+                        // Z ROTATION REMOVED
                     };
                 } else if (el === 'WATER') {
                     const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
@@ -798,12 +942,11 @@
                     vial.add(glowLight);
                     
                     update = (t) => { 
-                        vial.rotation.z = Math.sin(t * 1.5) * 0.1; 
                         vial.rotation.y = t * 0.4; // Slower spinning
                         
                         // Sloshing logic - dynamically tilting the local fluid sphere oppositely to create sloshing against the identical glass surface
                         liqGroup.rotation.x = Math.sin(t * 2.1) * 0.2;
-                        liqGroup.rotation.z = -Math.sin(t * 1.5) * 0.25 + Math.cos(t * 2.5) * 0.1;
+                        // Z ROTATION REMOVED
                         
                         const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
                         glowLight.intensity = 1.5 + pulse * 1.5; 
@@ -823,7 +966,19 @@
                     guard.position.y = 0.6;
                     group.add(hilt, blade, guard);
                     group.position.y = -1.0;
-                    update = (t) => { group.rotation.z = Math.sin(t * 3) * 0.2; group.rotation.y = t * 0.5; };
+                    update = (t) => { group.rotation.y = t * 0.5; };
+                } else if (el === 'MISSILE') {
+                    const starGeo = new THREE.BoxGeometry(0.8, 0.05, 0.2);
+                    const starGeo2 = new THREE.BoxGeometry(0.2, 0.05, 0.8);
+                    const starMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 1.0, roughness: 0.1});
+                    const star1 = new THREE.Mesh(starGeo, starMat);
+                    const star2 = new THREE.Mesh(starGeo2, starMat);
+                    star1.rotation.x = Math.PI / 2;
+                    star2.rotation.x = Math.PI / 2;
+                    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8), new THREE.MeshBasicMaterial({color: 0x000000}));
+                    hole.rotation.x = Math.PI / 2;
+                    group.add(star1, star2, hole);
+                    update = (t) => { group.rotation.x = t * 8.0; };
                 } else if (el === 'SHIELD') {
                     const shieldGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
                     const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
@@ -1207,6 +1362,7 @@
                         <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
                         <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
                         <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-click-overlay"></div>
                     `;
                     card.onclick = (e) => {
                         e.stopPropagation();
@@ -1344,6 +1500,23 @@
             if (btn && btn.classList) {
                 btn.classList.add('punch-anim');
                 setTimeout(() => btn.classList.remove('punch-anim'), 300);
+                
+                if (btn.dataset.qty !== undefined) {
+                    let qty = parseInt(btn.dataset.qty);
+                    if (qty > 0) {
+                        qty--;
+                        btn.dataset.qty = qty;
+                        const badge = btn.querySelector('.card-charge-badge');
+                        if (badge) badge.textContent = qty;
+                        
+                        if (qty <= 0) {
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.3'; // Dim when depleted
+                        }
+                    } else {
+                        return; // Block action if depleted!
+                    }
+                }
             }
             
             // Dice UI Toggle
@@ -1374,18 +1547,42 @@
             categories.forEach((cat, idx) => {
                 const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
                 
-                let startY = 0, isDragging = false;
+                let startY = 0, isDragging = false, dragMoved = false;
+                let holdTimer = null, holdTarget = null, holdInterval = null;
+                
                 col.onpointerdown = (e) => { 
                     startY = e.clientY; 
                     isDragging = true; 
+                    dragMoved = false;
                     col.setPointerCapture(e.pointerId); 
                     const topCard = col.querySelector('.guide-card[data-depth="0"]');
                     if (topCard) topCard.style.transition = 'none';
+                    
+                    const el = document.elementFromPoint(e.clientX, e.clientY);
+                    holdTarget = el ? el.closest('.guide-card') : null;
+                    if (holdTarget && holdTarget.dataset.depth === "0") {
+                        holdTimer = setTimeout(() => {
+                            if (!dragMoved && holdTarget) {
+                                holdTarget.classList.add('selected-card');
+                                const actionName = holdTarget.querySelector('.card-title').textContent;
+                                holdInterval = setInterval(() => {
+                                    holdTarget.classList.add('launching');
+                                    emitAction(actionName, holdTarget);
+                                    setTimeout(() => holdTarget.classList.remove('launching'), 100);
+                                }, 300);
+                            }
+                        }, 300);
+                    }
                 };
                 
                 col.onpointermove = (e) => { 
                     if(!isDragging) return; 
                     const deltaY = e.clientY - startY; 
+                    if (Math.abs(deltaY) > 5) {
+                        dragMoved = true;
+                        clearTimeout(holdTimer);
+                        if (holdInterval) { clearInterval(holdInterval); holdInterval = null; if (holdTarget) holdTarget.classList.remove('selected-card'); }
+                    }
                     const topCard = col.querySelector('.guide-card[data-depth="0"]');
                     
                     if (topCard) {
@@ -1410,10 +1607,42 @@
                 const endDrag = (e) => {
                     isDragging = false; 
                     col.releasePointerCapture(e.pointerId); 
+                    
+                    clearTimeout(holdTimer);
+                    if (holdInterval) { 
+                        clearInterval(holdInterval); 
+                        holdInterval = null; 
+                        if (holdTarget) holdTarget.classList.remove('selected-card'); 
+                        return; // We already fired actions via hold, do not fire single click
+                    }
+
                     const topCard = col.querySelector('.guide-card[data-depth="0"]');
                     if (topCard) {
                         topCard.style.transition = '';
                         topCard.style.transform = '';
+                    }
+                    if (!dragMoved) {
+                        // Single click activation
+                        const el = document.elementFromPoint(e.clientX, e.clientY);
+                        if (!el) return;
+                        const clickedCard = el.closest('.guide-card');
+                        if (clickedCard && clickedCard.parentElement === col) {
+                            setFocus(idx);
+                            if(clickedCard.dataset.depth === "0") {
+                                if (clickedCard.classList.contains('selected-card')) {
+                                    // Second click: FIRE!
+                                    clickedCard.classList.remove('selected-card');
+                                    clickedCard.classList.add('launching');
+                                    const actionName = clickedCard.querySelector('.card-title').textContent;
+                                    emitAction(actionName, clickedCard);
+                                    setTimeout(() => { clickedCard.classList.remove('launching'); }, 150);
+                                } else {
+                                    // First click: Select!
+                                    document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
+                                    clickedCard.classList.add('selected-card');
+                                }
+                            }
+                        }
                     }
                 };
                 col.onpointerup = endDrag;
@@ -1421,30 +1650,19 @@
 
                 cat.cards.forEach((name, i) => {
                     const card = document.createElement('div');
-                    card.className = `guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD') ? 'item' : cat.id.toLowerCase()}`;
+                    card.className = `guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD' || cat.id === 'MISSILE') ? 'item' : cat.id.toLowerCase()}`;
                     card.dataset.depth = i;
+                    if (cat.qty !== undefined) card.dataset.qty = cat.qty;
+                    
+                    const badgeHtml = cat.qty !== undefined ? `<div class="card-charge-badge">${cat.qty}</div>` : '';
                     card.innerHTML = `
                         <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
                         <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
                         <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
                         <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-click-overlay"></div>
+                        ${badgeHtml}
                     `;
-                    card.onclick = (e) => {
-                        e.stopPropagation();
-                        setFocus(idx);
-                        if(card.dataset.depth === "0") {
-                            if (card.classList.contains('selected-card')) {
-                                card.classList.remove('selected-card');
-                                card.classList.add('launching');
-                                setTimeout(() => { card.classList.remove('launching'); emitAction(name, card); }, 420);
-                            } else {
-                                document.querySelectorAll('.guide-card').forEach(c => c.classList.remove('selected-card'));
-                                card.classList.add('selected-card');
-                            }
-                        } else {
-                            document.querySelectorAll('.guide-card').forEach(c => c.classList.remove('selected-card'));
-                        }
-                    };
                     col.appendChild(card);
                 });
                 container.appendChild(col);
@@ -1756,6 +1974,27 @@
             } else if (e.data && e.data.type === 'LOOT_CARDS') {
                 window.logEvent('LOOT AQUIRED: Tactical Katana Deck', 'system');
                 loadDeck(combatCategories);
+            } else if (e.data && e.data.type === 'ADD_CARD') {
+                const cardName = e.data.card;
+                if (!window.cardInventoryCounts) window.cardInventoryCounts = {};
+                window.cardInventoryCounts[cardName] = (window.cardInventoryCounts[cardName] || 1) + 1;
+                
+                const count = window.cardInventoryCounts[cardName];
+                if (count >= 2) {
+                    // Update all visual representations of this card
+                    document.querySelectorAll('.guide-card').forEach(card => {
+                        const titleEl = card.querySelector('.card-title');
+                        if (titleEl && titleEl.textContent === cardName) {
+                            let badge = card.querySelector('.card-badge');
+                            if (!badge) {
+                                badge = document.createElement('div');
+                                badge.className = 'card-badge';
+                                card.appendChild(badge);
+                            }
+                            badge.textContent = count;
+                        }
+                    });
+                }
             } else if (e.data && e.data.type === 'LCD_EVENT') {
                 if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
                 window.logEvent(e.data.text || "SYS_ERR", 'system');
@@ -1870,6 +2109,210 @@ setTimeout(() => {
 }, 3000);
 
 // (Dojo Shoji Texture removed; reverting side-panels to standard glass texture to match playing cards)
+</script>
+
+<script>
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        
+        // Only run PiP in Dock mode (the bottom full-screen iframe)
+        if (mode !== 'dock') return;
+
+        const pip = document.getElementById("mapview-container");
+        if (!pip) return;
+        pip.style.display = 'block';
+
+        const MIN_W = 200, MIN_H = 200;
+        let dragging = false, mapRotating = false, mapPanning = false;
+        let dragStart = { x: 0, y: 0, left: 0, top: 0 };
+        let rotStart = { x: 0, y: 0 };
+        let panStart = { x: 0, y: 0 };
+
+        // Post to master router
+        function post(msg) { window.parent.postMessage(msg, '*'); }
+
+        function syncRect() {
+            const wrapper = pip.querySelector('.canvas-wrapper');
+            if (wrapper) {
+                const r = wrapper.getBoundingClientRect();
+                post({ type: 'PIP_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
+            }
+        }
+
+        // Prevent context menu
+        pip.addEventListener("contextmenu", e => { 
+            if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); 
+        });
+        
+        // Zoom via scroll wheel
+        pip.addEventListener("wheel", (e) => {
+            if (e.target.closest(".canvas-wrapper")) {
+                e.preventDefault();
+                post({ type: 'PIP_ZOOM', delta: Math.sign(e.deltaY) });
+            }
+        }, { passive: false });
+
+        // Double-click to swap modes
+        pip.addEventListener("dblclick", (e) => {
+             e.stopPropagation();
+             if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+                 post({ type: 'PIP_TOGGLE' });
+             }
+        });
+        
+        pip.addEventListener("mousedown", (e) => {
+            if (e.target.closest(".resize-handle")) return; 
+            e.stopPropagation();
+            
+            if (e.button === 2) { 
+                 e.preventDefault();
+                 mapRotating = true; rotStart.x = e.clientX; rotStart.y = e.clientY;
+                 document.addEventListener("mousemove", onRotMove);
+                 document.addEventListener("mouseup", onRotEnd, { once: true });
+                 return;
+            }
+            if (e.target.closest(".canvas-wrapper")) {
+                if (e.button === 0 || e.button === 1) { 
+                     e.preventDefault();
+                     mapPanning = true; panStart.x = e.clientX; panStart.y = e.clientY;
+                     document.addEventListener("mousemove", onPanMove);
+                     document.addEventListener("mouseup", onPanEnd, { once: true });
+                     return;
+                }
+            } else if (e.target.closest(".view-label")) {
+                if (e.button === 0) {
+                    const rect = pip.getBoundingClientRect();
+                    dragging = true;
+                    pip.style.willChange = "transform, left, top, width, height";
+                    pip.style.transition = "none";
+                    pip.classList.add("dragging");
+                    dragStart.x = e.clientX; dragStart.y = e.clientY;
+                    dragStart.left = rect.left; dragStart.top = rect.top;
+                    document.addEventListener("mousemove", onDragMove);
+                    document.addEventListener("mouseup", onDragEnd, { once: true });
+                    return;
+                }
+            }
+        });
+        
+        function clampPiPIntoViewport() {
+            const rect = pip.getBoundingClientRect();
+            const vw = window.innerWidth, vh = window.innerHeight;
+            let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
+            let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
+            pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
+        }
+
+        function loadPiPState() {
+            if (window.innerWidth <= 768) return; 
+            try {
+                const raw = localStorage.getItem("mapPiPState.v2");
+                if (!raw) return;
+                const s = JSON.parse(raw);
+                if (!s || typeof s !== "object") return;
+                pip.style.position = "absolute";
+                if (typeof s.left === "number") pip.style.left = s.left + "px";
+                if (typeof s.top === "number") pip.style.top = s.top + "px";
+                if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
+                if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
+                pip.style.right = "auto";
+            } catch {}
+        }
+
+        function savePiPState() {
+            if (window.innerWidth <= 768) return;
+            const rect = pip.getBoundingClientRect();
+            try { localStorage.setItem("mapPiPState.v2", JSON.stringify({ left: rect.left, top: rect.top, width: rect.width, height: rect.height })); } catch {}
+        }
+
+        const onDragMove = (e) => {
+            if (!dragging) return;
+            pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
+            pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
+            pip.style.right = "auto";
+            syncRect();
+        };
+        const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
+        
+        const onRotMove = (e) => {
+            if (!mapRotating) return;
+            const dx = e.clientX - rotStart.x; const dy = e.clientY - rotStart.y;
+            rotStart.x = e.clientX; rotStart.y = e.clientY;
+            post({ type: 'PIP_ROTATE', dx, dy });
+        };
+        const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
+        
+        const onPanMove = (e) => {
+            if (!mapPanning) return;
+            const dx = e.clientX - panStart.x; const dy = e.clientY - panStart.y;
+            panStart.x = e.clientX; panStart.y = e.clientY;
+            post({ type: 'PIP_PAN', dx, dy });
+        };
+        
+        const onPanEnd = (e) => { 
+            mapPanning = false; 
+            document.removeEventListener("mousemove", onPanMove); 
+            // Clicks to move player
+            if (Math.hypot(e.clientX - panStart.x, e.clientY - panStart.y) < 5) {
+                const rect = pip.querySelector('.canvas-wrapper').getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                post({ type: 'PIP_CLICK', x, y });
+            }
+        };
+
+        // Resizing logic
+        let resizing = false, currentHandle = "";
+        let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
+        
+        pip.querySelectorAll(".resize-handle").forEach((handle) => {
+            handle.addEventListener("mousedown", (e) => {
+                if (e.button !== 0) return;
+                e.stopPropagation();
+                resizing = true;
+                currentHandle = handle.className.split(" ")[1];
+                const rect = pip.getBoundingClientRect();
+                rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
+                pip.classList.add("resizing");
+                pip.style.transition = "none";
+                pip.style.right = "auto";
+                pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
+                document.addEventListener("mousemove", onResizeMove);
+                document.addEventListener("mouseup", onResizeEnd, { once: true });
+            });
+        });
+        
+        const onResizeMove = (e) => {
+            if (!resizing) return;
+            const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
+            let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
+            if (currentHandle.includes("e")) nw += dx;
+            if (currentHandle.includes("s")) nh += dy;
+            if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
+            if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
+            
+            if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
+            if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
+            
+            pip.style.width = nw + "px"; pip.style.height = nh + "px";
+            pip.style.left = nl + "px"; pip.style.top = nt + "px";
+            
+            // Sync new dimensions for WebGL resolution matching
+            syncRect();
+        };
+        const onResizeEnd = () => { 
+            resizing = false; pip.classList.remove("resizing"); 
+            clampPiPIntoViewport(); savePiPState(); syncRect(); 
+            document.removeEventListener("mousemove", onResizeMove); 
+        };
+        
+        // Initialize
+        loadPiPState();
+        clampPiPIntoViewport();
+        // Give layout a tick before measuring rect
+        setTimeout(syncRect, 100);
+    })();
 </script>
 </body>
 </html>

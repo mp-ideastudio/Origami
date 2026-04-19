@@ -171,6 +171,7 @@
                   case 'LOG_EVENT':
                   case 'SYNC_STATS':
                   case 'UPDATE_LOOT_CARDS':
+                  case 'ADD_CARD':
                      notifyEngine('panels', e.data);
                      notifyEngine('combat', e.data); // Make sure both mode=dock and mode=combat get events
                      break;
@@ -209,8 +210,13 @@
                   case 'WAGER':
                   case 'PARLEY':
                   case 'ATTACK':
-                  case 'MANUAL_ATTACK':
                   case 'RETREAT':
+                  case 'PIP_ZOOM':
+                  case 'PIP_TOGGLE':
+                  case 'PIP_ROTATE':
+                  case 'PIP_PAN':
+                  case 'PIP_CLICK':
+                  case 'PIP_SYNC_RECT':
                      notifyEngine('fpv', e.data);
                      break;
                }
