@@ -2771,7 +2771,7 @@
                                 const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 2), rockMat); 
                                 iconMesh.add(rock);
                                 customUpdate = (t) => {
-                                    rock.rotation.z = t * 1.8;
+                                    rock.rotation.x = t * 1.8;
                                     rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
                                 };
                             } else if (catId === 'FIRE') {
@@ -2902,30 +2902,22 @@
                             return { iconMesh, customUpdate };
                         };
 
-                        const frontModel = createLootIcon();
-                        const backModel = createLootIcon();
+                        const iconModel = createLootIcon();
                         
                         const iconWrapper = new THREE.Group();
                         
-                        // Scale exactly to fit entirely within the black cavity radius and flatten Z-axis
+                        // Fully 3D model exactly matching the UI panels
                         const EXACT_SCALE = 0.07;
                         
-                        // Attach to front of card (z = +0.01 to hover just above front card face)
-                        frontModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, 0.001);
-                        frontModel.iconMesh.position.set(0, -0.096, 0.01);
-                        iconWrapper.add(frontModel.iconMesh);
-
-                        // Attach to back of card (z = -0.01 to hover just above back card face)
-                        backModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, 0.001);
-                        backModel.iconMesh.position.set(0, -0.096, -0.01);
-                        backModel.iconMesh.rotation.y = Math.PI; // Face outwards
-                        iconWrapper.add(backModel.iconMesh);
+                        // Set the model directly at Z=0 so it physically pierces the card symmetrically
+                        iconModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
+                        iconModel.iconMesh.position.set(0, -0.096, 0);
+                        iconWrapper.add(iconModel.iconMesh);
                         
                         cardGroup.add(iconWrapper);
                         
                         const combinedUpdate = (t) => {
-                            if (frontModel.customUpdate) frontModel.customUpdate(t);
-                            if (backModel.customUpdate) backModel.customUpdate(t);
+                            if (iconModel.customUpdate) iconModel.customUpdate(t);
                         };
                         
                         cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
