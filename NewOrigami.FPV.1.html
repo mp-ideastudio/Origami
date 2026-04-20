@@ -4153,6 +4153,7 @@
                         this._pipRect.bottom = e.data.bottom;
                         return;
                     } else if (e.data.type === 'PIP_ZOOM') {
+                        this._pipLastInteractionTime = Date.now();
                         if (!this._pipZoomScale) this._pipZoomScale = 0.5;
                         this._pipZoomScale += e.data.delta * 0.1;
                         this._pipZoomScale = Math.max(0.2, Math.min(2.0, this._pipZoomScale));
@@ -4164,6 +4165,7 @@
                         this._pipPan = { x: 0, z: 0 };
                         return;
                     } else if (e.data.type === 'PIP_ROTATE') {
+                        this._pipLastInteractionTime = Date.now();
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
                         this._pipRot.theta -= e.data.dx * 0.01;
                         this._pipRot.phi -= e.data.dy * 0.01;
@@ -4180,6 +4182,7 @@
                         window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                         return;
                     } else if (e.data.type === 'PIP_PAN') {
+                        this._pipLastInteractionTime = Date.now();
                         if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
                         const pX = e.data.dx * 0.03 * (this._pipRot.radius / 15);
@@ -5665,6 +5668,20 @@
                     const offX = -Math.sin(this._pipRot.theta) * this._pipForwardOffset;
                     const offZ = -Math.cos(this._pipRot.theta) * this._pipForwardOffset;
                     
+                    // Rubber-band Pan and Zoom back to original view after 1.5s of no interaction
+                    if (this._pipLastInteractionTime && (Date.now() - this._pipLastInteractionTime > 1500)) {
+                        if (this._pipPan) {
+                            this._pipPan.x += (0 - this._pipPan.x) * 0.05;
+                            this._pipPan.z += (0 - this._pipPan.z) * 0.05;
+                            // Clamp to exact zero to stop micro-calculations
+                            if (Math.abs(this._pipPan.x) < 0.01) this._pipPan.x = 0;
+                            if (Math.abs(this._pipPan.z) < 0.01) this._pipPan.z = 0;
+                        }
+                        if (this._pipZoomScale !== undefined) {
+                            this._pipZoomScale += (1.0 - this._pipZoomScale) * 0.05;
+                        }
+                    }
+
                     const panX = this._pipPan ? this._pipPan.x : 0;
                     const panZ = this._pipPan ? this._pipPan.z : 0;
 
