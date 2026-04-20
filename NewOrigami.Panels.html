@@ -69,13 +69,13 @@
 
         /* --- UI DOCK --- */
         #ui-dock { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 25px 0; box-sizing: border-box; z-index: 10000; }
-        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 10px; box-sizing: border-box; transition: opacity 0.4s ease; }
+        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 20px; box-sizing: border-box; transition: opacity 0.4s ease; }
         /* Disabled opacity fade so action buttons remain visible during movement */
         body.is-moving #lower-ui-row { transition: none; }
         body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
-        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
