@@ -2716,7 +2716,7 @@
                 
                 // Spawn high-fidelity UI-replica 3D cards in hallway
                 if (this.entrancePos) {
-                    const spawnLootCard = (x, z, catId, inTitle, desc, kanji, attr, isShopItem = false, price = 50) => {
+                    this.spawnLootCard = (x, z, catId, inTitle, desc, kanji, attr, isShopItem = false, price = 50) => {
                         let title = inTitle;
                         let qty = 1;
                         if (title === 'SHURIKEN') {
@@ -2903,11 +2903,22 @@
                                     pos.needsUpdate = true;
                                 };
                             } else if (catId === 'KATANA') {
-                                const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.25), new THREE.MeshStandardMaterial({color: 0x222222}));
-                                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.8, 0.3), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
-                                blade.position.y = 1.2;
-                                const guard = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.5), new THREE.MeshStandardMaterial({color: 0xaa8800}));
-                                guard.position.y = 0.3;
+                                const bladeShape = new THREE.Shape();
+                                bladeShape.moveTo(0, 0); // Guard level
+                                bladeShape.quadraticCurveTo(-0.1, 1.0, -0.05, 2.0); // Back edge
+                                bladeShape.lineTo(0.15, 1.85); // Tip
+                                bladeShape.quadraticCurveTo(0.2, 1.0, 0.2, 0); // Cutting edge
+                                bladeShape.lineTo(0, 0);
+                                const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2 });
+                                bladeGeo.center();
+                                const blade = new THREE.Mesh(bladeGeo, new THREE.MeshStandardMaterial({color: 0xeeeeee, metalness: 0.9, roughness: 0.1}));
+                                blade.position.y = 1.0;
+                                
+                                const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12), new THREE.MeshStandardMaterial({color: 0x222222}));
+                                hilt.position.y = -0.4;
+                                
+                                const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16), new THREE.MeshStandardMaterial({color: 0xaa8800, metalness: 0.8, roughness: 0.2}));
+                                guard.position.y = 0;
                                 
                                 const swordContainer = new THREE.Group();
                                 swordContainer.add(hilt, blade, guard);
@@ -2991,13 +3002,28 @@
                                 iconMesh.add(shield, boss);
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; iconMesh.rotation.x = Math.sin(t * 2) * 0.2; };
                             } else if (catId === 'ITEM') {
-                                const vial = new THREE.Group();
-                                const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
-                                const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
-                                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
-                                neck.position.y = 1.4;
-                                const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
-                                lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
+                                if (inTitle === 'GOLD COINS') {
+                                    const stack = new THREE.Group();
+                                    const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.15, 16);
+                                    const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1.0, roughness: 0.2 });
+                                    for(let i=0; i<6; i++) {
+                                        const c = new THREE.Mesh(coinGeo, coinMat);
+                                        c.position.set((Math.random()-0.5)*0.3, i * 0.16 - 0.5, (Math.random()-0.5)*0.3);
+                                        c.rotation.y = Math.random() * Math.PI;
+                                        c.rotation.x = (Math.random() - 0.5) * 0.2;
+                                        c.rotation.z = (Math.random() - 0.5) * 0.2;
+                                        stack.add(c);
+                                    }
+                                    iconMesh.add(stack);
+                                    customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
+                                } else {
+                                    const vial = new THREE.Group();
+                                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, metalness: 0.4, roughness: 0.0, depthWrite: false });
+                                    const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
+                                    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
+                                    neck.position.y = 1.4;
+                                    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
+                                    lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
                                 
                                 const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
                                 const liqGroup = new THREE.Group();
@@ -3021,6 +3047,7 @@
                                     const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
                                     liqGroup.scale.setScalar(0.98 + pulse * 0.02); 
                                 };
+                                }
                             } else {
                                 // DICE fallback
                                 const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
@@ -3075,10 +3102,10 @@
                         ['MISSILE', 'SHURIKEN', 'Ranged attack.', '投', '(DMG * 2DICE)']
                     ];
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
-                    spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
+                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
                     
                     // Explicitly spawn Samurai Helmet to the left of Room 1 Goblin
-                    spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
+                    this.spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
                     
                     // --- SPAWN SHOP ITEMS ---
                     if (!this.level || this.level === 1) {
@@ -3095,7 +3122,7 @@
                                 if (cardData[0] === 'FIRE') price = 100;
                                 
                                 // Spawn card at x = shopWestX (left wall), z = shop.y + 1, 2, 3, 4
-                                spawnLootCard(shopWestX, zPos + i, cardData[0], cardData[1], cardData[2], cardData[3], cardData[4], true, price);
+                                this.spawnLootCard(shopWestX, zPos + i, cardData[0], cardData[1], cardData[2], cardData[3], cardData[4], true, price);
                             }
                         }
                     }
@@ -3484,162 +3511,28 @@
             _ct_camDir: new THREE.Vector3(),
 
             spawnLoot(gridX, gridZ) {
-                const isCardLoot = Math.random() < 0.5;
+                // Ensure spawnLootCard has been initialized (which it should be via initMap)
+                if (typeof this.spawnLootCard !== 'function') return;
 
-                if (!isCardLoot) {
-                    // Procedural 3D Japanese Yen Coin (Circular with square hole)
-                    const coinShape = new THREE.Shape();
-                    coinShape.absarc(0, 0, 0.4, 0, Math.PI * 2, false);
-                    const holePath = new THREE.Path();
-                    holePath.moveTo(-0.15, -0.15);
-                    holePath.lineTo(0.15, -0.15);
-                    holePath.lineTo(0.15, 0.15);
-                    holePath.lineTo(-0.15, 0.15);
-                    holePath.lineTo(-0.15, -0.15);
-                    coinShape.holes.push(holePath);
-
-                    const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
-                    const coinGeo = new THREE.ExtrudeGeometry(coinShape, extrudeSettings);
-                    const coinMat = new THREE.MeshStandardMaterial({ 
-                        color: 0xFFD700, emissive: 0xFFD700, emissiveIntensity: 0.2, 
-                        metalness: 1.0, roughness: 0.2 
-                    });
-                    
-                    const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-                    coinGeo.computeBoundingBox();
-                    const centerOffset = -0.5 * (coinGeo.boundingBox.max.z - coinGeo.boundingBox.min.z);
-                    coinGeo.translate(0, 0, centerOffset);
-                    
-                    coinMesh.position.set(gridX * this.gridSize, 1.2, gridZ * this.gridSize);
-                    coinMesh.rotation.x = 0;
-                    coinMesh.rotation.z = Math.PI / 2;
-                    coinMesh.userData = { 
-                        type: 'loot_gold', 
-                        value: Math.floor(Math.random() * 41) + 10,
-                        floatTimer: Math.random() * Math.PI * 2,
-                        basePos: 1.2,
-                        gridX: gridX,
-                        gridZ: gridZ
-                    };
-                    
-                    this.worldGroup.add(coinMesh);
-                    this.lootItems.push(coinMesh);
-                    window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear the clatter of dropped coins.`, logType: 'system' }, '*');
-
-                } else {
-                    // ── Loot card: faithful guide-card replica ──
-                    const LOOT_CARDS = [
-                        { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'SKILL CARD',  emissive: 0x5C4033 },
-                        { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'SKILL CARD',  emissive: 0x5C4033 },
-                        { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'SKILL CARD',  emissive: 0x37474f },
-                        { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'SKILL CARD',   emissive: 0xff2200 },
-                        { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'SKILL CARD',   emissive: 0xff2200 },
-                        { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'SKILL CARD',  emissive: 0x0d47a1 },
-                        { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'SKILL CARD',   emissive: 0xcc0000 },
-                        { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'SKILL CARD', emissive: 0x0d47a1 },
-                        { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'SKILL CARD',  emissive: 0x1b5e20 },
-                        { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', themeClr:'#424242', desc:'Ranged attack.', attr:'SKILL CARD',  emissive: 0x424242 },
-                        { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', themeClr:'#5C4033', desc:'Quick shot.',    attr:'SKILL CARD',  emissive: 0x5C4033 },
-                        { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', themeClr:'#5C4033', desc:'Heavy shot.',    attr:'SKILL CARD',  emissive: 0x5C4033 },
-                    ];
-                    const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
-
-                    // Canvas drawn precisely to match HTML UI panels (scale x3 for crisp 84x135)
-                    const s = 3;
-                    const CW = 84 * s; 
-                    const CH = 135 * s;
-                    const cardCanvas = document.createElement('canvas');
-                    cardCanvas.width = CW; cardCanvas.height = CH;
-                    const ctx = cardCanvas.getContext('2d');
-
-                    // ── [1] Body: solid dark-mode background (#232527)
-                    ctx.fillStyle = '#232527';
-                    ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 12 * s); ctx.fill();
-                    // Thin glass border
-                    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1 * s;
-                    ctx.beginPath(); ctx.roundRect(0.5*s, 0.5*s, CW - 1*s, CH - 1*s, 12 * s); ctx.stroke();
-
-                    // ── [2] Header zone: height 26px
-                    const headerH = 26 * s;
-                    
-                    // card-type-pill center
-                    ctx.font = `900 ${8 * s}px sans-serif`;
-                    const pillTextW = ctx.measureText(lc.el).width;
-                    const pillPadX = 6 * s, pillPadY = 2 * s;
-                    const pillW = pillTextW + (pillPadX * 2);
-                    const pillH = (8 * s) + (pillPadY * 2);
-                    const pillX = (CW - pillW) / 2;
-                    const pillY = (headerH - pillH) / 2;
-
-                    ctx.fillStyle = lc.themeClr;
-                    ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.fill();
-                    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5 * s;
-                    ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.stroke();
-
-                    ctx.font = `900 ${8 * s}px sans-serif`;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(lc.el, CW / 2, pillY + pillH / 2 + 0.5*s);
-
-                    // card-kanji left
-                    ctx.font = `900 ${11 * s}px sans-serif`;
-                    ctx.fillStyle = lc.themeClr;
-                    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-                    ctx.fillText(lc.kanji, 8 * s, headerH / 2 + 1*s);
-
-                    // ── [3] Title (11px scale)
-                    ctx.font = `900 ${11 * s}px sans-serif`;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(lc.name, CW / 2, headerH + (18 * s) / 2);
-
-                    // ── [4] Description (6px scale)
-                    ctx.font = `italic 800 ${6 * s}px sans-serif`;
-                    ctx.fillStyle = '#7f8a93'; 
-                    ctx.fillText(lc.desc, CW / 2, headerH + 18 * s + (12 * s) / 2);
-
-                    // ── [5] Center Circle (Inner Animation area)
-                    const icr = (45 * s) / 2;
-                    const icy = headerH + 18 * s + 12 * s + icr + 2 * s; 
-                    ctx.fillStyle = '#0a0d10';
-                    ctx.beginPath(); ctx.arc(CW / 2, icy, icr, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = lc.themeClr; ctx.lineWidth = 2 * s;
-                    ctx.beginPath(); ctx.arc(CW / 2, icy, icr, 0, Math.PI * 2); ctx.stroke();
-                    
-                    const cardDataURL = cardCanvas.toDataURL('image/png');
-                    const cardTex = new THREE.CanvasTexture(cardCanvas);
-                    cardTex.colorSpace = THREE.SRGBColorSpace;
-                    
-                    // Double-Sided 3D Card Model (Width: 0.84, Height: 1.35)
-                    const renderCardGeo = new THREE.PlaneGeometry(0.84, 1.35);
-                    const renderCardMat = new THREE.MeshBasicMaterial({ map: cardTex, side: THREE.DoubleSide, transparent: true, depthWrite: true });
-                    const renderCardMesh = new THREE.Mesh(renderCardGeo, renderCardMat);
-                    // Shift slightly up so it's centered around y=0 locally
-                    renderCardMesh.position.y = 0;
-
-                    // Ghost geometry for collision and floating UI tracking
-                    const cardGeo = new THREE.BoxGeometry(0.84, 1.35, 0.2);
-                    const hitMat = new THREE.MeshBasicMaterial({ visible: false });
-                    const hitMesh = new THREE.Mesh(cardGeo, hitMat);
-                    
-                    hitMesh.add(renderCardMesh);
-                    hitMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
-                    hitMesh.userData = {
-                        type:       'loot_cards',
-                        id:         Math.floor(Math.random() * 9999999),
-                        floatTimer: Math.random() * Math.PI * 2,
-                        basePos:    1.2,
-                        gridX:      gridX,
-                        gridZ:      gridZ,
-                        cardName:   lc.name,
-                        cardData:   lc,
-                        cardDataURL: cardDataURL
-                    };
-
-                    this.worldGroup.add(hitMesh);
-                    this.lootItems.push(hitMesh);
-                    window.parent.postMessage({ type: 'LOG_EVENT', text: `A mysterious card flutters to the floor.`, logType: 'system' }, '*');
-                }
+                const LOOT_CARDS = [
+                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', desc:'Heavy impact.',  attr:'SKILL CARD' },
+                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', desc:'Sunders earth.', attr:'SKILL CARD' },
+                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', desc:'Forceful gust.', attr:'SKILL CARD' },
+                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', desc:'Inferno star.',  attr:'SKILL CARD' },
+                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', desc:'Crashing wave.', attr:'SKILL CARD' },
+                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', desc:'Basic slash.',   attr:'SKILL CARD' },
+                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', desc:'Raises AC.',     attr:'SKILL CARD' },
+                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', desc:'Green nectar.',  attr:'SKILL CARD' },
+                    { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged attack.', attr:'SKILL CARD' },
+                    { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
+                    { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
+                    { name:'GOLD COINS',el:'ITEM',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
+                ];
+                
+                const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
+                
+                this.spawnLootCard(gridX, gridZ, lc.el, lc.name, lc.desc, lc.kanji, lc.attr);
+                window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear a card drop to the floor.`, logType: 'system' }, '*');
             },
 
             // ─────────────────────────────────────────────────────────────────
