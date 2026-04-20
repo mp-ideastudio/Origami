@@ -95,10 +95,7 @@
         .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
         #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
         #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
-        
-        .side-panel::after { content: ''; position: absolute; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: -1; }
-        #pax-console::after { right: -100px; }
-        #action-rail::after { left: -100px; }
+
 
         .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
         .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 8px; width: 100%; text-align: center; line-height: 1.2; }
@@ -978,7 +975,7 @@
                     // Potion Flask (round bottom with narrow neck)
                     const vial = new THREE.Group();
                     
-                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
+                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, roughness: 0.3, metalness: 0.2 });
                     const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
                     
                     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
@@ -1501,7 +1498,7 @@
                 btn.classList.remove('anim-idle-btn', 'anim-walk-btn', 'anim-slash-btn');
                 if (name === 'slash' || name === 'attack') btn.classList.add('anim-slash-btn');
                 else if (name === 'walk') btn.classList.add('anim-walk-btn');
-                else btn.classList.add('anim-idle-btn');
+                if (isMoving) btn.classList.add('anim-walk-btn');
             }
 
             if (avatarCurrentAction) {
@@ -1680,7 +1677,7 @@
                                 holdInterval = setInterval(() => {
                                     holdTarget.classList.add('launching');
                                     emitAction(actionName, holdTarget);
-                                    setTimeout(() => holdTarget.classList.remove('launching'), 100);
+                                    setTimeout(() => holdTarget.classList.remove('launching'), 450);
                                 }, 300);
                             }
                         }, 300);
@@ -1747,7 +1744,7 @@
                                     clickedCard.classList.add('launching');
                                     const actionName = clickedCard.querySelector('.card-title').textContent;
                                     emitAction(actionName, clickedCard);
-                                    setTimeout(() => { clickedCard.classList.remove('launching'); }, 150);
+                                    setTimeout(() => { clickedCard.classList.remove('launching'); }, 450);
                                 } else {
                                     // First click: Select!
                                     document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
@@ -2133,6 +2130,7 @@
                                 card.appendChild(badge);
                             }
                             badge.textContent = count;
+                            card.dataset.qty = count;
                         }
                     });
                 }

@@ -3059,7 +3059,7 @@
                                     customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
                                 } else {
                                     const vial = new THREE.Group();
-                                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, metalness: 0.4, roughness: 0.0, depthWrite: false });
+                                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, metalness: 0.2, roughness: 0.3, depthWrite: false });
                                     const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
                                     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
                                     neck.position.y = 1.4;
@@ -3692,7 +3692,7 @@
                 const fwdZ = -Math.cos(this.player.rot);
 
                 const vial = new THREE.Group();
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0xccffcc, transparent: true, opacity: 0.15, depthWrite: false, roughness: 0.1 });
+                const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, roughness: 0.3, metalness: 0.2 });
                 const flask = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), glassMat);
                 const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.08, 16), glassMat); neck.position.y = 0.14;
                 const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95 });
