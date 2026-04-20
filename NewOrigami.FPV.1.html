@@ -471,7 +471,7 @@
          */
         const Engine = {
             // State
-            player: { x: 5, z: 5, rot: 0, hp: 100, maxHp: 100, gold: 0, autoTurnTarget: null },
+            player: { x: 5, z: 5, rot: 0, hp: 100, maxHp: 100, gold: 0, shopDebt: 0, autoTurnTarget: null },
             lootItems: [], // Tracks physical 3D drops
             boulders:   [], // Active boulder projectiles
             gridSize: 2,
@@ -994,7 +994,7 @@
                                     if (this.activeTarget && !this.activeTarget.userData.isDead) {
                                         if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
                                         this.player.hp = Math.max(0, this.player.hp - 10);
-                                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
                                         this.addCameraTrauma(0.6);
                                     }
@@ -1414,6 +1414,29 @@
                     }
                 }
                 
+                // --- SHOP ROOM (Level 1 Only) ---
+                if (!this.level || this.level === 1) {
+                    const shopW = 5;
+                    const shopH = 5;
+                    const shopStartX = rStartX - shopW - 1; // 1 wall gap for door
+                    const shopStartZ = rStartZ + 1;
+                    
+                    this.rooms.push({
+                        id: 99, // Shop ID
+                        x: shopStartX, y: shopStartZ, w: shopW, h: shopH,
+                        center: { x: shopStartX + Math.floor(shopW/2), y: shopStartZ + Math.floor(shopH/2) }
+                    });
+                    
+                    // Carve Shop Floor
+                    for(let ry = shopStartZ; ry < shopStartZ + shopH; ry++) {
+                        for(let rx = shopStartX; rx < shopStartX + shopW; rx++) {
+                            this.mapData[rx][ry] = { type: 'floor', room: true, roomId: 99, isShop: true };
+                        }
+                    }
+                    // Carve Shop Door
+                    this.mapData[shopStartX + shopW][shopStartZ + Math.floor(shopH/2)] = { type: 'floor', isShopDoor: true };
+                }
+                
                 // Carve 1-Wide 7-Tile Entrance Hallway South (5ft corridor)
                 const hallX = this.rooms[0].center.x;
                 const hallStartTopZ = rStartZ + roomSize;
@@ -1497,6 +1520,14 @@
                         });
                     }
                 }
+                // --- 2.5 STAIRWAYS ---
+                // Stairs Up (Restart Game) located behind Banda in Room 1 (North side)
+                const room1 = this.rooms[0];
+                this.mapData[room1.center.x][room1.center.y - 2] = { type: 'stairs_up', room: true, roomId: 1 };
+                
+                // Stairs Down (Next Level) located in the center of the final generated room
+                const lastRoom = this.rooms[this.rooms.length - 1];
+                this.mapData[lastRoom.center.x][lastRoom.center.y] = { type: 'stairs_down', room: true, roomId: lastRoom.id };
                 
                 // --- 3. ENTITY SPAWNING ---
                 this.mobSpawns = [];
@@ -1514,6 +1545,25 @@
                     hp: 50, maxHp: 50,
                     state: 'IDLE'
                 });
+                
+                // --- SHOPKEEPER SPAWN (Level 1 Only) ---
+                if (!this.level || this.level === 1) {
+                    const shop = this.rooms.find(r => r.id === 99);
+                    if (shop) {
+                        this.mobSpawns.push({ 
+                            id: 'npc-shopkeeper',
+                            name: 'Skeleton Merchant',
+                            type: 'shopkeeper', 
+                            x: shop.x + shop.w - 1, // Near the door on the east wall of the shop
+                            z: shop.center.y, 
+                            homeX: shop.x + shop.w - 1, 
+                            homeZ: shop.center.y, 
+                            speed: 0.0, 
+                            hp: 9999, maxHp: 9999, // Invincible shopkeeper
+                            state: 'IDLE'
+                        });
+                    }
+                }
                 
                 // Populate Procedural Rooms with Goblins
                 for (let i = 1; i < this.rooms.length; i++) {
@@ -2051,15 +2101,15 @@
                 const ceilTex = this.createDarkWoodRafterTexture();
                 const objTex = this.makePaperTexture('#444444');
 
-                // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
+                // Photo-Realistic Toy Aesthetic (Standard Materials with high roughness)
                 const mats = {
-                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
-                    ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
-                    wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
-                    pipWall: new THREE.MeshLambertMaterial({ color: 0x111111, transparent: true, opacity: 0.15, depthWrite: false }),
-                    wallTop: new THREE.MeshLambertMaterial({ map: wallTopTex, color: 0xFFFFFF }),
-                    npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
-                    monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
+                    floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9, metalness: 0.1 }),
+                    ceil: new THREE.MeshStandardMaterial({ map: ceilTex, color: 0xFFFFFF, roughness: 1.0, metalness: 0.0 }),
+                    wall: new THREE.MeshStandardMaterial({ map: wallTex, color: 0xFFFFFF, roughness: 0.8, metalness: 0.0 }),
+                    pipWall: new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.15, depthWrite: false }),
+                    wallTop: new THREE.MeshStandardMaterial({ map: wallTopTex, color: 0xFFFFFF, roughness: 0.9, metalness: 0.0 }),
+                    npc: new THREE.MeshStandardMaterial({ color: '#7cfc00', map: objTex, roughness: 0.6 }),
+                    monster: new THREE.MeshStandardMaterial({ color: '#b85450', map: objTex, roughness: 0.6 })
                 };
                 this.mats = mats;
 
@@ -2210,6 +2260,46 @@
                 instancedFloor.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedFloor);
                 
+                // --- 2.6 Build Stairways ---
+                const stairGeo = new THREE.BoxGeometry(0.8, 0.4, 0.8);
+                const stairUpMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 });
+                const stairDownMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.1 });
+
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        const cell = this.mapData[x]?.[z];
+                        if (!cell) continue;
+
+                        if (cell.type === 'stairs_up') {
+                            const stair = new THREE.Group();
+                            // Three steps going up
+                            for(let s=0; s<3; s++) {
+                                const step = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize, 0.2, this.gridSize/3), stairUpMat);
+                                step.position.set(0, s * 0.2, (this.gridSize/3) - (s * this.gridSize/3));
+                                stair.add(step);
+                            }
+                            stair.position.set(x * this.gridSize, 0, z * this.gridSize);
+                            stair.userData = { type: 'stairs_up', gridX: x, gridZ: z };
+                            this.worldGroup.add(stair);
+                        } else if (cell.type === 'stairs_down') {
+                            const stair = new THREE.Group();
+                            // A dark pit with steps going down
+                            const pit = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize*0.9, 0.1, this.gridSize*0.9), new THREE.MeshBasicMaterial({color: 0x000000}));
+                            pit.position.y = 0.05;
+                            stair.add(pit);
+                            for(let s=0; s<3; s++) {
+                                const step = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize*0.8, 0.1, this.gridSize/3), stairDownMat);
+                                step.position.set(0, -s * 0.2 + 0.1, (this.gridSize/3) - (s * this.gridSize/3));
+                                stair.add(step);
+                            }
+                            stair.position.set(x * this.gridSize, 0, z * this.gridSize);
+                            stair.userData = { type: 'stairs_down', gridX: x, gridZ: z };
+                            this.worldGroup.add(stair);
+                        }
+                    }
+                }
+
+                
                 // Abyssal Depth Plane (Map View only)
                 const abyssGeo = new THREE.PlaneGeometry(this.mapWidth * this.gridSize * 3, this.mapHeight * this.gridSize * 3);
                 // Creating a deep space indigo shade beneath the floor void mapping
@@ -2315,11 +2405,44 @@
                     // Preserve NPC/gambler type - only default to 'monster' if not explicitly set
                     if (!sp.type || sp.type === 'goblin') sp.type = 'monster';
                     
-                    gltfLoader.load(TARGET_ENEMY_MODEL, (gltf) => {
+                    let targetModel = TARGET_ENEMY_MODEL;
+                    if (sp.model === 'shopkeeper') {
+                        targetModel = './assets/models/Ninja.Skeleton.glb';
+                    }
+                    
+                    gltfLoader.load(targetModel, (gltf) => {
                         // We use the raw scene directly since each spawn gets its own 'load' call (cached by browser)
                         const goblin = gltf.scene;
                         const entityWrapper = new THREE.Group();
                         entityWrapper.add(goblin);
+                        
+                        if (sp.model === 'shopkeeper') {
+                            // Add 3D Apron to the Skeleton
+                            const apronGeo = new THREE.CylinderGeometry(0.3, 0.35, 0.8, 16, 1, true, -Math.PI / 2, Math.PI);
+                            const apronMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide });
+                            const apronMesh = new THREE.Mesh(apronGeo, apronMat);
+                            apronMesh.position.set(0, 0.8, 0); // Position around the torso
+                            goblin.add(apronMesh);
+                        }
+                        
+                        if (sp.type === 'monster' || sp.type === 'boss') {
+                            const innerCircleGeo = new THREE.CircleGeometry(0.75, 32);
+                            const innerCircleMat = new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0.8});
+                            const innerCircle = new THREE.Mesh(innerCircleGeo, innerCircleMat);
+                            innerCircle.rotation.x = -Math.PI / 2;
+                            innerCircle.position.y = 0.01;
+                            
+                            const outerBorderGeo = new THREE.RingGeometry(0.75, 0.85, 32);
+                            const outerBorderMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
+                            const outerBorder = new THREE.Mesh(outerBorderGeo, outerBorderMat);
+                            outerBorder.rotation.x = -Math.PI / 2;
+                            outerBorder.position.y = 0.015;
+                            
+                            const baseGrp = new THREE.Group();
+                            baseGrp.add(innerCircle, outerBorder);
+                            entityWrapper.add(baseGrp);
+                            entityWrapper.userData.baseCircleMat = outerBorderMat;
+                        }
                         
                         // Initialize Animation Pipeline
                         if (gltf.animations && gltf.animations.length > 0) {
@@ -2527,7 +2650,7 @@
                 
                 // Spawn high-fidelity UI-replica 3D cards in hallway
                 if (this.entrancePos) {
-                    const spawnLootCard = (x, z, catId, title, desc, kanji, attr) => {
+                    const spawnLootCard = (x, z, catId, title, desc, kanji, attr, isShopItem = false, price = 50) => {
                         const W = 256; const H = 384;
                         const canvas = document.createElement('canvas');
                         canvas.width = W; canvas.height = H;
@@ -2612,6 +2735,12 @@
                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         wrapText(ctx, attr, W/2, H - 45, W * 0.9, 22);
 
+                        if (isShopItem) {
+                            ctx.font = '900 24px sans-serif';
+                            ctx.fillStyle = '#FFD700'; // Gold
+                            ctx.fillText(price + ' Gold', W/2, H - 15);
+                        }
+
                         const tex = new THREE.CanvasTexture(canvas);
                         const cardMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true }); // No DoubleSide needed
                         
@@ -2642,7 +2771,7 @@
                                 const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 2), rockMat); 
                                 iconMesh.add(rock);
                                 customUpdate = (t) => {
-                                    rock.rotation.x = t * 1.8;
+                                    rock.rotation.z = t * 1.8;
                                     rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
                                 };
                             } else if (catId === 'FIRE') {
@@ -2701,13 +2830,19 @@
                                     pos.needsUpdate = true;
                                 };
                             } else if (catId === 'KATANA') {
-                                const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.3), new THREE.MeshStandardMaterial({color: 0x222222}));
-                                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.5, 0.4), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
-                                blade.position.y = 2.0;
-                                const guard = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), new THREE.MeshStandardMaterial({color: 0xaa8800}));
-                                guard.position.y = 0.6;
-                                iconMesh.add(hilt, blade, guard);
-                                iconMesh.position.y = -1.0;
+                                const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.25), new THREE.MeshStandardMaterial({color: 0x222222}));
+                                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.8, 0.3), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
+                                blade.position.y = 1.2;
+                                const guard = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.5), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                                guard.position.y = 0.3;
+                                
+                                const swordContainer = new THREE.Group();
+                                swordContainer.add(hilt, blade, guard);
+                                swordContainer.position.y = -0.3;
+                                swordContainer.rotation.z = Math.PI / 4; // Diagonal tilt to fit inside the card geometry smoothly
+                                
+                                iconMesh.add(swordContainer);
+                                
                                 customUpdate = (t) => { 
                                     iconMesh.rotation.y = t * 0.5; 
                                 };
@@ -2794,7 +2929,14 @@
                         };
                         
                         cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
-                        cardGroup.userData = { type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, cardDataURL: canvas.toDataURL(), iconMesh: iconWrapper, customUpdate: combinedUpdate };
+                        cardGroup.userData = { 
+                            type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, 
+                            cardDataURL: canvas.toDataURL(), iconMesh: iconWrapper, customUpdate: combinedUpdate,
+                            cardData: { el: catId, name: title, desc: desc, kanji: kanji, attr: attr, themeClr: themeColor },
+                            cardName: title,
+                            isShopItem: isShopItem,
+                            price: price
+                        };
                         
                         this.worldGroup.add(cardGroup);
                         this.lootItems.push(cardGroup);
@@ -2804,10 +2946,34 @@
                         ['EARTH', 'BOULDER', 'Heavy impact.', '地', '(STUN * 2DICE)'],
                         ['FIRE', 'FIREBALL', 'Inferno star.', '火', '(DMG * 4DICE)'],
                         ['KATANA', 'SLASH', 'Basic slash.', '斬', '(DMG * 1DICE)'],
-                        ['WIND', 'GALE', 'Forceful gust.', '風', '(PUSH * 3DICE)']
+                        ['WIND', 'GALE', 'Forceful gust.', '風', '(PUSH * 3DICE)'],
+                        ['WATER', 'SURGE', 'Crashing wave.', '水', '(DMG * 3DICE)'],
+                        ['SHIELD', 'DEFEND', 'Raises AC.', '盾', '(AC + 5)'],
+                        ['ITEM', 'POTION', 'Green nectar.', '薬', '(HP + 20)'],
+                        ['MISSILE', 'SHURIKEN', 'Ranged attack.', '投', '(DMG * 2DICE)']
                     ];
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
                     spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
+                    
+                    // --- SPAWN SHOP ITEMS ---
+                    if (!this.level || this.level === 1) {
+                        const shop = this.rooms.find(r => r.id === 99);
+                        if (shop) {
+                            // Lay out cards against the West wall of the shop
+                            const shopWestX = shop.x; // the actual floor tiles start at shop.x
+                            let zPos = shop.y;
+                            for (let i = 0; i < 4; i++) {
+                                const cardData = randomCards[Math.floor(Math.random() * randomCards.length)];
+                                // Add price based on type
+                                let price = 50;
+                                if (cardData[0] === 'ITEM') price = 25;
+                                if (cardData[0] === 'FIRE') price = 100;
+                                
+                                // Spawn card at x = shopWestX (left wall), z = shop.y + 1, 2, 3, 4
+                                spawnLootCard(shopWestX, zPos + i, cardData[0], cardData[1], cardData[2], cardData[3], cardData[4], true, price);
+                            }
+                        }
+                    }
                 }
             },
 
@@ -3130,7 +3296,7 @@
                 // Entity collision check
                 if (this.worldGroup) {
                     for (const child of this.worldGroup.children) {
-                        if (child.userData && child.userData.id) {
+                        if (child.userData && child.userData.id && !child.userData.type?.startsWith('loot')) {
                             const eX = Math.round(child.position.x / this.gridSize);
                             const eZ = Math.round(child.position.z / this.gridSize);
                             if(cx === eX && cz === eZ) return child; // Return the exact object hit instead of boolean block
@@ -3193,184 +3359,162 @@
             _ct_camDir: new THREE.Vector3(),
 
             spawnLoot(gridX, gridZ) {
-                // Procedural 3D Japanese Yen Coin (Circular with square hole)
-                const coinShape = new THREE.Shape();
-                coinShape.absarc(0, 0, 0.4, 0, Math.PI * 2, false);
-                const holePath = new THREE.Path();
-                holePath.moveTo(-0.15, -0.15);
-                holePath.lineTo(0.15, -0.15);
-                holePath.lineTo(0.15, 0.15);
-                holePath.lineTo(-0.15, 0.15);
-                holePath.lineTo(-0.15, -0.15);
-                coinShape.holes.push(holePath);
+                const isCardLoot = Math.random() < 0.5;
 
-                const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
-                const coinGeo = new THREE.ExtrudeGeometry(coinShape, extrudeSettings);
-                const coinMat = new THREE.MeshStandardMaterial({ 
-                    color: 0xFFD700, emissive: 0xFFD700, emissiveIntensity: 0.2, 
-                    metalness: 1.0, roughness: 0.2 
-                });
-                
-                const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-                // Center the extrusion
-                coinGeo.computeBoundingBox();
-                const centerOffset = -0.5 * (coinGeo.boundingBox.max.z - coinGeo.boundingBox.min.z);
-                coinGeo.translate(0, 0, centerOffset);
-                
-                coinMesh.position.set(gridX * this.gridSize, 1.2, gridZ * this.gridSize);
-                // Stand upright so face points toward player. Extrude goes along Z, so rotate to stand on edge.
-                coinMesh.rotation.x = 0;  // Face UP (upright coin showing the yen face)
-                coinMesh.rotation.z = Math.PI / 2; // Tilt slightly for drama
-                coinMesh.userData = { 
-                    type: 'loot_gold', 
-                    value: Math.floor(Math.random() * 41) + 10, // 10-50 gold
-                    floatTimer: Math.random() * Math.PI * 2,
-                    basePos: 1.2,
-                    gridX: gridX,
-                    gridZ: gridZ
-                };
-                
-                this.worldGroup.add(coinMesh);
-                this.lootItems.push(coinMesh);
-                
-                // Nethack-style Gold drop token
-                const goldValue = Math.floor(Math.random() * 50) + 10;
-                
-                const gCoinGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 16);
-                const gCoinMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.8 }); // 3D Coin base
-                const gCoinMesh = new THREE.Mesh(gCoinGeo, gCoinMat);
-                
-                // $ Sprite
-                const sc = document.createElement('canvas');
-                sc.width = 64; sc.height = 64;
-                const sCtx = sc.getContext('2d');
-                sCtx.fillStyle = '#ffd700'; // Nethack gold!
-                sCtx.font = 'bold 50px sans-serif';
-                sCtx.textAlign = 'center'; sCtx.textBaseline = 'middle';
-                sCtx.fillText('$', 32, 32);
-                
-                const gSpriteTex = new THREE.CanvasTexture(sc);
-                const gSpriteMat = new THREE.SpriteMaterial({ map: gSpriteTex, depthTest: false, color: 0xffffff });
-                const gSprite = new THREE.Sprite(gSpriteMat);
-                gSprite.position.y = 0.5;
-                gSprite.scale.set(0.6, 0.6, 1);
-                gCoinMesh.add(gSprite);
+                if (!isCardLoot) {
+                    // Procedural 3D Japanese Yen Coin (Circular with square hole)
+                    const coinShape = new THREE.Shape();
+                    coinShape.absarc(0, 0, 0.4, 0, Math.PI * 2, false);
+                    const holePath = new THREE.Path();
+                    holePath.moveTo(-0.15, -0.15);
+                    holePath.lineTo(0.15, -0.15);
+                    holePath.lineTo(0.15, 0.15);
+                    holePath.lineTo(-0.15, 0.15);
+                    holePath.lineTo(-0.15, -0.15);
+                    coinShape.holes.push(holePath);
 
-                gCoinMesh.position.set((gridX * this.gridSize) + 0.7, 0.5, (gridZ * this.gridSize) + 0.5);
-                gCoinMesh.userData = {
-                    type:       'loot_gold',
-                    id:         Math.floor(Math.random() * 9999999),
-                    floatTimer: Math.random() * Math.PI * 2,
-                    basePos:    0.5,
-                    gridX:      gridX,
-                    gridZ:      gridZ,
-                    amount:     goldValue
-                };
+                    const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+                    const coinGeo = new THREE.ExtrudeGeometry(coinShape, extrudeSettings);
+                    const coinMat = new THREE.MeshStandardMaterial({ 
+                        color: 0xFFD700, emissive: 0xFFD700, emissiveIntensity: 0.2, 
+                        metalness: 1.0, roughness: 0.2 
+                    });
+                    
+                    const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+                    coinGeo.computeBoundingBox();
+                    const centerOffset = -0.5 * (coinGeo.boundingBox.max.z - coinGeo.boundingBox.min.z);
+                    coinGeo.translate(0, 0, centerOffset);
+                    
+                    coinMesh.position.set(gridX * this.gridSize, 1.2, gridZ * this.gridSize);
+                    coinMesh.rotation.x = 0;
+                    coinMesh.rotation.z = Math.PI / 2;
+                    coinMesh.userData = { 
+                        type: 'loot_gold', 
+                        value: Math.floor(Math.random() * 41) + 10,
+                        floatTimer: Math.random() * Math.PI * 2,
+                        basePos: 1.2,
+                        gridX: gridX,
+                        gridZ: gridZ
+                    };
+                    
+                    this.worldGroup.add(coinMesh);
+                    this.lootItems.push(coinMesh);
+                    window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear the clatter of dropped coins.`, logType: 'system' }, '*');
 
-                this.worldGroup.add(gCoinMesh);
-                this.lootItems.push(gCoinMesh);
-                
-                // ── Loot card: faithful guide-card replica (matches NewOrigami.Panels.html) ──
-                // Card data mirrors the actual SPELL_MAP / defaultCategories
-                const LOOT_CARDS = [
-                    { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'SKILL CARD',  emissive: 0x5C4033 },
-                    { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'SKILL CARD',  emissive: 0x5C4033 },
-                    { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'SKILL CARD',  emissive: 0x37474f },
-                    { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'SKILL CARD',   emissive: 0xff2200 },
-                    { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'SKILL CARD',   emissive: 0xff2200 },
-                    { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'SKILL CARD',  emissive: 0x0d47a1 },
-                    { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'SKILL CARD',   emissive: 0xcc0000 },
-                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'SKILL CARD', emissive: 0x0d47a1 },
-                    { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'SKILL CARD',  emissive: 0x1b5e20 },
-                ];
-                const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
+                } else {
+                    // ── Loot card: faithful guide-card replica ──
+                    const LOOT_CARDS = [
+                        { name:'BOULDER',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Heavy impact.',  attr:'SKILL CARD',  emissive: 0x5C4033 },
+                        { name:'FISSURE',   el:'EARTH',  kanji:'\u5730', themeClr:'#5C4033', desc:'Sunders earth.', attr:'SKILL CARD',  emissive: 0x5C4033 },
+                        { name:'GALE',      el:'WIND',   kanji:'\u98a8', themeClr:'#37474f', desc:'Forceful gust.', attr:'SKILL CARD',  emissive: 0x37474f },
+                        { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Inferno star.',  attr:'SKILL CARD',   emissive: 0xff2200 },
+                        { name:'PYROBLAST', el:'FIRE',   kanji:'\u706b', themeClr:'#b71c1c', desc:'Searing heat.',  attr:'SKILL CARD',   emissive: 0xff2200 },
+                        { name:'SURGE',     el:'WATER',  kanji:'\u6c34', themeClr:'#0d47a1', desc:'Crashing wave.', attr:'SKILL CARD',  emissive: 0x0d47a1 },
+                        { name:'SLASH',     el:'KATANA', kanji:'\u65ac', themeClr:'#b71c1c', desc:'Basic slash.',   attr:'SKILL CARD',   emissive: 0xcc0000 },
+                        { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', themeClr:'#0d47a1', desc:'Raises AC.',     attr:'SKILL CARD', emissive: 0x0d47a1 },
+                        { name:'POTION',    el:'ITEM',   kanji:'\u85ac', themeClr:'#1b5e20', desc:'Green nectar.',  attr:'SKILL CARD',  emissive: 0x1b5e20 },
+                        { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', themeClr:'#424242', desc:'Ranged attack.', attr:'SKILL CARD',  emissive: 0x424242 },
+                        { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', themeClr:'#5C4033', desc:'Quick shot.',    attr:'SKILL CARD',  emissive: 0x5C4033 },
+                        { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', themeClr:'#5C4033', desc:'Heavy shot.',    attr:'SKILL CARD',  emissive: 0x5C4033 },
+                    ];
+                    const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
 
-                // Element icons for the icon-3d circle
-                const ELEM_ICONS = {
-                    EARTH:'\uD83E\uDEA8', WIND:'\uD83D\uDCA8', FIRE:'\uD83D\uDD25',
-                    WATER:'\uD83C\uDF0A', ITEM:'\uD83E\uDDEA', KATANA:'\u2694\uFE0F', SHIELD:'\uD83D\uDEE1\uFE0F'
-                };
+                    // Canvas drawn precisely to match HTML UI panels (scale x3 for crisp 84x135)
+                    const s = 3;
+                    const CW = 84 * s; 
+                    const CH = 135 * s;
+                    const cardCanvas = document.createElement('canvas');
+                    cardCanvas.width = CW; cardCanvas.height = CH;
+                    const ctx = cardCanvas.getContext('2d');
 
-                // Canvas drawn precisely to match HTML UI panels (scale x3 for crisp 84x135)
-                const s = 3;
-                const CW = 84 * s; 
-                const CH = 135 * s;
-                const cardCanvas = document.createElement('canvas');
-                cardCanvas.width = CW; cardCanvas.height = CH;
-                const ctx = cardCanvas.getContext('2d');
+                    // ── [1] Body: solid dark-mode background (#232527)
+                    ctx.fillStyle = '#232527';
+                    ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 12 * s); ctx.fill();
+                    // Thin glass border
+                    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1 * s;
+                    ctx.beginPath(); ctx.roundRect(0.5*s, 0.5*s, CW - 1*s, CH - 1*s, 12 * s); ctx.stroke();
 
-                // ── [1] Body: solid dark-mode background (#232527)
-                ctx.fillStyle = '#232527';
-                ctx.beginPath(); ctx.roundRect(0, 0, CW, CH, 12 * s); ctx.fill();
-                // Thin glass border
-                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1 * s;
-                ctx.beginPath(); ctx.roundRect(0.5*s, 0.5*s, CW - 1*s, CH - 1*s, 12 * s); ctx.stroke();
+                    // ── [2] Header zone: height 26px
+                    const headerH = 26 * s;
+                    
+                    // card-type-pill center
+                    ctx.font = `900 ${8 * s}px sans-serif`;
+                    const pillTextW = ctx.measureText(lc.el).width;
+                    const pillPadX = 6 * s, pillPadY = 2 * s;
+                    const pillW = pillTextW + (pillPadX * 2);
+                    const pillH = (8 * s) + (pillPadY * 2);
+                    const pillX = (CW - pillW) / 2;
+                    const pillY = (headerH - pillH) / 2;
 
-                // ── [2] Header zone: height 26px
-                const headerH = 26 * s;
-                
-                // card-type-pill center
-                ctx.font = `900 ${8 * s}px sans-serif`;
-                const pillTextW = ctx.measureText(lc.el).width;
-                const pillPadX = 6 * s, pillPadY = 2 * s;
-                const pillW = pillTextW + (pillPadX * 2);
-                const pillH = (8 * s) + (pillPadY * 2);
-                const pillX = (CW - pillW) / 2;
-                const pillY = (headerH - pillH) / 2;
+                    ctx.fillStyle = lc.themeClr;
+                    ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5 * s;
+                    ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.stroke();
 
-                ctx.fillStyle = lc.themeClr;
-                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.5 * s;
-                ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 4 * s); ctx.stroke();
+                    ctx.font = `900 ${8 * s}px sans-serif`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(lc.el, CW / 2, pillY + pillH / 2 + 0.5*s);
 
-                ctx.font = `900 ${8 * s}px sans-serif`;
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.el, CW / 2, pillY + pillH / 2 + 0.5*s);
+                    // card-kanji left
+                    ctx.font = `900 ${11 * s}px sans-serif`;
+                    ctx.fillStyle = lc.themeClr;
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                    ctx.fillText(lc.kanji, 8 * s, headerH / 2 + 1*s);
 
-                // card-kanji left
-                ctx.font = `900 ${11 * s}px sans-serif`;
-                ctx.fillStyle = lc.themeClr;
-                ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.kanji, 8 * s, headerH / 2 + 1*s);
+                    // ── [3] Title (11px scale)
+                    ctx.font = `900 ${11 * s}px sans-serif`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(lc.name, CW / 2, headerH + (18 * s) / 2);
 
-                // ── [3] Title (11px scale)
-                ctx.font = `900 ${11 * s}px sans-serif`;
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(lc.name, CW / 2, headerH + (18 * s) / 2);
+                    // ── [4] Description (6px scale)
+                    ctx.font = `italic 800 ${6 * s}px sans-serif`;
+                    ctx.fillStyle = '#7f8a93'; 
+                    ctx.fillText(lc.desc, CW / 2, headerH + 18 * s + (12 * s) / 2);
 
-                // ── [4] Description (6px scale)
-                ctx.font = `italic 800 ${6 * s}px sans-serif`;
-                ctx.fillStyle = '#7f8a93'; 
-                ctx.fillText(lc.desc, CW / 2, headerH + 18 * s + (12 * s) / 2);
+                    // ── [5] Center Circle (Inner Animation area)
+                    const icr = (45 * s) / 2;
+                    const icy = headerH + 18 * s + 12 * s + icr + 2 * s; 
+                    ctx.fillStyle = '#0a0d10';
+                    ctx.beginPath(); ctx.arc(CW / 2, icy, icr, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = lc.themeClr; ctx.lineWidth = 2 * s;
+                    ctx.beginPath(); ctx.arc(CW / 2, icy, icr, 0, Math.PI * 2); ctx.stroke();
+                    
+                    const cardDataURL = cardCanvas.toDataURL('image/png');
+                    const cardTex = new THREE.CanvasTexture(cardCanvas);
+                    cardTex.colorSpace = THREE.SRGBColorSpace;
+                    
+                    // Double-Sided 3D Card Model (Width: 0.84, Height: 1.35)
+                    const renderCardGeo = new THREE.PlaneGeometry(0.84, 1.35);
+                    const renderCardMat = new THREE.MeshBasicMaterial({ map: cardTex, side: THREE.DoubleSide, transparent: true, depthWrite: true });
+                    const renderCardMesh = new THREE.Mesh(renderCardGeo, renderCardMat);
+                    // Shift slightly up so it's centered around y=0 locally
+                    renderCardMesh.position.y = 0;
 
-                // ── [5] Icon circle (45px scale)
-                const icx = CW / 2;
-                const icy = headerH + 18 * s + 12 * s + (45 * s) / 2 + 2 * s; 
-                const icr = (45 * s) / 2;
-                
-                ctx.fillStyle = '#232527';
-                // Ghost geometry for collision and floating UI tracking
-                const cardGeo = new THREE.BoxGeometry(0.8, 1.2, 0.8);
-                const hitMat = new THREE.MeshBasicMaterial({ visible: false });
-                const hitMesh = new THREE.Mesh(cardGeo, hitMat);
-                hitMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
-                hitMesh.userData = {
-                    type:       'loot_cards',
-                    id:         Math.floor(Math.random() * 9999999),
-                    floatTimer: Math.random() * Math.PI * 2,
-                    basePos:    1.2,
-                    gridX:      gridX,
-                    gridZ:      gridZ,
-                    cardName:   lc.name,
-                    cardData:   lc
-                };
+                    // Ghost geometry for collision and floating UI tracking
+                    const cardGeo = new THREE.BoxGeometry(0.84, 1.35, 0.2);
+                    const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+                    const hitMesh = new THREE.Mesh(cardGeo, hitMat);
+                    
+                    hitMesh.add(renderCardMesh);
+                    hitMesh.position.set((gridX * this.gridSize) + 0.7, 1.2, (gridZ * this.gridSize) + 0.5);
+                    hitMesh.userData = {
+                        type:       'loot_cards',
+                        id:         Math.floor(Math.random() * 9999999),
+                        floatTimer: Math.random() * Math.PI * 2,
+                        basePos:    1.2,
+                        gridX:      gridX,
+                        gridZ:      gridZ,
+                        cardName:   lc.name,
+                        cardData:   lc,
+                        cardDataURL: cardDataURL
+                    };
 
-                this.worldGroup.add(hitMesh);
-                this.lootItems.push(hitMesh);
-                
-                window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear the clatter of dropped coins.`, logType: 'system' }, '*');
+                    this.worldGroup.add(hitMesh);
+                    this.lootItems.push(hitMesh);
+                    window.parent.postMessage({ type: 'LOG_EVENT', text: `A mysterious card flutters to the floor.`, logType: 'system' }, '*');
+                }
             },
 
             // ─────────────────────────────────────────────────────────────────
@@ -3391,8 +3535,8 @@
                 
                 if (spellData.el === 'EARTH') {
                     isBoulder = true;
-                    speed = 14.0;
-                    vY = 1.8;
+                    speed = 18.0;
+                    vY = 6.0;
                     if (!this._boulderSharedMat) {
                         const sc = document.createElement('canvas');
                         sc.width = sc.height = 128;
@@ -3436,6 +3580,7 @@
                     projectileMesh.add(new THREE.Mesh(geo, mat));
                     projectileMesh.userData.isWater = true;
                 } else if (action === 'SHURIKEN') {
+                    speed = 35.0;
                     const starMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 1.0, roughness: 0.1});
                     const star1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.05), starMat);
                     const star2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.3), starMat);
@@ -3448,6 +3593,7 @@
                     projectileMesh.add(star1, star2, hole);
                     // Spin it around the X-axis later in animate loop, or here it will just sit upright
                 } else if (spellData.el === 'MISSILE') {
+                    speed = 48.0;
                     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), new THREE.MeshStandardMaterial({color: 0x5C4033})); shaft.rotation.x = Math.PI / 2;
                     const head = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8})); head.rotation.x = Math.PI / 2; head.position.z = -0.4;
                     projectileMesh.add(shaft, head);
@@ -3521,7 +3667,7 @@
                         
                         // Apply effect
                         this.player.hp = Math.min(100, this.player.hp + Math.abs(spellData.dmg));
-                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spellData.label} restores ${Math.abs(spellData.dmg)} HP!` }, '*');
                         
                         // Screen flash green
@@ -3541,9 +3687,15 @@
                 const fwdZ = -Math.cos(this.player.rot);
 
                 const slashGroup = new THREE.Group();
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.8, 0.06), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
-                blade.position.y = 0.4;
-                slashGroup.add(blade);
+                const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.25), new THREE.MeshStandardMaterial({color: 0x222222}));
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.8, 0.3), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
+                blade.position.y = 1.2;
+                const guard = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.5), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                guard.position.y = 0.3;
+                
+                const swordContainer = new THREE.Group();
+                swordContainer.add(hilt, blade, guard);
+                slashGroup.add(swordContainer);
 
                 const startPos = new THREE.Vector3(
                     this.camera.position.x + fwdX * 0.5 - Math.cos(this.player.rot)*0.3,
@@ -3552,10 +3704,10 @@
                 );
                 slashGroup.position.copy(startPos);
                 
-                // Angle blade
+                // Angle blade: upright, swinging downward
                 slashGroup.rotation.y = this.player.rot;
-                slashGroup.rotation.x = Math.PI / 4;
-                slashGroup.rotation.z = -Math.PI / 3; // start cocked back
+                slashGroup.rotation.x = Math.PI / 8; // Slight forward tilt
+                slashGroup.rotation.z = -Math.PI / 4; // cocked back
 
                 this.scene.add(slashGroup);
 
@@ -3563,7 +3715,8 @@
                 let frame = 0;
                 const anim = () => {
                     frame++;
-                    slashGroup.rotation.z += 0.25; // swing forward
+                    slashGroup.rotation.z += 0.20; // swing forward
+                    slashGroup.rotation.x += 0.05; // tilt down during swing
                     if (frame < 8) {
                         requestAnimationFrame(anim);
                     } else {
@@ -3575,8 +3728,14 @@
                             this.triggerCombatSequence(target);
                             target.userData.isHostile = true;
                             target.userData.stateColor = '#ff4400';
+                            if (target.userData.baseCircleMat) {
+                                target.userData.baseCircleMat.color.setHex(0xff0000);
+                                const targetMat = target.userData.baseCircleMat;
+                                setTimeout(() => { if (targetMat) targetMat.color.setHex(0xffffff); }, 500);
+                            }
                             
-                            if (spellData.trauma > 0) this.addCameraTrauma(spellData.trauma);
+                            // User request: no camera shake on hit, keep hitstop
+                            // if (spellData.trauma > 0) this.addCameraTrauma(spellData.trauma);
                             this.triggerHitStop(30);
                             
                             target.userData.hp -= spellData.dmg;
@@ -3986,6 +4145,16 @@
                         this._pipRot.phi -= e.data.dy * 0.01;
                         this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
                         return;
+                    } else if (e.data.type === 'WAGER_RESOLVE') {
+                        if (e.data.win) {
+                            this.player.gold += e.data.amount;
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You WON the wager! +${e.data.amount} Gold!` }, '*');
+                        } else {
+                            this.player.gold -= e.data.amount;
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You LOST the wager! -${e.data.amount} Gold.` }, '*');
+                        }
+                        window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
+                        return;
                     } else if (e.data.type === 'PIP_PAN') {
                         if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
                         if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
@@ -4067,12 +4236,17 @@
                                 }
                             }, 1500);
                             
-                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && !['BAG','MAP','SET','REST','HEAL','VIEW','LOG','WAGER'].includes(action)) {
+                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && ['ATTACK', 'SLASH', 'THRUST', 'STRONG ATTACK'].includes(action)) {
                             if (this.activeTargetDist > this.gridSize * 1.8) {
                                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Too far away! Move closer to strike.` }, '*');
                                 return;
                             }
                             this.activeTarget.userData.stateColor = '#ff0000'; // Red for attack
+                            if (this.activeTarget.userData.baseCircleMat) {
+                                this.activeTarget.userData.baseCircleMat.color.setHex(0xff0000);
+                                const targetMat = this.activeTarget.userData.baseCircleMat;
+                                setTimeout(() => { if (targetMat) targetMat.color.setHex(0xffffff); }, 500);
+                            }
                             this.triggerCombatSequence(this.activeTarget);
                             // Mark as hostile so updateCombatAI fires retaliations autonomously
                             this.activeTarget.userData.isHostile = true;
@@ -4117,7 +4291,7 @@
                                             if (this.activeTarget && !this.activeTarget.userData.isDead) {
                                                 if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10); 
                                                 this.player.hp = Math.max(0, this.player.hp - 10);
-                                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                                                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
                                                 
                                                 this.spawnDamageText(10, new THREE.Vector3(), true); // JRPG UI Text
@@ -4142,6 +4316,11 @@
                                 }, 300); // 300ms reaction delay
                                 // Natively process damage since AI worker is disconnected
                                 this.activeTarget.userData.hp -= finalDamage;
+                                if (this.activeTarget.userData.monBase && this.activeTarget.userData.monBase.children[0]) {
+                                    const baseMesh = this.activeTarget.userData.monBase.children[0];
+                                    baseMesh.material.color.setHex(0xff0000);
+                                    setTimeout(() => { if (baseMesh && baseMesh.material) baseMesh.material.color.setHex(0x000000); }, 300);
+                                }
                                 
                                 // Broadcast updated health to UI Panels
                                 window.parent.postMessage({ type: 'SHOW_COMBAT', health: this.activeTarget.userData.hp, maxHp: this.activeTarget.userData.maxHp ?? 50, name: this.activeTarget.userData.name || 'Yakuza Goblin', entityType: this.activeTarget.userData.type || 'enemy' }, '*');
@@ -4543,6 +4722,11 @@
                                     
                                     // Deal actual math damage natively
                                     targetMesh.userData.hp -= finalDamage;
+                                    if (targetMesh.userData.monBase && targetMesh.userData.monBase.children[0]) {
+                                        const baseMesh = targetMesh.userData.monBase.children[0];
+                                        baseMesh.material.color.setHex(0xff0000);
+                                        setTimeout(() => { if (baseMesh && baseMesh.material) baseMesh.material.color.setHex(0x000000); }, 300);
+                                    }
                                     window.parent.postMessage({ type: 'SHOW_COMBAT', health: targetMesh.userData.hp, maxHp: targetMesh.userData.maxHp ?? 50, name: targetMesh.userData.name || 'Yakuza Goblin', entityType: targetMesh.userData.type || 'enemy' }, '*');
                                     
                                     if (targetMesh.userData.hp <= 0) {
@@ -4561,7 +4745,7 @@
                                                 if (targetMesh && !targetMesh.userData.isDead) {
                                                     if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
                                                     this.player.hp = Math.max(0, this.player.hp - 10);
-                                                    window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                                    window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                                                     window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
                                                     this.addCameraTrauma(0.6);
                                                 }
@@ -4613,6 +4797,30 @@
                                 }
                         }
                     }
+                    // --- Shop Debt Logic ---
+                    const pGridNextX = Math.round(nextX / this.gridSize);
+                    const pGridNextZ = Math.round(nextZ / this.gridSize);
+                    
+                    if (this.mapData[pGridNextX] && this.mapData[pGridNextX][pGridNextZ] && this.mapData[pGridNextX][pGridNextZ].isShopDoor) {
+                        if (this.player.shopDebt > 0) {
+                            let shopkeeperMesh = this.worldGroup.children.find(m => m.userData && m.userData.id === 'npc-shopkeeper');
+                            
+                            if (this.player.gold >= this.player.shopDebt) {
+                                // Auto Pay
+                                this.player.gold -= this.player.shopDebt;
+                                window.parent.postMessage({ type: 'LOG_EVENT', text: `You paid the Shopkeeper ${this.player.shopDebt} Gold.`, logType: 'system' }, '*');
+                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
+                                this.player.shopDebt = 0;
+                                if (shopkeeperMesh) this.spawnChatBubble("Thank you for your business!", "Maido ari!", shopkeeperMesh);
+                            } else {
+                                // Block exit
+                                nextX = this.player.x;
+                                nextZ = this.player.z;
+                                if (shopkeeperMesh) this.spawnChatBubble(`You need ${this.player.shopDebt - this.player.gold} more gold to leave with that!`, "Okaneganai!", shopkeeperMesh);
+                                this.triggerHitStop(50);
+                            }
+                        }
+                    }
                     
                     this.player.x = nextX;
                     this.player.z = nextZ;
@@ -4629,6 +4837,29 @@
                     this.lastRotDirX = curRotDirX;
                     this.lastRotDirZ = curRotDirZ;
                     window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ }, '*');
+                    
+                    // --- Stairway Progression Check ---
+                    if (!this.isTransitioning) {
+                        const cellType = this.mapData[curGridX]?.[curGridZ]?.type;
+                        if (cellType === 'stairs_up') {
+                            this.isTransitioning = true;
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You ascend the stairs... Escaping the dungeon!` }, '*');
+                            setTimeout(() => location.reload(), 1500);
+                        } else if (cellType === 'stairs_down') {
+                            this.isTransitioning = true;
+                            this.level = (this.level || 1) + 1;
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You descend deeper into the dungeon... Welcome to Level ${this.level}.` }, '*');
+                            window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level }, '*');
+                            
+                            // Rebuild dungeon for next level
+                            this.generateMap();
+                            this.buildWorldGeometry();
+                            this.camera.position.set(this.player.x * this.gridSize, 1.6, this.player.z * this.gridSize);
+                            this.camera.rotation.y = this.player.rot;
+                            
+                            setTimeout(() => { this.isTransitioning = false; }, 1000);
+                        }
+                    }
                 }
                 
                 // Check LoS triggers securely per frame instead of bound to integer positions, protecting against fast rotations
@@ -5211,15 +5442,24 @@
                             }
                         }
                         
-                        // Proximity Check
-                        if (loot.userData.gridX === pGridX && loot.userData.gridZ === pGridZ) {
+                        // Proximity Check (1.0 Tile Radius Auto-pickup)
+                        const lX = loot.position.x / this.gridSize;
+                        const lZ = loot.position.z / this.gridSize;
+                        const distToLoot = Math.hypot(this.player.x - lX, this.player.z - lZ);
+
+                        if (distToLoot <= 1.0) {
                             if (loot.userData.type === 'loot_gold') {
                                 this.player.gold += loot.userData.value;
                                 window.parent.postMessage({ type: 'LOG_EVENT', text: `Looted ${loot.userData.value} Gold!`, logType: 'system' }, '*');
-                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold }, '*');
+                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level || 1 }, '*');
                                 this.triggerHitStop(20); // Small audio/visual bump
                             } else if (loot.userData.type === 'loot_cards') {
-                                window.parent.postMessage({ type: 'LOG_EVENT', text: `Acquired Skill Card!`, logType: 'system' }, '*');
+                                if (loot.userData.isShopItem) {
+                                    this.player.shopDebt += loot.userData.price;
+                                    window.parent.postMessage({ type: 'LOG_EVENT', text: `Shopkeeper watches you take the ${loot.userData.cardName} (${loot.userData.price} Gold).`, logType: 'system' }, '*');
+                                } else {
+                                    window.parent.postMessage({ type: 'LOG_EVENT', text: `Picked up ${loot.userData.cardName} card!`, logType: 'system' }, '*');
+                                }
                                 window.parent.postMessage({ type: 'ADD_CARD', card: loot.userData.cardName }, '*');
                                 
                                 // Clean up the physical model
