@@ -702,16 +702,20 @@
 
             .resize-handle {
                 position: absolute;
-                width: 12px;
-                height: 12px;
+                width: 24px;
+                height: 24px;
                 background: transparent;
-                z-index: 51;
+                z-index: 100;
                 pointer-events: auto;
+                transition: background 0.2s;
             }
-            .resize-handle.se { bottom: 0; right: 0; cursor: se-resize; }
-            .resize-handle.sw { bottom: 0; left: 0; cursor: sw-resize; }
-            .resize-handle.ne { top: 0; right: 0; cursor: ne-resize; }
-            .resize-handle.nw { top: 0; left: 0; cursor: nw-resize; }
+            .resize-handle:hover {
+                background: rgba(255,255,255,0.1);
+            }
+            .resize-handle.se { bottom: -2px; right: -2px; cursor: se-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-bottom-right-radius: 8px;}
+            .resize-handle.sw { bottom: -2px; left: -2px; cursor: sw-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-bottom-left-radius: 8px;}
+            .resize-handle.ne { top: -2px; right: -2px; cursor: ne-resize; border-top: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-top-right-radius: 8px;}
+            .resize-handle.nw { top: -2px; left: -2px; cursor: nw-resize; border-top: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-top-left-radius: 8px;}
 
             #mapview-container .view-label {
                 position: absolute;
