@@ -524,6 +524,54 @@
             
             activeChat: null,
             
+            generateRoomDescription(roomId) {
+                const room = this.rooms.find(r => r.id === roomId);
+                if (!room) return null;
+
+                let desc = "";
+
+                if (roomId === 99) {
+                    desc += "You have entered a strange, makeshift shop. Odd wares are scattered about.";
+                } else if (roomId === 1) {
+                    desc += `You are in the entrance chamber of Level ${this.level || 1}. The air here is stale.`;
+                } else {
+                    const area = room.w * room.h;
+                    if (area > 30) {
+                        desc += "You step into a sprawling cavernous room.";
+                    } else if (area < 20) {
+                        desc += "You squeeze into a cramped, claustrophobic chamber.";
+                    } else {
+                        desc += "You enter a dimly lit stone room.";
+                    }
+                }
+
+                // Check for stairs
+                const hasStairsUp = this.mapData[room.center.x]?.[room.center.y - 2]?.type === 'stairs_up';
+                const hasStairsDown = this.mapData[room.center.x]?.[room.center.y]?.type === 'stairs_down';
+                if (hasStairsUp) {
+                    desc += " A set of stairs leads back up.";
+                }
+                if (hasStairsDown) {
+                    desc += " A dark stairwell descends deeper into the dungeon.";
+                }
+
+                // Check for mobs
+                const mobsInRoom = this.mobs.filter(m => m.hp > 0 && Math.abs(m.x - room.center.x) < room.w/2 + 2 && Math.abs(m.z - room.center.y) < room.h/2 + 2);
+                if (mobsInRoom.length > 0) {
+                    const names = mobsInRoom.map(m => m.name || 'a monster');
+                    const counts = {};
+                    names.forEach(n => counts[n] = (counts[n] || 0) + 1);
+                    const mobStrings = Object.entries(counts).map(([name, count]) => `${count} ${name}${count > 1 && !name.endsWith('s') ? 's' : ''}`);
+                    
+                    desc += ` You notice ${mobStrings.join(', ')} lurking nearby.`;
+                } else if (roomId !== 99 && roomId !== 1) {
+                    desc += " The room appears to be empty... for now.";
+                }
+
+                return desc;
+            },
+
+            
             spawnChatBubble(enText, jpText, targetMesh) {
                 const logText = jpText ? `${enText} [${jpText}]` : enText;
                 window.parent.postMessage({ type: 'LOG_EVENT', text: logText, logType: 'chat' }, '*');
@@ -4856,6 +4904,16 @@
                     this.lastRotDirX = curRotDirX;
                     this.lastRotDirZ = curRotDirZ;
                     window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ }, '*');
+                    
+                    // --- Procedural Room Descriptions ---
+                    const currentCell = this.mapData[curGridX]?.[curGridZ];
+                    if (currentCell && currentCell.roomId && currentCell.roomId !== this.lastVisitedRoomId) {
+                        this.lastVisitedRoomId = currentCell.roomId;
+                        const desc = this.generateRoomDescription(currentCell.roomId);
+                        if (desc) {
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: desc }, '*');
+                        }
+                    }
                     
                     // --- Stairway Progression Check ---
                     if (!this.isTransitioning) {
