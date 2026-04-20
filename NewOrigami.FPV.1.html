@@ -5481,7 +5481,8 @@
                     if (this.worldGroup) {
                         for (const child of [...this.worldGroup.children]) {
                             if (child.userData?.type === 'enemy' && !child.userData.isDead) {
-                                if (b.position.distanceTo(child.position) < 1.1) {
+                                const dist2D = Math.hypot(b.position.x - child.position.x, b.position.z - child.position.z);
+                                if (dist2D < 1.1) {
                                     const ep = b.position.clone();
                                     this.scene.remove(b);
                                     this.boulders.splice(bi, 1);
