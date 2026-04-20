@@ -109,6 +109,11 @@
         .sp-bar-label .hp-num { font-size: 14px; font-weight: 900; font-family: monospace; letter-spacing: -0.5px; }
         .sp-bar-label .hp-max { font-size: 9px; color: var(--color-text-dim); }
         .sp-bar { width: 100%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; box-shadow: var(--nm-shadow-inner); border: 1px solid rgba(0,0,0,0.05); }
+        .player-attributes { display: flex; justify-content: space-between; width: 90%; background: var(--nm-bg); padding: 8px; border-radius: 6px; box-shadow: var(--nm-shadow-inset-light); margin-bottom: 6px; font-family: monospace; font-size: 10px; font-weight: bold; color: var(--color-text); }
+        .attr-col { display: flex; flex-direction: column; width: 45%; gap: 4px; }
+        .attr-row { display: flex; justify-content: space-between; align-items: center; }
+        .attr-row span:last-child { color: #00ffcc; font-size: 11px; }
+        .sp-xp-status { font-family: monospace; margin-bottom: 12px; }
         .sp-fill { height: 100%; width: 55%; background: linear-gradient(90deg, var(--fire-clr), #ff5252); transition: width 0.3s ease; }
         .sp-fill.player { height: 100%; width: 80%; background: linear-gradient(90deg, var(--item-clr), #4caf50); transition: width 0.3s ease; }
         
@@ -173,8 +178,9 @@
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
         .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); background: var(--bg-glass); }
-        .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); background: var(--bg-glass); --hp-pct: 100%; }
+        .avatar-circle::after { content: ''; position: absolute; top: -2px; left: -2px; width: calc(100% + 4px); height: calc(100% + 4px); border-radius: 50%; background: conic-gradient(#4caf50 var(--hp-pct), #ff5252 0); z-index: -1; pointer-events: none; -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); }
+        .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
         .btn-action { 
@@ -549,10 +555,24 @@
                 <div class="sp-bar-wrap">
                     <div class="sp-bar-label">
                         <span class="hp-num" id="player-hp-val">100</span>
-                        <span class="hp-max">/ 100 HP</span>
+                        <span class="hp-max" id="player-hp-max">/ 100 HP</span>
                     </div>
                     <div class="sp-bar"><div class="sp-fill player" id="player-hp-fill"></div></div>
                 </div>
+                
+                <div class="player-attributes">
+                    <div class="attr-col">
+                        <div class="attr-row"><span>STR</span> <span id="attr-str">16</span></div>
+                        <div class="attr-row"><span>DEX</span> <span id="attr-dex">14</span></div>
+                        <div class="attr-row"><span>CON</span> <span id="attr-con">15</span></div>
+                    </div>
+                    <div class="attr-col">
+                        <div class="attr-row"><span>INT</span> <span id="attr-int">10</span></div>
+                        <div class="attr-row"><span>WIS</span> <span id="attr-wis">10</span></div>
+                        <div class="attr-row"><span>CHA</span> <span id="attr-cha">12</span></div>
+                    </div>
+                </div>
+                <div class="sp-sub sp-xp-status">XP: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
                 <button class="sp-btn btn-attack" onclick="emitAction('ATTACK')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
                     <span>Attack</span>
@@ -2050,9 +2070,10 @@
                     }, Math.max(1000, (slash.getClip().duration * 1000) - 200));
                 }
             } else if (e.data && e.data.type === 'SYNC_STATS') {
-                const php = document.getElementById('player-hp-num');
-                const pgold = document.getElementById('player-gold-num');
-                const lvlBadge = document.getElementById('player-level-badge');
+                const php = document.getElementById('player-hp-val');
+                const pgold = document.getElementById('player-gold-val');
+                const lvlBadge = document.querySelector('.level-badge');
+                
                 if (php) {
                     php.textContent = e.data.hp;
                     if (e.data.hp <= 20) php.parentElement.style.color = '#ff5252';
@@ -2060,18 +2081,37 @@
                 }
                 if (pgold) pgold.textContent = e.data.gold;
                 window.playerGold = e.data.gold;
-                if (lvlBadge && e.data.level) lvlBadge.textContent = e.data.level;
+                if (lvlBadge && e.data.playerLevel) lvlBadge.textContent = e.data.playerLevel;
+                
+                // Set health donut variable
+                const avatarCircle = document.querySelector('.avatar-circle');
+                if (avatarCircle && e.data.maxHp) {
+                    const hpPct = Math.max(0, Math.min(100, (e.data.hp / e.data.maxHp) * 100));
+                    avatarCircle.style.setProperty('--hp-pct', `${hpPct}%`);
+                }
+                
+                // Attributes
+                ['str','dex','con','int','wis','cha'].forEach(a => {
+                    const el = document.getElementById(`attr-${a}`);
+                    if (el && e.data[a]) el.textContent = e.data[a];
+                });
+                
+                const pxp = document.getElementById('player-xp-val');
+                if (pxp && e.data.xp !== undefined) pxp.textContent = e.data.xp;
+                const pxpMax = document.getElementById('player-xp-max');
+                if (pxpMax && e.data.maxXp) pxpMax.textContent = e.data.maxXp;
+                const phb = document.getElementById('player-hp-max');
+                if (phb && e.data.maxHp) phb.textContent = `/ ${e.data.maxHp} HP`;
                 
                 const pfill = document.getElementById('player-hp-fill');
                 const hp = Math.max(0, Math.round(e.data.hp));
-                if (pfill) pfill.style.width = Math.max(0, hp) + '%';
+                if (pfill && e.data.maxHp) pfill.style.width = Math.max(0, (hp / e.data.maxHp) * 100) + '%';
                 // Colour-shift as HP drops
                 if (pfill) {
                     if (hp <= 20) pfill.style.background = 'linear-gradient(90deg,#4a0000,#ff1111)';
                     else if (hp <= 50) pfill.style.background = 'linear-gradient(90deg,#b71c1c,#ff7043)';
                     else pfill.style.background = '';
                 }
-                if (pgold) pgold.textContent = e.data.gold;
             } else if (e.data && e.data.type === 'LOOT_CARDS') {
                 window.logEvent('LOOT AQUIRED: Tactical Katana Deck', 'system');
                 loadDeck(combatCategories);
