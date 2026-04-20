@@ -3033,14 +3033,20 @@
                                 const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
                                 shieldGeo.center();
                                 
-                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.4});
+                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xd0d0d0, metalness: 0.6, roughness: 0.4});
                                 const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                                shield.rotation.x = Math.PI; // match UI panels alignment
+                                shield.scale.set(1.4, 1.4, 1.4);
                                 
-                                const boss = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshStandardMaterial({color: 0xaa8800}));
-                                boss.position.z = 0.15;
+                                // Inner shield design
+                                const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.25, bevelEnabled: false });
+                                innerGeo.center();
+                                const innerMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.1, roughness: 0.2});
+                                const innerShield = new THREE.Mesh(innerGeo, innerMat);
+                                innerShield.scale.set(0.5, 0.5, 1.0);
+                                innerShield.position.z = 0; // centered so it pokes out both sides
                                 
-                                iconMesh.add(shield, boss);
+                                shield.add(innerShield);
+                                iconMesh.add(shield);
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; iconMesh.rotation.x = Math.sin(t * 2) * 0.2; };
                             } else if (catId === 'ITEM') {
                                 if (inTitle === 'GOLD COINS') {
