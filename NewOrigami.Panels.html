@@ -249,10 +249,14 @@
         @media (max-width: 750px) { 
             #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
             .card-column:nth-child(n+4) { display: none !important; }
+            #left-panel { transform: scale(0.85); transform-origin: left center; }
+            #right-panel { transform: scale(0.85); transform-origin: right center; }
         }
         @media (max-width: 500px) { 
             #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
             .card-column:nth-child(n+4) { display: none !important; }
+            #left-panel { transform: scale(0.75); transform-origin: left center; }
+            #right-panel { transform: scale(0.75); transform-origin: right center; }
         }
 
         .guide-card {
