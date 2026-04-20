@@ -2869,11 +2869,22 @@
                                 iconMesh.add(star1, star2);
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 8.0; iconMesh.rotation.x = Math.sin(t * 2) * 0.4; };
                             } else if (catId === 'SHIELD') {
-                                const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
-                                const shield = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32), shieldMat);
-                                shield.rotation.x = Math.PI / 2;
-                                const boss = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshStandardMaterial({color: 0xaa8800}));
-                                boss.position.z = 0.1;
+                                const shieldShape = new THREE.Shape();
+                                shieldShape.moveTo(0, -1.2);
+                                shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
+                                shieldShape.lineTo(-1.0, 1.0);
+                                shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
+
+                                const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
+                                shieldGeo.center();
+                                
+                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.4});
+                                const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                                shield.rotation.x = Math.PI; // match UI panels alignment
+                                
+                                const boss = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                                boss.position.z = 0.15;
+                                
                                 iconMesh.add(shield, boss);
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; iconMesh.rotation.x = Math.sin(t * 2) * 0.2; };
                             } else if (catId === 'ITEM') {
