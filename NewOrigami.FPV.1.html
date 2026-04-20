@@ -2250,7 +2250,7 @@
                 for (let x = 0; x < this.mapWidth; x++) {
                     for (let z = 0; z < this.mapHeight; z++) {
                         const cell = this.mapData[x]?.[z];
-                        if (!cell || cell.type === 'wall') continue;
+                        if (!cell || cell.type === 'wall' || cell.type.startsWith('stairs')) continue;
                         
                         dummy.position.set(x * this.gridSize, -depth / 2, z * this.gridSize);
                         dummy.updateMatrix();
@@ -2270,30 +2270,46 @@
                         const cell = this.mapData[x]?.[z];
                         if (!cell) continue;
 
-                        if (cell.type === 'stairs_up') {
+                        if (cell.type === 'stairs_up' || cell.type === 'stairs_down') {
                             const stair = new THREE.Group();
-                            // Three steps going up
-                            for(let s=0; s<3; s++) {
-                                const step = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize, 0.2, this.gridSize/3), stairUpMat);
-                                step.position.set(0, s * 0.2, (this.gridSize/3) - (s * this.gridSize/3));
-                                stair.add(step);
-                            }
-                            stair.position.set(x * this.gridSize, 0, z * this.gridSize);
-                            stair.userData = { type: 'stairs_up', gridX: x, gridZ: z };
-                            this.worldGroup.add(stair);
-                        } else if (cell.type === 'stairs_down') {
-                            const stair = new THREE.Group();
-                            // A dark pit with steps going down
-                            const pit = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize*0.9, 0.1, this.gridSize*0.9), new THREE.MeshBasicMaterial({color: 0x000000}));
-                            pit.position.y = 0.05;
+                            
+                            // Deep black void at the bottom of the stairwell
+                            const pitDepth = 1.8;
+                            const pit = new THREE.Mesh(new THREE.PlaneGeometry(this.gridSize, this.gridSize), new THREE.MeshBasicMaterial({color: 0x000000, depthWrite: false}));
+                            pit.rotation.x = -Math.PI / 2;
+                            pit.position.y = -pitDepth + 0.1;
                             stair.add(pit);
-                            for(let s=0; s<3; s++) {
-                                const step = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize*0.8, 0.1, this.gridSize/3), stairDownMat);
-                                step.position.set(0, -s * 0.2 + 0.1, (this.gridSize/3) - (s * this.gridSize/3));
+                            
+                            // Walls of the pit to connect the floor to the void
+                            const pitWallGeo = new THREE.BoxGeometry(this.gridSize, pitDepth, this.gridSize);
+                            const pitWall = new THREE.Mesh(pitWallGeo, new THREE.MeshStandardMaterial({color: 0x1a1110, roughness: 1.0}));
+                            pitWall.position.y = -pitDepth / 2;
+                            pitWall.material.side = THREE.BackSide; // Render the inside walls
+                            stair.add(pitWall);
+
+                            // Dark brown realistic steps
+                            const numSteps = 8;
+                            const stepHeight = pitDepth / numSteps;
+                            const stepDepth = this.gridSize / numSteps;
+                            const stairMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.95, flatShading: true });
+                            
+                            for(let s=0; s<numSteps; s++) {
+                                // Add slight overlap and variation to make it look realistic
+                                const step = new THREE.Mesh(new THREE.BoxGeometry(this.gridSize * 0.95, stepHeight, stepDepth * 1.2), stairMat);
+                                
+                                // For stairs_up, they visually go down as well (as requested), but we'll reverse the direction just for variety
+                                const dirMult = cell.type === 'stairs_up' ? -1 : 1;
+                                
+                                step.position.set(
+                                    0, 
+                                    -(s * stepHeight) - (stepHeight/2), 
+                                    dirMult * ((this.gridSize/2) - (s * stepDepth) - (stepDepth/2))
+                                );
                                 stair.add(step);
                             }
+                            
                             stair.position.set(x * this.gridSize, 0, z * this.gridSize);
-                            stair.userData = { type: 'stairs_down', gridX: x, gridZ: z };
+                            stair.userData = { type: cell.type, gridX: x, gridZ: z };
                             this.worldGroup.add(stair);
                         }
                     }
@@ -4835,8 +4851,15 @@
                         const cellType = this.mapData[curGridX]?.[curGridZ]?.type;
                         if (cellType === 'stairs_up') {
                             this.isTransitioning = true;
-                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You ascend the stairs... Escaping the dungeon!` }, '*');
-                            setTimeout(() => location.reload(), 1500);
+                            if (this.level > 1) {
+                                this.level -= 1;
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You ascend the stairs... Returning to Level ${this.level}.` }, '*');
+                                window.parent.postMessage({ type: 'SYNC_STATS', hp: this.player.hp, gold: this.player.gold, level: this.level }, '*');
+                                setTimeout(() => this.reinitEngine(), 1000);
+                            } else {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You ascend the stairs... Escaping the dungeon! Game Over.` }, '*');
+                                setTimeout(() => location.reload(), 1500);
+                            }
                         } else if (cellType === 'stairs_down') {
                             this.isTransitioning = true;
                             this.level = (this.level || 1) + 1;
