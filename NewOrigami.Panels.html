@@ -75,7 +75,7 @@
         body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
-        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0; box-sizing: border-box; pointer-events: none; }
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
@@ -95,6 +95,10 @@
         .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
         #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
         #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
+        
+        .side-panel::after { content: ''; position: absolute; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: -1; }
+        #pax-console::after { right: -100px; }
+        #action-rail::after { left: -100px; }
 
         .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
         .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 8px; width: 100%; text-align: center; line-height: 1.2; }
@@ -141,6 +145,26 @@
             50% { transform: scale(0.85); }
             100% { transform: scale(1); }
         }
+        @keyframes avatarIdleBtn {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.03); box-shadow: 0 0 25px rgba(0,200,255,0.3); }
+            100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        }
+        @keyframes avatarWalkBtn {
+            0% { transform: translate(-50%, -50%) rotate(0deg) translateY(0); }
+            25% { transform: translate(-50%, -50%) rotate(-4deg) translateY(-2px); }
+            50% { transform: translate(-50%, -50%) rotate(0deg) translateY(0); }
+            75% { transform: translate(-50%, -50%) rotate(4deg) translateY(-2px); }
+            100% { transform: translate(-50%, -50%) rotate(0deg) translateY(0); }
+        }
+        @keyframes avatarSlashBtn {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            30% { transform: translate(-50%, -50%) scale(1.15) rotate(5deg); background: rgba(255, 60, 60, 0.5); }
+            100% { transform: translate(-50%, -50%) scale(1); background: var(--bg-glass); }
+        }
+        .anim-idle-btn { animation: avatarIdleBtn 3s ease-in-out infinite; }
+        .anim-walk-btn { animation: avatarWalkBtn 0.5s linear infinite; }
+        .anim-slash-btn { animation: avatarSlashBtn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; }
@@ -148,6 +172,7 @@
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass);   border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
+        .level-badge { position: absolute; top: calc(50% - 32px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
         .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); background: var(--bg-glass); }
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
@@ -190,10 +215,12 @@
         .ac-text { font-size: 6.5px; font-weight: 900; margin-top: 3px; text-transform: uppercase; color: var(--color-text); }
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
-        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: 600px; height: auto; align-self: end; }
-        #guides-container { display: flex; width: 100%; padding: 30px 10px 30px 10px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; transition: opacity 0.4s ease; }
+        #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: calc(var(--card-w) * 6 + 70px); height: auto; align-self: end; }
+        #guides-container { display: flex; width: 100%; padding: 30px 0; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: flex-start; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
+        #guides-container::before, #guides-container::after { content: ''; margin: 0 auto; }
         #guides-container::-webkit-scrollbar { display: none; }
         
+
         /* --- GAMBLING DICE ENGINE --- */
         #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass);   border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
         #dice-container.active { display: flex; opacity: 1; }
@@ -211,13 +238,21 @@
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
         .card-column.focused { z-index: 30; }
 
+        @media (max-width: 1100px) {
+            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 5 + 56px); }
+            .card-column:nth-child(n+6) { display: none !important; }
+        }
+        @media (max-width: 900px) {
+            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 4 + 42px); }
+            .card-column:nth-child(n+5) { display: none !important; }
+        }
         @media (max-width: 750px) { 
-            .card-column:nth-child(1), .card-column:nth-child(5) { display: none; } 
-            #input-container, #event-log-container { max-width: calc(var(--card-w) * 3 + 28px) !important; margin-left: 0 !important; }
+            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
+            .card-column:nth-child(n+4) { display: none !important; }
         }
         @media (max-width: 500px) { 
-            .card-column:nth-child(2), .card-column:nth-child(4) { display: none; } 
-            #input-container, #event-log-container { max-width: calc(var(--card-w) * 1) !important; margin-left: 0 !important; }
+            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
+            .card-column:nth-child(n+4) { display: none !important; }
         }
 
         .guide-card {
@@ -225,19 +260,19 @@
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--color-text); 
-            background: var(--bg-glass);   
+            background: rgba(15, 15, 18, 0.95);   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 0; overflow: hidden; box-sizing: border-box; border: var(--glass-border);
+            padding: 0; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.15);
             transform-origin: top center;
         }
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
         
         .card-badge {
-            position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; 
-            border-radius: 50%; background: var(--theme-clr, #00ffff); color: #000;
+            position: absolute; top: -10px; right: -10px; width: 22px; height: 22px; 
+            border-radius: 50%; background: #ff0000; color: #ffffff;
             font-size: 11px; font-weight: 900; display: flex; align-items: center; 
             justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            border: 2px solid var(--item-bg); z-index: 10;
+            border: 2px solid #ffffff; z-index: 10;
         }
         
         .guide-card[data-depth="0"]:hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
@@ -315,6 +350,7 @@
             text-align: center; 
             line-height: 1.1; 
             box-sizing: border-box; 
+            border-radius: 0 0 10px 10px;
         }
 
         .card-click-overlay {
@@ -322,6 +358,7 @@
             top: 0; left: 0; right: 0; bottom: 0;
             z-index: 100;
             cursor: pointer;
+            border-radius: 12px;
         }
         
         .card-charge-badge {
@@ -372,14 +409,13 @@
 
         /* --- HIGH PERFORMANCE INPUT --- */
         #input-container { 
-            width: 100%; 
-            max-width: calc(var(--card-w) * 5 + 56px); 
+            width: 100%; min-width: 0;
             height: 60px; display: flex; justify-content: center; align-items: center; 
-            transition: max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
         }
-        .chat-pill { width: 100%; height: 54px; background: var(--bg-glass);   box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #FFF; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; }
+        .chat-pill { min-width: 0; width: 100%; height: 54px; background: var(--bg-glass);   box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-input { flex: 1; width: 10px; background: transparent; border: none; outline: none; color: #FFF; font-family: inherit; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
         .chat-input::placeholder { color: rgba(255,255,255,0.7); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
         
@@ -755,6 +791,7 @@
 
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
                 <div id="action-zone">
+                    <div class="level-badge" id="player-level-badge">1</div>
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
                     <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
@@ -952,42 +989,67 @@
                         glowLight.intensity = 1.5 + pulse * 1.5; 
                         liqGroup.scale.setScalar(0.98 + pulse * 0.02); // Lowered throb
                     };
-                } else if (el === 'KATANA') {
-                    const hiltGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
-                    const hiltMat = new THREE.MeshStandardMaterial({color: 0x222222});
+                } else if (el === 'KATANA' || el === 'SLASH' || el === 'THRUST') {
+                    // Cartoonish Katana - shorter, thicker, fits in circle
+                    const hiltGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+                    const hiltMat = new THREE.MeshStandardMaterial({color: 0xffffff});
                     const hilt = new THREE.Mesh(hiltGeo, hiltMat);
-                    const bladeGeo = new THREE.BoxGeometry(0.1, 3.5, 0.4);
-                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2});
+                    const bladeGeo = new THREE.BoxGeometry(0.08, 1.8, 0.3);
+                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.8, roughness: 0.2});
                     const blade = new THREE.Mesh(bladeGeo, bladeMat);
-                    blade.position.y = 2.0;
-                    const guardGeo = new THREE.BoxGeometry(0.8, 0.1, 0.8);
-                    const guardMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    blade.position.y = 1.2;
+                    const guardGeo = new THREE.BoxGeometry(0.5, 0.1, 0.5);
+                    const guardMat = new THREE.MeshStandardMaterial({color: 0xffffff});
                     const guard = new THREE.Mesh(guardGeo, guardMat);
-                    guard.position.y = 0.6;
-                    group.add(hilt, blade, guard);
-                    group.position.y = -1.0;
+                    guard.position.y = 0.3;
+                    
+                    const swordGrp1 = new THREE.Group();
+                    swordGrp1.add(hilt.clone(), blade.clone(), guard.clone());
+                    swordGrp1.position.set(-0.6, -0.3, 0);
+                    swordGrp1.rotation.z = Math.PI / 4;
+                    
+                    const swordGrp2 = new THREE.Group();
+                    swordGrp2.add(hilt.clone(), blade.clone(), guard.clone());
+                    swordGrp2.position.set(0.6, -0.3, 0);
+                    swordGrp2.rotation.z = Math.PI / 4;
+                    
+                    group.add(swordGrp1, swordGrp2);
                     update = (t) => { group.rotation.y = t * 0.5; };
                 } else if (el === 'MISSILE') {
-                    const starGeo = new THREE.BoxGeometry(0.8, 0.05, 0.2);
-                    const starGeo2 = new THREE.BoxGeometry(0.2, 0.05, 0.8);
-                    const starMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 1.0, roughness: 0.1});
-                    const star1 = new THREE.Mesh(starGeo, starMat);
-                    const star2 = new THREE.Mesh(starGeo2, starMat);
-                    star1.rotation.x = Math.PI / 2;
-                    star2.rotation.x = Math.PI / 2;
-                    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8), new THREE.MeshBasicMaterial({color: 0x000000}));
+                    const starShape = new THREE.Shape();
+                    const outerRadius = 1.8; // larger, 50% of the visual circle
+                    const innerRadius = 0.45;
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i * Math.PI) / 4;
+                        const r = i % 2 === 0 ? outerRadius : innerRadius;
+                        if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                        else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                    }
+                    const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 });
+                    starGeo.center();
+                    const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.2, roughness: 0.4, flatShading: true});
+                    const star = new THREE.Mesh(starGeo, starMat);
+                    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
                     hole.rotation.x = Math.PI / 2;
-                    group.add(star1, star2, hole);
-                    update = (t) => { group.rotation.x = t * 8.0; };
+                    group.add(star, hole);
+                    update = (t) => { group.rotation.z = -t * 2.0; };
                 } else if (el === 'SHIELD') {
-                    const shieldGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
-                    const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
+                    const shieldShape = new THREE.Shape();
+                    shieldShape.moveTo(0, -1.2);
+                    shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
+                    shieldShape.lineTo(-1.0, 1.0);
+                    shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
+                    
+                    const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
+                    shieldGeo.center();
+                    const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.4});
                     const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                    shield.rotation.x = Math.PI / 2;
-                    const bossGeo = new THREE.SphereGeometry(0.4, 16, 16);
-                    const bossMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
+                    shield.rotation.x = Math.PI; // point downwards
+                    
+                    const bossGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                    const bossMat = new THREE.MeshStandardMaterial({color: 0xffffff});
                     const boss = new THREE.Mesh(bossGeo, bossMat);
-                    boss.position.z = 0.1;
+                    boss.position.z = 0.15;
                     group.add(shield, boss);
                     update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
                 } else if (el === 'DICE_EVEN' || el === 'DICE_ODD' || el === 'DICE_CENTER') {
@@ -1406,6 +1468,14 @@
             const targetAction = avatarActions[name];
             if (!targetAction || targetAction === avatarCurrentAction) return;
 
+            const btn = document.getElementById('player-avatar-container');
+            if (btn) {
+                btn.classList.remove('anim-idle-btn', 'anim-walk-btn', 'anim-slash-btn');
+                if (name === 'slash' || name === 'attack') btn.classList.add('anim-slash-btn');
+                else if (name === 'walk') btn.classList.add('anim-walk-btn');
+                else btn.classList.add('anim-idle-btn');
+            }
+
             if (avatarCurrentAction) {
                 targetAction.time = 0;
                 targetAction.setEffectiveTimeScale(name === 'walk' ? 1.5 : 1);
@@ -1506,7 +1576,7 @@
                     if (qty > 0) {
                         qty--;
                         btn.dataset.qty = qty;
-                        const badge = btn.querySelector('.card-charge-badge');
+                        const badge = btn.querySelector('.card-badge');
                         if (badge) badge.textContent = qty;
                         
                         if (qty <= 0) {
@@ -1528,6 +1598,20 @@
                     guideCont.style.display = 'none';
                     diceCont.classList.add('active');
                 }, 400); // Wait for fade out
+                return;
+            }
+            
+            if (a === 'BET_EVEN' || a === 'BET_ODD') {
+                if (window.playerGold === undefined) window.playerGold = 0;
+                const wagerAmount = 10;
+                if (window.playerGold < wagerAmount) {
+                    emitAction('LOG'); 
+                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Not enough gold! You need ${wagerAmount} Gold.` }, '*');
+                    return;
+                }
+                const isEven = (a === 'BET_EVEN');
+                if (typeof window.rollDiceAnimation === 'function') window.rollDiceAnimation(isEven, wagerAmount);
+                return;
             }
 
             // Deck Swapping
@@ -1654,7 +1738,7 @@
                     card.dataset.depth = i;
                     if (cat.qty !== undefined) card.dataset.qty = cat.qty;
                     
-                    const badgeHtml = cat.qty !== undefined ? `<div class="card-charge-badge">${cat.qty}</div>` : '';
+                    const badgeHtml = cat.qty !== undefined ? `<div class="card-badge">${cat.qty}</div>` : '';
                     card.innerHTML = `
                         <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
                         <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
@@ -1958,11 +2042,20 @@
                     }, Math.max(1000, (slash.getClip().duration * 1000) - 200));
                 }
             } else if (e.data && e.data.type === 'SYNC_STATS') {
-                const php = document.getElementById('player-hp-val');
+                const php = document.getElementById('player-hp-num');
+                const pgold = document.getElementById('player-gold-num');
+                const lvlBadge = document.getElementById('player-level-badge');
+                if (php) {
+                    php.textContent = e.data.hp;
+                    if (e.data.hp <= 20) php.parentElement.style.color = '#ff5252';
+                    else php.parentElement.style.color = '#00ffcc';
+                }
+                if (pgold) pgold.textContent = e.data.gold;
+                window.playerGold = e.data.gold;
+                if (lvlBadge && e.data.level) lvlBadge.textContent = e.data.level;
+                
                 const pfill = document.getElementById('player-hp-fill');
-                const pgold = document.getElementById('player-gold-val');
                 const hp = Math.max(0, Math.round(e.data.hp));
-                if (php) php.textContent = hp;
                 if (pfill) pfill.style.width = Math.max(0, hp) + '%';
                 // Colour-shift as HP drops
                 if (pfill) {
@@ -2313,6 +2406,110 @@ setTimeout(() => {
         // Give layout a tick before measuring rect
         setTimeout(syncRect, 100);
     })();
+    
+    window.rollDiceAnimation = function(betIsEven, amount) {
+        const logContainer = document.getElementById('event-log-container');
+        if (!logContainer.classList.contains('show')) {
+            window.emitAction('LOG'); // toggle it open if closed
+        }
+        
+        const rect = logContainer.getBoundingClientRect();
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = rect.top + 'px';
+        overlay.style.left = rect.left + 'px';
+        overlay.style.width = rect.width + 'px';
+        overlay.style.height = rect.height + 'px';
+        overlay.style.zIndex = '9999';
+        overlay.style.pointerEvents = 'none';
+        document.body.appendChild(overlay);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(rect.width, rect.height);
+        overlay.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, rect.width / rect.height, 0.1, 100);
+        camera.position.z = 12;
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // Create 2 dice
+        const diceGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        const diceMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
+        const die1 = new THREE.Mesh(diceGeo, diceMat);
+        const die2 = new THREE.Mesh(diceGeo, diceMat);
+        
+        // Add green/red dots just like the main UI dice to make them look nice
+        const dotMat = new THREE.MeshStandardMaterial({color: 0x111111});
+        const dotGeo = new THREE.CircleGeometry(0.15, 16);
+        const addDot = (mesh, x, y, z, rx, ry) => {
+            const dot = new THREE.Mesh(dotGeo, dotMat);
+            dot.position.set(x,y,z);
+            dot.rotation.set(rx,ry,0);
+            mesh.add(dot);
+        };
+        // Just add one dot on each face for aesthetics
+        addDot(die1, 0, 0, 0.61, 0, 0); addDot(die1, 0, 0, -0.61, 0, Math.PI);
+        addDot(die1, 0.61, 0, 0, 0, Math.PI/2); addDot(die1, -0.61, 0, 0, 0, -Math.PI/2);
+        addDot(die1, 0, 0.61, 0, -Math.PI/2, 0); addDot(die1, 0, -0.61, 0, Math.PI/2, 0);
+        
+        addDot(die2, 0, 0, 0.61, 0, 0); addDot(die2, 0, 0, -0.61, 0, Math.PI);
+        addDot(die2, 0.61, 0, 0, 0, Math.PI/2); addDot(die2, -0.61, 0, 0, 0, -Math.PI/2);
+        addDot(die2, 0, 0.61, 0, -Math.PI/2, 0); addDot(die2, 0, -0.61, 0, Math.PI/2, 0);
+
+        scene.add(die1, die2);
+
+        let startTime = performance.now();
+        let duration = 1800; // 1.8 seconds bounce
+        
+        let d1 = { x: -2.0, y: 6, z: 0, vx: 0.04, vy: 0, vz: 0, rx: Math.random()*0.3, ry: Math.random()*0.3 };
+        let d2 = { x: 2.0,  y: 6, z: 0, vx: -0.04, vy: 0, vz: 0, rx: Math.random()*0.3, ry: Math.random()*0.3 };
+        
+        function animate(t) {
+            let elapsed = t - startTime;
+            if (elapsed > duration) {
+                document.body.removeChild(overlay);
+                
+                let roll1 = Math.floor(Math.random() * 6) + 1;
+                let roll2 = Math.floor(Math.random() * 6) + 1;
+                let sum = roll1 + roll2;
+                let isEven = sum % 2 === 0;
+                let win = (isEven === betIsEven);
+                
+                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Rolled ${roll1} and ${roll2} (Total: ${sum})` }, '*');
+                window.parent.postMessage({ type: 'WAGER_RESOLVE', win: win, amount: amount }, '*');
+                return;
+            }
+            
+            requestAnimationFrame(animate);
+            
+            d1.vy -= 0.015; d2.vy -= 0.015;
+            d1.y += d1.vy; d2.y += d2.vy;
+            d1.x += d1.vx; d2.x += d2.vx;
+            
+            if (d1.y < -3) { d1.y = -3; d1.vy *= -0.7; }
+            if (d2.y < -3) { d2.y = -3; d2.vy *= -0.7; }
+            
+            die1.position.set(d1.x, d1.y, d1.z);
+            die2.position.set(d2.x, d2.y, d2.z);
+            
+            die1.rotation.x += d1.rx; die1.rotation.y += d1.ry;
+            die2.rotation.x += d2.rx; die2.rotation.y += d2.ry;
+            
+            if (elapsed > duration - 600) {
+                d1.rx *= 0.92; d1.ry *= 0.92;
+                d2.rx *= 0.92; d2.ry *= 0.92;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        requestAnimationFrame(animate);
+    };
 </script>
 </body>
 </html>
