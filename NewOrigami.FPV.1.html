@@ -3667,20 +3667,22 @@
                     projectileMesh.userData.isWater = true;
                 } else if (action === 'SHURIKEN') {
                     speed = 35.0;
-                    const starShape = new THREE.Shape();
-                    starShape.moveTo(0, 1.4);
-                    starShape.lineTo(0.25, 0.25);
-                    starShape.lineTo(1.4, 0);
-                    starShape.lineTo(0.25, -0.25);
-                    starShape.lineTo(0, -1.4);
-                    starShape.lineTo(-0.25, -0.25);
-                    starShape.lineTo(-1.4, 0);
-                    starShape.lineTo(-0.25, 0.25);
-                    starShape.lineTo(0, 1.4);
-                    const geo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
-                    geo.center();
+                    if (!this._cachedShurikenGeo) {
+                        const starShape = new THREE.Shape();
+                        starShape.moveTo(0, 1.4);
+                        starShape.lineTo(0.25, 0.25);
+                        starShape.lineTo(1.4, 0);
+                        starShape.lineTo(0.25, -0.25);
+                        starShape.lineTo(0, -1.4);
+                        starShape.lineTo(-0.25, -0.25);
+                        starShape.lineTo(-1.4, 0);
+                        starShape.lineTo(-0.25, 0.25);
+                        starShape.lineTo(0, 1.4);
+                        this._cachedShurikenGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
+                        this._cachedShurikenGeo.center();
+                    }
                     const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.9, roughness: 0.1, emissive: 0x666666});
-                    const starMesh = new THREE.Mesh(geo, starMat);
+                    const starMesh = new THREE.Mesh(this._cachedShurikenGeo, starMat);
                     starMesh.scale.set(0.3, 0.3, 0.3);
                     starMesh.rotation.x = Math.PI / 2;
                     projectileMesh.add(starMesh);
@@ -5509,7 +5511,8 @@
                     // Entity collision (1.1 world-unit hit radius)
                     let bHitEntity = false;
                     if (this.worldGroup) {
-                        for (const child of [...this.worldGroup.children]) {
+                        for (let ci = 0; ci < this.worldGroup.children.length; ci++) {
+                            const child = this.worldGroup.children[ci];
                             if (child.userData?.type === 'enemy' && !child.userData.isDead) {
                                 const dist2D = Math.hypot(b.position.x - child.position.x, b.position.z - child.position.z);
                                 if (dist2D < 1.1) {
