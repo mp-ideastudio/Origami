@@ -1911,7 +1911,28 @@
                     this.hitStopUntil = performance.now() + ms;
                 };
 
-                // --- Floating Damage Numbers via DOM Projection ---
+            this.spawnCrosshair = (parentGrp, x, y, z) => {
+                const crossGeo = new THREE.RingGeometry(0.1, 0.15, 4);
+                const crossMat = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.9, side: THREE.DoubleSide});
+                const cross = new THREE.Mesh(crossGeo, crossMat);
+                cross.position.set(x, y, z + 0.1);
+                cross.rotation.z = Math.PI / 4;
+                parentGrp.add(cross);
+                let s = 1.0;
+                const anim = setInterval(() => {
+                    s += 0.1;
+                    cross.scale.set(s, s, s);
+                    cross.material.opacity -= 0.1;
+                    if (cross.material.opacity <= 0) {
+                        clearInterval(anim);
+                        parentGrp.remove(cross);
+                        cross.geometry.dispose();
+                        cross.material.dispose();
+                    }
+                }, 30);
+            };
+
+            // --- Floating Damage Numbers via DOM Projection ---
                 this.spawnDamageText = (amount, position, isPlayerDamage = false) => {
                     const vector = position.clone();
                     vector.y += 0.8; // Chest/Head height
@@ -3661,6 +3682,7 @@
                     const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.9, roughness: 0.1, emissive: 0x666666});
                     const starMesh = new THREE.Mesh(geo, starMat);
                     starMesh.scale.set(0.3, 0.3, 0.3);
+                    starMesh.rotation.x = Math.PI / 2;
                     projectileMesh.add(starMesh);
                     projectileMesh.userData.isShuriken = true;
                 } else if (spellData.el === 'MISSILE') {
@@ -5418,9 +5440,8 @@
                     // Realistic rolling/spinning dynamically perpendicular to actual travel direction
                     const spd2D = Math.hypot(b.userData.vX, b.userData.vZ);
                     if (spd2D > 0.01) {
-                        if (b.userData.type === 'SHURIKEN') {
-                            const dynamicSpinAxis = new THREE.Vector3(b.userData.vZ / spd2D, 0, -b.userData.vX / spd2D);
-                            b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 2.5); // Spin vertically
+                        if (b.userData.type === 'SHURIKEN' || b.userData.isShuriken) {
+                            if (b.children.length > 0) b.children[0].rotation.z -= 35.0 * delta;
                         } else if (b.userData.isBoulder) {
                             const dynamicSpinAxis = new THREE.Vector3(b.userData.vZ / spd2D, 0, -b.userData.vX / spd2D);
                             b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 0.6);
@@ -5492,13 +5513,35 @@
                             if (child.userData?.type === 'enemy' && !child.userData.isDead) {
                                 const dist2D = Math.hypot(b.position.x - child.position.x, b.position.z - child.position.z);
                                 if (dist2D < 1.1) {
-                                    const ep = b.position.clone();
-                                    this.scene.remove(b);
-                                    this.boulders.splice(bi, 1);
-                                    this.flattenGoblin(child, b.userData.dmg);
-                                    this.spawnRockExplosion(ep);
-                                    bHitEntity = true;
-                                    break;
+                                    if (b.userData.isShuriken || b.userData.type === 'SHURIKEN') {
+                                        this.scene.remove(b);
+                                        this.boulders.splice(bi, 1);
+                                        
+                                        const dmgMod = Math.min(1.0, b.userData.dmg / 50.0);
+                                        const hitX = (Math.random() - 0.5) * (1.5 - dmgMod);
+                                        const hitY = 0.5 + Math.random() * 1.5 + (dmgMod * 0.5);
+                                        const hitZ = (Math.random() - 0.5) * (1.5 - dmgMod);
+                                        
+                                        b.position.set(hitX, hitY, hitZ);
+                                        b.rotation.x += (Math.random() - 0.5);
+                                        b.rotation.z += (Math.random() - 0.5);
+                                        child.add(b);
+                                        
+                                        if (this.spawnCrosshair) this.spawnCrosshair(child, hitX, hitY, hitZ);
+                                        
+                                        this.flattenGoblin(child, b.userData.dmg);
+                                        this.addCameraTrauma(0.1);
+                                        bHitEntity = true;
+                                        break;
+                                    } else {
+                                        const ep = b.position.clone();
+                                        this.scene.remove(b);
+                                        this.boulders.splice(bi, 1);
+                                        this.flattenGoblin(child, b.userData.dmg);
+                                        this.spawnRockExplosion(ep);
+                                        bHitEntity = true;
+                                        break;
+                                    }
                                 }
                             }
                         }

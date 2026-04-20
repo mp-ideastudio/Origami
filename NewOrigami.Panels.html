@@ -1052,7 +1052,7 @@
                     }
                     const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 });
                     starGeo.center();
-                    const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.2, roughness: 0.4, flatShading: true});
+                    const starMat = new THREE.MeshStandardMaterial({color: 0xdddddd, metalness: 0.9, roughness: 0.1, emissive: 0x444444});
                     const star = new THREE.Mesh(starGeo, starMat);
                     const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
                     hole.rotation.x = Math.PI / 2;
