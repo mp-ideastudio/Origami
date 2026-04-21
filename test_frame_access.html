@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <iframe id="child" src="NewOrigami.Panels.html" sandbox="allow-scripts allow-same-origin"></iframe>
+    <script>
+        setTimeout(() => {
+            try {
+                const doc = document.getElementById('child').contentDocument;
+                if(doc) document.body.innerHTML += "<h1>SUCCESS: Accessed child DOM!</h1>";
+                else document.body.innerHTML += "<h1>FAIL: contentDocument is null</h1>";
+            } catch(e) {
+                document.body.innerHTML += "<h1>FAIL: Exception " + e.message + "</h1>";
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

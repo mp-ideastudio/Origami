@@ -93,6 +93,10 @@
       #combat-panels-wrapper.active iframe {
         pointer-events: auto;
       }
+
+      #ai-engine {
+         display: none;
+      }
     </style>
   </head>
   <body class="dark-mode">
@@ -114,6 +118,11 @@
          <iframe id="combat-iframe" title="Combat Panels" src="NewOrigami.Panels.html?mode=combat"></iframe>
       </div>
 
+      <!-- AI Brain (Hidden) -->
+      <div id="ai-engine">
+         <iframe id="ai-iframe" title="AI Brain" src="NewOrigamiAi.html"></iframe>
+      </div>
+
     </div>
 
     <script>
@@ -122,7 +131,8 @@
             const engines = {
                fpv: document.getElementById('fpv-iframe'),
                combat: document.getElementById('combat-iframe'),
-               panels: document.getElementById('panels-iframe')
+               panels: document.getElementById('panels-iframe'),
+               ai: document.getElementById('ai-iframe')
             };
             const combatWrapper = document.getElementById('combat-panels-wrapper');
             let cachedInitEntities = null;
@@ -155,10 +165,17 @@
 
                switch (e.data.type) {
                   case 'MAP_ENGINE_READY':
-                     if (cachedInitEntities) notifyEngine('map', cachedInitEntities);
+                     if (cachedInitEntities) notifyEngine('fpv', cachedInitEntities);
                      break;
 
                   case 'PLAYER_MOVE':
+                     notifyEngine('ai', e.data); // Forward movement to AI brain
+                     break;
+
+                  case 'PLAYER_ATTACK':
+                     notifyEngine('ai', e.data); // Forward attack triggers to AI brain
+                     break;
+
                   case 'COMBAT_ATTACK':
                   case 'SYNC_ENTITIES': 
                      if (e.data.type === 'COMBAT_ATTACK') {
@@ -191,7 +208,14 @@
 
                   case 'INIT_ENTITIES':
                      cachedInitEntities = e.data;
-                     notifyEngine('map', e.data);
+                     notifyEngine('fpv', e.data);
+                     notifyEngine('ai', e.data); // Seed AI brain with dungeon map
+                     break;
+
+                  case 'AI_UPDATES':
+                  case 'AI_DEATH':
+                  case 'COMBAT_UPDATE':
+                     notifyEngine('fpv', e.data); // Route AI logic back down to 3D engine
                      break;
 
                   case 'KEY_DOWN':

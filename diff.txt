@@ -1,0 +1,966 @@
+diff --git a/NewOrigami.FPV.1.html b/NewOrigami.FPV.1.html
+index eb7e7f2..d91a6e4 100644
+--- a/NewOrigami.FPV.1.html
++++ b/NewOrigami.FPV.1.html
+@@ -12,6 +12,8 @@
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/OutlinePass.js"></script>
++    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/BokehShader.js"></script>
++    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/BokehPass.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+@@ -260,202 +262,6 @@
+             background: radial-gradient(ellipse at center, transparent 50%, rgba(200,0,0,0.55) 100%);
+         }
+         #blood-vignette.active { opacity: 1; }
+-        /* Mapview container using identical 10A AAA design */
+-        #mapview-container {
+-            position: absolute;
+-            top: 20px;
+-            left: 20px;
+-            height: clamp(250px, 30vh, 400px);
+-            width: clamp(250px, 30vh, 400px);
+-            min-width: 200px;
+-            min-height: 200px;
+-            border-radius: 18px;
+-            /* Deep Diablo Neumorphic Shell */
+-            background: linear-gradient(145deg, #1a1a1e, #111114);
+-            padding: 6px;
+-            box-shadow: 
+-                inset 2px 2px 6px rgba(0,0,0,0.8),
+-                inset -1px -1px 4px rgba(60,55,45,0.15),
+-                8px 8px 20px rgba(0,0,0,0.7),
+-                -4px -4px 12px rgba(40,35,30,0.12),
+-                0 0 30px rgba(180,120,40,0.06);
+-            z-index: 1000;
+-            border: 1px solid rgba(180,140,60,0.25);
+-            box-sizing: border-box;
+-            cursor: move;
+-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+-            overflow: visible;
+-            -webkit-user-select: none;
+-            user-select: none;
+-        }
+-
+-        #mapview-container:hover {
+-            box-shadow: 
+-                inset 2px 2px 6px rgba(0,0,0,0.8),
+-                inset -1px -1px 4px rgba(60,55,45,0.15),
+-                10px 10px 24px rgba(0,0,0,0.75),
+-                -5px -5px 14px rgba(40,35,30,0.14),
+-                0 0 40px rgba(200,140,40,0.1);
+-            border-color: rgba(200,150,60,0.35);
+-        }
+-
+-        #mapview-container.dragging {
+-            cursor: grabbing !important;
+-            box-shadow: 
+-                inset 2px 2px 6px rgba(0,0,0,0.9),
+-                inset -1px -1px 4px rgba(60,55,45,0.2),
+-                16px 16px 36px rgba(0,0,0,0.8),
+-                -8px -8px 20px rgba(40,35,30,0.15),
+-                0 0 50px rgba(220,160,40,0.12);
+-            z-index: 1005 !important;
+-        }
+-
+-        #mapview-container.resizing {
+-            transition: none;
+-        }
+-
+-        #mapview-container:active {
+-            cursor: grabbing;
+-        }
+-
+-        #mapview-container .canvas-wrapper {
+-            position: relative;
+-            width: 100%;
+-            height: 100%;
+-            overflow: hidden;
+-            border-radius: 12px;
+-            background: #0a0a0c;
+-        }
+-
+-        /* Diablo vignette overlay — dark edges, amber corona */
+-        #mapview-container .canvas-wrapper::after {
+-            content: '';
+-            position: absolute;
+-            top: 0; left: 0; right: 0; bottom: 0;
+-            border-radius: 12px;
+-            background: radial-gradient(ellipse at center,
+-                transparent 50%,
+-                rgba(0,0,0,0.3) 70%,
+-                rgba(0,0,0,0.7) 90%,
+-                rgba(0,0,0,0.95) 100%);
+-            pointer-events: none;
+-            z-index: 2;
+-        }
+-
+-        #mapview-container .canvas-wrapper canvas {
+-            display: block;
+-            width: 100%;
+-            height: 100%;
+-            pointer-events: auto;
+-        }
+-
+-        /* Vertical zoom slider overlay for mapview */
+-        #mapview-container .zoom-slider-container {
+-            position: absolute; top: 50%; left: 10px;
+-            transform: translateY(-50%); 
+-            z-index: 50; pointer-events: auto;
+-        }
+-        #map-zoom-slider {
+-            width: 20px; height: 160px;
+-            writing-mode: vertical-lr; direction: rtl;
+-            background: rgba(20,20,20,0.6);
+-            border-radius: 6px;
+-            outline: none;
+-            cursor: ns-resize;
+-        }
+-        #map-zoom-slider::-webkit-slider-runnable-track {
+-            width: 6px; background: transparent; 
+-        }
+-        #map-zoom-slider::-webkit-slider-thumb {
+-            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+-            background: #00ffcc; border: 1px solid rgba(0,0,0,0.8);
+-            box-shadow: 0 0 5px #00ffcc;
+-        }
+-
+-        /* Map Camera D-Pad Controls */
+-        .map-dpad {
+-            position: absolute;
+-            bottom: -35px;
+-            left: 50%;
+-            transform: translateX(-50%);
+-            width: 70px;
+-            height: 70px;
+-            background: linear-gradient(145deg, #1f1f22, #141416);
+-            border-radius: 50%;
+-            box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.05);
+-            border: 1px solid rgba(255,255,255,0.1);
+-            z-index: 10000;
+-            pointer-events: auto;
+-        }
+-        
+-        .map-dpad button {
+-            position: absolute;
+-            width: 24px; height: 24px;
+-            background: transparent;
+-            border: none; color: #ffffff; font-size: 11px;
+-            cursor: pointer; outline: none;
+-            display: flex; justify-content: center; align-items: center; -webkit-user-select: none; user-select: none;
+-            transition: color 0.1s, transform 0.1s;
+-        }
+-        .map-dpad button:hover { color: #dddddd; }
+-        .map-dpad button:active { color: #aaaaaa; transform: scale(0.9); }
+-        
+-        .map-dpad #dpad-up { top: 2px; left: 50%; transform: translateX(-50%); }
+-        .map-dpad #dpad-down { bottom: 2px; left: 50%; transform: translateX(-50%); }
+-        .map-dpad #dpad-left { left: 2px; top: 50%; transform: translateY(-50%); }
+-        .map-dpad #dpad-right { right: 2px; top: 50%; transform: translateY(-50%); }
+-        
+-        .map-dpad .dpad-center {
+-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+-            width: 22px; height: 22px; font-size: 13px; color: rgba(255,255,255,0.8);
+-            background: rgba(255,255,255,0.05); border-radius: 50%;
+-            border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center;
+-            cursor: pointer; pointer-events: auto;
+-        }
+-        .map-dpad .dpad-center:active { background: rgba(255,255,255,0.1); }
+-
+-        .resize-handle {
+-            position: absolute;
+-            width: 12px;
+-            height: 12px;
+-            background: transparent;
+-            z-index: 51;
+-            pointer-events: auto;
+-        }
+-        .resize-handle.se {
+-            bottom: 0;
+-            right: 0;
+-            cursor: se-resize;
+-        }
+-        .resize-handle.sw {
+-            bottom: 0;
+-            left: 0;
+-            cursor: sw-resize;
+-        }
+-        .resize-handle.ne {
+-            top: 0;
+-            right: 0;
+-            cursor: ne-resize;
+-        }
+-        .resize-handle.nw {
+-            top: 0;
+-            left: 0;
+-            cursor: nw-resize;
+-        }
+-
+-        #mapview-container .view-label {
+-            position: absolute;
+-            top: 6px;
+-            left: 50%;
+-            transform: translateX(-50%);
+-            font-family: 'Roboto', sans-serif;
+-            font-weight: 800;
+-            font-size: 10px;
+-            letter-spacing: 0.1em;
+-            color: rgba(255,255,255,0.3);
+-            pointer-events: none;
+-            z-index: 6;
+-        }
+         
+         /* -------------------------------- */
+     </style>
+@@ -487,27 +293,6 @@
+         <div id="interaction-prompt">Press E to Interact</div>
+         <div id="fps-counter">FPS: --/60</div>
+ 
+-        <!-- EXACT MAPVIEW-CONTAINER FROM BASELINE -->
+-        <div id="mapview-container" class="primary-view">
+-            <div class="view-label">Map View (Drag Here)</div>
+-            <div class="canvas-wrapper">
+-                <canvas id="pip-map-canvas"></canvas>
+-            </div>
+-            
+-            <!-- Map Camera Controls (Protruding outside bottom) -->
+-            <div class="map-dpad">
+-                <button id="dpad-up">&#9650;</button>
+-                <button id="dpad-left">&#9664;</button>
+-                <button class="dpad-center">&#8634;</button>
+-                <button id="dpad-right">&#9654;</button>
+-                <button id="dpad-down">&#9660;</button>
+-            </div>
+-
+-            <div class="resize-handle se"></div>
+-            <div class="resize-handle sw"></div>
+-            <div class="resize-handle ne"></div>
+-            <div class="resize-handle nw"></div>
+-        </div>
+ 
+         <!-- UI Panels Layer (Loaded via Iframe to isolate CSS/JS overhead) -->
+         <iframe id="ui-frame" title="Game UI Interface" class="logic-frame" src="NewOrigami.Panels.html" sandbox="allow-scripts allow-same-origin allow-modals" allowtransparency="true"></iframe>
+@@ -1723,6 +1508,7 @@
+                 // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
+                 // PerspectiveCamera with tight FOV creates the real Diablo 3D depth look
+                 this.topDownCamera = new THREE.PerspectiveCamera(40, 1, 1, 500);
++                this.topDownCamera.up.set(0, 0, -1); // CRITICAL: Stop lookAt(0,-1,0) from collapsing view matrix when pitch is 0
+                 this.topDownCamera.layers.set(0);
+                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
+                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
+@@ -1756,8 +1542,11 @@
+ 
+                 // --- Load 3D Player Avatar for Map View ---
+                 this.playerMixer = null;
+-                const TARGET_PLAYER_MODEL = './assets/models/Player.A.Walking.glb';
+-                const FALLBACK_MODEL = 'https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/Player.A.Walking.glb';
++                const candidateUrls = [
++                    './assets/models/Player.A.Walking.glb',
++                    'https://www.markpeterson.info/Origami/assets/Player.A.Walking.glb',
++                    'https://markpeterson.info/Origami/assets/Player.A.Walking.glb'
++                ].filter(Boolean);
+                 const loader = new THREE.GLTFLoader();
+                 if (loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
+                 
+@@ -1803,9 +1592,15 @@
+                     }
+                 };
+                 
+-                loader.load(TARGET_PLAYER_MODEL, initAvatar, undefined, () => {
+-                    loader.load(FALLBACK_MODEL, initAvatar);
+-                });
++                const tryLoadUrl = (urls) => {
++                    if (!urls.length) return;
++                    const url = urls.shift();
++                    loader.load(url, (gltf) => {
++                        try { initAvatar(gltf); } catch (e) { tryLoadUrl(urls); }
++                    }, undefined, () => tryLoadUrl(urls));
++                };
++                
++                tryLoadUrl([...candidateUrls]);
+ 
+                 this.scene.add(this.playerAvatar);
+ 
+@@ -1869,6 +1664,15 @@
+                 this.composer = new THREE.EffectComposer(this.renderer);
+                 this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+ 
++                // Depth of Field (Bokeh) FPV
++                this.bokehPass = new THREE.BokehPass(this.scene, this.camera, {
++                    focus: 2.5,
++                    aperture: 0.004,
++                    maxblur: 0.015,
++                    width: window.innerWidth, height: window.innerHeight
++                });
++                this.composer.addPass(this.bokehPass);
++
+                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
+                 // Run bloom at half-res to save significant GPU fill-rate on Retina displays
+                 const bloomRes = new THREE.Vector2(Math.floor(window.innerWidth * 0.5), Math.floor(window.innerHeight * 0.5));
+@@ -2167,9 +1971,20 @@
+                 instancedWalls.castShadow = true;
+                 instancedWalls.receiveShadow = true;
+                 instancedWalls.frustumCulled = false; // Prevent clipping when Map view pulls far out
++                instancedWalls.layers.set(2); // EXCLUSIVE to FPV Camera! (PiP uses pipInstancedWalls below)
+                 // Save reference so the raycaster can find it later without filtering the scene graph
+                 this.walls = [instancedWalls]; 
+                 
++                // --- CUSTOM PIP X-RAY MATRIX LOGIC ---
++                // Instead of messy polygon transparency, we assign solid walls to the PiP Map
++                // but use dynamic matrix shifting in animate() to pull them cleanly into the floor
++                const pipInstancedWalls = new THREE.InstancedMesh(wallGeo, wallMaterials, wallCount);
++                pipInstancedWalls.frustumCulled = false;
++                pipInstancedWalls.layers.set(1); // Seen exclusively by Map Top-Down Camera!
++                this.pipInstancedWalls = pipInstancedWalls;
++                this.worldGroup.add(pipInstancedWalls);
++                // -------------------------------------------
++                
+                 // AAA Architectural Trim (Crown Molding / Lip for Wall Tops)
+                 // Removed per user request to maintain clean top-down map aesthetic without brown blockers!
+ 
+@@ -2202,6 +2017,7 @@
+                             dummy.position.set(x * this.gridSize, wallHeight / 2, z * this.gridSize);
+                             dummy.updateMatrix();
+                             instancedWalls.setMatrixAt(wallIdx, dummy.matrix);
++                            pipInstancedWalls.setMatrixAt(wallIdx, dummy.matrix); // Map copy
+                             
+                             wallIdx++;
+                         }
+@@ -2209,6 +2025,7 @@
+                 }
+                 
+                 instancedWalls.instanceMatrix.needsUpdate = true;
++                pipInstancedWalls.instanceMatrix.needsUpdate = true;
+                 this.worldGroup.add(instancedWalls);
+                 
+                 // Ceiling
+@@ -2296,7 +2113,9 @@
+                         
+                         monBase.add(mBaseMesh);
+                         monBase.add(mBorderMesh);
+-                        mesh.add(monBase);
++                        this.worldGroup.add(monBase);
++                        monBase.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
++                        mesh.userData.monBase = monBase;
+ 
+                         // Goblins have bottom origins, place flush with floor
+                         mesh.position.set(sp.x * this.gridSize, 0, sp.z * this.gridSize);
+@@ -2312,8 +2131,11 @@
+                     this.worldGroup.add(mesh);
+                 };
+ 
+-                // Load replacement monster model directly from user's remote GitHub repository
+-                const TARGET_ENEMY_MODEL = './assets/models/YakuzaGoblinGhost.2.glb';
++                const targetEnemyUrls = [
++                    './assets/models/YakuzaGoblinGhost.2.glb',
++                    'https://www.markpeterson.info/Origami/assets/YakuzaGoblinGhost.2.glb',
++                    'https://markpeterson.info/Origami/assets/YakuzaGoblinGhost.2.glb'
++                ].filter(Boolean);
+                 
+                 const gltfLoader = new THREE.GLTFLoader();
+                 gltfLoader.setCrossOrigin?.('anonymous');
+@@ -2332,19 +2154,32 @@
+ 
+                 // Preload Flanking Imps
+                 this.impCache = [];
+-                for (let i = 0; i < 2; i++) {
+-                    gltfLoader.load('./assets/models/yakuza.imp.animated.glb', (gltf) => {
++                const impUrls = [
++                    './assets/models/yakuza.imp.animated.glb',
++                    'https://www.markpeterson.info/Origami/assets/yakuza.imp.animated.glb',
++                    'https://markpeterson.info/Origami/assets/yakuza.imp.animated.glb'
++                ].filter(Boolean);
++
++                const loadImp = (idx, urls) => {
++                    if (!urls.length) return;
++                    const url = urls.shift();
++                    gltfLoader.load(url, (gltf) => {
+                         this.impCache.push(gltf);
+-                    });
++                    }, undefined, () => loadImp(idx, urls));
++                };
++                for (let i = 0; i < 2; i++) {
++                    loadImp(i, [...impUrls]);
+                 }
+ 
+                 this.mobSpawns.forEach((sp, idx) => {
+                     // Preserve NPC/gambler type - only default to 'monster' if not explicitly set
+                     if (!sp.type || sp.type === 'goblin') sp.type = 'monster';
+                     
+-                    gltfLoader.load(TARGET_ENEMY_MODEL, (gltf) => {
+-                        // We use the raw scene directly since each spawn gets its own 'load' call (cached by browser)
+-                        const goblin = gltf.scene;
++                    const tryLoadGoblin = (urls) => {
++                        if (!urls.length) return;
++                        const url = urls.shift();
++                        gltfLoader.load(url, (gltf) => {
++                            const goblin = gltf.scene;
+                         const entityWrapper = new THREE.Group();
+                         entityWrapper.add(goblin);
+                         
+@@ -2484,69 +2319,11 @@
+                         
+ 
+                         buildEntity(sp, true, entityWrapper);
+-                    }, undefined, (primaryErr) => {
+-                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying CDN...`, primaryErr?.message);
+-                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+-                            const goblin = fallbackGltf.scene;
+-                            const entityWrapper = new THREE.Group();
+-                            entityWrapper.add(goblin);
+-                            
+-                            // Apply full animation pipeline (same as primary load)
+-                            if (fallbackGltf.animations && fallbackGltf.animations.length > 0) {
+-                                const mixer = new THREE.AnimationMixer(goblin);
+-                                const actions = fallbackGltf.animations.map(a => mixer.clipAction(a));
+-                                const seqIndices = [4, 0, 3, 2];
+-                                let currentSeqStep = 0;
+-                                const playNextAnim = () => {
+-                                    mixer.stopAllAction();
+-                                    const i = seqIndices[currentSeqStep] % actions.length;
+-                                    const act = actions[i];
+-                                    if (act) { act.reset(); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.play(); }
+-                                    currentSeqStep = (currentSeqStep + 1) % seqIndices.length;
+-                                };
+-                                mixer.addEventListener('finished', playNextAnim);
+-                                playNextAnim();
+-                                this.mixers.push(mixer);
+-                                entityWrapper.userData.mixer = mixer;
+-                                entityWrapper.userData.clips = fallbackGltf.animations;
+-                                entityWrapper.userData.actions = actions;
+-                                const slashClip = fallbackGltf.animations.find(a => a.name.toLowerCase().includes('slash'));
+-                                const attackClip = slashClip || fallbackGltf.animations.find(a => a.name.toLowerCase().match(/attack|strike|swing/));
+-                                entityWrapper.userData.attackAction = attackClip ? mixer.clipAction(attackClip) : actions[1];
+-                            }
+-                            
+-                            // Apply hologram shader (same as primary load)
+-                            goblin.traverse((child) => {
+-                                if (child.isMesh) {
+-                                    const nativeMat = child.material;
+-                                    const applyHoloLayer = (mat) => {
+-                                        mat.transparent = true; mat.opacity = 0.55;
+-                                        mat.blending = THREE.NormalBlending; mat.side = THREE.FrontSide; mat.depthWrite = false;
+-                                        if (mat.emissive !== undefined) { mat.emissive.set(Engine.fxConfig.emissiveColor || '#00ffcc'); mat.emissiveIntensity = Engine.fxConfig.emissiveIntensity; }
+-                                    };
+-                                    if (Array.isArray(nativeMat)) nativeMat.forEach(applyHoloLayer); else applyHoloLayer(nativeMat);
+-                                    child.renderOrder = 10;
+-                                }
+-                            });
+-                            
+-                            const frontLight = new THREE.PointLight(0xffffff, 4.0, this.gridSize * 1.5);
+-                            frontLight.position.set(0, 2.5, 1.5);
+-                            goblin.add(frontLight);
+-                            
+-                            // Scale to 1.53 world units before floor-align (reduced by 15%)
+-                            this.scaleModelToHeight(goblin, 1.53);
+-                            goblin.updateMatrixWorld(true);
+-                            const bbox = new THREE.Box3().setFromObject(goblin);
+-                            if (bbox.min.y !== 0) goblin.position.y -= bbox.min.y;
+-                            goblin.rotation.y = -Math.PI / 2;
+-                            
+-                            buildEntity(sp, true, entityWrapper);
+-                        }, undefined, (fallbackErr) => {
+-                            console.warn('CDN also failed. Using BoxGeometry placeholder.', fallbackErr?.message);
+-                            const mesh = new THREE.Mesh(mobGeo, mats.monster);
+-                            buildEntity(sp, true, mesh);
++                        }, undefined, (e) => {
++                            tryLoadGoblin(urls);
+                         });
+-                    });
++                    };
++                    tryLoadGoblin([...targetEnemyUrls]);
+                 });
+ 
+                 this.scene.add(this.worldGroup);
+@@ -3559,6 +3336,42 @@
+                 window.addEventListener('message', (e) => {
+                     if (!e.data) return;
+                     
++                    if (e.data.type === 'PIP_CANVAS_TRANSFER') {
++                        const offscreen = e.data.canvas;
++                        if (offscreen) {
++                            this.pip2dCtx = offscreen.getContext('2d', { alpha: false });
++                            this.pipCanvasEl = offscreen; // acts as truthy flag
++                        }
++                        return;
++                    }
++                    if (e.data.type === 'PIP_LAYOUT') {
++                        this._remotePipLayout = { left: e.data.left, top: e.data.top, width: e.data.width, height: e.data.height };
++                        return;
++                    }
++                    if (e.data.type === 'PIP_INTERACTION') {
++                        // Remote interface rotation/panning drivers
++                        if (e.data.action === 'ROT_MOVE') {
++                            this._cameraOrbitYaw = this._cameraOrbitYaw || 0;
++                            this._cameraOrbitPitch = (this._cameraOrbitPitch !== undefined) ? this._cameraOrbitPitch : 65;
++                            this._cameraOrbitYaw -= e.data.dx * 0.04; // Rotate around target (faster!)
++                            this._cameraOrbitPitch -= e.data.dy * 1.5; // Tilt up/down
++                            this._cameraOrbitPitch = Math.max(0, Math.min(85, this._cameraOrbitPitch)); // Clamp pitch
++                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `🗺️ PiP [Pitch: ${this._cameraOrbitPitch.toFixed(1)}, Yaw: ${this._cameraOrbitYaw.toFixed(2)}]` }, '*');
++                        } else if (e.data.action === 'PAN_MOVE') {
++                            // Standard pan implementation if needed
++                        } else if (e.data.action === 'PAN_RESET') {
++                            this._cameraOrbitYaw = 0;
++                            this._cameraOrbitPitch = 65;
++                        } else if (e.data.action === 'ZOOM') {
++                            this._pipHeight = Math.max(20, Math.min(200, e.data.value || 80));
++                        } else if (e.data.action === 'MODE_SWAP') {
++                            this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
++                            const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
++                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `🗺️ ${label}` }, '*');
++                        }
++                        return;
++                    }
++
+                     if (e.data.type === 'FPV_ACTION') {
+                         const action = e.data.action.toUpperCase();
+                         if (action === 'BET EVEN' || action === 'BET ODD') {
+@@ -3909,229 +3722,12 @@
+ 
+             // ─── Resizable PiP: wire up canvas contexts + drag logic ───
+             initPipCanvases() {
+-                const pipMap = document.getElementById('pip-map-canvas');
+-                if (pipMap) { 
+-                    this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
+-                    this.pipCanvasEl = pipMap;
+-                }
+-
++                // PiP drawing context is now managed via PIP_CANVAS_TRANSFER via master router
+                 // Ensure ortho target state exists
+                 if (!this._pipOrthoTarget) {
+                     this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
+                 }
+-                
+-                if (!this._pipZoomScale) this._pipZoomScale = 1.0; // Normalized baseline scale
+-
+-                // Inject 10a's window management logic
+-                const pip = document.getElementById("mapview-container");
+-                if (!pip) return;
+-
+-                const MIN_W = 200;
+-                const MIN_H = 200;
+-
+-                // Dragging the container & Map Rotation
+-                let dragging = false;
+-                let mapRotating = false;
+-                let mapPanning = false;
+-                let dragStart = { x: 0, y: 0, left: 0, top: 0 };
+-                let rotStart = { x: 0, y: 0 };
+-                let panStart = { x: 0, y: 0 };
+-                let clickStart = { x: 0, y: 0 };
+-                
+-                pip.addEventListener("contextmenu", e => { if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); });
+-                
+-                // Single-Click cleanly swaps modes (ignoring drags) using reliable MouseUp distance calculation
+-                let _clickOriginatedInControls = false;
+-                
+-                pip.addEventListener("mouseup", (e) => {
+-                     if (e.button !== 0) return; // Only process standard left clicks for camera swaps
+-                     
+-                     const dist = Math.abs(e.clientX - clickStart.x) + Math.abs(e.clientY - clickStart.y);
+-                     if (dist > 5) return; // It was a drag, ignore
+-                     
+-                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+-                         this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
+-                         const label = this.cameraMode === 'fpv' ? 'FPV Mode' : 'Top-Down Mode';
+-                         window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `\uD83D\uDDFA ${label}` }, '*');
+-                     }
+-                });
+-                
+-                // Double-click instantly snaps panning back to player
+-                pip.addEventListener("dblclick", (e) => {
+-                     e.stopPropagation();
+-                     if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+-                         this._pipPan = { x: 0, z: 0 };
+-                     }
+-                });
+-                
+-                pip.addEventListener("mousedown", (e) => {
+-                    clickStart = { x: e.clientX, y: e.clientY };
+-                    
+-                    // Let Chrome initialize Drag state
+-                    if (e.target.closest(".resize-handle")) return; 
+-                    if (e.target.closest(".map-dpad")) return; // Ignore camera controls so buttons act natively
+-                    
+-                    e.stopPropagation(); // securely lock FPV camera from swinging while map clicking
+-                    
+-                    if (e.button === 2) { // Right Click = Orbit map
+-                         e.preventDefault();
+-                         mapRotating = true;
+-                         rotStart.x = e.clientX;
+-                         rotStart.y = e.clientY;
+-                         document.addEventListener("mousemove", onRotMove);
+-                         document.addEventListener("mouseup", onRotEnd, { once: true });
+-                         return;
+-                    }
+-                    if (e.target.closest(".canvas-wrapper")) {
+-                        // Left or Middle clicking the actual canvas pans the map
+-                        if (e.button === 0 || e.button === 1) { 
+-                             e.preventDefault();
+-                             mapPanning = true;
+-                             panStart.x = e.clientX;
+-                             panStart.y = e.clientY;
+-                             document.addEventListener("mousemove", onPanMove);
+-                             document.addEventListener("mouseup", onPanEnd, { once: true });
+-                             return;
+-                        }
+-                    } else if (e.target.closest(".view-label")) {
+-                        // Clicking the Map View header moves the PiP container around the viewport screen
+-                        if (e.button === 0) {
+-                            const rect = pip.getBoundingClientRect();
+-                            dragging = true;
+-                            pip.style.willChange = "transform, left, top, width, height";
+-                            pip.style.transition = "none";
+-                            pip.classList.add("dragging");
+-                            dragStart.x = e.clientX;
+-                            dragStart.y = e.clientY;
+-                            dragStart.left = rect.left;
+-                            dragStart.top = rect.top;
+-                            document.addEventListener("mousemove", onDragMove);
+-                            document.addEventListener("mouseup", onDragEnd, { once: true });
+-                            return;
+-                        }
+-                    }
+-                });
+-                
+-                function clampPiPIntoViewport() {
+-                    const rect = pip.getBoundingClientRect();
+-                    const vw = window.innerWidth, vh = window.innerHeight;
+-                    let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
+-                    let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
+-                    pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
+-                }
+-
+-                function loadPiPState() {
+-                    if (window.innerWidth <= 768) return; // mobile uses sticky full-width
+-                    try {
+-                        const raw = localStorage.getItem("mapPiPState.v1");
+-                        if (!raw) return;
+-                        const s = JSON.parse(raw);
+-                        if (!s || typeof s !== "object") return;
+-                        pip.style.position = "absolute";
+-                        if (typeof s.left === "number") { pip.style.left = s.left + "px"; pip.style.right = "auto"; }
+-                        if (typeof s.top === "number") pip.style.top = s.top + "px";
+-                        if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
+-                        if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
+-                    } catch {}
+-                }
+-
+-                function savePiPState() {
+-                    if (window.innerWidth <= 768) return;
+-                    const rect = pip.getBoundingClientRect();
+-                    try {
+-                        localStorage.setItem("mapPiPState.v1", JSON.stringify({
+-                            left: rect.left, top: rect.top, width: rect.width, height: rect.height
+-                        }));
+-                    } catch {}
+-                }
+-
+-                const onDragMove = (e) => {
+-                    if (!dragging) return;
+-                    pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
+-                    pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
+-                    pip.style.right = "auto";
+-                };
+-                const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
+-                
+-                const onRotMove = (e) => {
+-                    if (!mapRotating) return;
+-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+-                    
+-                    const dx = e.clientX - rotStart.x;
+-                    const dy = e.clientY - rotStart.y;
+-                    rotStart.x = e.clientX;
+-                    rotStart.y = e.clientY;
+-                    
+-                    this._pipRot.theta -= dx * 0.01;
+-                    this._pipRot.phi -= dy * 0.01;
+-                    
+-                    // Clamp pitch (phi) to prevent going under the map or over exactly top-down
+-                    this._pipRot.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, this._pipRot.phi));
+-                };
+-                
+-                const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
+-                
+-                const onPanMove = (e) => {
+-                    if (!mapPanning) return;
+-                    if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
+-                    if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+-                    
+-                    const dx = e.clientX - panStart.x;
+-                    const dy = e.clientY - panStart.y;
+-                    panStart.x = e.clientX;
+-                    panStart.y = e.clientY;
+-                    
+-                    // Pan relative to camera look angle
+-                    const pX = dx * 0.03 * (this._pipRot.radius / 15);
+-                    const pZ = dy * 0.03 * (this._pipRot.radius / 15);
+-                    
+-                    this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
+-                    this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
+-                };
+-                
+-                const onPanEnd = () => { mapPanning = false; document.removeEventListener("mousemove", onPanMove); };
+-
+-                // Resizing logic
+-                let resizing = false, currentHandle = "";
+-                let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
+-                
+-                pip.querySelectorAll(".resize-handle").forEach((handle) => {
+-                    handle.addEventListener("mousedown", (e) => {
+-                        e.stopPropagation(); // prevent FPV camera spin over handles
+-                        if (e.button !== 0) return;
+-                        e.stopPropagation();
+-                        resizing = true;
+-                        currentHandle = handle.className.split(" ")[1];
+-                        const rect = pip.getBoundingClientRect();
+-                        rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
+-                        pip.classList.add("resizing");
+-                        pip.style.transition = "none";
+-                        pip.style.right = "auto"; // Fix to left/top
+-                        pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
+-                        document.addEventListener("mousemove", onResizeMove);
+-                        document.addEventListener("mouseup", onResizeEnd, { once: true });
+-                    });
+-                });
+-                const onResizeMove = (e) => {
+-                    if (!resizing) return;
+-                    const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
+-                    let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
+-                    if (currentHandle.includes("e")) nw += dx;
+-                    if (currentHandle.includes("s")) nh += dy;
+-                    if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
+-                    if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
+-                    
+-                    if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
+-                    if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
+-                    
+-                    pip.style.width = nw + "px"; pip.style.height = nh + "px";
+-                    pip.style.left = nl + "px"; pip.style.top = nt + "px";
+-                };
+-                const onResizeEnd = () => { resizing = false; pip.classList.remove("resizing"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onResizeMove); };
+-                
+-                // Initialize state
+-                loadPiPState();
+-                clampPiPIntoViewport();
++                if (!this._pipZoomScale) this._pipZoomScale = 1.0;
+             },
+ 
+             postToAI(msg) {
+@@ -4961,16 +4557,14 @@
+                 // --- FOG OF WAR REMOVED ---
+ 
+                 // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
+-                const container = document.getElementById('mapview-container');
+-                const canvasWrapper = container ? container.querySelector('.canvas-wrapper') : null;
+-                const wrapperRect = canvasWrapper ? canvasWrapper.getBoundingClientRect() : null;
++                const layout = this._remotePipLayout || { left: winW - 220, top: 20, width: 200, height: 200 };
+                 
+-                // Track dynamic PiP dimensions
+-                const pipW = wrapperRect ? Math.round(wrapperRect.width) : 200;
+-                const pipH = wrapperRect ? Math.round(wrapperRect.height) : 200;
+-                const pipLeft = wrapperRect ? Math.round(wrapperRect.left) : winW - pipW - 20;
+-                const pipBottom = wrapperRect ? Math.round(winH - wrapperRect.bottom) : winH - pipH - 20;
+-                const webglTop = wrapperRect ? Math.round(wrapperRect.top) : 20;
++                // Track dynamic PiP dimensions natively synced from UI layer
++                const pipW = layout.width;
++                const pipH = layout.height;
++                const pipLeft = layout.left;
++                const webglTop = layout.top;
++                const pipBottom = Math.max(0, winH - webglTop - pipH); // Flip Y for WebGL coordinates
+                 
+                 // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
+                 const pr = this.renderer.getPixelRatio();
+@@ -4980,9 +4574,7 @@
+                 if (this.pipCanvasEl && (this.pipCanvasEl.width !== hdW || this.pipCanvasEl.height !== hdH)) {
+                     this.pipCanvasEl.width = hdW;
+                     this.pipCanvasEl.height = hdH;
+-                    // Reset CSS style size so physical pixels scale down cleanly to logical pixels
+-                    this.pipCanvasEl.style.width = pipW + 'px';
+-                    this.pipCanvasEl.style.height = pipH + 'px';
++                    // Note: OffscreenCanvas does not have a .style property. The HTML canvas resizes via Panels DOM.
+                 }
+ 
+                 // ── Update ortho zoom ──
+@@ -5036,7 +4628,7 @@
+ 
+                     // Smooth tracking & interpolation
+                     const camTrackSpeed = Math.min(1, delta * 2.5);
+-                    if (this._pipOrthoTarget.cx === undefined) {
++                    if (this._pipFOV === undefined) {
+                         this._pipOrthoTarget.cx = lookAtX;
+                         this._pipOrthoTarget.cz = lookAtZ;
+                         this._pipFOV = targetFOV;
+@@ -5056,7 +4648,7 @@
+                     this.topDownCamera.updateProjectionMatrix();
+ 
+                     // Integrate user's manual orbital controls (Pitch / Yaw)
+-                    this._cameraOrbitPitch = this._cameraOrbitPitch || 0; // degrees, 0=straight down
++                    this._cameraOrbitPitch = (this._cameraOrbitPitch !== undefined) ? this._cameraOrbitPitch : 65; // degrees, 65=isometric down
+                     this._cameraOrbitYaw = this._cameraOrbitYaw || 0; // radians
+                     
+                     const camRadius = this._pipHeight || 80;
+@@ -5072,7 +4664,77 @@
+                     this.topDownCamera.position.set(camPosX, camPosY, camPosZ);
+                     this.topDownCamera.lookAt(this._pipOrthoTarget.cx, 0, this._pipOrthoTarget.cz);
+ 
+-
++                    // --- PIP DYNAMIC CUTAWAY (SLIDING WALLS) ---
++                    if (this.pipInstancedWalls) {
++                        // Collect trackable target positions (Avatar + Active Monsters)
++                        const camPos = this.topDownCamera.position;
++                        const trackPoints = [
++                            new THREE.Vector3(this.player.x * this.gridSize, 2, this.player.z * this.gridSize)
++                        ];
++                        
++                        this.worldGroup.children.forEach(child => {
++                            if (child.userData && child.userData.type === 'enemy' && child.userData.hp > 0) {
++                                trackPoints.push(new THREE.Vector3(child.position.x, 2, child.position.z));
++                            }
++                        });
++                        
++                        const tempCenter = new THREE.Vector3();
++                        const closestPt = new THREE.Vector3();
++                        const dummyMatrix = new THREE.Matrix4();
++                        const dummyPos = new THREE.Vector3();
++                        const dummyQuat = new THREE.Quaternion();
++                        const dummyScale = new THREE.Vector3();
++                        
++                        const wallHeight = this.gridSize * 1.53;
++                        const basePosY = wallHeight / 2;
++                        
++                        for (let i = 0; i < this.wallBoxes.length; i++) {
++                            const box = this.wallBoxes[i];
++                            box.getCenter(tempCenter);
++                            
++                            let targetPosY = basePosY; // Default solid upright wall
++                            
++                            for (const pt of trackPoints) {
++                                const line = new THREE.Line3(camPos, pt);
++                                line.closestPointToPoint(tempCenter, true, closestPt);
++                                const dist = closestPt.distanceTo(tempCenter);
++                                
++                                // Direct hit (wall is squarely blocking the entity) -> Drop wall deep into floor
++                                if (dist < this.gridSize * 0.9) {
++                                    targetPosY = -wallHeight; // Fully hidden
++                                } 
++                                // Peripheral obstruction -> Drop wall halfway like a half-step block
++                                else if (dist < this.gridSize * 2.0 && targetPosY > -wallHeight + 0.1) {
++                                    targetPosY = basePosY - (wallHeight * 0.7); // 70% lowered
++                                }
++                            }
++                            
++                            // Load existing matrix state directly from the GPU buffer equivalent
++                            this.pipInstancedWalls.getMatrixAt(i, dummyMatrix);
++                            dummyMatrix.decompose(dummyPos, dummyQuat, dummyScale);
++                            
++                            // Exponential smooth-slide logic 
++                            const diff = targetPosY - dummyPos.y;
++                            if (Math.abs(diff) > 0.05) {
++                                dummyPos.y += diff * Math.min(1.0, delta * 12.0);
++                                dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
++                                this.pipInstancedWalls.setMatrixAt(i, dummyMatrix);
++                            } else if (dummyPos.y !== targetPosY) {
++                                // Clamp to prevent microscopic jittering once it's close enough
++                                dummyPos.y = targetPosY;
++                                dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
++                                this.pipInstancedWalls.setMatrixAt(i, dummyMatrix);
++                            }
++                        }
++                        this.pipInstancedWalls.instanceMatrix.needsUpdate = true;
++                    }
++                    // -------------------------------------------                    // Sync mob base tokens
++                    this.worldGroup.children.forEach(child => {
++                        if (child.userData && child.userData.monBase) {
++                            child.userData.monBase.position.x = child.position.x;
++                            child.userData.monBase.position.z = child.position.z;
++                        }
++                    });
+ 
+                     // Sync player avatar token
+                     if (this.playerAvatar) {
+@@ -5105,17 +4767,17 @@
+                     this.renderer.setViewport(0, 0, winW, winH);
+                     this.renderer.setScissor(0, 0, winW, winH);
+                     this.renderer.setScissorTest(true);
+-                    // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
+-                    this.scene.fog.color.setHex(0x06020f);
+-                    this.scene.fog.density = 0.02;
+-                    // Lower ambient slightly from 1.6 to 0.7 so directional shadows actually render black, but keep visibility high
+-                    if (this.ambientLight) this.ambientLight.intensity = 0.7;
++                    // Match luminosities exactly to FPV while removing thick depth-fog
++                    this.scene.fog.color.setHex(0x08041a);
++                    this.scene.fog.density = 0.002;
++                    if (this.ambientLight) this.ambientLight.intensity = 0.5;
+                     this.renderer.setClearColor(0x06020f, 1);
+-                    if (this.headlamp) this.headlamp.visible = false;
+-                    this.renderer.render(this.scene, this.topDownCamera);
+                     if (this.headlamp) this.headlamp.visible = true;
+-                    if (this.ambientLight) this.ambientLight.intensity = 0.5;
++                    
++                    this.renderer.render(this.scene, this.topDownCamera);
+ 
++                    const pr = this.renderer.getPixelRatio();
++                    
+                     // [2] Small FPV view rendered into mapview-container space
+                     this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+                     this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
+@@ -5132,7 +4794,11 @@
+                     // ── FPV MAIN + TOP-DOWN PiP (default) ────────────────────────────
+                     // [1] FPV main render with scissor/viewport
+                     this.renderer.setClearColor(0x06020f, 1);
++                    this.scene.fog.color.setHex(0x08041a);
+                     this.scene.fog.density = 0.055;
++                    if (this.ambientLight) this.ambientLight.intensity = 0.5;
++                    if (this.headlamp) this.headlamp.visible = true;
++
+                     if (this.layoutData && this.layoutData.fpv) {
+                         const fRect = this.layoutData.fpv;
+                         this.renderer.setViewport(fRect.left, fRect.bottom, fRect.width, fRect.height);
+@@ -5149,6 +4815,8 @@
+                         this.renderer.render(this.scene, this.camera);
+                     }
+ 
++                    const pr = this.renderer.getPixelRatio();
++
+                     // [2] Top-down map PiP into mapview-container space
+                     if (this.topDownCamera) {
+                         this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+@@ -5158,15 +4826,14 @@
+                         // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
+                         this.renderer.clearDepth();
+                         
+-                        // AAA RPG Vignette
+-                        this.scene.fog.color.setHex(0x000000);
+-                        this.scene.fog.density = 0.02;
+-                        if (this.ambientLight) this.ambientLight.intensity = 0.7; // Lowered from 1.6 to allow solid shadows to express
+-                        this.renderer.setClearColor(0x000000, 1); // True pitch black void
+-                        if (this.headlamp) this.headlamp.visible = false;
+-                        this.renderer.render(this.scene, this.topDownCamera);
++                        // Match luminosities exact to FPV while removing thick fog
++                        this.scene.fog.color.setHex(0x08041a);
++                        this.scene.fog.density = 0.002;
++                        if (this.ambientLight) this.ambientLight.intensity = 0.5;
++                        this.renderer.setClearColor(0x06020f, 1);
+                         if (this.headlamp) this.headlamp.visible = true;
+-                        if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
++                        
++                        this.renderer.render(this.scene, this.topDownCamera);
+                         
+                         // Reset native FPV fog density to active default
+                         this.scene.fog.color.setHex(0x08041a);
+@@ -5182,6 +4849,12 @@
+                     
+                     const scW = Math.max(1, Math.round(pipW * pr));
+                     const scH = Math.max(1, Math.round(pipH * pr));
++                    
++                    if (this.pipCanvasEl.width !== scW || this.pipCanvasEl.height !== scH) {
++                        this.pipCanvasEl.width = scW;
++                        this.pipCanvasEl.height = scH;
++                    }
++                    
+                     ctx.clearRect(0, 0, scW, scH);
+                     
+                     // The srcRect offsets MUST be multiplied by pixel ratio to capture the exact HD rectangle from the WebGL physical buffer

@@ -1,23 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Origami - Core Engine</title>
-    <!-- State of the art WebGL Rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+
     <!-- Post-Processing Pipeline -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/OutlinePass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/RGBShiftShader.js"></script>
+
+
+
+
+
+
+
+
     <!-- Combat Engine: Loaded AFTER Three.js + DOM so constructor can find #fct-container -->
-    <script src="js/fpv/Combat.js" defer></script>
+
 
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
@@ -193,10 +186,10 @@
             z-index: 5001;
         }
 
-        .combat-text.hit { color: #ffffff; font-size: 48px; font-weight: 900; letter-spacing: 2px;}
-        .combat-text.crit { color: #ffcc00; font-size: 72px; text-shadow: 0 0 15px rgba(255, 204, 0, 0.8), 3px 3px 0 #000; font-weight: 900; letter-spacing: 2px;}
-        .combat-text.miss { color: #aaaaaa; font-size: 36px; font-weight: 900; letter-spacing: 2px;}
-        .combat-text.damage { color: #ff3333; font-size: 64px; text-shadow: 0 0 15px rgba(255, 51, 51, 0.8), 3px 3px 0 #000; font-weight: 900; letter-spacing: 2px;}
+        .combat-text.hit { color: #ffffff; font-size: 36px; }
+        .combat-text.crit { color: #ffcc00; font-size: 54px; text-shadow: 0 0 10px rgba(255, 204, 0, 0.8), 2px 2px 0 #000; }
+        .combat-text.miss { color: #aaaaaa; font-size: 28px; }
+        .combat-text.damage { color: #ff3333; font-size: 42px; text-shadow: 0 0 10px rgba(255, 51, 51, 0.8), 2px 2px 0 #000; }
 
         @keyframes fctFloatUp {
             0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
@@ -223,21 +216,20 @@
         .combat-dmg-text {
             position: absolute;
             z-index: 1000;
-            font-size: clamp(34px, 7vmin, 58px);
+            font-size: clamp(24px, 5vmin, 44px);
             font-weight: 900;
-            font-family: 'Impact', 'Courier New', Courier, monospace;
-            text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 8px 25px rgba(0,0,0,0.9);
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 15px rgba(0,0,0,0.8);
             pointer-events: none;
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
             animation: dmgFloat 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @keyframes dmgFloat {
-            0% { transform: translate(-50%, -20%) scale(0.1) rotate(-10deg); opacity: 0; }
-            15% { transform: translate(-50%, -80%) scale(1.4) rotate(5deg); opacity: 1; }
-            30% { transform: translate(-50%, -50%) scale(1.0) rotate(0deg); opacity: 1; }
-            70% { transform: translate(-50%, -70%) scale(1.0); opacity: 1; }
-            100% { transform: translate(-50%, -120%) scale(1.2); opacity: 0; }
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            10% { transform: translate(-50%, -70%) scale(1.2); opacity: 1; }
+            20% { transform: translate(-50%, -50%) scale(1.0); }
+            80% { transform: translate(-50%, -90%); opacity: 1; }
         }
 
         /* ─── Goblin Slash Hit Overlay ─── */
@@ -466,7 +458,7 @@
         <iframe id="ai-frame" title="Game AI Brain" class="logic-frame" src="NewOrigamiAi.html" sandbox="allow-scripts allow-same-origin"></iframe>
     </div>
 
-    <script>
+
         /**
          * CORE GAME ENGINE (Three.js integration + Application Coordinator)
          */
@@ -968,9 +960,6 @@
             SWAY_AMP: 0.015, // Horizontal sway width
             
             keys: { w: false, a: false, s: false, d: false },
-            combatState: 'idle', // 'idle', 'player_turn', 'monster_turn'
-            targetTile: null, // grid coordinates {x, z} when tweening
-            playerTweenTimer: 0,
             isMoving: false,
             lastGridX: -1,
             lastGridZ: -1,
@@ -1069,160 +1058,49 @@
             },
             
             updateCombatAI(delta) {
-                // Player Tweening during combat moves
-                if (this.combatState === 'player_moving' && this.targetTile) {
-                    const dx = this.targetTile.x - this.player.x;
-                    const dz = this.targetTile.z - this.player.z;
-                    const dist = Math.hypot(dx, dz);
-                    
-                    if (dist < 0.1) {
-                        this.player.x = this.targetTile.x;
-                        this.player.z = this.targetTile.z;
-                        this.targetTile = null;
-                        this.combatState = 'monster_turn';
-                        this.processMonsterTurn();
-                    } else {
-                        this.player.x += dx * 10 * delta;
-                        this.player.z += dz * 10 * delta;
+                // If the player has fully engaged a target (isHostile)
+                if (this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.type === 'enemy') {
+                    if (this.activeTarget.userData.isHostile && !this.activeTarget.userData.isDead) {
+                        const now = performance.now();
+                        if (!this.activeTarget.userData.lastAIStrike) this.activeTarget.userData.lastAIStrike = now;
                         
-                        this.player.isWalking = true;
-                        this.bobTimer += delta * 12.0;
-                        this.bobHeight = Math.sin(this.bobTimer) * this.BOB_AMP;
-                        this.bobSway = Math.sin(this.bobTimer * 0.5) * this.SWAY_AMP;
-                        
-                        this.camera.position.set(this.player.x + this.bobSway, this.player.y + this.bobHeight, this.player.z);
-                    }
-                }
-
-                // Monster Tweening
-                this.worldGroup.children.forEach(child => {
-                    if (child.userData && child.userData.targetMove) {
-                        const dx = child.userData.targetMove.x - child.position.x;
-                        const dz = child.userData.targetMove.z - child.position.z;
-                        if (Math.hypot(dx, dz) < 0.1) {
-                            child.position.x = child.userData.targetMove.x;
-                            child.position.z = child.userData.targetMove.z;
-                            child.userData.targetMove = null;
-                            if (child.userData.onMoveComplete) {
-                                child.userData.onMoveComplete();
-                                child.userData.onMoveComplete = null;
-                            }
-                        } else {
-                            child.position.x += dx * 5 * delta;
-                            child.position.z += dz * 5 * delta;
-                            // Re-aim monster to look at player while walking
-                            child.lookAt(this.player.x, child.position.y, this.player.z);
-                        }
-                    }
-                });
-            },
-            
-            executeCombatMove(dir) {
-                if (this.combatState !== 'player_turn' || this.targetTile !== null) return;
-                
-                const moveDist = this.gridSize * dir;
-                
-                // Discretize player rotation to nearest 90 degrees so we move in strict grid tiles
-                const snapRot = Math.round(this.player.rot / (Math.PI / 2)) * (Math.PI / 2);
-                
-                let tx = this.player.x - Math.sin(snapRot) * moveDist;
-                let tz = this.player.z - Math.cos(snapRot) * moveDist;
-                
-                let gridX = Math.round(tx / this.gridSize);
-                let gridZ = Math.round(tz / this.gridSize);
-                
-                if (this.isValidGridSpace(gridX, gridZ)) {
-                    this.targetTile = { x: gridX * this.gridSize, z: gridZ * this.gridSize };
-                    this.combatState = 'player_moving';
-                }
-            },
-            
-            async processMonsterTurn() {
-                const hostiles = [];
-                this.worldGroup.children.forEach(child => {
-                    if (child.userData && child.userData.type === 'enemy' && child.userData.isHostile && !child.userData.isDead) {
-                        hostiles.push(child);
-                    }
-                });
-                
-                if (hostiles.length === 0) {
-                    this.combatState = 'player_turn'; 
-                    return;
-                }
-                
-                for (let i = 0; i < hostiles.length; i++) {
-                    const monster = hostiles[i];
-                    if (monster.userData.isDead) continue; // might have died during previous monster's turn
-                    
-                    await new Promise(resolve => {
-                        const eX = Math.round(monster.position.x / this.gridSize);
-                        const eZ = Math.round(monster.position.z / this.gridSize);
-                        const pX = Math.round(this.player.x / this.gridSize);
-                        const pZ = Math.round(this.player.z / this.gridSize);
-                        
-                        const dist = Math.hypot(pX - eX, pZ - eZ);
-                        
-                        // Check if we need to drop combat due to distance
-                        if (dist > 12.0) {
-                            // Monster gives up chase
-                            setTimeout(resolve, 100);
-                            return;
-                        }
-                        
-                        if (dist <= 1.5) {
-                            // Melee Attack
-                            const executeGoblinStrike = () => {
-                                if (!monster.userData.isDead) {
-                                    if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike(monster.userData.name || 'Goblin', 10);
-                                    this.player.hp = Math.max(0, this.player.hp - 10);
-                                    this.syncPlayerStats();
-                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${monster.userData.name || 'Goblin'} hit you for 10 DMG!` }, '*');
-                                    this.addCameraTrauma(0.6);
-                                }
-                                setTimeout(resolve, 200); // slight pause after hit
-                            };
+                        // Autonomous attack cycle: 1.8 seconds
+                        if (now - this.activeTarget.userData.lastAIStrike > 1800) {
                             
-                            const mixer = monster.userData.mixer;
-                            const slashAnim = monster.userData.attackAction;
-                            if (mixer && slashAnim) {
-                                mixer.stopAllAction();
-                                slashAnim.reset();
-                                slashAnim.setLoop(THREE.LoopOnce, 1);
-                                slashAnim.clampWhenFinished = true;
-                                slashAnim.play();
-                                setTimeout(executeGoblinStrike, 300); // Sync hit with animation frame
-                            } else {
-                                setTimeout(executeGoblinStrike, 300);
-                            }
-                        } else {
-                            // Move 1 tile towards player
-                            const path = this.findPath(eX, eZ, pX, pZ);
-                            if (path && path.length > 1) {
-                                const nextNode = path[1];
-                                monster.userData.targetMove = { 
-                                    x: nextNode.x * this.gridSize, 
-                                    z: nextNode.z * this.gridSize 
-                                };
-                                monster.userData.onMoveComplete = resolve;
+                            // Validate proximity limit before attacking (must be within 1.5 logical tiles in any direction)
+                            const eX = this.activeTarget.position.x / this.gridSize;
+                            const eZ = this.activeTarget.position.z / this.gridSize;
+                            const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
+                            
+                            if (dist < 1.75) {
+                                this.activeTarget.userData.lastAIStrike = now;
                                 
-                                // Play walk animation if available
-                                const mixer = monster.userData.mixer;
-                                const walkAnim = monster.userData.walkAction;
-                                if (mixer && walkAnim && walkAnim.isRunning() === false) {
-                                    walkAnim.reset();
-                                    walkAnim.setEffectiveWeight(1);
-                                    walkAnim.play();
+                                const executeGoblinStrike = () => {
+                                    if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                        if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
+                                        this.player.hp = Math.max(0, this.player.hp - 10);
+                                        this.syncPlayerStats();
+                                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                        this.addCameraTrauma(0.6);
+                                    }
+                                };
+                                
+                                // Play native attack animation safely
+                                const mixer = this.activeTarget.userData.mixer;
+                                const slashAnim = this.activeTarget.userData.attackAction;
+                                if (mixer && slashAnim) {
+                                    mixer.stopAllAction();
+                                    slashAnim.reset();
+                                    slashAnim.setLoop(THREE.LoopOnce, 1);
+                                    slashAnim.clampWhenFinished = true;
+                                    slashAnim.play();
+                                    setTimeout(executeGoblinStrike, 250); // Connects mid-swing
+                                } else {
+                                    executeGoblinStrike();
                                 }
-                            } else {
-                                setTimeout(resolve, 100); // Can't move, skip turn
                             }
                         }
-                    });
-                }
-                
-                // Done iterating all monsters
-                if (this.combatState === 'monster_turn') {
-                    this.combatState = 'player_turn';
+                    }
                 }
             },
 
@@ -1730,6 +1608,9 @@
                     }
                 }
                 // --- 2.5 STAIRWAYS ---
+                // Stairs Up (Restart Game) located behind Banda in Room 0 (North side)
+                const room0 = this.rooms[0];
+                this.mapData[room0.center.x][room0.center.y - 2] = { type: 'stairs_up', room: true, roomId: 0 };
                 
                 // Stairs Down (Next Level) located in the center of the final generated room
                 if (!this.level || this.level < 2) {
@@ -1929,7 +1810,7 @@
                 
                 // White Border Base
                 const borderGeo = new THREE.CircleGeometry(0.85, 32);
-                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                 const borderMesh = new THREE.Mesh(borderGeo, borderMat);
                 borderMesh.rotation.x = -Math.PI / 2;
                 borderMesh.position.y = 0.01;
@@ -1937,7 +1818,7 @@
                 
                 // Black Circle Core
                 const baseGeo = new THREE.CircleGeometry(0.7, 32);
-                const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
+                const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 const baseMesh = new THREE.Mesh(baseGeo, baseMat);
                 baseMesh.rotation.x = -Math.PI / 2;
                 baseMesh.position.y = 0.02;
@@ -1959,14 +1840,8 @@
 
                 // --- Load 3D Player Avatar for Map View ---
                 this.playerMixer = null;
-                const playerModelUrls = [
-                    './assets/models/Player.A.Walking.glb',
-                    '../assets/models/Player.A.Walking.glb',
-                    'assets/Player.A.Walking.glb',
-                    'https://www.markpeterson.info/Origami/assets/Player.A.Walking.glb',
-                    'https://markpeterson.info/Origami/assets/Player.A.Walking.glb'
-                ];
-                
+                const TARGET_PLAYER_MODEL = './assets/models/Player.A.Walking.glb';
+                const FALLBACK_MODEL = 'https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/Player.A.Walking.glb';
                 const loader = new THREE.GLTFLoader();
                 if (loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
                 
@@ -2012,23 +1887,16 @@
                     }
                 };
                 
-                const tryLoadPlayerModel = (urlIndex) => {
-                    if (urlIndex >= playerModelUrls.length) {
-                        console.error('Failed to load player map avatar from all URLs.');
-                        return;
-                    }
-                    loader.load(playerModelUrls[urlIndex], initAvatar, undefined, () => {
-                        tryLoadPlayerModel(urlIndex + 1);
-                    });
-                };
-                
-                tryLoadPlayerModel(0);
-                
+                loader.load(TARGET_PLAYER_MODEL, initAvatar, undefined, () => {
+                    loader.load(FALLBACK_MODEL, initAvatar);
+                });
+
                 this.scene.add(this.playerAvatar);
 
                 // PiP 2D display canvas contexts (set up after DOM is ready)
                 this.cameraMode = 'fpv'; // 'fpv' = FPV main + top-down PiP | 'topdown' = swapped
                 this._pipOrthoTarget = { hw: 10 * this.gridSize, hh: 10 * this.gridSize };
+                this.pip2dCtx   = null; // Initialised in initPipCanvases()
                 this.pipDialCtx = null;
                 
                 // --- Camera Trauma (AAA Hit-Stop & Visceral Feedback) ---
@@ -2611,34 +2479,31 @@
                         // Give Goblin a tactical footprint visible on Layer 3 (Map View)
                         const monBase = new THREE.Group();
                         monBase.name = "monBase";
+                        const mBaseGeo = new THREE.CircleGeometry(0.7, 64);
+                        const mBaseMesh = new THREE.Mesh(mBaseGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.85, depthWrite: false }));
+                        mBaseMesh.rotation.x = -Math.PI / 2;
+                        mBaseMesh.position.y = 0.04; // Sit cleanly above floor, no Z-fight
+                        mBaseMesh.layers.set(1); mBaseMesh.layers.enable(3);
+                        mBaseMesh.renderOrder = 999;
                         
-                        // White Border Base
-                        const borderGeo = new THREE.CircleGeometry(0.85, 32);
-                        const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
-                        const borderMesh = new THREE.Mesh(borderGeo, borderMat);
-                        borderMesh.rotation.x = -Math.PI / 2;
-                        borderMesh.position.y = 0.01;
-                        borderMesh.layers.set(3); // Map View Only
+                        const mBorderGeo = new THREE.RingGeometry(0.7, 0.78, 64);
+                        const mBorderMesh = new THREE.Mesh(mBorderGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }));
+                        mBorderMesh.rotation.x = -Math.PI / 2;
+                        mBorderMesh.position.y = 0.05;
+                        mBorderMesh.layers.set(1); mBorderMesh.layers.enable(3);
+                        mBorderMesh.renderOrder = 1000;
                         
-                        // Black Circle Core
-                        const baseGeo = new THREE.CircleGeometry(0.7, 32);
-                        const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
-                        const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-                        baseMesh.rotation.x = -Math.PI / 2;
-                        baseMesh.position.y = 0.02;
-                        baseMesh.layers.set(3); // Map View Only
-        
-                        // White Directional Arrow (Nose)
-                        const noseGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
-                        const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
-                        const noseMesh = new THREE.Mesh(noseGeo, noseMat);
-                        noseMesh.rotation.x = -Math.PI / 2;
-                        noseMesh.position.set(0, 0.03, -0.6); // Front edge
-                        noseMesh.layers.set(3); // Map View Only
-        
-                        monBase.add(baseMesh);
-                        monBase.add(borderMesh);
-                        monBase.add(noseMesh);
+                        const mArrowGeo = new THREE.CircleGeometry(0.2, 3);
+                        const mArrowMesh = new THREE.Mesh(mArrowGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false }));
+                        mArrowMesh.rotation.x = -Math.PI / 2;
+                        mArrowMesh.rotation.z = -Math.PI / 2;
+                        mArrowMesh.position.set(0, 0.05, 0.8);
+                        mArrowMesh.layers.set(1); mArrowMesh.layers.enable(3);
+                        mArrowMesh.renderOrder = 1000;
+                        
+                        monBase.add(mBaseMesh);
+                        monBase.add(mBorderMesh);
+                        monBase.add(mArrowMesh);
                         
                         // Keep monBase flat on floor by avoiding parenting to floating mesh
                         this.worldGroup.add(monBase);
@@ -2751,7 +2616,7 @@
                             gltf.animations.forEach((anim, i) => {
                                 animNames.push(`[${i}] ${anim.name}`);
                             });
-                            // window.parent.postMessage({ type: 'LOG_EVENT', text: 'Goblin Anims: ' + animNames.join(', '), logType: 'system' }, '*');
+                            window.parent.postMessage({ type: 'LOG_EVENT', text: 'Goblin Anims: ' + animNames.join(', '), logType: 'system' }, '*');
                         }
                         
                         
@@ -2937,7 +2802,7 @@
                         else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#5C4033';
                         else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#29B6F6';
                         else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#EF5350';
-                        else themeColor = '#4caf50'; // SCROLL
+                        else themeColor = '#4caf50'; // ARTIFACT
                         
                         ctx.fillStyle = baseColor;
                         ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
@@ -3033,7 +2898,7 @@
                         const createLootIcon = () => {
                             let iconMesh = new THREE.Group();
                             let customUpdate = null;
-                            const matColor = { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[catId] || 0x444444;
+                            const matColor = { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, ARTIFACT: 0x1b5e20 }[catId] || 0x444444;
                             const mat = new THREE.MeshStandardMaterial({ 
                                 color: matColor, roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                             });
@@ -3060,156 +2925,104 @@
                                     core.rotation.y = t * 0.25; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
                                     flames.forEach(f => {
                                         f.m.rotation.x += f.rs * 0.005; f.m.rotation.y += f.rs * 0.005; 
-                                        f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 0.8);
-                                        const sc = Math.max(0.1, 1 - (f.m.position.y / 1.5));
+                                        f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 2.0);
+                                        const sc = Math.max(0.1, 1 - (f.m.position.y / 4.0));
                                         f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5); 
                                     });
                                 };
                             } else if (catId === 'WIND') {
                                 const tornado = new THREE.Group();
-                                const numSpirals = 2; 
-                                const mat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+                                const numSpirals = 4; 
+                                const lmat = new THREE.LineDashedMaterial({ color: 0xcccccc, opacity: 0.85, transparent: true, dashSize: 0.2, gapSize: 0.15 });
                                 for(let i=0; i<numSpirals; i++) {
                                     const pts = [];
-                                    const pointsCount = 40;
                                     const phaseOffset = (i / numSpirals) * Math.PI * 2;
-                                    for(let j=0; j<=pointsCount; j++) {
-                                        const h = j / pointsCount; 
-                                        const r = Math.pow(h, 2.0) * 1.5 + 0.2; 
-                                        const y = (h - 0.5) * 2.5; 
-                                        const angle = h * Math.PI * 12 + phaseOffset; 
+                                    for(let j=0; j<=45; j++) {
+                                        const h = j / 45; 
+                                        const r = Math.pow(h, 2.0) * 1.5 + 0.15; 
+                                        const y = (h - 0.5) * 2.8; 
+                                        const angle = h * Math.PI * 16 + phaseOffset; 
                                         pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
                                     }
-                                    const curve = new THREE.CatmullRomCurve3(pts);
-                                    const geometry = new THREE.TubeGeometry(curve, 40, 0.075, 6, false);
-                                    const mesh = new THREE.Mesh(geometry, mat);
-                                    tornado.add(mesh);
+                                    const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+                                    const line = new THREE.Line(geometry, lmat);
+                                    line.computeLineDistances(); 
+                                    tornado.add(line);
                                 }
                                 tornado.position.y = -0.2;
                                 iconMesh.add(tornado);
                                 customUpdate = (t) => { 
-                                    tornado.rotation.y = t * -3.0; 
+                                    tornado.rotation.y = t * -10.0; 
                                     tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
                                 };
                             } else if (catId === 'WATER') {
-                                const geo = new THREE.SphereGeometry(2.2, 32, 32);
-                                const mat = new THREE.MeshStandardMaterial({
-                                    color: 0x0277D4,
-                                    roughness: 0.1,
-                                    metalness: 0.1,
-                                    transparent: true,
-                                    opacity: 0.9
-                                });
-                                const mesh = new THREE.Mesh(geo, mat);
-                                iconMesh.add(mesh);
+                                const geo = new THREE.SphereGeometry(2.8, 32, 24); 
+                                const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; iconMesh.add(mesh);
                                 customUpdate = (t) => {
-                                    mesh.rotation.y = t * 0.5;
-                                    mesh.rotation.x = t * 0.2;
+                                    const pos = geo.attributes.position;
+                                    for(let i=0; i<pos.count; i++) {
+                                        const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                                        if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                                    }
+                                    pos.needsUpdate = true;
                                 };
                             } else if (catId === 'KATANA') {
-                                const addGlow = (mesh) => {
-                                    const glowGeo = mesh.geometry.clone();
-                                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false, blending: THREE.AdditiveBlending });
-                                    const glow = new THREE.Mesh(glowGeo, glowMat);
-                                    glow.scale.setScalar(1.2);
-                                    mesh.add(glow);
-                                };
-
                                 const bladeShape = new THREE.Shape();
                                 bladeShape.moveTo(0, 0); // Guard level
                                 bladeShape.quadraticCurveTo(-0.1, 1.0, -0.05, 2.0); // Back edge
                                 bladeShape.lineTo(0.15, 1.85); // Tip
                                 bladeShape.quadraticCurveTo(0.2, 1.0, 0.2, 0); // Cutting edge
                                 bladeShape.lineTo(0, 0);
-                                const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+                                const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2 });
                                 bladeGeo.center();
-                                const blade = new THREE.Mesh(bladeGeo, new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.5, emissive: 0x555555, side: THREE.DoubleSide}));
+                                const blade = new THREE.Mesh(bladeGeo, new THREE.MeshStandardMaterial({color: 0xeeeeee, metalness: 0.9, roughness: 0.1}));
                                 blade.position.y = 1.0;
-                                addGlow(blade);
                                 
-                                const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12), new THREE.MeshStandardMaterial({color: 0x222222, metalness: 0.2, side: THREE.DoubleSide}));
+                                const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12), new THREE.MeshStandardMaterial({color: 0x222222}));
                                 hilt.position.y = -0.4;
-                                addGlow(hilt);
                                 
-                                const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16), new THREE.MeshStandardMaterial({color: 0x111111, metalness: 0.8, roughness: 0.2, side: THREE.DoubleSide}));
+                                const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16), new THREE.MeshStandardMaterial({color: 0xaa8800, metalness: 0.8, roughness: 0.2}));
                                 guard.position.y = 0;
-                                addGlow(guard);
                                 
                                 const swordContainer = new THREE.Group();
                                 swordContainer.add(hilt, blade, guard);
                                 swordContainer.position.y = -0.3;
-                                swordContainer.position.z = 1.2; // Push Katana forward so it doesn't clip the card
-                                swordContainer.rotation.z = Math.PI / 4; 
+                                swordContainer.rotation.z = Math.PI / 4; // Diagonal tilt to fit inside the card geometry smoothly
                                 
-                                swordContainer.scale.set(0.8, 0.8, 0.1); // 10% normal z depth
-
-                                const sword1 = swordContainer;
-                                sword1.position.set(0, -0.3, 0);
-                                sword1.rotation.z = Math.PI / 4;
-
-                                iconMesh.add(sword1);
+                                iconMesh.add(swordContainer);
                                 
                                 customUpdate = (t) => { 
-                                    sword1.position.y = -0.3 + Math.sin(t * 2) * 0.1;
+                                    iconMesh.rotation.y = t * 0.5; 
                                 };
                             } else if (catId === 'MISSILE') {
-                                const addGlow = (mesh) => {
-                                    const glowGeo = mesh.geometry.clone();
-                                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false, blending: THREE.AdditiveBlending });
-                                    const glow = new THREE.Mesh(glowGeo, glowMat);
-                                    glow.scale.set(1.15, 1.15, 1.5);
-                                    mesh.add(glow);
-                                };
                                 const starShape = new THREE.Shape();
-                                const outerRadius = 1.8;
-                                const innerRadius = 0.45;
-                                for (let i = 0; i < 8; i++) {
-                                    const angle = (i * Math.PI) / 4;
-                                    const r = i % 2 === 0 ? outerRadius : innerRadius;
-                                    if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                                    else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                                }
-                                const geo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+                                starShape.moveTo(0, 1.4);
+                                starShape.lineTo(0.25, 0.25);
+                                starShape.lineTo(1.4, 0);
+                                starShape.lineTo(0.25, -0.25);
+                                starShape.lineTo(0, -1.4);
+                                starShape.lineTo(-0.25, -0.25);
+                                starShape.lineTo(-1.4, 0);
+                                starShape.lineTo(-0.25, 0.25);
+                                starShape.lineTo(0, 1.4);
+                                const geo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
                                 geo.center();
-                                const starMat = new THREE.MeshStandardMaterial({color: 0xdddddd, metalness: 0.5, roughness: 0.2, emissive: 0x666666, side: THREE.DoubleSide});
+                                const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 1.0, roughness: 0.1});
                                 const starMesh = new THREE.Mesh(geo, starMat);
-                                addGlow(starMesh);
-
-                                const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16), new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.DoubleSide}));
-                                hole.rotation.x = Math.PI / 2;
-                                
-                                const starGroup = new THREE.Group();
-                                starGroup.add(starMesh, hole);
-                                starGroup.scale.set(0.8, 0.8, 0.1); // 10% normal z depth
-                                
-                                const star1 = starGroup;
-                                star1.position.set(0, 0, 0);
-
-                                iconMesh.add(star1);
-                                customUpdate = (t) => { 
-                                    star1.rotation.z = -t * 0.5; 
-                                };
+                                iconMesh.add(starMesh);
+                                customUpdate = (t) => { iconMesh.rotation.y = t * 12.0; iconMesh.rotation.x = Math.sin(t * 2) * 0.4; };
                             } else if (catId === 'ARMOR') {
-                                const addOutline = (mesh) => {
-                                    const edges = new THREE.EdgesGeometry(mesh.geometry);
-                                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
-                                    mesh.add(line);
-                                };
                                 // Samurai Helmet (Kabuto)
-                                const helmetMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.3, side: THREE.DoubleSide});
-                                const goldMat = new THREE.MeshStandardMaterial({color: 0xffaa00, metalness: 0.8, roughness: 0.2, side: THREE.DoubleSide});
+                                const helmetMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.3});
+                                const goldMat = new THREE.MeshStandardMaterial({color: 0xffaa00, metalness: 0.8, roughness: 0.2});
                                 
                                 // Dome
-                                const domeGeo = new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI * 2, 0, Math.PI/2);
-                                const dome = new THREE.Mesh(domeGeo, helmetMat);
+                                const dome = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI * 2, 0, Math.PI/2), helmetMat);
                                 dome.position.y = -0.2;
-                                addOutline(dome);
                                 
                                 // Face Guard (Mempo) - just a cylinder slice
-                                const guardGeo = new THREE.CylinderGeometry(1.1, 1.2, 0.4, 16, 1, false, Math.PI * 0.75, Math.PI * 1.5);
-                                const guard = new THREE.Mesh(guardGeo, helmetMat);
+                                const guard = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.2, 0.4, 16, 1, false, Math.PI * 0.75, Math.PI * 1.5), helmetMat);
                                 guard.position.y = -0.4;
-                                addOutline(guard);
                                 
                                 // Kuwagata (Crescent Horns)
                                 const hornShape = new THREE.Shape();
@@ -3217,107 +3030,104 @@
                                 hornShape.quadraticCurveTo(0.8, 0.8, 1.2, 1.8);
                                 hornShape.quadraticCurveTo(0.8, 0.4, 0.2, 0.2);
                                 hornShape.lineTo(0, 0);
-                                const hornGeo1 = new THREE.ExtrudeGeometry(hornShape, {depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2});
+                                const hornGeo1 = new THREE.ExtrudeGeometry(hornShape, {depth: 0.1, bevelEnabled: false});
                                 const horn1 = new THREE.Mesh(hornGeo1, goldMat);
                                 horn1.position.set(0, 0.3, 0.9);
                                 horn1.rotation.z = -0.3;
                                 horn1.rotation.y = 0.2;
-                                addOutline(horn1);
                                 
                                 const horn2 = new THREE.Mesh(hornGeo1, goldMat);
                                 horn2.position.set(0, 0.3, 0.9);
                                 horn2.rotation.y = Math.PI - 0.2; // Flip for left side
                                 horn2.rotation.z = -0.3;
-                                addOutline(horn2);
                                 
                                 const boss = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), goldMat);
                                 boss.position.set(0, 0.4, 1.0);
-                                addOutline(boss);
                                 
                                 iconMesh.add(dome, guard, horn1, horn2, boss);
-                                iconMesh.scale.set(1.0, 1.0, 0.1); // flatten z index to 10%
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
                             } else if (catId === 'SHIELD') {
-                                const addOutline = (mesh) => {
-                                    const edges = new THREE.EdgesGeometry(mesh.geometry);
-                                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
-                                    mesh.add(line);
-                                };
-
                                 const shieldShape = new THREE.Shape();
                                 shieldShape.moveTo(0, -1.2);
                                 shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
                                 shieldShape.lineTo(-1.0, 1.0);
                                 shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
 
-                                const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+                                const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
                                 shieldGeo.center();
                                 
-                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444, side: THREE.DoubleSide});
+                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xd0d0d0, metalness: 0.6, roughness: 0.4});
                                 const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                                shield.scale.set(1.4, 1.4, 0.14); // 10% z depth scale
-                                addOutline(shield);
+                                shield.scale.set(1.4, 1.4, 1.4);
                                 
                                 // Inner shield design
-                                const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.1, bevelEnabled: false });
+                                const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.25, bevelEnabled: false });
                                 innerGeo.center();
-                                const innerMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.1, roughness: 0.2, side: THREE.DoubleSide});
+                                const innerMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.1, roughness: 0.2});
                                 const innerShield = new THREE.Mesh(innerGeo, innerMat);
                                 innerShield.scale.set(0.5, 0.5, 1.0);
                                 innerShield.position.z = 0; // centered so it pokes out both sides
-                                addOutline(innerShield);
                                 
                                 shield.add(innerShield);
                                 
                                 const frontShield = shield;
-                                frontShield.position.z = 0;
+                                frontShield.position.z = 0.05;
                                 
-                                iconMesh.add(frontShield);
+                                const backShield = shield.clone();
+                                backShield.position.z = -0.05;
+                                backShield.rotation.y = Math.PI;
+                                
+                                iconMesh.add(frontShield, backShield);
                                 customUpdate = (t) => { 
                                     // Shield remains static, no rotation per user request
                                 };
-                            } else if (catId === 'SCROLL') {
-                                const potionGroup = new THREE.Group();
-
-                                const glassMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.1, metalness: 0.4, transparent: true, opacity: 0.4, depthWrite: false });
-                                const corkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.1 });
-                                const liquidMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+                            } else if (catId === 'ARTIFACT') {
+                                if (inTitle === 'GOLD COINS') {
+                                    const stack = new THREE.Group();
+                                    const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.15, 16);
+                                    const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1.0, roughness: 0.2 });
+                                    for(let i=0; i<6; i++) {
+                                        const c = new THREE.Mesh(coinGeo, coinMat);
+                                        c.position.set((Math.random()-0.5)*0.3, i * 0.16 - 0.5, (Math.random()-0.5)*0.3);
+                                        c.rotation.y = Math.random() * Math.PI;
+                                        c.rotation.x = (Math.random() - 0.5) * 0.2;
+                                        c.rotation.z = (Math.random() - 0.5) * 0.2;
+                                        stack.add(c);
+                                    }
+                                    iconMesh.add(stack);
+                                    customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
+                                } else {
+                                    const vial = new THREE.Group();
+                                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, metalness: 0.2, roughness: 0.3, depthWrite: false });
+                                    const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
+                                    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
+                                    neck.position.y = 1.4;
+                                    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
+                                    lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
                                 
-                                // Flask base
-                                const baseGeo = new THREE.SphereGeometry(1.0, 16, 16);
-                                const base = new THREE.Mesh(baseGeo, glassMat);
+                                const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+                                const liqGroup = new THREE.Group();
+                                const liqGeo = new THREE.SphereGeometry(1.05, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI); 
+                                const liq = new THREE.Mesh(liqGeo, liqMat);
+                                const liqTop = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), liqMat);
+                                liqTop.rotation.x = -Math.PI / 2; 
+                                liq.add(liqTop);
+                                liqGroup.add(liq);
                                 
-                                // Liquid inside
-                                const liquidGeo = new THREE.SphereGeometry(0.85, 16, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
-                                const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+                                const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 }));
+                                cork.position.y = 1.9;
                                 
-                                // Neck
-                                const neckGeo = new THREE.CylinderGeometry(0.3, 0.5, 0.8, 16);
-                                const neck = new THREE.Mesh(neckGeo, glassMat);
-                                neck.position.y = 1.0;
+                                vial.add(flask, neck, lip, liqGroup, cork);
+                                vial.position.y = -0.5;
+                                iconMesh.add(vial);
                                 
-                                // Lip
-                                const lipGeo = new THREE.TorusGeometry(0.35, 0.1, 8, 16);
-                                const lip = new THREE.Mesh(lipGeo, glassMat);
-                                lip.position.y = 1.4;
-                                lip.rotation.x = Math.PI / 2;
-                                
-                                // Cork
-                                const corkGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.4, 12);
-                                const cork = new THREE.Mesh(corkGeo, corkMat);
-                                cork.position.y = 1.55;
-                                
-                                potionGroup.add(base, liquid, neck, lip, cork);
-                                potionGroup.position.y = -0.4;
-                                
-                                iconMesh.add(potionGroup);
-                                
-                                customUpdate = (t) => {
-                                    potionGroup.rotation.y = t * 1.5;
-                                    potionGroup.rotation.z = Math.sin(t * 2) * 0.1;
-                                    liquid.rotation.x = Math.sin(t * 5) * 0.2; // sloshing
-                                    liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
+                                customUpdate = (t) => { 
+                                    vial.rotation.y = t * 0.4; 
+                                    liqGroup.rotation.x = Math.sin(t * 2.1) * 0.2;
+                                    const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
+                                    liqGroup.scale.setScalar(0.98 + pulse * 0.02); 
                                 };
+                                }
                             } else {
                                 // DICE fallback
                                 const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
@@ -3368,7 +3178,7 @@
                         ['WIND', 'GALE', 'Forceful gust.', '風', '(PUSH * 3DICE)'],
                         ['WATER', 'SURGE', 'Crashing wave.', '水', '(DMG * 3DICE)'],
                         ['SHIELD', 'DEFEND', 'Raises AC.', '盾', '(AC + 5)'],
-                        ['SCROLL', 'POTION', 'Consumable', '具', '(HP + 20)'],
+                        ['ARTIFACT', 'POTION', 'Consumable', '具', '(HP + 20)'],
                         ['MISSILE', 'SHURIKEN', 'Ranged attack.', '投', '(DMG * 2DICE)']
                     ];
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
@@ -3388,7 +3198,7 @@
                                 const cardData = randomCards[Math.floor(Math.random() * randomCards.length)];
                                 // Add price based on type
                                 let price = 50;
-                                if (cardData[0] === 'SCROLL') price = 25;
+                                if (cardData[0] === 'ARTIFACT') price = 25;
                                 if (cardData[0] === 'FIRE') price = 100;
                                 
                                 // Spawn card at x = shopWestX (left wall), z = shop.y + 1, 2, 3, 4
@@ -3526,16 +3336,10 @@
                         this.clearAutoWalk(); // Interrupt autowalk
                         const k = data.key.toLowerCase();
                         if (k === 'w' || data.key === 'ArrowUp') {
-                            if (!this.handleHaltedAttack()) {
-                                if (this.combatState === 'player_turn') this.executeCombatMove(1);
-                                else if (this.combatState === 'idle') this.keys.w = true;
-                            }
+                            if (!this.handleHaltedAttack()) this.keys.w = true;
                         }
                         if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = true;
-                        if (k === 's' || data.key === 'ArrowDown') {
-                            if (this.combatState === 'player_turn') this.executeCombatMove(-1);
-                            else if (this.combatState === 'idle') this.keys.s = true;
-                        }
+                        if (k === 's' || data.key === 'ArrowDown') this.keys.s = true;
                         if (k === 'd' || data.key === 'ArrowRight') this.keys.d = true;
                     } else if (data.type === 'KEY_UP') {
                         const k = data.key.toLowerCase();
@@ -3571,16 +3375,10 @@
                     const k = e.key.toLowerCase();
                     this.clearAutoWalk(); // Interrupt autowalk
                     if (k === 'w' || e.key === 'ArrowUp') {
-                        if (!this.handleHaltedAttack()) {
-                            if (this.combatState === 'player_turn') this.executeCombatMove(1);
-                            else if (this.combatState === 'idle') this.keys.w = true;
-                        }
+                        if (!this.handleHaltedAttack()) this.keys.w = true;
                     }
                     if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = true;
-                    if (k === 's' || e.key === 'ArrowDown') {
-                        if (this.combatState === 'player_turn') this.executeCombatMove(-1);
-                        else if (this.combatState === 'idle') this.keys.s = true;
-                    }
+                    if (k === 's' || e.key === 'ArrowDown') this.keys.s = true;
                     if (k === 'd' || e.key === 'ArrowRight') this.keys.d = true;
                 });
                 
@@ -3803,12 +3601,12 @@
                     { name:'FIREBALL',  el:'FIRE',   kanji:'\u706b', desc:'Inferno star.',  attr:'SKILL CARD' },
                     { name:'SURGE',     el:'WATER',  kanji:'\u6c34', desc:'Crashing wave.', attr:'SKILL CARD' },
                     { name:'SLASH',     el:'KATANA', kanji:'\u65ac', desc:'Basic slash.',   attr:'SKILL CARD' },
-                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', desc:'Armor.',      attr:'SKILL CARD' },
-                    { name:'POTION',    el:'SCROLL',   kanji:'\u5177', desc:'Consumable',  attr:'SKILL CARD' },
-                    { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged Wep.', attr:'SKILL CARD' },
+                    { name:'DEFEND',    el:'SHIELD', kanji:'\u76fe', desc:'Raises AC.',     attr:'SKILL CARD' },
+                    { name:'POTION',    el:'ARTIFACT',   kanji:'\u5177', desc:'Consumable',  attr:'SKILL CARD' },
+                    { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged attack.', attr:'SKILL CARD' },
                     { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
                     { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
-                    { name:'GOLD COINS',el:'SCROLL',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
+                    { name:'GOLD COINS',el:'ARTIFACT',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
                 ];
                 
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
@@ -3859,30 +3657,23 @@
                     projectileMesh.userData.isFireball = true;
                 } else if (spellData.el === 'WIND') {
                     speed = 12.0;
-                    // Wind uses a small spinning tornado projectile
                     const tornado = new THREE.Group();
-                    const numSpirals = 2; 
-                    const mat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-                    for(let i=0; i<numSpirals; i++) {
-                        const pts = [];
-                        const pointsCount = 20;
-                        const phaseOffset = (i / numSpirals) * Math.PI * 2;
-                        for(let j=0; j<=pointsCount; j++) {
-                            const h = j / pointsCount; 
-                            const r = Math.pow(h, 2.0) * 0.8 + 0.1; 
-                            const y = (h - 0.5) * 1.5; 
-                            const angle = h * Math.PI * 8 + phaseOffset; 
+                    const lmat = new THREE.LineDashedMaterial({ color: 0xcccccc, opacity: 0.85, transparent: true, dashSize: 0.2, gapSize: 0.15 });
+                    for(let i=0; i<4; i++) {
+                        const pts = []; const phaseOffset = (i / 4) * Math.PI * 2;
+                        for(let j=0; j<=45; j++) {
+                            const h = j / 45, r = Math.pow(h, 2.0) * 1.5 + 0.15, y = (h - 0.5) * 2.8, angle = h * Math.PI * 16 + phaseOffset; 
                             pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
                         }
-                        const curve = new THREE.CatmullRomCurve3(pts);
-                        const geometry = new THREE.TubeGeometry(curve, 20, 0.05, 5, false);
-                        tornado.add(new THREE.Mesh(geometry, mat));
+                        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lmat);
+                        line.computeLineDistances(); tornado.add(line);
                     }
+                    tornado.scale.set(0.3, 0.3, 0.3);
                     projectileMesh.add(tornado);
-                    projectileMesh.userData.isWind = true;
+                    projectileMesh.userData.isTornado = true;
                 } else if (spellData.el === 'WATER') {
                     speed = 15.0;
-                    const mat = new THREE.MeshStandardMaterial({ color: 0x0277D4, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x0275d8, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
                     const geo = new THREE.SphereGeometry(0.6, 16, 12);
                     projectileMesh.add(new THREE.Mesh(geo, mat));
                     projectileMesh.userData.isWater = true;
@@ -3910,13 +3701,6 @@
                     projectileMesh.userData.isShuriken = true;
                 } else if (spellData.el === 'MISSILE') {
                     speed = 48.0;
-                    if (projectileMesh.userData.isWind) {
-                        projectileMesh.rotation.y -= 0.3; // Spin the tornado rapidly
-                        projectileMesh.rotation.x = Math.sin(progress * Math.PI * 4) * 0.2; // slight wobble
-                    } else if (spellData.cat === 'MISSILE' || spellData.cat === 'KATANA') {
-                        projectileMesh.rotation.y += 0.2;
-                        projectileMesh.rotation.z += 0.1;
-                    }
                     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), new THREE.MeshStandardMaterial({color: 0x5C4033})); shaft.rotation.x = Math.PI / 2;
                     const head = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8})); head.rotation.x = Math.PI / 2; head.position.z = -0.4;
                     projectileMesh.add(shaft, head);
@@ -3943,11 +3727,6 @@
                 this.boulders.push(projectileMesh);
                 this.addCameraTrauma(0.2);
                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${spellData.label} launched!` }, '*');
-
-                // Immediately flag target as hostile so the impending AI turn executes correctly
-                if (this.activeTarget && !this.activeTarget.userData.isDead) {
-                    this.activeTarget.userData.isHostile = true;
-                }
             },
 
             spawnPotionUse(action, spellData) {
@@ -3955,7 +3734,7 @@
                 const fwdZ = -Math.cos(this.player.rot);
 
                 const vial = new THREE.Group();
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.4, depthWrite: false, roughness: 0.3, metalness: 0.2 });
+                const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, roughness: 0.3, metalness: 0.2 });
                 const flask = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), glassMat);
                 const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.08, 16), glassMat); neck.position.y = 0.14;
                 const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95 });
@@ -4004,6 +3783,7 @@
                         flash.style.backgroundColor = 'rgba(0, 255, 0, 0.4)'; flash.style.pointerEvents = 'none'; flash.style.transition = 'opacity 0.5s ease'; flash.style.zIndex = 9999;
                         document.body.appendChild(flash);
                         setTimeout(() => flash.style.opacity = '0', 50);
+                        setTimeout(() => document.body.removeChild(flash), 550);
                     }
                 };
                 requestAnimationFrame(anim);
@@ -4120,28 +3900,6 @@
                 setTimeout(() => this.scene.remove(flash), 250);
                 this.addCameraTrauma(0.85);
                 this.triggerHitStop(80);
-            },
-
-            // Wind swirl VFX when Gale hits a target
-            spawnWindSwirl(target) {
-                const numSwirls = 12;
-                for(let i=0; i<numSwirls; i++) {
-                    const material = new THREE.MeshBasicMaterial({ color: 0xddffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-                    const geometry = new THREE.CylinderGeometry(0, 0.1, 0.6, 3);
-                    const mesh = new THREE.Mesh(geometry, material);
-                    
-                    mesh.userData = {
-                        isWindFrag: true,
-                        target: target,
-                        angle: Math.random() * Math.PI * 2,
-                        radius: 0.4 + Math.random() * 0.6,
-                        speed: 8.0 + Math.random() * 6.0,
-                        life: 30 + Math.floor(Math.random() * 20)
-                    };
-                    
-                    mesh.position.y = target.position.y + Math.random() * 1.5;
-                    this.worldGroup.add(mesh);
-                }
             },
 
             // Goblin flatten animation — squash Y, spread XZ, then fade-death or spring back
@@ -4415,10 +4173,8 @@
                     this._lastSentDist = this.activeTargetDist;
                     
                     if (currentCmd === 'SHOW_GAMBLING') {
-                        this.combatState = 'idle';
                         window.parent.postMessage({ type: 'SHOW_GAMBLING' }, '*');
                     } else if (currentCmd === 'SHOW_COMBAT') {
-                        if (this.combatState === 'idle') this.combatState = 'player_turn';
                         // Trigger combat float altitude
                         // We rely entirely on model.position.y lerping now to prevent the targeting circle from lifting
                         window.parent.postMessage({ 
@@ -4430,7 +4186,6 @@
                             distance: this.activeTargetDist 
                         }, '*');
                     } else {
-                        this.combatState = 'idle';
                         // Reset all monster altitudes when combat drops
                         window.parent.postMessage({ type: 'HIDE_COMBAT' }, '*');
                     }
@@ -4512,11 +4267,9 @@
                     } else if (e.data.type === 'PIP_PAN') {
                         this._pipLastInteractionTime = Date.now();
                         if (!this._pipPan) this._pipPan = { x: 0, z: 0 };
-                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96 };
-                        const zoomBase = this._pipZoom || 1;
-                        const panSpeed = 0.05 / zoomBase;
-                        const pX = e.data.dx * panSpeed;
-                        const pZ = e.data.dy * panSpeed;
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+                        const pX = e.data.dx * 0.03 * (this._pipRot.radius / 15);
+                        const pZ = e.data.dy * 0.03 * (this._pipRot.radius / 15);
                         this._pipPan.x += -pX * Math.cos(this._pipRot.theta) + pZ * Math.sin(this._pipRot.theta);
                         this._pipPan.z += pX * Math.sin(this._pipRot.theta) + pZ * Math.cos(this._pipRot.theta);
                         return;
@@ -4540,9 +4293,8 @@
                         const turnValEl = document.getElementById('turn-val');
                         if (turnValEl) turnValEl.textContent = this.turnCount;
                         
-                        if (action === 'BET EVEN' || action === 'BET ODD' || action === 'BET_EVEN' || action === 'BET_ODD') {
-                            const isEven = action === 'BET EVEN' || action === 'BET_EVEN';
-                            this.spawnCombatText(isEven ? "BET EVEN!" : "BET ODD!", "crit");
+                        if (action === 'BET EVEN' || action === 'BET ODD') {
+                            this.spawnCombatText(action === 'BET EVEN' ? "BET EVEN!" : "BET ODD!", "crit");
                             
                             // Spawn 3D Bouncing Dice in front of Player/Target
                             let spawnX = this.player.x * this.gridSize;
@@ -4561,7 +4313,7 @@
                             for(let i=0; i<2; i++) {
                                 const dieGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
                                 const dieMat = new THREE.MeshStandardMaterial({
-                                    color: isEven ? 0x1b5e20 : 0xb71c1c, 
+                                    color: action === 'BET_EVEN' ? 0x1b5e20 : 0xb71c1c, 
                                     roughness: 0.2, 
                                     metalness: 0.1
                                 });
@@ -4594,6 +4346,104 @@
                                 }
                             }, 1500);
                             
+                        } else if (this.activeTarget && this.activeTarget.userData.type === 'enemy' && ['ATTACK', 'SLASH', 'THRUST', 'STRONG ATTACK'].includes(action)) {
+                            if (this.activeTargetDist > this.gridSize * 1.8) {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Too far away! Move closer to strike.` }, '*');
+                                return;
+                            }
+                            this.activeTarget.userData.stateColor = '#ff0000'; // Red for attack
+                            if (this.activeTarget.userData.monBase && this.activeTarget.userData.monBase.children[1]) {
+                                this.activeTarget.userData.monBase.children[1].material.color.setHex(0xff0000);
+                                const targetMat = this.activeTarget.userData.monBase.children[1].material;
+                                setTimeout(() => { if (targetMat) targetMat.color.setHex(0xffffff); }, 500);
+                            }
+                            this.triggerCombatSequence(this.activeTarget);
+                            // Mark as hostile so updateCombatAI fires retaliations autonomously
+                            this.activeTarget.userData.isHostile = true;
+                            const now = performance.now();
+                            if (!this.lastAttackTime || (now - this.lastAttackTime > 600)) {
+                                this.lastAttackTime = now;
+                                
+                                this.triggerHitStop(40);     // 40ms frame freeze
+                                
+                                // Delegate Math to Combat Engine (THAC0 Style)
+                                const finalDamage = window.CombatEngine ? window.CombatEngine.resolveMeleeStrike('Player', 25) : 25;
+
+                                // Visceral JRPG Overlay
+                                this.spawnDamageText(finalDamage, this.activeTarget.position, false);
+                                
+                                // Broadcast Player Attack to Event Log
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `You STRIKE for ${finalDamage} DMG!` }, '*');
+                                
+                                // Physical Knockback Stagger
+                                const knockDir = new THREE.Vector3().subVectors(this.activeTarget.position, this.camera.position).normalize();
+                                knockDir.y = 0;
+                                this.activeTarget.position.addScaledVector(knockDir, 0.4);
+                                
+                                // Trigger Goblin Retaliation automatically (Turn Based Simulator)
+                                setTimeout(() => {
+                                    if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                        this.activeTarget.userData.lastAIStrike = performance.now(); // Postpone Real-time AI
+                                        
+                                        const mixer = this.activeTarget.userData.mixer;
+                                        const slashAnim = this.activeTarget.userData.attackAction 
+                                            || (this.activeTarget.userData.actions && this.activeTarget.userData.actions[1])
+                                            || (this.activeTarget.userData.actions && this.activeTarget.userData.actions[0]);
+                                        if (mixer && slashAnim) {
+                                            mixer.stopAllAction();
+                                            slashAnim.reset();
+                                            slashAnim.setLoop(THREE.LoopOnce, 1);
+                                            slashAnim.clampWhenFinished = true;
+                                            slashAnim.play();
+                                        }
+                                        
+                                        const executeGoblinStrike = () => {
+                                            if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                                if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10); 
+                                                this.player.hp = Math.max(0, this.player.hp - 10);
+                                                this.syncPlayerStats();
+                                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                                
+                                                this.spawnDamageText(10, new THREE.Vector3(), true); // JRPG UI Text
+                                            }
+                                        };
+                                        
+                                        // Programmatic Lunge
+                                        const origPos = this.activeTarget.position.clone();
+                                        const lungeDir = new THREE.Vector3().subVectors(this.camera.position, this.activeTarget.position).normalize();
+                                        lungeDir.y = 0;
+                                        this.activeTarget.position.addScaledVector(lungeDir, 0.8);
+                                        
+                                        setTimeout(() => {
+                                            // Recoil back exactly when attack completes
+                                            if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                                                this.activeTarget.position.copy(origPos);
+                                            }
+                                            executeGoblinStrike();
+                                            this.addCameraTrauma(0.5); // Screen shake on goblin hit
+                                        }, 150);
+                                    }
+                                }, 300); // 300ms reaction delay
+                                // Natively process damage since AI worker is disconnected
+                                this.activeTarget.userData.hp -= finalDamage;
+                                
+                                // Forward attack to AI Brain so monster fights back
+                                window.parent.postMessage({ type: 'PLAYER_ATTACK', targetId: this.activeTarget.userData.id, damage: finalDamage }, '*');
+
+                                if (this.activeTarget.userData.monBase && this.activeTarget.userData.monBase.children[0]) {
+                                    const baseMesh = this.activeTarget.userData.monBase.children[0];
+                                    baseMesh.material.color.setHex(0xff0000);
+                                    setTimeout(() => { if (baseMesh && baseMesh.material) baseMesh.material.color.setHex(0x000000); }, 300);
+                                }
+                                
+                                // Broadcast updated health to UI Panels
+                                window.parent.postMessage({ type: 'SHOW_COMBAT', health: this.activeTarget.userData.hp, maxHp: this.activeTarget.userData.maxHp ?? 50, name: this.activeTarget.userData.name || 'Yakuza Goblin', entityType: this.activeTarget.userData.type || 'enemy' }, '*');
+                                
+                            // Check for Death natively (post to self to handle animation)
+                            if (this.activeTarget.userData.hp <= 0) {
+                                window.postMessage({ type: 'AI_DEATH', id: this.activeTarget.userData.id }, '*');
+                            }
+                            }
                         } else if (action === 'retreat') {
                             // Force player backward safely on grid
                             const dx = Math.sin(this.player.rot) * 1.0;
@@ -4603,11 +4453,6 @@
                                 this.player.z += dz;
                             }
                             this._haltPlayer = false; // Player retreated, they can move again
-                            
-                            if (this.combatState === 'player_turn') {
-                                this.combatState = 'monster_turn';
-                                setTimeout(() => this.processMonsterTurn(), 500);
-                            }
                         }
                         // --- SPELL CARD IMPACT SYSTEM ---
                         // Maps card names → element → visual + damage
@@ -4620,8 +4465,8 @@
                             'GALE':       { el:'WIND',  color:0x90caf9, dmg:20, trauma:0.4, label:'\uD83D\uDCA8 GALE',           range: 5.0 },
                             'TIDE':       { el:'WATER', color:0x0288d1, dmg:20, trauma:0.5, label:'\uD83C\uDF0A TIDE',           range: 4.0 },
                             'SURGE':      { el:'WATER', color:0x006994, dmg:30, trauma:0.6, label:'\uD83C\uDF0A SURGE',          range: 5.0 },
-                            'POTION':     { el:'SCROLL',  color:0x00e676, dmg:-20, trauma:0.0, label:'\uD83E\uDDEA POTION (HEAL)', range: Infinity },
-                            'SCROLL OF IDENTITY': { el:'SCROLL', color:0xffd740, dmg:0, trauma:0.0, label:'\uD83D\uDCDC SCROLL',  range: Infinity },
+                            'POTION':     { el:'ARTIFACT',  color:0x00e676, dmg:-20, trauma:0.0, label:'\uD83E\uDDEA POTION (HEAL)', range: Infinity },
+                            'SCROLL OF IDENTITY': { el:'ARTIFACT', color:0xffd740, dmg:0, trauma:0.0, label:'\uD83D\uDCDC SCROLL',  range: Infinity },
                             'SLASH':      { el:'KATANA',color:0xffffff, dmg:20, trauma:0.5, label:'\u2694 SLASH',          range: Infinity }, // Gated by melee block
                             'THRUST':     { el:'KATANA',color:0xcccccc, dmg:18, trauma:0.4, label:'\u2694 THRUST',         range: Infinity }, // Gated by melee block
                             'STRONG ATTACK':{ el:'KATANA',color:0xffd700, dmg:40, trauma:0.8, label:'\u2694 STRONG ATTACK',range: 2.5 },
@@ -4632,18 +4477,12 @@
                         };
                         const spell = SPELL_MAP[action];
                         if (spell) {
-                            if (spell.el === 'SCROLL' || spell.el === 'ARMOR' || action === 'POTION' || action === 'SCROLL OF IDENTITY') {
+                            if (spell.el === 'ARTIFACT' || spell.el === 'ARMOR' || action === 'POTION' || action === 'SCROLL OF IDENTITY') {
                                 this.spawnPotionUse(action, spell);
                             } else if (spell.el === 'KATANA' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') {
                                 this.spawnMeleeSlash(action, spell);
                             } else {
                                 this.spawnProjectile(action, spell);
-                            }
-                            
-                            // Advance turn after playing a card
-                            if (this.combatState === 'player_turn') {
-                                this.combatState = 'monster_turn';
-                                setTimeout(() => this.processMonsterTurn(), 800); // Wait for animations
                             }
                         }
                     } else if (e.data.type === 'COMBAT_UPDATE') {
@@ -4727,23 +4566,6 @@
                                         this.worldGroup.remove(deadMesh.userData.detachedBase);
                                     }
                                     this.scene.userData.activeEnemies--;
-                                    
-                                    // Check if there are any active hostiles left in range
-                                    let activeHostiles = 0;
-                                    for (let i = 0; i < this.worldGroup.children.length; i++) {
-                                        const c = this.worldGroup.children[i];
-                                        if (c.userData && c.userData.type === 'enemy' && !c.userData.isDead) {
-                                            const dist = Math.sqrt(Math.pow(this.player.x * this.gridSize - c.position.x, 2) + Math.pow(this.player.z * this.gridSize - c.position.z, 2)) / this.gridSize;
-                                            if (dist < 12.0) {
-                                                activeHostiles++;
-                                            }
-                                        }
-                                    }
-                                    if (activeHostiles === 0 && this.combatState !== 'idle') {
-                                        this.combatState = 'idle';
-                                        window.parent.postMessage({ type: 'HIDE_ALL' }, '*');
-                                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Combat Ended. Free roam restored.` }, '*');
-                                    }
                                 }
                             };
                             
@@ -4759,45 +4581,6 @@
                                     // but snapping to grid cells works for this retro grid crawler aesthetic.
                                     mesh.position.x = up.x * this.gridSize;
                                     mesh.position.z = up.z * this.gridSize;
-                                } else if (up.action === 'ATTACK') {
-                                    // Make the monster bump towards the player visually
-                                    const origX = mesh.position.x;
-                                    const origZ = mesh.position.z;
-                                    
-                                    const dx = (this.player.x * this.gridSize) - origX;
-                                    const dz = (this.player.z * this.gridSize) - origZ;
-                                    
-                                    // Normalize
-                                    const len = Math.sqrt(dx*dx + dz*dz) || 1;
-                                    const bumpX = origX + (dx / len) * (this.gridSize * 0.4);
-                                    const bumpZ = origZ + (dz / len) * (this.gridSize * 0.4);
-                                    
-                                    const startTime = performance.now();
-                                    const bumpAnim = () => {
-                                        const progress = (performance.now() - startTime) / 250;
-                                        if (progress < 1) {
-                                            if (progress < 0.5) {
-                                                // forward
-                                                const p = progress * 2;
-                                                mesh.position.x = origX + (bumpX - origX) * p;
-                                                mesh.position.z = origZ + (bumpZ - origZ) * p;
-                                            } else {
-                                                // backward
-                                                const p = (progress - 0.5) * 2;
-                                                mesh.position.x = bumpX + (origX - bumpX) * p;
-                                                mesh.position.z = bumpZ + (origZ - bumpZ) * p;
-                                            }
-                                            requestAnimationFrame(bumpAnim);
-                                        } else {
-                                            mesh.position.x = origX;
-                                            mesh.position.z = origZ;
-                                            
-                                            // Apply damage effects!
-                                            this.addCameraTrauma(0.5);
-                                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Monster attacks you for 10 DMG!` }, '*');
-                                        }
-                                    };
-                                    requestAnimationFrame(bumpAnim);
                                 }
                                 
                                 // Keep circle static
@@ -5041,6 +4824,11 @@
                                     this.addCameraTrauma(0.4);
                                     this.triggerHitStop(40);
                                     
+                                    // Execute Player Melee Logic
+                                    // Retaliation is now handled natively via the new updateCombatAI loop!
+                                    // By uncoupling the counter-attack from the physics bump, the monster fights dynamically!
+                                    // (Visual weapon hit swing handled by engine if user attacks again).
+                                    
                                     window.parent.postMessage({
                                         type: 'COMBAT_ATTACK',
                                         targetId: targetMesh.userData.id,
@@ -5049,8 +4837,10 @@
                                         z: Math.round(targetMesh.position.z / this.gridSize)
                                     }, '*');
                                     
+                                    // Deal actual math damage natively
                                     targetMesh.userData.hp -= finalDamage;
                                     
+                                    // Forward attack to AI Brain so monster fights back
                                     window.parent.postMessage({ type: 'PLAYER_ATTACK', targetId: targetMesh.userData.id, damage: finalDamage }, '*');
                                     if (targetMesh.userData.monBase && targetMesh.userData.monBase.children[0]) {
                                         const baseMesh = targetMesh.userData.monBase.children[0];
@@ -5063,10 +4853,37 @@
                                         window.postMessage({ type: 'AI_DEATH', id: targetMesh.userData.id }, '*');
                                     }
                                     
-                                    if (this.combatState === 'player_turn') {
-                                        this.combatState = 'monster_turn';
-                                        setTimeout(() => this.processMonsterTurn(), 300);
-                                    }
+                                    // Physical bump initiates turn-based counter-attack
+                                    setTimeout(() => {
+                                        if (targetMesh && !targetMesh.userData.isDead) {
+                                            targetMesh.userData.lastAIStrike = performance.now(); // Postpone Real-time AI
+                                            
+                                            const mixer = targetMesh.userData.mixer;
+                                            const slashAnim = targetMesh.userData.attackAction;
+                                            
+                                            const executeGoblinStrike = () => {
+                                                if (targetMesh && !targetMesh.userData.isDead) {
+                                                    if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike('Goblin', 10);
+                                                    this.player.hp = Math.max(0, this.player.hp - 10);
+                                                    this.syncPlayerStats();
+                                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `Goblin hit you for 10 DMG!` }, '*');
+                                                    this.addCameraTrauma(0.6);
+                                                }
+                                            };
+                                            
+                                            if (mixer && slashAnim) {
+                                                mixer.stopAllAction();
+                                                slashAnim.reset();
+                                                slashAnim.setLoop(THREE.LoopOnce, 1);
+                                                slashAnim.clampWhenFinished = true;
+                                                slashAnim.play();
+                                                setTimeout(executeGoblinStrike, 250);
+                                            } else {
+                                                executeGoblinStrike();
+                                            }
+                                        }
+                                    }, 300);
+                                    
                                 }
                                 
                                 // Violent spatial recoil removed to prevent Auto-Turn collision snapping.
@@ -5193,12 +5010,6 @@
                 // Check LoS triggers securely per frame instead of bound to integer positions, protecting against fast rotations
                 this.checkTriggers();
                 
-                // State emission for combat turn indicator
-                if (this._lastReportedCombatState !== this.combatState) {
-                    this._lastReportedCombatState = this.combatState;
-                    window.parent.postMessage({ type: 'COMBAT_STATE_UPDATE', state: this.combatState }, '*');
-                }
-                
                 // State emission for UI styling (e.g. guide panels fading)
                 if (currentlyMoving && !this.isMoving) {
                     this.isMoving = true;
@@ -5241,9 +5052,15 @@
                     }
                     
                     const traumaSquare = this.cameraTrauma * this.cameraTrauma;
-                    const maxBounce = 0.4;
-                    // Apply smooth vertical bounce
-                    camY += maxBounce * traumaSquare * Math.sin(performance.now() * 0.04);
+                    const maxOffset = 0.5; // Half a grid unit maximum violent shake
+                    const maxRot = Math.PI / 16;
+                    
+                    camX += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camY += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camZ += maxOffset * traumaSquare * (Math.random() * 2 - 1);
+                    camRotZ += maxRot * traumaSquare * (Math.random() * 2 - 1);
+                    this.camera.rotation.x += maxRot * traumaSquare * (Math.random() * 2 - 1);
+                    this.camera.rotation.y += maxRot * traumaSquare * (Math.random() * 2 - 1);
                 }
                 
                 this.camera.position.set(camX, camY, camZ);
@@ -5492,12 +5309,11 @@
                                 // Subtle idle floor bob when standing
                                 child.position.y = baseY + Math.sin(this.clock.getElapsedTime() * 1.5 + child.userData.idlePhase) * 0.07;
                             }
-                        }
-                        
-                        // Always sync base circle to floor — independent of Y float, never blinks
-                        if (child.userData && child.userData.monBase) {
-                            child.userData.monBase.position.set(child.position.x, 0, child.position.z);
-                            child.userData.monBase.rotation.y = child.rotation.y;
+                            // Always sync base circle to floor — independent of Y float, never blinks
+                            if (child.userData.monBase) {
+                                child.userData.monBase.position.set(child.position.x, 0, child.position.z);
+                                child.userData.monBase.rotation.y = child.rotation.y;
+                            }
                         }
                         
                         // Dice physics and garbage collection
@@ -5566,25 +5382,6 @@
                                 child.userData.vX *= 0.60;
                                 child.userData.vZ *= 0.60;
                             }
-                            child.userData.life--;
-                            if (child.userData.life <= 0) {
-                                if (child.material) child.material.dispose();
-                                if (child.geometry) child.geometry.dispose();
-                                this.worldGroup.remove(child); i--;
-                            }
-                        }
-
-                        // --- WIND FRAGMENT PHYSICS (swirl explosion) ---
-                        if (child.userData?.isWindFrag) {
-                            if (child.userData.target && child.userData.target.position) {
-                                child.userData.angle += child.userData.speed * 0.016;
-                                child.position.x = child.userData.target.position.x + Math.cos(child.userData.angle) * child.userData.radius;
-                                child.position.z = child.userData.target.position.z + Math.sin(child.userData.angle) * child.userData.radius;
-                            }
-                            child.position.y += 0.03; // rise up
-                            child.rotation.x += 0.2;
-                            child.rotation.y -= 0.3;
-                            
                             child.userData.life--;
                             if (child.userData.life <= 0) {
                                 if (child.material) child.material.dispose();
@@ -5678,8 +5475,6 @@
                         } else if (b.userData.isBoulder) {
                             const dynamicSpinAxis = new THREE.Vector3(b.userData.vZ / spd2D, 0, -b.userData.vX / spd2D);
                             b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 0.6);
-                        } else if (b.userData.isWind) {
-                            b.rotation.y += 20.0 * delta;
                         }
                     }
 
@@ -5771,15 +5566,10 @@
                                         break;
                                     } else {
                                         const ep = b.position.clone();
-                                        const isWind = b.userData.isWind;
                                         this.scene.remove(b);
                                         this.boulders.splice(bi, 1);
                                         this.flattenGoblin(child, b.userData.dmg);
-                                        if (isWind) {
-                                            this.spawnWindSwirl(child);
-                                        } else {
-                                            this.spawnRockExplosion(ep);
-                                        }
+                                        this.spawnRockExplosion(ep);
                                         bHitEntity = true;
                                         break;
                                     }
@@ -5922,6 +5712,20 @@
                 // --- FOG OF WAR REMOVED ---
 
                 // ═══ RENDER PASSES (camera-mode aware) ════════════════════════════════
+                // If the canvas is missing, try to find it in the Panels iframe
+                if (!this.pip2dCtx && window.location.protocol !== 'file:') {
+                    try {
+                        const panelsIframe = window.parent.document.getElementById('panels-iframe');
+                        if (panelsIframe && panelsIframe.contentDocument) {
+                            const pipMap = panelsIframe.contentDocument.getElementById('pip-map-canvas');
+                            if (pipMap) {
+                                this.pip2dCtx = pipMap.getContext('2d', { alpha: false }); 
+                                this.pipCanvasEl = pipMap;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
                 if (!this._pipRect) this._pipRect = { width: 300, height: 300 };
                 
                 const pipW = Math.round(this._pipRect.width);
@@ -6159,8 +5963,21 @@
                     }
                 }
 
-                // 3D Avatar handles presence natively now. Legacy 2D canvas drawing removed!
+                // ── Copy WebGL PiP region → pip-map-canvas (so it composites with UI cleanly) ──
+                if (this.pip2dCtx && this.pipCanvasEl && pipW > 0 && pipH > 0) {
+                    const ctx = this.pip2dCtx;
+                    const gl  = this.renderer.domElement;
+                    const pr = this.renderer.getPixelRatio();
+                    
+                    const scW = Math.max(1, Math.round(pipW * pr));
+                    const scH = Math.max(1, Math.round(pipH * pr));
+                    ctx.clearRect(0, 0, scW, scH);
+                    
+                    // The srcRect offsets MUST be multiplied by pixel ratio to capture the exact HD rectangle from the WebGL physical buffer
+                    ctx.drawImage(gl, Math.round(pipLeft * pr), Math.round(webglTop * pr), scW, scH, 0, 0, scW, scH);
 
+                    // 3D Avatar handles presence natively now. Legacy 2D canvas drawing removed!
+                }
 
                 
                 // --- FPS Counter ---
@@ -6200,6 +6017,6 @@
 
 
         window.onload = () => Engine.init();
-    </script>
+    
 </body>
 </html>

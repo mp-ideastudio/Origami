@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Origami Adventure Panels - Tactical Symmetry Pro</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <script type="importmap">
+
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
     }
-    </script>
+    
 
     <style>
         :root {
@@ -69,7 +63,7 @@
 
         /* --- UI DOCK --- */
         #ui-dock { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 0 25px 0; box-sizing: border-box; z-index: 10000; }
-        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0; box-sizing: border-box; transition: opacity 0.4s ease; }
+        #lower-ui-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; height: var(--bottom-dock-height); gap: 10px; padding: 0 20px; box-sizing: border-box; transition: opacity 0.4s ease; }
         /* Disabled opacity fade so action buttons remain visible during movement */
         body.is-moving #lower-ui-row { transition: none; }
         body.is-moving .side-panel { transition: none; }
@@ -175,18 +169,12 @@
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
         .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-        .avatar-circle { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 58px; height: 58px; border-radius: 50%; z-index: 50; 
-            background: var(--bg-glass); --hp-pct: 100%; 
-            box-shadow: 3px 3px 8px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.4);
-        }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; box-shadow: 0 0 20px rgba(0,0,0,0.5); border: var(--glass-border); background: var(--bg-glass); --hp-pct: 100%; }
         .avatar-circle::after { content: ''; position: absolute; top: -2px; left: -2px; width: calc(100% + 4px); height: calc(100% + 4px); border-radius: 50%; background: conic-gradient(#4caf50 var(--hp-pct), #ff5252 0); z-index: -1; pointer-events: none; -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); }
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
-        .btn-action {
+        .btn-action { 
             width: 44px !important; height: 44px !important; border-radius: 50% !important;
             opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -213,10 +201,6 @@
                 inset -1px -1px 2px rgba(0,0,0,0.4) !important;
              border: 1px solid rgba(255,255,255,0.05) !important;
         }
-        body.dark-mode .avatar-circle {
-             box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), inset 1px 1px 2px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.4);
-             border: 1px solid rgba(255,255,255,0.05);
-        }
         body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
             box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
             border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
@@ -229,23 +213,12 @@
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
         #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: calc(var(--card-w) * 6 + 70px); height: auto; align-self: end; }
-        #guides-container { display: flex; width: 100%; padding: 30px 20px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: flex-start; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
-        #guides-container::after { content: ''; flex: 0 0 10px; } /* Prevent badge clipping on rightmost card */
+        #guides-container { display: flex; width: 100%; padding: 30px 0; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: flex-start; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
         #guides-container::-webkit-scrollbar { height: 6px; }
         #guides-container::-webkit-scrollbar-track { background: transparent; }
         #guides-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.0); border-radius: 4px; transition: background 0.3s; }
         #guides-container:hover::-webkit-scrollbar-thumb, #guides-container:focus-within::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.4); }
         
-        #turn-indicator { 
-            display: none; width: 100%; text-align: center; font-size: 14px; font-weight: 900; 
-            letter-spacing: 2px; padding: 6px 0; text-transform: uppercase; 
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            color: var(--color-text); margin-bottom: -15px; z-index: 20; position: relative;
-            animation: pulse-turn 2s infinite alternate; text-shadow: 0 0 8px rgba(255,255,255,0.5);
-        }
-        @keyframes pulse-turn { from { opacity: 0.8; } to { opacity: 1; } }
-        #turn-indicator.player-turn { color: #00ffcc; text-shadow: 0 0 8px rgba(0,255,204,0.6); }
-        #turn-indicator.monster-turn { color: #ff3333; text-shadow: 0 0 8px rgba(255,51,51,0.6); }
 
         /* --- GAMBLING DICE ENGINE --- */
         #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass);   border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
@@ -298,7 +271,7 @@
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
         
         .card-badge {
-            position: absolute; top: -10px; right: -6px; width: 22px; height: 22px; 
+            position: absolute; top: -10px; right: -10px; width: 22px; height: 22px; 
             border-radius: 50%; background: #ff0000; color: #ffffff;
             font-size: 11px; font-weight: 900; display: flex; align-items: center; 
             justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
@@ -411,10 +384,9 @@
         .card-earth { --theme-clr: #5C4033; --theme-bg: #4e342e; } 
         .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
         .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
-        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; }
-        .card-missile   { --theme-clr: var(--dmg-clr); --theme-bg: #4a148c; }
-        .card-scroll  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
-        .card-shield    { --theme-clr: var(--def-clr); --theme-bg: #1a237e; }
+        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; } 
+        .card-artifact  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
+
         /* --- MODAL --- */
         #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         #modal-overlay.active { opacity: 1; pointer-events: auto; }
@@ -440,7 +412,7 @@
 
         /* --- HIGH PERFORMANCE INPUT --- */
         #input-container { 
-            width: 100%; min-width: 0; max-width: calc(var(--card-w) * 6 + 70px);
+            width: 100%; min-width: 0;
             height: 60px; display: flex; justify-content: center; align-items: center; 
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
@@ -679,7 +651,7 @@
             
             #event-log-container {
                 width: 100%;
-                max-width: calc(var(--card-w) * 6 + 70px);
+                max-width: calc(var(--card-w) * 5 + 56px);
                 height: 0px;
                 overflow-y: hidden;
                 display: flex;
@@ -703,7 +675,7 @@
                 border-bottom-right-radius: 0;
                 pointer-events: auto;
                 overflow-y: auto;
-                border: var(--glass-border);
+                border: 1px solid rgba(255,255,255,0.1);
                 border-bottom: none;
             }
             #event-log-container.active ~ #input-container { margin-top: 0; }
@@ -718,20 +690,18 @@
             #event-log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
             
             .log-entry {
-                font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 6px; 
-                text-shadow: 1px 1px 3px rgba(0,0,0,0.8); font-family: 'Nunito', sans-serif; line-height: 1.4;
+                font-size: 11.5px; font-weight: 800; color: #fff; margin-bottom: 5px; text-shadow: 1px 1px 3px #000; font-family: 'Nunito', sans-serif; line-height: 1.3;
                 animation: logFadeIn 0.3s ease forwards;
             }
             @keyframes logFadeIn {
                 from { opacity: 0; transform: translateY(5px); }
                 to { opacity: 1; transform: translateY(0); }
             }
-            .log-entry.system { color: #c0c0b0; font-style: italic; font-weight: 400; }
-            .log-entry.damage { color: #ff3333; font-weight: 800; }
-            .log-entry.healing, .log-entry.loot { color: #00e676; font-weight: 800; }
-            .log-entry.combat { color: #ff9800; font-weight: 700; }
-            .log-entry.chat { color: #81d4fa; font-style: italic; font-weight: 600; letter-spacing: 0.2px; }
-            .log-entry b, .log-entry strong { color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.4); }
+            .log-entry.damage { color: #ff5252; }
+            .log-entry.healing { color: #4caf50; }
+            .log-entry.system { color: #ffeb3b; }
+            .log-entry.combat { color: #ff9800; }
+            .log-entry.chat { color: #81d4fa; font-style: normal; font-family: inherit; font-weight: 800; letter-spacing: 0.5px; }
 
             /* Mapview container using identical 10A AAA design */
             #mapview-container {
@@ -743,14 +713,14 @@
                 min-width: 200px;
                 min-height: 200px;
                 border-radius: 18px;
-                background: transparent;
+                background: linear-gradient(145deg, #1a1a1e, #111114);
                 padding: 6px;
                 z-index: 10000;
                 border: 1px solid rgba(180,140,60,0.25);
                 box-sizing: border-box;
                 cursor: move;
                 transition: transform 0.3s ease;
-                overflow: hidden; /* Clips the inner massive border-shadow to simulate a frame */
+                overflow: visible;
                 -webkit-user-select: none;
                 user-select: none;
                 pointer-events: auto; /* Required to capture events over pointer-events: none body */
@@ -780,9 +750,7 @@
                 height: 100%;
                 overflow: hidden;
                 border-radius: 12px;
-                background: transparent;
-                /* Create the solid dark frame without blocking the transparent center */
-                box-shadow: 0 0 0 100px #151519, inset 0 0 0 4px rgba(10,10,12,1);
+                background: #0a0a0c;
             }
 
             /* Tilt-Shift / Diorama Spotlight Vignette */
@@ -842,7 +810,7 @@
         <div id="mapview-container" class="primary-view">
             <div class="view-label">Map View (Drag Here)</div>
             <div class="canvas-wrapper">
-                <!-- Native WebGL shines through from FPV iframe -->
+                <canvas id="pip-map-canvas"></canvas>
             </div>
             <div class="resize-handle se"></div>
             <div class="resize-handle sw"></div>
@@ -875,8 +843,8 @@
                             <button class="exit-btn yes" title="Yes" onclick="confirmExit()"><i class="fa-solid fa-check"></i></button>
                         </div>
                     </div>
-                    <div id="turn-indicator">PLAYER TURN</div>
                     <div id="guides-container"></div>
+                    <div id="event-log-container"></div>
                     <div id="dice-container">
                         <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
                            <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
@@ -893,7 +861,7 @@
                            <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
                         </div>
                     </div>
-                    <div id="event-log-container"></div><div id="input-container">
+                    <div id="input-container">
                         <div class="event-toggle" onclick="toggleEventLog()"><i class="fa-solid fa-plus"></i></div>
                         <div class="chat-pill">
                             <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
@@ -910,7 +878,7 @@
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
                     <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
-                    <div class="u-btn btn-action act-e" onclick="post({type: 'PIP_TOGGLE'})"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
+                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
                     <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><i class="fa-solid fa-gear"></i><span class="ac-text">Set</span></div>
                     <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
                     <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text">Heal</span></div>
@@ -924,7 +892,7 @@
         <div id="floating-loot-layer"></div>
     </div>
 
-    <script type="module">
+
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -940,7 +908,7 @@
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Magic Wand', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
             { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
-            { id: 'SCROLL', kanji: '具', icon: 'fa-scroll', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
+            { id: 'ARTIFACT', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
         ];
 
         const combatCategories = [
@@ -951,7 +919,7 @@
             { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
             { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
             { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
-            { id: 'SCROLL', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['POTION'] }
+            { id: 'ARTIFACT', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['POTION'] }
         ];
 
         let categories = defaultCategories;
@@ -966,7 +934,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'SCROLL', 'KATANA', 'MISSILE', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ARTIFACT', 'KATANA', 'MISSILE', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
             renderer.setClearColor(0x000000, 0); // Critial fix to prevent black squares
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -979,7 +947,7 @@
                 dir.position.set(5, 5, 5); scene.add(dir);
                 
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[el] || 0x444444,
+                    color: { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, ARTIFACT: 0x1b5e20 }[el] || 0x444444,
                     roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                 });
                 
@@ -1009,31 +977,32 @@
                         core.rotation.y = t * 0.25; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08); // Slowed core x2
                         flames.forEach(f => {
                             f.m.rotation.x += f.rs * 0.005; f.m.rotation.y += f.rs * 0.005; 
-                            f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 0.8);
-                            const sc = Math.max(0.1, 1 - (f.m.position.y / 1.5));
+                            f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 2.0); // Taller flame limit, half speed
+                            const sc = Math.max(0.1, 1 - (f.m.position.y / 4.0)); // Slow stretch boundary
                             f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5); 
                         });
                     };
                 } else if (el === 'WIND') {
                     const tornado = new THREE.Group();
-                    const numSpirals = 2; 
-                    const mat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+                    const numSpirals = 4; 
+                    const mat = new THREE.LineDashedMaterial({ color: 0x333333, opacity: 0.85, transparent: true, dashSize: 0.2, gapSize: 0.15 });
                     
                     for(let i=0; i<numSpirals; i++) {
                         const pts = [];
-                        const pointsCount = 40;
+                        const pointsCount = 45;
                         const phaseOffset = (i / numSpirals) * Math.PI * 2;
                         for(let j=0; j<=pointsCount; j++) {
                             const h = j / pointsCount; 
-                            const r = Math.pow(h, 2.0) * 1.5 + 0.2; 
-                            const y = (h - 0.5) * 2.5; 
-                            const angle = h * Math.PI * 12 + phaseOffset; 
+                            // True vortex shape: tightly coiled base that flares significantly at the top
+                            const r = Math.pow(h, 2.0) * 1.5 + 0.15; 
+                            const y = (h - 0.5) * 2.8; 
+                            const angle = h * Math.PI * 16 + phaseOffset; 
                             pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
                         }
-                        const curve = new THREE.CatmullRomCurve3(pts);
-                        const geometry = new THREE.TubeGeometry(curve, 40, 0.075, 6, false);
-                        const mesh = new THREE.Mesh(geometry, mat);
-                        tornado.add(mesh);
+                        const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+                        const line = new THREE.Line(geometry, mat);
+                        line.computeLineDistances(); 
+                        tornado.add(line);
                     }
                     tornado.position.y = -0.2;
                     group.add(tornado);
@@ -1043,172 +1012,95 @@
                         const targetColor = isDark ? 0xffffff : 0x333333;
                         tornado.children.forEach(l => { l.material.color.setHex(targetColor); });
                         
-                        tornado.rotation.y = t * -3.0; 
+                        // Extremely fast tornado spin
+                        tornado.rotation.y = t * -10.0; 
                         
                         // Dynamic swirling lean to look organic
                         tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
                         // Z ROTATION REMOVED
                     };
                 } else if (el === 'WATER') {
-                    const geo = new THREE.SphereGeometry(2.8, 64, 64);
-                    geo.scale(1, 1, 0.08); // only a little bumps worth for 3dness
-                    geo.computeVertexNormals();
-                    const mat = new THREE.MeshStandardMaterial({
-                        color: 0xffffff, roughness: 0.1, metalness: 0.9, vertexColors: true
-                    });
-                    const pos = geo.attributes.position;
-                    const colors = new Float32Array(pos.count * 3);
-                    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                    const mesh = new THREE.Mesh(geo, mat); 
-                    mesh.position.y = -1.8; 
-                    
-                    // Sunshine PointLight
-                    const sunLight = new THREE.PointLight(0xffffff, 3.0, 10);
-                    sunLight.position.set(0, 3, 2);
-                    group.add(mesh, sunLight);
-                    
+                    const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
                     update = (t) => {
-                        const p = geo.attributes.position;
-                        const c = geo.attributes.color;
-                        const white = new THREE.Color(0xffffff);
-                        const sunshine = new THREE.Color(0xffffff);
-                        const brightNavy = new THREE.Color(0x0044ff); // Bright Navy Blue
-                        for(let i=0; i<p.count; i++) {
-                            const x = p.getX(i), z = p.getZ(i); 
-                            const w = Math.sin(x * 3.0 + t * 4) * 0.3 + Math.cos(z * 2.5 + t * 3.5) * 0.25 + Math.sin((x+z)*5.0 + t*5.0) * 0.1;
-                            
-                            // Only animate the top surface
-                            if(p.getY(i) > 0.5) {
-                                p.setY(i, 1.4 + w);
-                                
-                                // Wave tips get white foam, slopes get sunshine reflection
-                                const heightMix = Math.max(0, Math.min(1, (w - 0.15) * 3.0));
-                                const sunMix = Math.max(0, Math.min(1, w * 1.5));
-                                
-                                let col = brightNavy.clone();
-                                if (heightMix > 0) col.lerp(white, heightMix); // White caps
-                                else col.lerp(sunshine, sunMix); // Sunshine reflection on slopes
-                                c.setXYZ(i, col.r, col.g, col.b);
-                            } else {
-                                c.setXYZ(i, brightNavy.r, brightNavy.g, brightNavy.b); // Deep body
-                            }
-                        }
-                        p.needsUpdate = true;
-                        c.needsUpdate = true;
-                        mesh.geometry.computeVertexNormals(); // Update lighting based on new wave shapes
-                    };
-                } else if (el === 'SCROLL') {
-                    const potionGroup = new THREE.Group();
-
-                    // 5% grayish smokey vial glass
-                    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.05, metalness: 0.1, transmission: 0.95, transparent: true, opacity: 0.4, ior: 1.5, depthWrite: false });
-                    const corkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.1 });
-                    const liquidMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
-                    
-                    // Beaker vial look (Cylinder with slightly tapered top)
-                    const baseGeo = new THREE.CylinderGeometry(0.8, 0.9, 1.6, 24);
-                    const base = new THREE.Mesh(baseGeo, glassMat);
-                    
-                    // Liquid inside (50% full with sloshing top)
-                    const liquidGeo = new THREE.CylinderGeometry(0.82, 0.85, 0.8, 24);
-                    // Move geometry origin to bottom so we can rotate the top
-                    liquidGeo.translate(0, 0.4, 0); 
-                    const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-                    liquid.position.y = -0.7; // Bottom of the beaker
-                    
-                    // Neck
-                    const neckGeo = new THREE.CylinderGeometry(0.4, 0.8, 0.6, 24);
-                    const neck = new THREE.Mesh(neckGeo, glassMat);
-                    neck.position.y = 1.1;
-                    
-                    // Lip
-                    const lipGeo = new THREE.TorusGeometry(0.45, 0.1, 8, 24);
-                    const lip = new THREE.Mesh(lipGeo, glassMat);
-                    lip.position.y = 1.4;
-                    lip.rotation.x = Math.PI / 2;
-                    
-                    // Cork
-                    const corkGeo = new THREE.CylinderGeometry(0.35, 0.3, 0.4, 12);
-                    const cork = new THREE.Mesh(corkGeo, corkMat);
-                    cork.position.y = 1.55;
-                    
-                    potionGroup.add(base, liquid, neck, lip, cork);
-                    potionGroup.position.y = -0.4; // Center in card
-                    potionGroup.scale.set(1.2, 1.2, 1.2); // Make it pop
-                    
-                    group.add(potionGroup);
-                    update = (t) => { 
-                        potionGroup.rotation.y = t * 1.5; 
-                        potionGroup.rotation.z = Math.sin(t * 1.5) * 0.05;
-                        
-                        // Liquid sloshing
-                        // We distort the top vertices of the liquid cylinder
-                        const pos = liquidGeo.attributes.position;
+                        const pos = geo.attributes.position;
                         for(let i=0; i<pos.count; i++) {
-                            const yOrig = pos.getY(i);
-                            if (yOrig > 0.1) { // Only affect the top surface
-                                const x = pos.getX(i);
-                                const z = pos.getZ(i);
-                                const slosh = Math.sin(x * 5.0 + t * 2.0) * 0.15 + Math.cos(z * 4.0 + t * 1.5) * 0.15;
-                                pos.setY(i, 0.8 + slosh);
-                            }
+                            const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                            if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
                         }
                         pos.needsUpdate = true;
                     };
-                } else if (el === 'KATANA') {
-                    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-                    hilt.position.y = -1.0;
-
-                    const bladeShape = new THREE.Shape();
-                    bladeShape.moveTo(0, 0); bladeShape.quadraticCurveTo(-0.2, 1.5, -0.1, 3.0); bladeShape.lineTo(0.2, 2.8); bladeShape.quadraticCurveTo(0.3, 1.5, 0.3, 0); bladeShape.lineTo(0, 0);
-                    const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
-                    bladeGeo.center();
-                    const blade = new THREE.Mesh(bladeGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.6, emissive: 0x444444 }));
-                    blade.position.y = 1.0;
-
-                    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16), new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 }));
-                    guard.position.y = -0.4;
-
-                    const swordContainer = new THREE.Group();
-                    swordContainer.add(hilt, blade, guard);
-                    swordContainer.scale.set(0.8, 0.8, 0.1); // flatten z depth
+                } else if (el === 'ITEM') {
+                    // Potion Flask (round bottom with narrow neck)
+                    const vial = new THREE.Group();
                     
-                    // White bloom glow behind
-                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64; canvas.height = 64;
-                    const ctx = canvas.getContext('2d');
-                    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-                    grad.addColorStop(0, 'rgba(255,255,255,1)');
-                    grad.addColorStop(1, 'rgba(255,255,255,0)');
-                    ctx.fillStyle = grad; ctx.fillRect(0,0,64,64);
-                    glowMat.map = new THREE.CanvasTexture(canvas);
-                    const glowPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 5.5), glowMat);
-                    glowPlane.position.z = -0.2;
-                    swordContainer.add(glowPlane);
-
-                    const sword1 = swordContainer.clone();
-                    sword1.position.set(-1.2, 0, 1.5);
-                    sword1.rotation.z = Math.PI / 4;
-
-                    const sword2 = swordContainer.clone();
-                    sword2.position.set(1.2, 0, 1.5);
-                    sword2.rotation.z = Math.PI / 4;
-
-                    group.add(sword1, sword2);
+                    const glassMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, roughness: 0.3, metalness: 0.2 });
+                    const flask = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 16), glassMat);
                     
-                    // Extra point light for weapon shininess
-                    const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
-                    pointLight.position.set(0, 0, 3);
-                    group.add(pointLight);
-
+                    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 16), glassMat);
+                    neck.position.y = 1.4;
+                    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 16), glassMat);
+                    lip.position.y = 1.8; lip.rotation.x = Math.PI / 2;
+                    
+                    // Glowing green liquid inside sphere (Uses half-sphere plus a flat top disk to simulate 50% fluid)
+                    const liqMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+                    const liqGroup = new THREE.Group();
+                    const liqGeo = new THREE.SphereGeometry(1.05, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI); // Equator to South Pole
+                    const liq = new THREE.Mesh(liqGeo, liqMat);
+                    const liqTop = new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), liqMat);
+                    liqTop.rotation.x = -Math.PI / 2; // Flat horizontal top representing the surface
+                    liq.add(liqTop);
+                    liqGroup.add(liq);
+                    
+                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 }));
+                    cork.position.y = 1.9;
+                    
+                    vial.add(flask, neck, lip, liqGroup, cork);
+                    vial.position.y = -0.5; // Center
+                    group.add(vial);
+                    
+                    const glowLight = new THREE.PointLight(0x00ff00, 3, 6);
+                    vial.add(glowLight);
+                    
                     update = (t) => { 
-                        sword1.position.y = Math.sin(t * 2) * 0.1; 
-                        sword2.position.y = Math.cos(t * 2) * 0.1;
+                        vial.rotation.y = t * 0.4; // Slower spinning
+                        
+                        // Sloshing logic - dynamically tilting the local fluid sphere oppositely to create sloshing against the identical glass surface
+                        liqGroup.rotation.x = Math.sin(t * 2.1) * 0.2;
+                        // Z ROTATION REMOVED
+                        
+                        const pulse = 0.5 + Math.sin(t * 2.5) * 0.5;
+                        glowLight.intensity = 1.5 + pulse * 1.5; 
+                        liqGroup.scale.setScalar(0.98 + pulse * 0.02); // Lowered throb
                     };
+                } else if (el === 'KATANA' || el === 'SLASH' || el === 'THRUST') {
+                    // Cartoonish Katana - shorter, thicker, fits in circle
+                    const hiltGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+                    const hiltMat = new THREE.MeshStandardMaterial({color: 0xffffff});
+                    const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+                    const bladeGeo = new THREE.BoxGeometry(0.08, 1.8, 0.3);
+                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.8, roughness: 0.2});
+                    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                    blade.position.y = 1.2;
+                    const guardGeo = new THREE.BoxGeometry(0.5, 0.1, 0.5);
+                    const guardMat = new THREE.MeshStandardMaterial({color: 0xffffff});
+                    const guard = new THREE.Mesh(guardGeo, guardMat);
+                    guard.position.y = 0.3;
+                    
+                    const swordGrp1 = new THREE.Group();
+                    swordGrp1.add(hilt.clone(), blade.clone(), guard.clone());
+                    swordGrp1.position.set(-0.6, -0.3, 0);
+                    swordGrp1.rotation.z = Math.PI / 4;
+                    
+                    const swordGrp2 = new THREE.Group();
+                    swordGrp2.add(hilt.clone(), blade.clone(), guard.clone());
+                    swordGrp2.position.set(0.6, -0.3, 0);
+                    swordGrp2.rotation.z = Math.PI / 4;
+                    
+                    group.add(swordGrp1, swordGrp2);
+                    update = (t) => { group.rotation.y = t * 0.5; };
                 } else if (el === 'MISSILE') {
                     const starShape = new THREE.Shape();
-                    const outerRadius = 1.6;
+                    const outerRadius = 1.8; // larger, 50% of the visual circle
                     const innerRadius = 0.45;
                     for (let i = 0; i < 8; i++) {
                         const angle = (i * Math.PI) / 4;
@@ -1216,54 +1108,15 @@
                         if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
                         else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
                     }
-                    const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
+                    const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 });
                     starGeo.center();
-                    const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.6, roughness: 0.2, emissive: 0x444444});
+                    const starMat = new THREE.MeshStandardMaterial({color: 0xdddddd, metalness: 0.9, roughness: 0.1, emissive: 0x444444});
                     const star = new THREE.Mesh(starGeo, starMat);
-                    
                     const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
                     hole.rotation.x = Math.PI / 2;
-                    const starGroup = new THREE.Group();
-                    starGroup.add(star, hole);
-                    starGroup.scale.set(0.9, 0.9, 0.1); // flat z
-                    
-                    // White bloom glow behind
-                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64; canvas.height = 64;
-                    const ctx = canvas.getContext('2d');
-                    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-                    grad.addColorStop(0, 'rgba(255,255,255,1)');
-                    grad.addColorStop(1, 'rgba(255,255,255,0)');
-                    ctx.fillStyle = grad; ctx.fillRect(0,0,64,64);
-                    glowMat.map = new THREE.CanvasTexture(canvas);
-                    const glowPlane = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), glowMat);
-                    glowPlane.position.z = -0.2;
-                    starGroup.add(glowPlane);
-
-                    const star1 = starGroup.clone();
-                    star1.position.set(-1.2, 0, 1.5);
-                    const star2 = starGroup.clone();
-                    star2.position.set(1.2, 0, 1.5);
-
-                    group.add(star1, star2);
-                    
-                    // Extra point light for weapon shininess
-                    const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
-                    pointLight.position.set(0, 0, 3);
-                    group.add(pointLight);
-
-                    update = (t) => { 
-                        star1.rotation.z = -t * 0.1; 
-                        star2.rotation.z = t * 0.1; 
-                    };
+                    group.add(star, hole);
+                    update = (t) => { group.rotation.z = -t * 2.0; };
                 } else if (el === 'SHIELD') {
-                    const addOutline = (mesh) => {
-                        const edges = new THREE.EdgesGeometry(mesh.geometry);
-                        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
-                        mesh.add(line);
-                    };
-                    
                     const shieldShape = new THREE.Shape();
                     shieldShape.moveTo(0, -1.2);
                     shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
@@ -1272,10 +1125,9 @@
                     
                     const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
                     shieldGeo.center();
-                    const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444});
+                    const shieldMat = new THREE.MeshStandardMaterial({color: 0xd0d0d0, metalness: 0.6, roughness: 0.4});
                     const shield = new THREE.Mesh(shieldGeo, shieldMat);
                     shield.scale.set(1.4, 1.4, 1.4);
-                    addOutline(shield);
                     
                     // Inner shield design
                     const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.25, bevelEnabled: false });
@@ -1284,21 +1136,10 @@
                     const innerShield = new THREE.Mesh(innerGeo, innerMat);
                     innerShield.scale.set(0.5, 0.5, 1.0);
                     innerShield.position.z = 0; // centered so it pokes out both sides
-                    addOutline(innerShield);
+                    
                     shield.add(innerShield);
-                    
-                    const innerShieldBack = new THREE.Mesh(innerGeo, innerMat);
-                    innerShieldBack.scale.set(0.5, 0.5, 1.0);
-                    innerShieldBack.position.z = -0.15; // Set into the back of the shield
-                    innerShieldBack.rotation.y = Math.PI; // Face outwards
-                    shield.add(innerShieldBack);
-                    
                     group.add(shield);
-                    update = (t) => { 
-                        // Do not rotate per user request
-                        // Just gently bob up and down
-                        group.position.y = Math.sin(t * 2) * 0.1;
-                    };
+                    update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
                 } else if (el === 'DICE_EVEN' || el === 'DICE_ODD' || el === 'DICE_CENTER') {
                     const dieGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
                     const dieMat = new THREE.MeshStandardMaterial({
@@ -1562,12 +1403,9 @@
                 const loader = new GLTFLoader();
                 // Adding multiple paths fallback logic like FPV does if possible, but trying relative first
                 const isLocalFile = window.location.protocol === 'file:';
-                const modelUrls = [
+                const modelUrls = isLocalFile ? [] : [
                     './assets/models/Player.A.Walking.glb',
-                    '../assets/models/Player.A.Walking.glb',
-                    'assets/Player.A.Walking.glb',
-                    'https://www.markpeterson.info/Origami/assets/Player.A.Walking.glb',
-                    'https://markpeterson.info/Origami/assets/Player.A.Walking.glb'
+                    '../assets/models/Player.A.Walking.glb'
                 ];
                 
                 function tryLoadModel(urlIndex) {
@@ -1577,9 +1415,7 @@
                         } else {
                             console.warn("Avatar failed to load natively after all attempts. Falling back to 2D portrait.");
                         }
-                        container.style.backgroundImage = 'url("assets/models/Player.A.png")';
-                        container.style.backgroundPosition = 'center';
-                        container.style.backgroundSize = 'cover';
+                        container.style.background = 'url("assets/models/Player.A.png") center/cover no-repeat';
                         container.style.backgroundColor = 'rgba(0,0,0,0.5)';
                         return;
                     }
@@ -1587,20 +1423,12 @@
                     loader.load(modelUrls[urlIndex], (gltf) => {
                         const model = gltf.scene;
                         
+                        // Position so the torso is centered in the circle (Shifted up ~50 virtual px)
                         model.position.set(0, -0.1, 0); // Moved up to add +25px bottom buffer
                         // Rotate to face slightly right layout (isometric feel)
                         model.rotation.y = Math.PI / 8;
                         // Scale 
                         model.scale.set(1.25, 1.25, 1.25);
-                        
-                        // Prevent material from blowing out to pure white under lighting
-                        model.traverse((child) => {
-                            if (child.isMesh) {
-                                child.material = new THREE.MeshLambertMaterial({ 
-                                    color: 0xcccccc
-                                });
-                            }
-                        });
                         
                         avatarScene.add(model);
                         
@@ -1617,8 +1445,11 @@
                             avatarActions.walk = avatarActions['walk'] || avatarActions['run'] || avatarActions['walking'] || avatarActions[1] || avatarActions[0];
                             avatarActions.slash = avatarActions['attack'] || avatarActions['slash'] || avatarActions[2] || avatarActions[1] || avatarActions.walk;
                             
-                            if (!avatarIdleAction) {
-                                avatarIdleAction = avatarActions[0] || avatarMixer.clipAction(gltf.animations[0]);
+                            if (!avatarIdleAction && gltf.animations.length === 1) {
+                                // Baseline behavior: if only one animation exists, do not use it as idle otherwise it will moonwalk.
+                                avatarIdleAction = null;
+                            } else if (!avatarIdleAction) {
+                                avatarIdleAction = avatarActions[0];
                             }
                             
                             // Play idle immediately if it logically exists
@@ -1630,10 +1461,8 @@
                         
                         // Fix metallic/roughness issues that might make it render black
                         model.traverse((child) => {
-                            if (child.isMesh) {
-                                child.material = new THREE.MeshLambertMaterial({ 
-                                    color: 0xcccccc
-                                });
+                            if (child.isMesh && child.material) {
+                                child.material.needsUpdate = true;
                             }
                         });
                         
@@ -1792,22 +1621,10 @@
                         if (badge) badge.textContent = qty;
                         
                         if (qty <= 0) {
-                            btn.style.opacity = '0'; // Fade out
-                            btn.style.pointerEvents = 'none'; // prevent double clicks during fade
-                            const col = btn.parentElement;
-                            setTimeout(() => {
-                                btn.remove();
-                                if (col) {
-                                    const remaining = Array.from(col.querySelectorAll('.guide-card'));
-                                    if (remaining.length === 0) {
-                                        col.remove();
-                                    } else {
-                                        remaining.forEach((c, idx) => c.dataset.depth = idx.toString());
-                                    }
-                                }
-                            }, 400);
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.3'; // Dim when depleted
                         }
-                    } else if (qty <= 0) {
+                    } else {
                         return; // Block action if depleted!
                     }
                 }
@@ -2194,6 +2011,7 @@
                 if (!ez.classList.contains('active')) {
                     window.logEvent('You encounter a Yakuza Goblin!', 'system');
                     window.logEvent('DMG: (LVL + WPN + SPC)', 'system');
+                    window.logEvent('[WARNING] Fighting EMPTY HANDED.', 'damage');
                 }
                 ez.classList.add('active');
                 document.getElementById('event-log-container').classList.add('active');
@@ -2234,22 +2052,6 @@
                     // Center-to-center distance * 10, minus 10 feet for physical contact radius
                     let distFeet = Math.max(0, (e.data.distance * 10) - 10).toFixed(0);
                     distTexts.forEach(el => el.textContent = `${distFeet} ft`);
-                }
-            } else if (e.data && e.data.type === 'COMBAT_STATE_UPDATE') {
-                const indicator = document.getElementById('turn-indicator');
-                if (indicator) {
-                    if (e.data.state === 'idle') {
-                        indicator.style.display = 'none';
-                        indicator.className = '';
-                    } else if (e.data.state === 'player_turn') {
-                        indicator.style.display = 'block';
-                        indicator.className = 'player-turn';
-                        indicator.textContent = 'PLAYER TURN';
-                    } else if (e.data.state === 'monster_turn') {
-                        indicator.style.display = 'block';
-                        indicator.className = 'monster-turn';
-                        indicator.textContent = 'ENEMY TURN';
-                    }
                 }
             } else if (e.data && e.data.type === 'UPDATE_LOOT_CARDS') {
                 const layer = document.getElementById('floating-loot-layer');
@@ -2480,12 +2282,7 @@
             
             const entry = document.createElement('div');
             entry.className = `log-entry ${type}`;
-            
-            let formattedText = text;
-            if (type === 'chat' && !formattedText.includes('"')) {
-                formattedText = `"${formattedText}"`;
-            }
-            entry.innerHTML = formattedText;
+            entry.textContent = `> ${text}`;
             container.appendChild(entry);
             // Cap history
             while (container.childNodes.length > 50) container.removeChild(container.firstChild);
@@ -2516,9 +2313,9 @@
             }
         }, 100); // Initial call after DOM paints
         updateViewportReadout();
-    </script>
+    
 
-<script>
+
 setTimeout(() => {
     const gc = document.getElementById('guides-container');
     const ic = document.getElementById('input-container');
@@ -2532,9 +2329,9 @@ setTimeout(() => {
 }, 3000);
 
 // (Dojo Shoji Texture removed; reverting side-panels to standard glass texture to match playing cards)
-</script>
 
-<script>
+
+
     (function() {
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('mode');
@@ -2840,6 +2637,6 @@ setTimeout(() => {
         }
         requestAnimationFrame(animate);
     };
-</script>
+
 </body>
 </html>
