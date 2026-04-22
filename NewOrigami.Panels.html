@@ -20,28 +20,28 @@
     <style>
         :root {
             /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
-            --bg-panel: rgba(255, 255, 255, 0.55); 
-            --bg-circle: rgba(255, 255, 255, 0.75); 
-            --bg-glass: rgba(255, 255, 255, 0.55); /* Unified Translucency */
+            --bg-panel: #1e2022; 
+            --bg-circle: #17181a; 
+            --bg-glass: #232527; /* Unified Neumorphic Dark */
             --bg-attr-dark: #101012; 
-            --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
-            --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
-            --glass-border: 1px solid rgba(0, 0, 0, 0.15);
+            --nm-shadow-dark: rgba(0, 0, 0, 0.6); 
+            --nm-shadow-inner: inset 1px 1px 2px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.4);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
             
-            --color-text: #1a1a1a; 
-            --color-text-dim: #44474a; 
+            --color-text: #ffffff; 
+            --color-text-dim: rgba(255,255,255,0.6); 
             
             --bottom-dock-height: 230px;
             --wing-height: 160px;
             --card-w: 84px;
             --card-h: 135px;
 
-            /* DARKENED ELEMENTAL AAA PALETTE */
-            --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
-            --wind-clr: #37474f;  --wind-bg: rgba(55, 71, 79, 0.15);
-            --fire-clr: #b71c1c;  --fire-bg: rgba(183, 28, 28, 0.15);
-            --water-clr: #0d47a1; --water-bg: rgba(13, 71, 161, 0.15);
-            --item-clr: #1b5e20;  --item-bg: rgba(27, 94, 32, 0.15);
+            /* REFINED ELEMENTAL PALETTE (1:1 with Screenshot) */
+            --earth-clr: #00bcd4; --earth-bg: rgba(0, 188, 212, 0.1);
+            --wind-clr: #90a4ae;  --wind-bg: rgba(144, 164, 174, 0.1);
+            --fire-clr: #f44336;  --fire-bg: rgba(244, 67, 54, 0.1);
+            --water-clr: #2196f3; --water-bg: rgba(33, 150, 243, 0.1);
+            --item-clr: #e91e63;  --item-bg: rgba(233, 30, 99, 0.1);
             
             --wager-solid: #1b5e20;
             --attack-solid: #b71c1c;
@@ -116,16 +116,24 @@
         
         /* Tactical Buttons */
         .sp-btn { 
-            width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
-            border: 1.5px solid var(--theme-clr); 
-            background: var(--bg-panel); 
+            position: relative; width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
+            border: var(--glass-border); 
+            background: var(--bg-glass); 
             font-weight: 900; font-size: 10px; text-transform: uppercase; 
             cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
             padding: 0 10px; box-sizing: border-box;
-              transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 2px 2px 8px var(--nm-shadow-dark);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner);
             color: var(--color-text);
         }
+        .sp-btn::before {
+            content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; 
+            border-radius: 5px; pointer-events: none; z-index: 0;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
+            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        }
+        .sp-btn > * { position: relative; z-index: 1; }
+        
         /* Lesser strength hover using elemental background */
         .sp-btn:hover { background: var(--theme-bg) !important; transform: translateY(-1px); }
 
@@ -261,7 +269,7 @@
         .roll-btn:hover { background: var(--item-clr); color: #fff; transform: translateY(-2px); }
         .roll-btn i { margin-right: 10px; font-size: 20px; }
 
-        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
         .card-column.focused { z-index: 30; }
 
         @media (max-width: 1100px) {
@@ -290,9 +298,9 @@
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--color-text); 
-            background: rgba(15, 15, 18, 0.95);   
+            background: var(--bg-glass) !important;   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 0; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.15);
+            padding: 0; box-sizing: border-box; border: var(--glass-border) !important;
             transform-origin: top center;
         }
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
@@ -345,11 +353,44 @@
         }
 
         
-        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 2px 2px 10px var(--nm-shadow-dark); }
-        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(0.9); }
-        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), 0 0 6px rgba(255,255,255,0.25), inset 0 0 0 1px rgba(255,255,255,0.1) !important; }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), 0 0 4px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.05) !important; filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 3px rgba(255,255,255,0.1); filter: brightness(0.7); }
         .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
         .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
+        
+        /* Inventory Modal */
+        #inventory-modal {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            z-index: 20000; display: none; flex-direction: column;
+            padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow-y: auto;
+            color: #ffffff; opacity: 0; transition: opacity 0.3s ease;
+        }
+        #inventory-modal.active { display: flex; opacity: 1; }
+        #inventory-modal::-webkit-scrollbar { width: 8px; }
+        #inventory-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        
+        .inv-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; flex-shrink: 0;
+        }
+        .inv-title { font-size: 28px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; font-family: 'Nunito', sans-serif; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .inv-close { background: none; border: none; color: #fff; font-size: 36px; cursor: pointer; transition: color 0.2s, transform 0.2s; padding: 0 10px; }
+        .inv-close:hover { color: #ff3333; transform: scale(1.1); }
+        .inv-category { margin-bottom: 40px; }
+        .inv-category-title { font-size: 16px; font-weight: 800; color: #888; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .inv-category-title::after { content: ''; flex-grow: 1; height: 1px; background: rgba(255,255,255,0.1); }
+        .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; justify-content: start; justify-items: center; }
+        
+        /* Reset card styles strictly for the inventory layout */
+        .inv-grid .playing-card {
+            position: relative; transform: none !important; opacity: 1 !important; z-index: 1 !important;
+            filter: none !important; margin: 0; transition: transform 0.2s, box-shadow 0.2s; cursor: default;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 0 6px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.1) !important;
+        }
+        .inv-grid .playing-card:hover { transform: translateY(-5px) !important; box-shadow: 0 8px 16px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.3), inset 0 0 0 1px rgba(255,255,255,0.2) !important; z-index: 10 !important; }
         
         /* Rigid Vertical Symmetry Zones */
         .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
@@ -359,19 +400,20 @@
         .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
         .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
         
-        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-glass); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--glass-border); flex-shrink: 0; margin-bottom: 5px; }
-        .dark-mode .card-icon-3d { background: var(--bg-glass); }
+        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: #000000; box-shadow: inset 0px 5px 15px rgba(0,0,0,0.9), inset 0px 0px 5px rgba(0,0,0,1); margin: 0 auto; overflow: hidden; position: relative; border: 1.5px solid rgba(255,255,255,0.1); flex-shrink: 0; margin-bottom: 5px; }
+        .dark-mode .card-icon-3d { background: #000000; }
         .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
         .card-attr-fused { 
             width: 100%; 
-            height: 35px; 
+            height: 25px; 
             margin-top: auto; 
-            background: var(--bg-attr-dark); 
+            background: rgba(10, 10, 12, 0.8); 
+            border-top: 1px solid rgba(255,255,255,0.05);
             color: #ffffff;
             font-weight: 900; 
             font-size: 8px;
             letter-spacing: 0px; 
-            padding: 0 8px 6px 8px; 
+            padding: 0 8px; 
             text-transform: uppercase; 
             display: flex; 
             align-items: center; 
@@ -380,7 +422,7 @@
             text-align: center; 
             line-height: 1.1; 
             box-sizing: border-box; 
-            border-radius: 0 0 10px 10px;
+            border-radius: 0 0 11px 11px;
         }
 
         .card-click-overlay {
@@ -445,7 +487,9 @@
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
         }
-        .chat-pill { min-width: 0; width: 100%; height: 54px; background: var(--bg-glass);   box-shadow: 2px 2px 8px var(--nm-shadow-dark); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-pill { position: relative; min-width: 0; width: 100%; height: 54px; background: var(--bg-glass); box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-pill::before { content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 9px; pointer-events: none; z-index: 0; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02); border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1); }
+        .chat-input, .enter-symbol, .event-toggle { position: relative; z-index: 1; }
         .chat-input { flex: 1; width: 10px; background: transparent; border: none; outline: none; color: #FFF; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
         .chat-input::placeholder { color: rgba(255,255,255,0.7); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
@@ -684,7 +728,7 @@
                 overflow-y: hidden;
                 display: flex;
                 flex-direction: column;
-                background: rgba(0, 0, 0, 0.75);
+                background: var(--bg-glass);
                 border-radius: 12px;
                 transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, margin 0.3s ease, max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 opacity: 0;
@@ -692,7 +736,8 @@
                 padding: 0 15px;
                 box-sizing: border-box;
                 margin-bottom: 0px;
-                border: 1px solid rgba(255,255,255,0.0);
+                border: var(--glass-border);
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner);
             }
             #event-log-container.active {
                 height: 100px;
@@ -733,121 +778,212 @@
             .log-entry.chat { color: #81d4fa; font-style: italic; font-weight: 600; letter-spacing: 0.2px; }
             .log-entry b, .log-entry strong { color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.4); }
 
-            /* Mapview container using identical 10A AAA design */
-            #mapview-container {
+            /* Moondial UI */
+            #moondial-wrapper {
                 position: absolute;
-                top: 20px;
+                top: 50px;
                 left: 20px;
-                height: clamp(250px, 30vh, 400px);
-                width: clamp(250px, 30vh, 400px);
-                min-width: 200px;
-                min-height: 200px;
-                border-radius: 18px;
-                background: transparent;
-                padding: 6px;
+                width: clamp(200px, 25vw, 300px);
+                height: clamp(200px, 25vw, 300px);
+                border-radius: 50%;
+                background: transparent; 
                 z-index: 10000;
-                border: 1px solid rgba(180,140,60,0.25);
-                box-sizing: border-box;
                 cursor: move;
                 transition: transform 0.3s ease;
-                overflow: hidden; /* Clips the inner massive border-shadow to simulate a frame */
                 -webkit-user-select: none;
                 user-select: none;
                 pointer-events: auto; /* Required to capture events over pointer-events: none body */
                 display: none; /* Only visible in dock mode */
             }
 
-            #mapview-container:hover {
-                border-color: rgba(200,150,60,0.35);
-            }
-
-            #mapview-container.dragging {
+            #moondial-wrapper.dragging {
                 cursor: grabbing !important;
                 z-index: 10005 !important;
-            }
-
-            #mapview-container.resizing {
                 transition: none;
             }
 
-            #mapview-container:active {
-                cursor: grabbing;
-            }
-
-            #mapview-container .canvas-wrapper {
-                position: relative;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                border-radius: 12px;
+            .compass-outer-ring {
+                position: absolute;
+                inset: -14px; /* Matches border width to sit outside */
+                border-radius: 50%;
                 background: transparent;
-                /* Create the solid dark frame without blocking the transparent center */
-                box-shadow: 0 0 0 100px #151519, inset 0 0 0 4px rgba(10,10,12,1);
+                border: 14px solid #151519;
+                box-sizing: border-box;
+                box-shadow: 
+                    8px 8px 16px rgba(0,0,0,0.8),
+                    -4px -4px 10px rgba(255,255,255,0.05),
+                    inset 4px 4px 8px rgba(0,0,0,0.9),
+                    inset -2px -2px 6px rgba(255,255,255,0.05);
+                pointer-events: none;
             }
-
-            /* Tilt-Shift / Diorama Spotlight Vignette */
-            #mapview-container .canvas-wrapper::after {
+            
+            /* Compass Indents (Tick Marks) */
+            .compass-outer-ring::after {
                 content: '';
                 position: absolute;
-                top: 0; left: 0; right: 0; bottom: 0;
-                background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
-                -webkit-backdrop-filter: blur(4px);
-                backdrop-filter: blur(4px);
-                -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
-                mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+                inset: -14px;
+                border-radius: 50%;
+                background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.15) 0deg, rgba(255,255,255,0.15) 0.5deg, transparent 0.5deg, transparent 10deg);
+                -webkit-mask: radial-gradient(closest-side, transparent 88%, black 89%);
                 pointer-events: none;
-                z-index: 10;
             }
 
-            #mapview-container .canvas-wrapper canvas {
+            .compass-marker {
+                position: absolute;
+                font-family: 'Roboto', sans-serif;
+                font-weight: 800;
+                font-size: 11px;
+                color: #5a5f6a;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.05);
+                z-index: 20;
+            }
+            .compass-marker.north { top: -13px; left: 50%; transform: translateX(-50%); }
+            .compass-marker.south { bottom: -13px; left: 50%; transform: translateX(-50%); }
+            .compass-marker.east { right: -11px; top: 50%; transform: translateY(-50%); }
+            .compass-marker.west { left: -11px; top: 50%; transform: translateY(-50%); }
+
+            .season-outer-ring {
+                position: absolute;
+                inset: 0px; /* Inside the 14px compass border */
+                border-radius: 50%;
+                border: 16px solid rgba(12, 12, 15, 0.95); /* Solid dark dial */
+                box-sizing: border-box;
+                box-shadow: 
+                    inset 2px 2px 6px rgba(0,0,0,0.9),
+                    inset -1px -1px 4px rgba(255,255,255,0.05),
+                    0 0 10px rgba(0,0,0,0.8);
+                pointer-events: none;
+                z-index: 12; /* Ensure it is fully visible above the PiP map */
+                transition: transform 1s ease-in-out;
+            }
+
+            .moon-selector {
+                position: absolute;
+                top: -6px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 8px solid #00ffcc;
+                z-index: 30;
+                filter: drop-shadow(0 0 4px #00ffcc);
+            }
+
+            .moon-icon {
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #151519;
+                box-shadow: 
+                    inset 2px 2px 4px rgba(0,0,0,0.8), 
+                    inset -1px -1px 2px rgba(255,255,255,0.1);
+            }
+            /* Moons are pushed inwards (+6px or -6px) to center them on the new 16px inset border */
+            .moon-icon.new-moon {
+                top: 14.65%; left: 14.65%; transform: translate(calc(-50% + 6px), calc(-50% + 6px));
+            }
+            .moon-icon.first-quarter {
+                top: 14.65%; right: 14.65%; transform: translate(calc(50% - 6px), calc(-50% + 6px));
+                background: linear-gradient(90deg, #151519 50%, #e0e5ec 50%);
+                box-shadow: 0 0 4px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.5);
+            }
+            .moon-icon.full-moon {
+                bottom: 14.65%; right: 14.65%; transform: translate(calc(50% - 6px), calc(50% - 6px));
+                background: radial-gradient(circle at 30% 30%, #e0e5ec, #7a828e);
+                box-shadow: 0 0 6px rgba(255,255,255,0.2), inset -1px -1px 3px rgba(0,0,0,0.5);
+            }
+            .moon-icon.last-quarter {
+                bottom: 14.65%; left: 14.65%; transform: translate(calc(-50% + 6px), calc(50% - 6px));
+                background: linear-gradient(90deg, #e0e5ec 50%, #151519 50%);
+                box-shadow: 0 0 4px rgba(255,255,255,0.1), inset 1px -1px 2px rgba(0,0,0,0.5);
+            }
+
+            .pip-vignette {
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 10;
+                /* This generates the spherical fisheye glass effect */
+                box-shadow: 
+                    inset 0 0 40px rgba(0,0,0,0.6),
+                    inset 0 0 15px rgba(0,0,0,0.8),
+                    inset 0 -20px 40px rgba(255,255,255,0.15);
+            }
+
+            #pipCanvas {
                 display: block;
                 width: 100%;
                 height: 100%;
-                pointer-events: auto;
-            }
-
-            .resize-handle {
-                position: absolute;
-                width: 24px;
-                height: 24px;
-                background: transparent;
-                z-index: 100;
-                pointer-events: auto;
-                transition: background 0.2s;
-            }
-            .resize-handle:hover {
-                background: rgba(255,255,255,0.1);
-            }
-            .resize-handle.se { bottom: -2px; right: -2px; cursor: se-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-bottom-right-radius: 8px;}
-            .resize-handle.sw { bottom: -2px; left: -2px; cursor: sw-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-bottom-left-radius: 8px;}
-            .resize-handle.ne { top: -2px; right: -2px; cursor: ne-resize; border-top: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-top-right-radius: 8px;}
-            .resize-handle.nw { top: -2px; left: -2px; cursor: nw-resize; border-top: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-top-left-radius: 8px;}
-
-            #mapview-container .view-label {
-                position: absolute;
-                top: 6px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-family: 'Roboto', sans-serif;
-                font-weight: 800;
-                font-size: 10px;
-                letter-spacing: 0.1em;
-                color: rgba(255,255,255,0.3);
-                pointer-events: none;
-                z-index: 6;
+                border-radius: 50%;
+                pointer-events: auto; /* WebGL handles events through this dummy */
+                cursor: pointer;
             }
         </style>
         
-        <!-- Map View Container -->
-        <div id="mapview-container" class="primary-view">
-            <div class="view-label">Map View (Drag Here)</div>
-            <div class="canvas-wrapper">
-                <!-- Native WebGL shines through from FPV iframe -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const pipCanvas = document.getElementById('pipCanvas');
+                if (pipCanvas) {
+                    pipCanvas.addEventListener('click', () => {
+                        window.parent.postMessage({ type: 'PIP_TOGGLE' }, '*');
+                    });
+                    pipCanvas.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        window.parent.postMessage({ type: 'PIP_ZOOM', delta: Math.sign(e.deltaY) }, '*');
+                    }, { passive: false });
+                }
+
+                // Moonphase calculation based on current Date
+                function getMoonPhase() {
+                    const today = new Date();
+                    let year = today.getFullYear();
+                    let month = today.getMonth() + 1;
+                    let day = today.getDate();
+                    if (month < 3) { year--; month += 12; }
+                    month++;
+                    const c = 365.25 * year;
+                    const e = 30.6 * month;
+                    let jd = c + e + day - 694039.09;
+                    jd /= 29.5305882;
+                    const b = Math.floor(jd);
+                    jd -= b;
+                    let phase = Math.round(jd * 8);
+                    if (phase >= 8) phase = 0;
+                    return phase;
+                }
+                
+                const phase = getMoonPhase(); // 0 to 7
+                const ring = document.querySelector('.season-outer-ring');
+                if (ring) {
+                    const rotation = 45 - (phase * 45);
+                    ring.style.transform = `rotate(${rotation}deg)`;
+                }
+            });
+        </script>
+        
+        <!-- Moondial UI -->
+        <div id="moondial-wrapper" class="primary-view">
+            <canvas id="pipCanvas"></canvas>
+            <div class="moon-selector"></div>
+            <div class="compass-outer-ring">
+                <span class="compass-marker north">N</span>
+                <span class="compass-marker south">S</span>
+                <span class="compass-marker east">E</span>
+                <span class="compass-marker west">W</span>
             </div>
-            <div class="resize-handle se"></div>
-            <div class="resize-handle sw"></div>
-            <div class="resize-handle ne"></div>
-            <div class="resize-handle nw"></div>
+            
+            <div class="season-outer-ring">
+                <div class="moon-icon new-moon" title="New Moon"></div>
+                <div class="moon-icon first-quarter" title="First Quarter"></div>
+                <div class="moon-icon full-moon" title="Full Moon"></div>
+                <div class="moon-icon last-quarter" title="Last Quarter"></div>
+            </div>
+            
+            <div class="pip-vignette"></div>
         </div>
 
         <div id="lower-ui-row">
@@ -909,7 +1045,7 @@
                     <div class="level-badge" id="player-level-badge">1</div>
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
-                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
+                    <div class="u-btn btn-action act-ne" onclick="openInventory()"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
                     <div class="u-btn btn-action act-e" onclick="post({type: 'PIP_TOGGLE'})"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
                     <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><i class="fa-solid fa-gear"></i><span class="ac-text">Set</span></div>
                     <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
@@ -922,6 +1058,17 @@
         
         <!-- FPV Floating Loot Cards layer (receives absolute positioned items from FPV engine) -->
         <div id="floating-loot-layer"></div>
+        
+        <!-- Inventory Modal -->
+        <div id="inventory-modal">
+            <div class="inv-header">
+                <div class="inv-title">Loot Inventory</div>
+                <button class="inv-close" onclick="closeInventory()">&times;</button>
+            </div>
+            <div id="inv-content">
+                <!-- Populated via JS -->
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -932,6 +1079,131 @@
         window.toggleRing = function() {
             const az = document.getElementById('action-zone');
             if(az) az.classList.toggle('outer-active');
+        };
+
+        window.openInventory = function() {
+            const modal = document.getElementById('inventory-modal');
+            if(modal) {
+                modal.classList.add('active');
+                window.renderInventory();
+            }
+        };
+
+        window.closeInventory = function() {
+            const modal = document.getElementById('inventory-modal');
+            if(modal) modal.classList.remove('active');
+        };
+
+        window.renderInventory = function() {
+            const content = document.getElementById('inv-content');
+            if(!content) return;
+            content.innerHTML = '';
+            
+            // Re-use logic from deck building to render cards statically
+            // Group by Nethack Rules: Weapons, Armor, Spells, Items
+            
+            const nethackGroups = {
+                'Weapons': [],
+                'Armor': [],
+                'Spells': [],
+                'Items': []
+            };
+
+            // Analyze player's collected cards (window.cardInventoryCounts)
+            const inventory = window.cardInventoryCounts || {};
+            
+            // Map known categories to Nethack types
+            const weaponTypes = ['KATANA', 'MISSILE', 'SLASH', 'THRUST'];
+            const armorTypes = ['SHIELD', 'ARMOR'];
+            const spellTypes = ['FIRE', 'WATER', 'EARTH', 'WIND', 'SPELL'];
+            const itemTypes = ['SCROLL', 'POTION', 'WAND'];
+
+            // We need a helper to find the card info from default/combat categories
+            const allDefs = [...defaultCategories, ...combatCategories];
+            const getCardDef = (cardName) => {
+                for (let cat of allDefs) {
+                    if (cat.cards && cat.cards.includes(cardName)) return cat;
+                }
+                return { id: 'MISC', kanji: '？', desc: 'Unknown', attr: 'N/A' };
+            };
+
+            for (let [cardName, count] of Object.entries(inventory)) {
+                const def = getCardDef(cardName);
+                
+                let targetGroup = 'Items';
+                if (weaponTypes.includes(def.id) || weaponTypes.includes(cardName)) targetGroup = 'Weapons';
+                else if (armorTypes.includes(def.id) || armorTypes.includes(cardName)) targetGroup = 'Armor';
+                else if (spellTypes.includes(def.id) || spellTypes.includes(cardName)) targetGroup = 'Spells';
+
+                nethackGroups[targetGroup].push({ cardName, count, def });
+            }
+
+            // Create HTML structures
+            for (let [groupName, cards] of Object.entries(nethackGroups)) {
+                if (cards.length === 0) continue;
+                
+                const section = document.createElement('div');
+                section.className = 'inv-category';
+                section.innerHTML = `<div class="inv-category-title">${groupName}</div><div class="inv-grid"></div>`;
+                const grid = section.querySelector('.inv-grid');
+                
+                cards.forEach(c => {
+                    // Create the static card element based on createCardElement logic
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'guide-card playing-card';
+                    cardEl.style.cssText = 'position:relative; filter:none; opacity:1; transform:none; cursor:default; margin:0;';
+                    
+                    const badgeHtml = c.count > 1 ? `<div class="card-badge">${c.count}</div>` : '';
+                    let themeClr = '#66BB6A';
+                    if (c.def.id === 'SPELL' || c.def.id === 'WIND') themeClr = '#90a4ae';
+                    else if (c.def.id === 'DEFEND' || c.def.id === 'EARTH') themeClr = '#00bcd4';
+                    else if (c.def.id === 'THRUST' || c.def.id === 'WATER') themeClr = '#2196f3';
+                    else if (c.def.id === 'SLASH' || c.def.id === 'FIRE' || c.def.id === 'KATANA') themeClr = '#f44336';
+                    else themeClr = '#e91e63'; 
+                    cardEl.style.setProperty('--theme-clr', themeClr);
+
+                    cardEl.innerHTML = `
+                        ${badgeHtml}
+                        <div class="card-header">
+                            <div class="card-kanji" style="color: ${themeClr}">${c.def.kanji}</div>
+                            <span class="card-type-pill" style="background: ${themeClr}">${c.def.id}</span>
+                        </div>
+                        <div class="card-title">${c.cardName}</div>
+                        <div class="card-desc">${c.def.desc}</div>
+                        <div class="card-icon-3d"><div class="canvas-mount"></div></div>
+                        <div class="card-attr">${c.def.attr}</div>
+                    `;
+                    
+                    // We can reuse the 3D icons by spawning them in the canvas-mount
+                    grid.appendChild(cardEl);
+                    
+                    // Delay icon generation slightly to let DOM mount
+                    setTimeout(() => {
+                        const mount = cardEl.querySelector('.canvas-mount');
+                        if (mount && scenes[c.def.id]) {
+                            const cvs = document.createElement('canvas');
+                            mount.appendChild(cvs);
+                            const ctx = cvs.getContext('2d');
+                            cvs.width = 180; cvs.height = 180;
+                            cvs.style.width = "45px"; cvs.style.height = "45px";
+                            cvs.style.position = 'absolute'; cvs.style.top = '0'; cvs.style.left = '0';
+                            
+                            // Render static frame
+                            const cached = scenes[c.def.id];
+                            avatarRenderer.setRenderTarget(cached.rt);
+                            avatarRenderer.render(cached.scene, avatarCamera);
+                            ctx.drawImage(avatarRenderer.domElement, 0, 0, 180, 180);
+                            avatarRenderer.setRenderTarget(null);
+                        }
+                    }, 50);
+                });
+                
+                content.appendChild(section);
+            }
+            
+            if(content.innerHTML === '') {
+                content.innerHTML = '<div style="color:#666; font-style:italic;">Your inventory is empty.</div>';
+            }
         };
 
         const defaultCategories = [
@@ -966,7 +1238,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'SCROLL', 'KATANA', 'MISSILE', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'SCROLL', 'KATANA', 'MISSILE', 'DEFEND', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
             renderer.setClearColor(0x000000, 0); // Critial fix to prevent black squares
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -979,7 +1251,7 @@
                 dir.position.set(5, 5, 5); scene.add(dir);
                 
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[el] || 0x444444,
+                    color: { EARTH: 0x5C4033, WATER: 0xffffff, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[el] || 0x444444,
                     roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                 });
                 
@@ -1241,11 +1513,9 @@
                     starGroup.add(glowPlane);
 
                     const star1 = starGroup.clone();
-                    star1.position.set(-1.2, 0, 1.5);
-                    const star2 = starGroup.clone();
-                    star2.position.set(1.2, 0, 1.5);
+                    star1.position.set(0, 0, 1.5); // Centered single shuriken
 
-                    group.add(star1, star2);
+                    group.add(star1);
                     
                     // Extra point light for weapon shininess
                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
@@ -1254,9 +1524,8 @@
 
                     update = (t) => { 
                         star1.rotation.z = -t * 0.1; 
-                        star2.rotation.z = t * 0.1; 
                     };
-                } else if (el === 'SHIELD') {
+                } else if (el === 'DEFEND') {
                     const addOutline = (mesh) => {
                         const edges = new THREE.EdgesGeometry(mesh.geometry);
                         const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
@@ -1953,7 +2222,23 @@
                                     clickedCard.classList.add('launching');
                                     const actionName = clickedCard.querySelector('.card-title').textContent;
                                     emitAction(actionName, clickedCard);
-                                    setTimeout(() => { clickedCard.classList.remove('launching'); }, 450);
+                                    setTimeout(() => { 
+                                        clickedCard.classList.remove('launching'); 
+                                        clickedCard.remove();
+                                        
+                                        const remainingCards = Array.from(col.querySelectorAll('.guide-card'));
+                                        if (remainingCards.length === 0) {
+                                            col.style.width = '0px';
+                                            col.style.flex = '0 0 0px';
+                                            col.style.marginRight = '0px';
+                                            col.style.opacity = '0';
+                                            setTimeout(() => col.remove(), 300);
+                                        } else {
+                                            remainingCards.forEach((c, i) => {
+                                                c.dataset.depth = i.toString();
+                                            });
+                                        }
+                                    }, 450);
                                 } else {
                                     // First click: Select!
                                     document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
@@ -2412,11 +2697,33 @@
                         }
                     });
                 }
+                
+                // If inventory is open, refresh it
+                const invModal = document.getElementById('inventory-modal');
+                if (invModal && invModal.classList.contains('active')) {
+                    window.renderInventory();
+                }
             } else if (e.data && e.data.type === 'LCD_EVENT') {
                 if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
                 window.logEvent(e.data.text || "SYS_ERR", 'system');
             } else if (e.data && e.data.type === 'LOG_EVENT') {
                 window.logEvent(e.data.text, e.data.logType || 'system');
+            } else if (e.data && e.data.type === 'PLAYER_MOVE') {
+                if (e.data.rot !== undefined) {
+                    const compass = document.querySelector('.compass-outer-ring');
+                    if (compass) {
+                        const rotDeg = (e.data.rot * 180) / Math.PI;
+                        compass.style.transform = `rotate(${rotDeg}deg)`;
+                        const n = compass.querySelector('.north');
+                        if (n) n.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
+                        const s = compass.querySelector('.south');
+                        if (s) s.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
+                        const e_marker = compass.querySelector('.east');
+                        if (e_marker) e_marker.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
+                        const w = compass.querySelector('.west');
+                        if (w) w.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
+                    }
+                }
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
@@ -2541,7 +2848,7 @@ setTimeout(() => {
         // Only run PiP in Dock mode (the bottom full-screen iframe)
         if (mode !== 'dock') return;
 
-        const pip = document.getElementById("mapview-container");
+        const pip = document.getElementById("moondial-wrapper");
         if (!pip) return;
         pip.style.display = 'block';
 
@@ -2555,7 +2862,7 @@ setTimeout(() => {
         function post(msg) { window.parent.postMessage(msg, '*'); }
 
         function syncRect() {
-            const wrapper = pip.querySelector('.canvas-wrapper');
+            const wrapper = document.getElementById('pipCanvas');
             if (wrapper) {
                 const r = wrapper.getBoundingClientRect();
                 post({ type: 'PIP_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
@@ -2564,12 +2871,12 @@ setTimeout(() => {
 
         // Prevent context menu
         pip.addEventListener("contextmenu", e => { 
-            if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) e.preventDefault(); 
+            if (e.target.closest("#pipCanvas") || e.target === pip) e.preventDefault(); 
         });
         
         // Zoom via scroll wheel
         pip.addEventListener("wheel", (e) => {
-            if (e.target.closest(".canvas-wrapper")) {
+            if (e.target.closest("#pipCanvas")) {
                 e.preventDefault();
                 post({ type: 'PIP_ZOOM', delta: Math.sign(e.deltaY) });
             }
@@ -2578,13 +2885,12 @@ setTimeout(() => {
         // Double-click to swap modes
         pip.addEventListener("dblclick", (e) => {
              e.stopPropagation();
-             if (e.target.closest(".canvas-wrapper") || e.target.closest(".view-label")) {
+             if (e.target.closest("#pipCanvas") || e.target === pip) {
                  post({ type: 'PIP_TOGGLE' });
              }
         });
         
         pip.addEventListener("mousedown", (e) => {
-            if (e.target.closest(".resize-handle")) return; 
             e.stopPropagation();
             
             if (e.button === 2) { 
@@ -2594,7 +2900,7 @@ setTimeout(() => {
                  document.addEventListener("mouseup", onRotEnd, { once: true });
                  return;
             }
-            if (e.target.closest(".canvas-wrapper")) {
+            if (e.target.closest("#pipCanvas")) {
                 if (e.button === 0 || e.button === 1) { 
                      e.preventDefault();
                      mapPanning = true; panStart.x = e.clientX; panStart.y = e.clientY;
@@ -2602,11 +2908,11 @@ setTimeout(() => {
                      document.addEventListener("mouseup", onPanEnd, { once: true });
                      return;
                 }
-            } else if (e.target.closest(".view-label")) {
+            } else if (e.target === pip) {
                 if (e.button === 0) {
                     const rect = pip.getBoundingClientRect();
                     dragging = true;
-                    pip.style.willChange = "transform, left, top, width, height";
+                    pip.style.willChange = "transform, left, top";
                     pip.style.transition = "none";
                     pip.classList.add("dragging");
                     dragStart.x = e.clientX; dragStart.y = e.clientY;
@@ -2636,8 +2942,6 @@ setTimeout(() => {
                 pip.style.position = "absolute";
                 if (typeof s.left === "number") pip.style.left = s.left + "px";
                 if (typeof s.top === "number") pip.style.top = s.top + "px";
-                if (typeof s.width === "number") pip.style.width = Math.max(MIN_W, s.width) + "px";
-                if (typeof s.height === "number") pip.style.height = Math.max(MIN_H, s.height) + "px";
                 pip.style.right = "auto";
             } catch {}
         }
@@ -2645,7 +2949,7 @@ setTimeout(() => {
         function savePiPState() {
             if (window.innerWidth <= 768) return;
             const rect = pip.getBoundingClientRect();
-            try { localStorage.setItem("mapPiPState.v2", JSON.stringify({ left: rect.left, top: rect.top, width: rect.width, height: rect.height })); } catch {}
+            try { localStorage.setItem("mapPiPState.v2", JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
         }
 
         const onDragMove = (e) => {
@@ -2677,7 +2981,9 @@ setTimeout(() => {
             document.removeEventListener("mousemove", onPanMove); 
             // Clicks to move player
             if (Math.hypot(e.clientX - panStart.x, e.clientY - panStart.y) < 5) {
-                const rect = pip.querySelector('.canvas-wrapper').getBoundingClientRect();
+                const canvas = document.getElementById('pipCanvas');
+                if (!canvas) return;
+                const rect = canvas.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                 const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
                 post({ type: 'PIP_CLICK', x, y });

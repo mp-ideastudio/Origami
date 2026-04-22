@@ -1929,27 +1929,27 @@
                 
                 // White Border Base
                 const borderGeo = new THREE.CircleGeometry(0.85, 32);
-                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                 const borderMesh = new THREE.Mesh(borderGeo, borderMat);
                 borderMesh.rotation.x = -Math.PI / 2;
-                borderMesh.position.y = 0.01;
-                borderMesh.layers.set(1); borderMesh.layers.enable(3);
+                borderMesh.position.y = 0.03;
+                borderMesh.layers.set(3);
                 
                 // Black Circle Core
                 const baseGeo = new THREE.CircleGeometry(0.7, 32);
-                const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
+                const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 const baseMesh = new THREE.Mesh(baseGeo, baseMat);
                 baseMesh.rotation.x = -Math.PI / 2;
-                baseMesh.position.y = 0.02;
-                baseMesh.layers.set(1); baseMesh.layers.enable(3);
+                baseMesh.position.y = 0.04;
+                baseMesh.layers.set(3);
 
                 // White Directional Arrow (Nose)
                 const noseGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
                 const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                 const noseMesh = new THREE.Mesh(noseGeo, noseMat);
                 noseMesh.rotation.x = -Math.PI / 2;
-                noseMesh.position.set(0, 0.03, -0.6); // Pushed to front edge
-                noseMesh.layers.set(1); noseMesh.layers.enable(3);
+                noseMesh.position.set(0, 0.05, -0.6); // Pushed to front edge
+                noseMesh.layers.set(3);
 
                 baseGroup.add(baseMesh);
                 baseGroup.add(borderMesh);
@@ -2614,26 +2614,26 @@
                         
                         // White Border Base
                         const borderGeo = new THREE.CircleGeometry(0.85, 32);
-                        const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                        const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                         const borderMesh = new THREE.Mesh(borderGeo, borderMat);
                         borderMesh.rotation.x = -Math.PI / 2;
-                        borderMesh.position.y = 0.01;
+                        borderMesh.position.y = 0.03;
                         borderMesh.layers.set(3); // Map View Only
                         
                         // Black Circle Core
                         const baseGeo = new THREE.CircleGeometry(0.7, 32);
-                        const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
+                        const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
                         const baseMesh = new THREE.Mesh(baseGeo, baseMat);
                         baseMesh.rotation.x = -Math.PI / 2;
-                        baseMesh.position.y = 0.02;
+                        baseMesh.position.y = 0.04;
                         baseMesh.layers.set(3); // Map View Only
         
                         // White Directional Arrow (Nose)
                         const noseGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
-                        const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                        const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                         const noseMesh = new THREE.Mesh(noseGeo, noseMat);
                         noseMesh.rotation.x = -Math.PI / 2;
-                        noseMesh.position.set(0, 0.03, -0.6); // Front edge
+                        noseMesh.position.set(0, 0.05, -0.6); // Front edge
                         noseMesh.layers.set(3); // Map View Only
         
                         monBase.add(baseMesh);
@@ -2929,24 +2929,24 @@
                         const ctx = canvas.getContext('2d');
                         
                         // Base dark background (exactly matching dark-mode CSS)
-                        let baseColor = '#222428';
+                        let baseColor = '#232527';
                         let themeColor = '#66BB6A'; // Default Item
                         
                         // Exact CSS var mapping for accents ONLY
-                        if (catId === 'SPELL' || catId === 'WIND') themeColor = '#546E7A';
-                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#5C4033';
-                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#29B6F6';
-                        else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#EF5350';
-                        else themeColor = '#4caf50'; // SCROLL
+                        if (catId === 'SPELL' || catId === 'WIND') themeColor = '#90a4ae';
+                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#00bcd4';
+                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#2196f3';
+                        else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#f44336';
+                        else themeColor = '#e91e63'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
                         ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
                         
                         // Dark outer border
-                        ctx.strokeStyle = '#1a1a1d'; ctx.lineWidth = 4; ctx.stroke();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2; ctx.stroke();
                         
-                        // Inner Neumorphic shadow simulation
-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 4;
+                        // Clean inner border for 3D playing card look
+                        ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth = 2;
                         ctx.beginPath(); ctx.roundRect(2, 2, W-4, H-4, 22); ctx.stroke();
 
                         // Kanji (Theme Colored)
@@ -2988,24 +2988,32 @@
                         }
                         wrapText(ctx, desc, W/2, 130, W * 0.8, 22);
 
-                        // Deep Icon Cavity
-                        ctx.fillStyle = '#15171c';
+                        // Deep Icon Cavity (Porthole)
+                        ctx.fillStyle = '#000000';
                         ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
-                        // Inner cavity shadow
-                        ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
+                        
+                        const holeGrad = ctx.createRadialGradient(W/2, H*0.58, 40, W/2, H*0.58, 60);
+                        holeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                        holeGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
+                        ctx.fillStyle = holeGrad;
+                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
+                        
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 3; ctx.stroke();
                         
                         // We do not draw the 2D geo symbols anymore, we'll attach real 3D models!
 
                         // Solid Black Bottom Block for Attributes
-                        ctx.fillStyle = '#09090b';
+                        ctx.fillStyle = 'rgba(10, 10, 12, 0.8)';
                         ctx.beginPath();
-                        ctx.roundRect(0, H - 75, W, 75, [0, 0, 24, 24]); 
+                        ctx.roundRect(0, H - 50, W, 50, [0, 0, 24, 24]); 
                         ctx.fill();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(0, H - 50); ctx.lineTo(W, H - 50); ctx.stroke();
 
                         // Attr inside black block
                         ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#ffffff';
                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        wrapText(ctx, attr, W/2, H - 45, W * 0.9, 22);
+                        wrapText(ctx, attr, W/2, H - 25, W * 0.9, 22);
 
                         if (isShopItem) {
                             ctx.font = '900 24px sans-serif';
@@ -3014,7 +3022,7 @@
                         }
 
                         const tex = new THREE.CanvasTexture(canvas);
-                        const cardMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true }); // No DoubleSide needed
+                        const cardMat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8, metalness: 0.1 }); // Use Standard to integrate with FPV lighting!
                         
                         // We use a Group to hold a Front and Back face, effectively creating a "solid" but ultra-thin card
                         const cardGroup = new THREE.Group();
@@ -3094,16 +3102,31 @@
                             } else if (catId === 'WATER') {
                                 const geo = new THREE.SphereGeometry(2.8, 32, 24); 
                                 const mat = new THREE.MeshStandardMaterial({
-                                    color: 0x0277D4, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.9
+                                    color: 0xffffff, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.9, vertexColors: true
                                 });
                                 const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; iconMesh.add(mesh);
+                                
+                                // PointLight removed so it doesn't blow out the FPV hallway lighting!
+                                
+                                const colors = new Float32Array(geo.attributes.position.count * 3);
+                                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                
                                 customUpdate = (t) => {
                                     const pos = geo.attributes.position;
+                                    const col = geo.attributes.color;
+                                    const baseC = new THREE.Color(0x0d47a1);
+                                    const highC = new THREE.Color(0xffffff);
                                     for(let i=0; i<pos.count; i++) {
-                                        const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                                        const x = pos.getX(i), z = pos.getZ(i); 
+                                        const w = Math.sin(x * 3.0 + t * 4) * 0.4 + Math.cos(z * 3.0 + t * 3) * 0.3;
                                         if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                                        
+                                        const mixRatio = Math.max(0, Math.min(1, (w + 0.3) / 0.7));
+                                        const finalC = baseC.clone().lerp(highC, mixRatio);
+                                        col.setXYZ(i, finalC.r, finalC.g, finalC.b);
                                     }
                                     pos.needsUpdate = true;
+                                    col.needsUpdate = true;
                                 };
                             } else if (catId === 'KATANA') {
                                 const addGlow = (mesh) => {
@@ -3188,7 +3211,7 @@
                                 customUpdate = (t) => { 
                                     star1.rotation.z = -t * 0.5; 
                                 };
-                            } else if (catId === 'ARMOR') {
+                            } else if (catId === 'DEFEND') {
                                 const addOutline = (mesh) => {
                                     const edges = new THREE.EdgesGeometry(mesh.geometry);
                                     const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
@@ -4645,6 +4668,13 @@
                                 setTimeout(() => this.processMonsterTurn(), 800); // Wait for animations
                             }
                         }
+                    } else if (e.data.type === 'PIP_TOGGLE') {
+                        this.cameraMode = (this.cameraMode === 'topdown') ? 'fpv' : 'topdown';
+                    } else if (e.data.type === 'PIP_ZOOM') {
+                        this._pipZoomScale = this._pipZoomScale || 1.0;
+                        this._pipZoomScale += e.data.delta * 0.1;
+                        this._pipZoomScale = Math.max(0.5, Math.min(2.0, this._pipZoomScale));
+                        this._pipLastInteractionTime = Date.now();
                     } else if (e.data.type === 'COMBAT_UPDATE') {
                         // Sync UI with the AI's math
                         window.parent.postMessage(
@@ -5142,7 +5172,7 @@
                     this.lastGridZ = curGridZ;
                     this.lastRotDirX = curRotDirX;
                     this.lastRotDirZ = curRotDirZ;
-                    window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ }, '*');
+                    window.parent.postMessage({ type: 'PLAYER_MOVE', x: curGridX, z: curGridZ, rot: this.player.rot }, '*');
                     
                     // --- Procedural Room Descriptions ---
                     const currentCell = this.mapData[curGridX]?.[curGridZ];
@@ -5203,6 +5233,7 @@
                 }
                 
                 // State emission for UI styling (e.g. guide panels fading)
+                const currentlyMoving = (moveDir !== 0 || turnDir !== 0 || this.physMoving);
                 if (currentlyMoving && !this.isMoving) {
                     this.isMoving = true;
                     window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: true }, '*');
@@ -5933,6 +5964,68 @@
                 const pipBottom = Math.max(0, Math.round(winH - (this._pipRect.top || 0) - pipH)); // Bottom offset for WebGL scissor
                 const webglTop = Math.round(this._pipRect.top || 0); // Top coordinate for drawImage
                 
+                // PiP Scissor Boundary (with inset to slip under UI ring)
+                const inset = 8;
+                const safeX = pipLeft + inset;
+                const safeY = pipBottom + inset;
+                const safeW = pipW - (inset * 2);
+                const safeH = pipH - (inset * 2);
+
+                // Initialize the Depth Mask Scene (Run Once)
+                if (!window._pipMaskScene) {
+                    window._pipMaskScene = new THREE.Scene();
+                    window._pipMaskCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+                    const maskGeom = new THREE.PlaneGeometry(2, 2);
+                    
+                    // The depth-mask ring (writes depth, no color, outside the circle)
+                    const maskMat = new THREE.ShaderMaterial({
+                        depthWrite: true,
+                        depthTest: true,
+                        colorWrite: false, 
+                        vertexShader: `
+                            varying vec2 vUv;
+                            void main() {
+                                vUv = uv;
+                                gl_Position = vec4(position.xy, -0.99, 1.0); 
+                            }
+                        `,
+                        fragmentShader: `
+                            varying vec2 vUv;
+                            void main() {
+                                if (distance(vUv, vec2(0.5)) < 0.495) discard;
+                                gl_FragColor = vec4(1.0);
+                            }
+                        `
+                    });
+                    const maskMesh = new THREE.Mesh(maskGeom, maskMat);
+                    maskMesh.frustumCulled = false;
+                    window._pipMaskScene.add(maskMesh);
+                    
+                    // The background color dial (writes color, no depth, inside the circle)
+                    const bgMat = new THREE.ShaderMaterial({
+                        depthWrite: false, // Don't block the map terrain!
+                        depthTest: false,
+                        colorWrite: true,
+                        vertexShader: `
+                            varying vec2 vUv;
+                            void main() {
+                                vUv = uv;
+                                gl_Position = vec4(position.xy, 0.99, 1.0); // Draw at the far back
+                            }
+                        `,
+                        fragmentShader: `
+                            varying vec2 vUv;
+                            void main() {
+                                if (distance(vUv, vec2(0.5)) > 0.495) discard;
+                                gl_FragColor = vec4(0.06, 0.06, 0.08, 1.0); // Solid dark dial background
+                            }
+                        `
+                    });
+                    const bgMesh = new THREE.Mesh(maskGeom, bgMat);
+                    bgMesh.frustumCulled = false;
+                    window._pipMaskScene.add(bgMesh);
+                }
+                
                 // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
                 const pr = this.renderer.getPixelRatio();
                 const hdW = Math.max(1, Math.round(pipW * pr));
@@ -6105,16 +6198,40 @@
                     if (this.ambientLight) this.ambientLight.intensity = 0.5;
 
                     // [2] Small FPV view rendered into mapview-container space
-                    this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
-                    this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
+                    this.renderer.setViewport(safeX, safeY, safeW, safeH);
+                    this.renderer.setScissor(safeX, safeY, safeW, safeH);
                     this.renderer.setScissorTest(true);
                     
                     // CRITICAL: We MUST clear the depth buffer, or the PiP camera will physically Z-fight with geometry drawn beneath it on the entire screen!
                     this.renderer.clearDepth();
                     
+                    const oldAutoClear = this.renderer.autoClear;
+                    this.renderer.autoClear = false;
+
+                    // Inject Circular Depth Mask
+                    this.renderer.render(window._pipMaskScene, window._pipMaskCam);
+                    
+                    // Fisheye Lens Optical Expansion
+                    const originalFov = this.camera.fov;
+                    this.camera.aspect = safeW / safeH;
+                    this.camera.fov = originalFov * 1.25;
+                    this.camera.updateProjectionMatrix();
+
                     this.scene.fog.density = 0.055;
-                    this.renderer.setClearColor(0x06020f, 1);
+                    
+                    // CRITICAL: scene.background forces a depth clear in ThreeJS even if autoClear is false!
+                    // We must disable it during the PiP pass to preserve the depth mask.
+                    const oldBg = this.scene.background;
+                    this.scene.background = null;
+                    
                     this.renderer.render(this.scene, this.camera);
+                    
+                    this.scene.background = oldBg;
+                    
+                    this.renderer.autoClear = oldAutoClear;
+
+                    // Restore original FOV for next frame
+                    this.camera.fov = originalFov;
 
                 } else {
                     // ── FPV MAIN + TOP-DOWN PiP (default) ────────────────────────────
@@ -6139,23 +6256,43 @@
 
                     // [2] Top-down map PiP into mapview-container space
                     if (this.topDownCamera) {
-                        this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
-                        this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
+                        this.renderer.setViewport(safeX, safeY, safeW, safeH);
+                        this.renderer.setScissor(safeX, safeY, safeW, safeH);
                         this.renderer.setScissorTest(true);
                         
                         // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
                         this.renderer.clearDepth();
                         
+                        const oldAutoClear = this.renderer.autoClear;
+                        this.renderer.autoClear = false;
+
+                        // Inject Circular Depth Mask
+                        this.renderer.render(window._pipMaskScene, window._pipMaskCam);
+                        
+                        // Fisheye Lens Optical Expansion
+                        this.topDownCamera.aspect = safeW / safeH;
+                        this.topDownCamera.fov = (this._pipFOV || 60) * 1.25;
+                        this.topDownCamera.updateProjectionMatrix();
+                        
                         // AAA RPG Vignette
                         this.scene.fog.color.setHex(0x000000);
                         this.scene.fog.density = 0.02;
                         if (this.ambientLight) this.ambientLight.intensity = 0.7; // Lowered from 1.6 to allow solid shadows to express
-                        this.renderer.setClearColor(0x000000, 1); // True pitch black void
                         if (this.headlamp) this.headlamp.visible = false;
+                        
+                        // CRITICAL: scene.background forces a depth clear in ThreeJS even if autoClear is false!
+                        // We must disable it during the PiP pass to preserve the depth mask.
+                        const oldBg = this.scene.background;
+                        this.scene.background = null;
+
                         this.renderer.render(this.scene, this.topDownCamera);
+                        
+                        this.scene.background = oldBg;
                         if (this.headlamp) this.headlamp.visible = true;
                         if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
                         
+                        this.renderer.autoClear = oldAutoClear;
+
                         // Reset native FPV fog density to active default
                         this.scene.fog.color.setHex(0x08041a);
                         this.scene.fog.density = 0.055;

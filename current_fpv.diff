@@ -1,0 +1,536 @@
+diff --git a/NewOrigami.FPV.1.html b/NewOrigami.FPV.1.html
+index 4f32451..71145e8 100644
+--- a/NewOrigami.FPV.1.html
++++ b/NewOrigami.FPV.1.html
+@@ -540,17 +540,17 @@
+                 } else if (roomId === 1) {
+                     desc += `You stand at the entrance of Level ${this.level || 1}. The ancestral spirits watch you.`;
+                 } else {
+-                    const dojoDescs = [
+-                        "You step onto the woven tatami mats of a silent training hall. The smell of incense lingers.",
+-                        "Faded banners of forgotten samurai clans hang from the wooden rafters.",
+-                        "Bamboo practice swords lie scattered across the polished wooden floor.",
+-                        "A serene meditation chamber. Dust dances in the shafts of dim light.",
+-                        "The floor here is scarred with deep katana strikes from ancient duels.",
+-                        "A grand dojo room with a master's elevated platform at the far end.",
+-                        "Paper sliding doors (shoji) line the walls, though many are torn.",
+-                        "A martial arts weapons rack stands empty against the wall."
++                    const roomDescs = [
++                        "Paper lanterns float ominously, casting green shadows. You must descend deeper to find Oni Baba.",
++                        "A bureaucratic samurai spirit is frantically stamping scrolls. None of them are the Scroll of Destiny, however.",
++                        "You step on a stray wooden sandal, emitting a ghostly squeak. Oni Baba's lair must be close.",
++                        "The scent of cheap sake and brimstone fills the air. Oni Baba the Dragon Monster is waiting below.",
++                        "Cherry blossoms turn to ash as they land. You must retrieve the Scroll of Destiny to save the world!",
++                        "Spectral warriors are arguing over ghostly dice. They ignore your quest to defeat the Dragon Monster of the Underworld.",
++                        "A tattered banner of the Underworld Shogunate hangs loosely. The path descends toward Oni Baba.",
++                        "Shadows twist into a massive dragon, a comical but terrifying illusion of Oni Baba himself!"
+                     ];
+-                    desc += dojoDescs[roomId % dojoDescs.length];
++                    desc += roomDescs[roomId % roomDescs.length];
+                 }
+ 
+                 // Check for stairs
+@@ -1829,7 +1829,7 @@
+                 this.camera.rotation.y = this.player.rot;
+ 
+                 const canvas = document.getElementById('fpv-canvas');
+-                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
++                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true, stencil: true });
+                 this.renderer.setSize(window.innerWidth, window.innerHeight);
+                 // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
+                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
+@@ -1932,24 +1932,24 @@
+                 const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                 const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+                 borderMesh.rotation.x = -Math.PI / 2;
+-                borderMesh.position.y = 0.01;
+-                borderMesh.layers.set(1); borderMesh.layers.enable(3);
++                borderMesh.position.y = 1.71;
++                borderMesh.layers.set(3); // Map/PiP view only
+                 
+                 // Black Circle Core
+                 const baseGeo = new THREE.CircleGeometry(0.7, 32);
+                 const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
+                 const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                 baseMesh.rotation.x = -Math.PI / 2;
+-                baseMesh.position.y = 0.02;
+-                baseMesh.layers.set(1); baseMesh.layers.enable(3);
++                baseMesh.position.y = 1.72;
++                baseMesh.layers.set(3); // Map/PiP view only
+ 
+                 // White Directional Arrow (Nose)
+                 const noseGeo = new THREE.ConeGeometry(0.15, 0.4, 3);
+                 const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                 const noseMesh = new THREE.Mesh(noseGeo, noseMat);
+                 noseMesh.rotation.x = -Math.PI / 2;
+-                noseMesh.position.set(0, 0.03, -0.6); // Pushed to front edge
+-                noseMesh.layers.set(1); noseMesh.layers.enable(3);
++                noseMesh.position.set(0, 1.73, -0.6); // Pushed to front edge
++                noseMesh.layers.set(3); // Map/PiP view only
+ 
+                 baseGroup.add(baseMesh);
+                 baseGroup.add(borderMesh);
+@@ -1985,7 +1985,7 @@
+                     
+                     avatarMesh.traverse((child) => {
+                         if (child.isMesh) {
+-                            child.layers.set(3); 
++                            child.layers.set(3); // Map/PiP view only
+                             // MeshLambertMaterial restores dimensional shadows and rim lighting depth so it stops looking "wonky"
+                             child.material = new THREE.MeshLambertMaterial({ 
+                                 color: 0xcccccc
+@@ -2617,7 +2617,7 @@
+                         const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                         const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+                         borderMesh.rotation.x = -Math.PI / 2;
+-                        borderMesh.position.y = 0.01;
++                        borderMesh.position.y = 1.51;
+                         borderMesh.layers.set(3); // Map View Only
+                         
+                         // Black Circle Core
+@@ -2625,7 +2625,7 @@
+                         const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthTest: false, depthWrite: false });
+                         const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                         baseMesh.rotation.x = -Math.PI / 2;
+-                        baseMesh.position.y = 0.02;
++                        baseMesh.position.y = 1.52;
+                         baseMesh.layers.set(3); // Map View Only
+         
+                         // White Directional Arrow (Nose)
+@@ -2633,7 +2633,7 @@
+                         const noseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false });
+                         const noseMesh = new THREE.Mesh(noseGeo, noseMat);
+                         noseMesh.rotation.x = -Math.PI / 2;
+-                        noseMesh.position.set(0, 0.03, -0.6); // Front edge
++                        noseMesh.position.set(0, 1.53, -0.6); // Front edge
+                         noseMesh.layers.set(3); // Map View Only
+         
+                         monBase.add(baseMesh);
+@@ -2934,37 +2934,52 @@
+                         
+                         // Exact CSS var mapping for accents ONLY
+                         if (catId === 'SPELL' || catId === 'WIND') themeColor = '#546E7A';
+-                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#5C4033';
+-                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#29B6F6';
++                        else if (catId === 'EARTH') themeColor = '#5C4033';
++                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#0d47a1';
+                         else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#EF5350';
++                        else if (catId === 'SHIELD') themeColor = '#1a237e'; // Dark blue theme for SHIELD
+                         else themeColor = '#4caf50'; // SCROLL
+                         
+-                        ctx.fillStyle = baseColor;
++                        // Base light background
++                        ctx.fillStyle = '#e6e9ef';
+                         ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
+                         
+                         // Dark outer border
+-                        ctx.strokeStyle = '#1a1a1d'; ctx.lineWidth = 4; ctx.stroke();
++                        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 4; ctx.stroke();
+                         
+-                        // Inner Neumorphic shadow simulation
+-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 4;
++                        // Inner highlight
++                        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 4;
+                         ctx.beginPath(); ctx.roundRect(2, 2, W-4, H-4, 22); ctx.stroke();
+ 
++                        // Colored Left Edge Stripe
++                        ctx.fillStyle = themeColor;
++                        ctx.beginPath(); ctx.roundRect(2, 2, 14, H-4, [22, 0, 0, 22]); ctx.fill();
++
+                         // Kanji (Theme Colored)
+                         ctx.font = '900 32px sans-serif';
+                         ctx.fillStyle = themeColor;
+                         ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+-                        ctx.fillText(kanji, 20, 20);
++                        ctx.fillText(kanji, 24, 20);
+ 
+                         // Type Pill (Theme Colored string background / border)
+                         ctx.fillStyle = themeColor;
+                         ctx.beginPath(); ctx.roundRect(W/2 - 45, 20, 90, 30, 8); ctx.fill();
+-                        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
++                        ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+                         ctx.font = '800 16px sans-serif'; ctx.fillStyle = '#ffffff';
+                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                         ctx.fillText(catId, W/2, 35);
+ 
+-                        // Title (Auto-scaling to prevent overflow)
++                        // Embossed White Title Label
++                        ctx.shadowColor = 'rgba(163,177,198,0.6)';
++                        ctx.shadowBlur = 8; ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
+                         ctx.fillStyle = '#ffffff';
++                        ctx.beginPath(); ctx.roundRect(W/2 - 100, 68, 200, 44, 12); ctx.fill();
++                        
++                        ctx.shadowColor = 'transparent'; // Reset!
++                        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2; ctx.stroke();
++
++                        // Title
++                        ctx.fillStyle = '#1a1a1a';
+                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                         
+                         let titleSize = 32;
+@@ -2976,7 +2991,7 @@
+                         ctx.fillText(title, W/2, 90);
+ 
+                         // Desc
+-                        ctx.font = 'italic 500 18px sans-serif'; ctx.fillStyle = '#999999';
++                        ctx.font = 'italic 500 18px sans-serif'; ctx.fillStyle = '#4a4a4a';
+                         function wrapText(context, text, x, y, maxWidth, lineHeight) {
+                             const words = text.split(' '); let line = '';
+                             for(let n = 0; n < words.length; n++) {
+@@ -2988,22 +3003,48 @@
+                         }
+                         wrapText(ctx, desc, W/2, 130, W * 0.8, 22);
+ 
+-                        // Deep Icon Cavity
+-                        ctx.fillStyle = '#15171c';
++                        // Deep Icon Cavity - Neumorphic 3D Circle
++                        ctx.fillStyle = '#e6e8eb';
+                         ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
+-                        // Inner cavity shadow
+-                        ctx.strokeStyle = '#000000'; ctx.lineWidth = 6; ctx.stroke();
+                         
+-                        // We do not draw the 2D geo symbols anymore, we'll attach real 3D models!
+-
+-                        // Solid Black Bottom Block for Attributes
+-                        ctx.fillStyle = '#09090b';
++                        ctx.save();
++                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.clip();
++                        
++                        // Dark inset
++                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 68, 0, Math.PI*2);
++                        ctx.lineWidth = 16;
++                        ctx.strokeStyle = 'rgba(0,0,0,1)';
++                        ctx.shadowColor = 'rgba(0,0,0,0.3)';
++                        ctx.shadowBlur = 12;
++                        ctx.shadowOffsetX = 5;
++                        ctx.shadowOffsetY = 5;
++                        ctx.stroke();
++                        
++                        // Light inset
++                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 68, 0, Math.PI*2);
++                        ctx.lineWidth = 16;
++                        ctx.strokeStyle = 'rgba(255,255,255,1)';
++                        ctx.shadowColor = 'rgba(255,255,255,0.9)';
++                        ctx.shadowBlur = 12;
++                        ctx.shadowOffsetX = -5;
++                        ctx.shadowOffsetY = -5;
++                        ctx.stroke();
++                        
++                        ctx.restore();
++                        
++                        // Outer white rim
++                        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; 
++                        ctx.lineWidth = 2; 
++                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.stroke();
++                        
++                        // Solid Bottom Block for Attributes
++                        ctx.fillStyle = '#cbd5e1';
+                         ctx.beginPath();
+                         ctx.roundRect(0, H - 75, W, 75, [0, 0, 24, 24]); 
+                         ctx.fill();
+ 
+-                        // Attr inside black block
+-                        ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#ffffff';
++                        // Attr inside block
++                        ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#1a1a1a';
+                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                         wrapText(ctx, attr, W/2, H - 45, W * 0.9, 22);
+ 
+@@ -3092,18 +3133,47 @@
+                                     tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
+                                 };
+                             } else if (catId === 'WATER') {
+-                                const geo = new THREE.SphereGeometry(2.8, 32, 24); 
++                                const geo = new THREE.SphereGeometry(2.8, 32, 24);
++                                geo.computeVertexNormals();
+                                 const mat = new THREE.MeshStandardMaterial({
+-                                    color: 0x0277D4, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.9
++                                    color: 0xffffff, roughness: 0.1, metalness: 0.9, vertexColors: true
+                                 });
+-                                const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; iconMesh.add(mesh);
++                                const pos = geo.attributes.position;
++                                const colors = new Float32Array(pos.count * 3);
++                                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
++                                const mesh = new THREE.Mesh(geo, mat); 
++                                mesh.position.y = -1.8; 
++                                
++                                // Sunshine PointLight for specular wave highlights
++                                const sunLight = new THREE.PointLight(0xffffff, 3.0, 10);
++                                sunLight.position.set(0, 3, 2);
++                                iconMesh.add(mesh, sunLight);
++                                
+                                 customUpdate = (t) => {
+-                                    const pos = geo.attributes.position;
+-                                    for(let i=0; i<pos.count; i++) {
+-                                        const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+-                                        if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
++                                    const p = geo.attributes.position;
++                                    const c = geo.attributes.color;
++                                    const white = new THREE.Color(0xffffff);
++                                    const sunshine = new THREE.Color(0xffffff);
++                                    const brightNavy = new THREE.Color(0x0d47a1);
++                                    for(let i=0; i<p.count; i++) {
++                                        const x = p.getX(i), z = p.getZ(i); 
++                                        const w = Math.sin(x * 3.0 + t * 4) * 0.3 + Math.cos(z * 2.5 + t * 3.5) * 0.25 + Math.sin((x+z)*5.0 + t*5.0) * 0.1;
++                                        
++                                        if(p.getY(i) > 0.5) {
++                                            p.setY(i, 1.4 + w);
++                                            const heightMix = Math.max(0, Math.min(1, (w - 0.15) * 3.0));
++                                            const sunMix = Math.max(0, Math.min(1, w * 1.5));
++                                            let col = brightNavy.clone();
++                                            if (heightMix > 0) col.lerp(white, heightMix);
++                                            else col.lerp(sunshine, sunMix);
++                                            c.setXYZ(i, col.r, col.g, col.b);
++                                        } else {
++                                            c.setXYZ(i, brightNavy.r, brightNavy.g, brightNavy.b);
++                                        }
+                                     }
+-                                    pos.needsUpdate = true;
++                                    p.needsUpdate = true;
++                                    c.needsUpdate = true;
++                                    mesh.geometry.computeVertexNormals();
+                                 };
+                             } else if (catId === 'KATANA') {
+                                 const addGlow = (mesh) => {
+@@ -3160,14 +3230,16 @@
+                                     mesh.add(glow);
+                                 };
+                                 const starShape = new THREE.Shape();
+-                                const outerRadius = 1.8;
+-                                const innerRadius = 0.45;
+-                                for (let i = 0; i < 8; i++) {
+-                                    const angle = (i * Math.PI) / 4;
+-                                    const r = i % 2 === 0 ? outerRadius : innerRadius;
+-                                    if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+-                                    else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+-                                }
++                                // 4-pointed shuriken matching projectile geometry
++                                starShape.moveTo(0, 1.8);
++                                starShape.lineTo(0.25, 0.25);
++                                starShape.lineTo(1.8, 0);
++                                starShape.lineTo(0.25, -0.25);
++                                starShape.lineTo(0, -1.8);
++                                starShape.lineTo(-0.25, -0.25);
++                                starShape.lineTo(-1.8, 0);
++                                starShape.lineTo(-0.25, 0.25);
++                                starShape.lineTo(0, 1.8);
+                                 const geo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+                                 geo.center();
+                                 const starMat = new THREE.MeshStandardMaterial({color: 0xdddddd, metalness: 0.5, roughness: 0.2, emissive: 0x666666, side: THREE.DoubleSide});
+@@ -3186,7 +3258,48 @@
+ 
+                                 iconMesh.add(star1);
+                                 customUpdate = (t) => { 
+-                                    star1.rotation.z = -t * 0.5; 
++                                    star1.rotation.z = -t * 2.0; 
++                                };
++                            } else if (catId === 'SHIELD') {
++                                const addOutline = (mesh) => {
++                                    const edges = new THREE.EdgesGeometry(mesh.geometry);
++                                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
++                                    mesh.add(line);
++                                };
++                                
++                                const shieldShape = new THREE.Shape();
++                                shieldShape.moveTo(0, -1.2);
++                                shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
++                                shieldShape.lineTo(-1.0, 1.0);
++                                shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
++                                
++                                const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
++                                shieldGeo.center();
++                                const shieldMat = new THREE.MeshStandardMaterial({color: 0x1a237e, metalness: 0.7, roughness: 0.3, emissive: 0x050a2e});
++                                const shield = new THREE.Mesh(shieldGeo, shieldMat);
++                                shield.scale.set(0.7, 0.7, 0.7);
++                                addOutline(shield);
++                                
++                                // Inner shield design
++                                const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.25, bevelEnabled: false });
++                                innerGeo.center();
++                                const innerMat = new THREE.MeshStandardMaterial({color: 0x0d47a1, metalness: 0.3, roughness: 0.2});
++                                const innerShield = new THREE.Mesh(innerGeo, innerMat);
++                                innerShield.scale.set(0.5, 0.5, 1.0);
++                                innerShield.position.z = 0; 
++                                addOutline(innerShield);
++                                shield.add(innerShield);
++                                
++                                const innerShieldBack = new THREE.Mesh(innerGeo, innerMat);
++                                innerShieldBack.scale.set(0.5, 0.5, 1.0);
++                                innerShieldBack.position.z = -0.15; 
++                                innerShieldBack.rotation.y = Math.PI; 
++                                shield.add(innerShieldBack);
++                                
++                                iconMesh.add(shield);
++                                customUpdate = (t) => {
++                                    // User requested no rotation in Panels, so we'll just float it
++                                    shield.position.y = Math.sin(t * 2) * 0.1;
+                                 };
+                             } else if (catId === 'ARMOR') {
+                                 const addOutline = (mesh) => {
+@@ -3881,7 +3994,7 @@
+                     projectileMesh.userData.isWind = true;
+                 } else if (spellData.el === 'WATER') {
+                     speed = 15.0;
+-                    const mat = new THREE.MeshStandardMaterial({ color: 0x0277D4, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
++                    const mat = new THREE.MeshStandardMaterial({ color: 0x0d47a1, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
+                     const geo = new THREE.SphereGeometry(0.6, 16, 12);
+                     projectileMesh.add(new THREE.Mesh(geo, mat));
+                     projectileMesh.userData.isWater = true;
+@@ -4471,7 +4584,18 @@
+                 window.addEventListener('message', (e) => {
+                     if (!e.data) return;
+                     
+-                    if (e.data.type === 'PIP_SYNC_RECT') {
++                    if (e.data.type === 'MOON_PHASE') {
++                        this.moonPhase = e.data.phase;
++                        // Apply Moon Phase Difficulty Modifier (Example logic)
++                        if (this.moonPhase === 'FULL MOON') {
++                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `🌕 The FULL MOON empowers the Underworld! Monsters are stronger.` }, '*');
++                        }
++                        return;
++                    } else if (e.data.type === 'ACTIVE_ELEMENT') {
++                        this.activeElement = e.data.element;
++                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `🌟 The dungeon resonates with the element of ${this.activeElement}!` }, '*');
++                        return;
++                    } else if (e.data.type === 'PIP_SYNC_RECT') {
+                         if (!this._pipRect) this._pipRect = { width: 300, height: 300, left: 0, top: 0, bottom: 0 };
+                         this._pipRect.width = e.data.width;
+                         this._pipRect.height = e.data.height;
+@@ -4629,8 +4753,16 @@
+                             'LONG BOW':   { el:'MISSILE',color:0xaa6600, dmg:45, trauma:0.7, label:'\uD83C\uDFF9 LONG BOW',    range: 15.0 },
+                             'SAMURAI HELMET':{ el:'ARMOR',color:0xffffff, dmg:0, trauma:0.1, label:'兜 SAMURAI HELMET', range: Infinity }
+                         };
+-                        const spell = SPELL_MAP[action];
++                        let spell = SPELL_MAP[action];
+                         if (spell) {
++                            spell = Object.assign({}, spell); // Clone so we don't mutate the global map
++                            // Apply Elemental Vulnerability
++                            if (spell.el === this.activeElement && spell.el !== 'SCROLL' && spell.el !== 'ARMOR') {
++                                spell.dmg *= 2;
++                                spell.label += " (CRITICAL)";
++                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `🔥 ELEMENTAL WEAKNESS EXPLOITED! 2x DAMAGE!` }, '*');
++                            }
++                            
+                             if (spell.el === 'SCROLL' || spell.el === 'ARMOR' || action === 'POTION' || action === 'SCROLL OF IDENTITY') {
+                                 this.spawnPotionUse(action, spell);
+                             } else if (spell.el === 'KATANA' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') {
+@@ -5133,6 +5265,7 @@
+                 }
+                 
+                 // Grid change detection for AI and Triggers
++                const currentlyMoving = this.physMoving;
+                 const curGridX = Math.round(this.player.x);
+                 const curGridZ = Math.round(this.player.z);
+                 const curRotDirX = Math.round(-Math.sin(this.player.rot));
+@@ -5480,7 +5613,7 @@
+                             
+                             // Sync monster floor circle if alive
+                             if (child.userData.monBase) {
+-                                child.userData.monBase.position.set(child.position.x, 0, child.position.z);
++                                child.userData.monBase.position.set(child.position.x, 1.5, child.position.z);
+                                 child.userData.monBase.rotation.y = child.rotation.y;
+                             }
+                         }
+@@ -5497,9 +5630,9 @@
+                             }
+                         }
+                         
+-                        // Always sync base circle to floor — independent of Y float, never blinks
++                        // Always sync base circle to head height — independent of Y float, never blinks
+                         if (child.userData && child.userData.monBase) {
+-                            child.userData.monBase.position.set(child.position.x, 0, child.position.z);
++                            child.userData.monBase.position.set(child.position.x, 1.5, child.position.z);
+                             child.userData.monBase.rotation.y = child.rotation.y;
+                         }
+                         
+@@ -6139,20 +6272,82 @@
+ 
+                     // [2] Top-down map PiP into mapview-container space
+                     if (this.topDownCamera) {
+-                        this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
+-                        this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
++                            // --- 1. RENDER PIP MAP TO TARGET ---
++                        if (!this.pipTarget || this.pipTarget.width !== pipW || this.pipTarget.height !== pipH) {
++                            if (this.pipTarget) this.pipTarget.dispose();
++                            this.pipTarget = new THREE.WebGLRenderTarget(pipW, pipH, { 
++                                minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, stencilBuffer: false 
++                            });
++                        }
++                        
++                        this.renderer.setRenderTarget(this.pipTarget);
++                        this.renderer.setViewport(0, 0, pipW, pipH);
++                        this.renderer.setScissor(0, 0, pipW, pipH);
+                         this.renderer.setScissorTest(true);
+                         
+-                        // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
+-                        this.renderer.clearDepth();
++                        const oldAutoClear = this.renderer.autoClear;
++                        this.renderer.autoClear = true;
++                        this.renderer.setClearColor(0x06020f, 1);
++                        this.renderer.clear();
+                         
+-                        // AAA RPG Vignette
+-                        this.scene.fog.color.setHex(0x000000);
++                        // AAA RPG Vignette for PiP Scene
++                        this.scene.fog.color.setHex(0x06020f);
+                         this.scene.fog.density = 0.02;
+-                        if (this.ambientLight) this.ambientLight.intensity = 0.7; // Lowered from 1.6 to allow solid shadows to express
+-                        this.renderer.setClearColor(0x000000, 1); // True pitch black void
++                        if (this.ambientLight) this.ambientLight.intensity = 0.7; 
+                         if (this.headlamp) this.headlamp.visible = false;
++                        
+                         this.renderer.render(this.scene, this.topDownCamera);
++                        
++                        // --- 2. RENDER CIRCULAR MASK TO SCREEN ---
++                        this.renderer.setRenderTarget(null);
++                        this.renderer.setViewport(pipLeft, pipBottom, pipW, pipH);
++                        this.renderer.setScissor(pipLeft, pipBottom, pipW, pipH);
++                        this.renderer.setScissorTest(true);
++                        
++                        // Do not clear the screen! Leave FPV corners untouched!
++                        this.renderer.autoClear = false;
++                        
++                        if (!this.pipQuadScene) {
++                            this.pipQuadScene = new THREE.Scene();
++                            this.pipQuadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
++                            this.pipQuadMat = new THREE.ShaderMaterial({
++                                uniforms: { tDiffuse: { value: null } },
++                                vertexShader: `
++                                    varying vec2 vUv;
++                                    void main() {
++                                        vUv = uv;
++                                        gl_Position = vec4(position, 1.0);
++                                    }
++                                `,
++                                fragmentShader: `
++                                    uniform sampler2D tDiffuse;
++                                    varying vec2 vUv;
++                                    void main() {
++                                        vec2 center = vec2(0.5, 0.5);
++                                        float dist = distance(vUv, center);
++                                        if (dist > 0.5) discard;
++                                        gl_FragColor = texture2D(tDiffuse, vUv);
++                                    }
++                                `,
++                                transparent: true,
++                                depthWrite: false,
++                                depthTest: false
++                            });
++                            const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.pipQuadMat);
++                            quad.position.z = -0.5;
++                            this.pipQuadScene.add(quad);
++                            this.pipQuadScene.add(this.pipQuadCamera);
++                        }
++                        
++                        this.pipQuadMat.uniforms.tDiffuse.value = this.pipTarget.texture;
++                        this.renderer.render(this.pipQuadScene, this.pipQuadCamera);
++                        
++                        // --- 3. CLEANUP ---
++                        this.renderer.autoClear = oldAutoClear;
++                        this.renderer.setScissorTest(false);
++                        this.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
++                        this.renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
++                        
+                         if (this.headlamp) this.headlamp.visible = true;
+                         if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
+                         

@@ -1,0 +1,880 @@
+diff --git a/NewOrigami.Panels.html b/NewOrigami.Panels.html
+index aa9d00e..d791f3b 100644
+--- a/NewOrigami.Panels.html
++++ b/NewOrigami.Panels.html
+@@ -19,10 +19,10 @@
+ 
+     <style>
+         :root {
+-            /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AAA */
+-            --bg-panel: rgba(255, 255, 255, 0.55); 
+-            --bg-circle: rgba(255, 255, 255, 0.75); 
+-            --bg-glass: rgba(255, 255, 255, 0.55); /* Unified Translucency */
++            /* TACTICAL GLASS COLOR SYSTEM - WCAG 2.2 AA */
++            --bg-panel: rgba(255, 255, 255, 0.85); 
++            --bg-circle: rgba(255, 255, 255, 0.92); 
++            --bg-glass: rgba(255, 255, 255, 0.85); /* Solid-feel Translucency */
+             --bg-attr-dark: #101012; 
+             --nm-shadow-dark: rgba(0, 0, 0, 0.3); 
+             --nm-shadow-inner: inset 2px 2px 5px rgba(0,0,0,0.15);
+@@ -33,15 +33,15 @@
+             
+             --bottom-dock-height: 230px;
+             --wing-height: 160px;
+-            --card-w: 84px;
+-            --card-h: 135px;
+-
+-            /* DARKENED ELEMENTAL AAA PALETTE */
+-            --earth-clr: #006064; --earth-bg: rgba(0, 96, 100, 0.15);
+-            --wind-clr: #37474f;  --wind-bg: rgba(55, 71, 79, 0.15);
+-            --fire-clr: #b71c1c;  --fire-bg: rgba(183, 28, 28, 0.15);
+-            --water-clr: #0d47a1; --water-bg: rgba(13, 71, 161, 0.15);
+-            --item-clr: #1b5e20;  --item-bg: rgba(27, 94, 32, 0.15);
++            --card-w: 110px;
++            --card-h: 130px;
++
++            /* REFINED ELEMENTAL PALETTE (1:1 with Screenshot) */
++            --earth-clr: #00bcd4; --earth-bg: rgba(0, 188, 212, 0.1);
++            --wind-clr: #90a4ae;  --wind-bg: rgba(144, 164, 174, 0.1);
++            --fire-clr: #f44336;  --fire-bg: rgba(244, 67, 54, 0.1);
++            --water-clr: #2196f3; --water-bg: rgba(33, 150, 243, 0.1);
++            --item-clr: #e91e63;  --item-bg: rgba(233, 30, 99, 0.1);
+             
+             --wager-solid: #1b5e20;
+             --attack-solid: #b71c1c;
+@@ -251,6 +251,27 @@
+         #dice-container { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; position: relative; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.4s ease; opacity: 0; background: var(--bg-glass);   border: var(--glass-border); border-radius: 24px; box-shadow: 0 15px 45px var(--nm-shadow-dark); margin: 0 10px; }
+         #dice-container.active { display: flex; opacity: 1; }
+         
++        .bag-overlay {
++            display: none; position: absolute; bottom: 85px; left: 0; width: 100%; height: calc(100% - 85px);
++            background: rgba(230, 233, 239, 0.95);
++            backdrop-filter: blur(10px);
++            z-index: 100;
++            overflow-y: auto; padding: 20px; box-sizing: border-box;
++        }
++        .dark-mode .bag-overlay { background: rgba(0,0,0,0.85); }
++        .bag-overlay.active { display: block; animation: bag-slide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
++        @keyframes bag-slide { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
++        .bag-row-title { font-size: 14px; font-weight: 900; color: #1a1a1a; margin-bottom: 15px; margin-top: 25px; text-transform: uppercase; letter-spacing: 1px; }
++        .dark-mode .bag-row-title { color: #ffffff; }
++        .bag-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
++        .bag-row .col-stack { position: relative; width: 100px; margin-right: 15px; } 
++        .equip-badge {
++            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
++            background: #e91e63; color: #fff; font-size: 8px; font-weight: 900;
++            padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
++            z-index: 30; letter-spacing: 1px; pointer-events: none;
++        }
++        
+         .dice-player-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; color: var(--color-text); }
+         .dpz-name { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; color: var(--theme-clr, var(--color-text)); }
+         .dpz-pot { font-size: 24px; font-weight: 900; font-family: monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+@@ -288,21 +309,30 @@
+         .guide-card {
+             -webkit-user-select: none; user-select: none;
+             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
+-            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
+-            justify-content: flex-start; text-align: center; color: var(--color-text); 
+-            background: rgba(15, 15, 18, 0.95);   
++            border-radius: 12px; display: flex; flex-direction: column; align-items: stretch; 
++            justify-content: flex-start; text-align: center; color: #111111; 
++            background: #ffffff;
+             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+-            padding: 0; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.15);
++            padding: 10px 10px 14px 10px; box-sizing: border-box; 
++            border: 1px solid rgba(0,0,0,0.1);
++            border-left: 6px solid var(--theme-clr);
+             transform-origin: top center;
++            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
++        }
++        .dark-mode .guide-card {
++            color: #111111; /* Keep cards light mode even in dark mode per user screenshot */
++            background: #ffffff;
++            border: 1px solid rgba(0,0,0,0.1);
++            border-left: 6px solid var(--theme-clr);
++            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+         }
+-        .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
+         
+-        .card-badge {
+-            position: absolute; top: -10px; right: -6px; width: 22px; height: 22px; 
+-            border-radius: 50%; background: #ff0000; color: #ffffff;
+-            font-size: 11px; font-weight: 900; display: flex; align-items: center; 
+-            justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+-            border: 2px solid #ffffff; z-index: 10;
++        .card-top-row .card-badge {
++            position: absolute; right: 0px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; 
++            border-radius: 50%; background: var(--theme-clr); color: #ffffff;
++            font-size: 9px; font-weight: 900; display: flex; align-items: center; 
++            justify-content: center; box-shadow: 0 0 6px var(--theme-clr);
++            border: none; z-index: 10;
+         }
+         
+         .guide-card[data-depth="0"]:hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
+@@ -345,43 +375,34 @@
+         }
+ 
+         
+-        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 2px 2px 10px var(--nm-shadow-dark); }
+-        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(0.9); }
+-        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
+-        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
++        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06); }
++        .dark-mode .guide-card[data-depth="0"] { box-shadow: 0 10px 20px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15); }
++        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 6px 12px rgba(0,0,0,0.08); filter: brightness(0.97); }
++        .dark-mode .guide-card[data-depth="1"] { box-shadow: 0 4px 8px rgba(0,0,0,0.2); filter: brightness(0.9); }
++        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 4px 8px rgba(0,0,0,0.05); filter: brightness(0.95); }
++        .dark-mode .guide-card[data-depth="2"] { box-shadow: 0 2px 5px rgba(0,0,0,0.1); filter: brightness(0.7); }
++        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.9); }
++        .dark-mode .guide-card[data-depth="3"] { filter: brightness(0.5); }
+         .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
+         
+-        /* Rigid Vertical Symmetry Zones */
+-        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+-        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
+-        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
++        /* Elegant Card Typography and Structure */
++        .card-top-row { display: flex; justify-content: center; align-items: center; position: relative; width: 100%; height: 18px; margin-bottom: 6px; }
++        .card-kanji { position: absolute; left: 0px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 900; color: var(--theme-clr); }
++        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 7px; font-weight: 900; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+         
+-        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
+-        .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
++        .card-title-group { display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; }
++        .card-title { font-weight: 900; font-size: 13px; color: #111; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.1; margin-bottom: 2px; }
++        .card-desc { font-style: italic; font-weight: 600; font-size: 9px; color: #555; margin-top: 0px; }
++        .dark-mode .card-title { color: #fff; }
++        .dark-mode .card-desc { color: #aaa; }
+         
+-        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-glass); box-shadow: var(--nm-shadow-inner); margin: 0 auto; overflow: hidden; position: relative; border: var(--glass-border); flex-shrink: 0; margin-bottom: 5px; }
+-        .dark-mode .card-icon-3d { background: var(--bg-glass); }
++        .card-icon-container { width: 64px; height: 64px; border-radius: 50%; background: #e0e4e8; margin: 4px auto 8px auto; box-shadow: inset 0 3px 6px rgba(0,0,0,0.15), inset 0 -1px 2px rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; overflow: visible; border: 1px solid rgba(0,0,0,0.05); }
++        .dark-mode .card-icon-container { background: #1a1c20; box-shadow: inset 0 4px 6px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(255,255,255,0.1); }
++        .card-icon-3d { width: 50px; height: 50px; border-radius: 50%; margin: 0; background: transparent; box-shadow: none; overflow: visible; position: relative; border: none; flex-shrink: 0; }
+         .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+-        .card-attr-fused { 
+-            width: 100%; 
+-            height: 35px; 
+-            margin-top: auto; 
+-            background: var(--bg-attr-dark); 
+-            color: #ffffff;
+-            font-weight: 900; 
+-            font-size: 8px;
+-            letter-spacing: 0px; 
+-            padding: 0 8px 6px 8px; 
+-            text-transform: uppercase; 
+-            display: flex; 
+-            align-items: center; 
+-            justify-content: center; 
+-            flex-shrink: 0; 
+-            text-align: center; 
+-            line-height: 1.1; 
+-            box-sizing: border-box; 
+-            border-radius: 0 0 10px 10px;
+-        }
++        
++        .card-attr-pill { margin-top: auto; width: 100%; border: 1px solid var(--theme-clr); border-radius: 10px; font-size: 9px; font-weight: 800; color: #333; padding: 5px 0; background: transparent; text-transform: uppercase; box-sizing: border-box; }
++        .dark-mode .card-attr-pill { color: #eee; }
+ 
+         .card-click-overlay {
+             position: absolute;
+@@ -408,13 +429,11 @@
+ 
+ 
+ 
+-        .card-earth { --theme-clr: #5C4033; --theme-bg: #4e342e; } 
+-        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
+-        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
+-        .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; }
+-        .card-missile   { --theme-clr: var(--dmg-clr); --theme-bg: #4a148c; }
+-        .card-scroll  { --theme-clr: var(--item-clr); --theme-bg: #1b5e20; }
+-        .card-shield    { --theme-clr: var(--def-clr); --theme-bg: #1a237e; }
++        .card-earth { --theme-clr: var(--earth-clr); --theme-bg: var(--earth-bg); } 
++        .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: var(--wind-bg); } 
++        .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: var(--fire-bg); } 
++        .card-water { --theme-clr: var(--water-clr); --theme-bg: var(--water-bg); }
++        .card-item  { --theme-clr: var(--item-clr); --theme-bg: var(--item-bg); }
+         /* --- MODAL --- */
+         #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 49999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+         #modal-overlay.active { opacity: 1; pointer-events: auto; }
+@@ -455,7 +474,7 @@
+         /* Utility Classes for resolving linting errors */
+         .theme-green { --theme-clr: #4caf50; }
+         .theme-red { --theme-clr: #f44336; }
+-        .viewport-text { color: #FFF; font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; opacity: 0.8; }
++        .viewport-text { color: #666; font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; opacity: 0.8; }
+ 
+         /* --- DRAGGABLE LCD EVENT PANEL --- */
+         #lcd-event-panel {
+@@ -532,7 +551,7 @@
+         #player-hp-fill { width: 100%; }
+     </style>
+ </head>
+-<body class="dark-mode focus-active">
++<body class="focus-active">
+ 
+     <div id="modal-overlay" onclick="closeModal()"></div>
+ 
+@@ -684,8 +703,10 @@
+                 overflow-y: hidden;
+                 display: flex;
+                 flex-direction: column;
+-                background: rgba(0, 0, 0, 0.75);
+-                border-radius: 12px;
++                background: var(--bg-glass);
++                backdrop-filter: blur(15px);
++                -webkit-backdrop-filter: blur(15px);
++                border-radius: 16px;
+                 transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, margin 0.3s ease, max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                 opacity: 0;
+                 pointer-events: none;
+@@ -695,9 +716,9 @@
+                 border: 1px solid rgba(255,255,255,0.0);
+             }
+             #event-log-container.active {
+-                height: 100px;
++                height: 120px;
+                 opacity: 1;
+-                padding: 10px 15px;
++                padding: 15px 20px;
+                 margin-bottom: 0px;
+                 border-bottom-left-radius: 0;
+                 border-bottom-right-radius: 0;
+@@ -705,6 +726,7 @@
+                 overflow-y: auto;
+                 border: var(--glass-border);
+                 border-bottom: none;
++                box-shadow: inset 0 2px 10px rgba(0,0,0,0.1), 0 -5px 15px rgba(0,0,0,0.2);
+             }
+             #event-log-container.active ~ #input-container { margin-top: 0; }
+             #event-log-container.active ~ #input-container .chat-pill {
+@@ -718,10 +740,16 @@
+             #event-log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+             
+             .log-entry {
+-                font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 6px; 
+-                text-shadow: 1px 1px 3px rgba(0,0,0,0.8); font-family: 'Nunito', sans-serif; line-height: 1.4;
++                font-size: 13px; font-weight: 700; color: var(--color-text); margin-bottom: 8px; 
++                padding: 8px 12px; background: rgba(0,0,0,0.05); border-left: 3px solid var(--water-clr);
++                border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
++                font-family: 'Nunito', sans-serif; line-height: 1.4;
+                 animation: logFadeIn 0.3s ease forwards;
+             }
++            body.dark-mode .log-entry {
++                background: rgba(255,255,255,0.05);
++                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
++            }
+             @keyframes logFadeIn {
+                 from { opacity: 0; transform: translateY(5px); }
+                 to { opacity: 1; transform: translateY(0); }
+@@ -733,41 +761,30 @@
+             .log-entry.chat { color: #81d4fa; font-style: italic; font-weight: 600; letter-spacing: 0.2px; }
+             .log-entry b, .log-entry strong { color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.4); }
+ 
+-            /* Mapview container using identical 10A AAA design */
++            /* Circular Mapview container */
+             #mapview-container {
+                 position: absolute;
+-                top: 20px;
+-                left: 20px;
+-                height: clamp(250px, 30vh, 400px);
+-                width: clamp(250px, 30vh, 400px);
+-                min-width: 200px;
+-                min-height: 200px;
+-                border-radius: 18px;
+-                background: transparent;
+-                padding: 6px;
++                top: -10px; /* Shifted from 20px to account for larger size */
++                left: -10px; /* Shifted from 20px to account for larger size */
++                height: 340px; /* Increased from 280px to perfectly match dial size */
++                width: 340px; /* Increased from 280px */
++                border-radius: 50%;
++                background: transparent; /* Must be transparent so WebGL corners don't get dark background! */
+                 z-index: 10000;
+-                border: 1px solid rgba(180,140,60,0.25);
+                 box-sizing: border-box;
+                 cursor: move;
+                 transition: transform 0.3s ease;
+-                overflow: hidden; /* Clips the inner massive border-shadow to simulate a frame */
++                overflow: visible; /* To allow outer dials */
+                 -webkit-user-select: none;
+                 user-select: none;
+-                pointer-events: auto; /* Required to capture events over pointer-events: none body */
++                pointer-events: auto;
+                 display: none; /* Only visible in dock mode */
+             }
+ 
+-            #mapview-container:hover {
+-                border-color: rgba(200,150,60,0.35);
+-            }
+-
+             #mapview-container.dragging {
+                 cursor: grabbing !important;
+                 z-index: 10005 !important;
+-            }
+-
+-            #mapview-container.resizing {
+-                transition: none;
++                transform: scale(1.05);
+             }
+ 
+             #mapview-container:active {
+@@ -779,24 +796,14 @@
+                 width: 100%;
+                 height: 100%;
+                 overflow: hidden;
+-                border-radius: 12px;
++                border-radius: 50%;
+                 background: transparent;
+-                /* Create the solid dark frame without blocking the transparent center */
+-                box-shadow: 0 0 0 100px #151519, inset 0 0 0 4px rgba(10,10,12,1);
++                box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+             }
+ 
+             /* Tilt-Shift / Diorama Spotlight Vignette */
+             #mapview-container .canvas-wrapper::after {
+-                content: '';
+-                position: absolute;
+-                top: 0; left: 0; right: 0; bottom: 0;
+-                background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
+-                -webkit-backdrop-filter: blur(4px);
+-                backdrop-filter: blur(4px);
+-                -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+-                mask-image: radial-gradient(circle at 50% 50%, transparent 40%, black 80%);
+-                pointer-events: none;
+-                z-index: 10;
++                display: none;
+             }
+ 
+             #mapview-container .canvas-wrapper canvas {
+@@ -806,22 +813,105 @@
+                 pointer-events: auto;
+             }
+ 
+-            .resize-handle {
++            /* Dial Rings Structure */
++            .dial-ring {
+                 position: absolute;
+-                width: 24px;
+-                height: 24px;
++                border-radius: 50%;
++                box-sizing: border-box;
++                pointer-events: auto; /* To allow dragging */
++                cursor: grab;
++                z-index: 5;
++            }
++            .dial-ring:active { cursor: grabbing; }
++
++            /* Outer Compass Dial */
++            #dial-outer {
++                top: 0; left: 0; right: 0; bottom: 0;
+                 background: transparent;
+-                z-index: 100;
+-                pointer-events: auto;
+-                transition: background 0.2s;
++                border: 18px solid #fff;
++                box-shadow: 
++                    0 10px 25px rgba(0,0,0,0.2),
++                    inset 0 0 5px rgba(0,0,0,0.1);
++                transition: border-color 0.3s;
++                transform: rotate(0deg);
++                display: flex; align-items: center; justify-content: center;
++            }
++            body.dark-mode #dial-outer {
++                border-color: #ddd;
++            }
++
++            /* Inner Moonphase Dial */
++            #dial-inner {
++                top: 18px; left: 18px; right: 18px; bottom: 18px;
++                background: transparent;
++                border: 1px solid rgba(0,0,0,0.1);
++                box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
++                transform: rotate(0deg);
++            }
++            body.dark-mode #dial-inner {
++                border-color: rgba(255, 255, 255, 0.1);
++            }
++
++            /* Tick marks for outer dial */
++            .dial-tick {
++                position: absolute;
++                top: 0; left: 50%;
++                width: 2px; height: 6px;
++                background: var(--color-text-dim);
++                transform-origin: 50% 170px; /* Half of 340px (280 + 30 + 30) */
++            }
++
++            /* Generic Dial Marker */
++            .dial-marker {
++                position: absolute;
++                width: 30px; height: 30px;
++                line-height: 30px;
++                text-align: center;
++                font-size: 16px;
++                font-weight: 800;
++                border-radius: 50%;
++                background: var(--bg-glass);
++                color: var(--color-text);
++                border: 1px solid var(--glass-border);
++                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
++                margin-left: -15px; margin-top: -15px;
++                text-shadow: 0 0 4px rgba(255,255,255,0.5);
++                pointer-events: none; /* Let drag events pass to ring */
++            }
++            body.dark-mode .dial-marker { text-shadow: 0 0 4px rgba(0,0,0,0.8); }
++
++            /* Moon Phases on Inner */
++            .marker-moon { font-size: 14px; background: rgba(0,0,0,0.8); color: #fff; width: 24px; height: 24px; line-height: 24px; margin-left: -12px; margin-top: -12px; }
++            
++            .active-selector {
++                position: absolute;
++                top: -40px; left: 50%;
++                width: 44px; height: 44px;
++                margin-left: -22px;
++                border: 3px solid #ff9800;
++                border-radius: 50%;
++                box-shadow: 0 0 15px #ff9800, inset 0 0 8px #ff9800;
++                pointer-events: none;
++                z-index: 10;
+             }
+-            .resize-handle:hover {
+-                background: rgba(255,255,255,0.1);
++
++            #moonphase-dial {
++                position: absolute;
++                bottom: -25px;
++                left: 50%;
++                transform: translateX(-50%);
++                background: #111;
++                border: 1px solid rgba(255,255,255,0.3);
++                border-radius: 20px;
++                padding: 4px 12px;
++                font-size: 10px;
++                font-weight: bold;
++                letter-spacing: 1px;
++                color: #ddd;
++                z-index: 20;
++                white-space: nowrap;
++                box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+             }
+-            .resize-handle.se { bottom: -2px; right: -2px; cursor: se-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-bottom-right-radius: 8px;}
+-            .resize-handle.sw { bottom: -2px; left: -2px; cursor: sw-resize; border-bottom: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-bottom-left-radius: 8px;}
+-            .resize-handle.ne { top: -2px; right: -2px; cursor: ne-resize; border-top: 2px solid rgba(255,255,255,0.3); border-right: 2px solid rgba(255,255,255,0.3); border-top-right-radius: 8px;}
+-            .resize-handle.nw { top: -2px; left: -2px; cursor: nw-resize; border-top: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3); border-top-left-radius: 8px;}
+ 
+             #mapview-container .view-label {
+                 position: absolute;
+@@ -840,14 +930,26 @@
+         
+         <!-- Map View Container -->
+         <div id="mapview-container" class="primary-view">
+-            <div class="view-label">Map View (Drag Here)</div>
++            <!-- Outer Compass Dial -->
++            <div id="dial-outer" class="dial-ring">
++                <div class="dial-marker marker-n" style="top: 0%; left: 50%;">N</div>
++                <div class="dial-marker marker-e" style="top: 50%; left: 100%;">E</div>
++                <div class="dial-marker marker-s" style="top: 100%; left: 50%;">S</div>
++                <div class="dial-marker marker-w" style="top: 50%; left: 0%;">W</div>
++            </div>
++            
++            <!-- Inner Moon Phase Dial -->
++            <div id="dial-inner" class="dial-ring">
++            </div>
++
++            <!-- Active Selection Indicator at Top Center -->
++            <div class="active-selector"></div>
++            <div id="moonphase-label" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.5); font-size: 10px; pointer-events: none; z-index: 10;">N/A</div>
++            
++            <div class="view-label" style="top: 30%; font-size: 10px; z-index: 20;">Map (Drag)</div>
+             <div class="canvas-wrapper">
+                 <!-- Native WebGL shines through from FPV iframe -->
+             </div>
+-            <div class="resize-handle se"></div>
+-            <div class="resize-handle sw"></div>
+-            <div class="resize-handle ne"></div>
+-            <div class="resize-handle nw"></div>
+         </div>
+ 
+         <div id="lower-ui-row">
+@@ -876,7 +978,10 @@
+                         </div>
+                     </div>
+                     <div id="turn-indicator">PLAYER TURN</div>
+-                    <div id="guides-container"></div>
++                    <div id="guides-container" class="rail-container"></div>
++            
++            <div id="bag-container" class="bag-overlay"></div>
++            
+                     <div id="dice-container">
+                         <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
+                            <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
+@@ -935,23 +1040,21 @@
+         };
+ 
+         const defaultCategories = [
+-            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Spell Scroll', attr: '(STUN * 2DICE)', cards: ['BOULDER', 'FISSURE'] },
+-            { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Spell Scroll', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
+-            { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Magic Wand', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
+-            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
+-            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
+-            { id: 'SCROLL', kanji: '具', icon: 'fa-scroll', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
++            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Spell', attr: '(STUN * 2DICE)', cards: ['BOULDER', 'FISSURE'] },
++            { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Spell', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
++            { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Spell', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
++            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] }
+         ];
+ 
+         const combatCategories = [
+-            { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
+-            { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
+-            { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Melee Weapon', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
+-            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
+-            { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
+-            { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
++            { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Weapon', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
++            { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Weapon', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
++            { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Weapon', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
++            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
++            { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
++            { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
+             { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
+-            { id: 'SCROLL', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['POTION'] }
++            { id: 'SCROLL', kanji: '具', icon: 'fa-flask', desc: 'Item', attr: '(RESTORE)', cards: ['POTION'] }
+         ];
+ 
+         let categories = defaultCategories;
+@@ -1071,7 +1174,7 @@
+                         const c = geo.attributes.color;
+                         const white = new THREE.Color(0xffffff);
+                         const sunshine = new THREE.Color(0xffffff);
+-                        const brightNavy = new THREE.Color(0x0044ff); // Bright Navy Blue
++                        const brightNavy = new THREE.Color(0x0d47a1); // Canonical --water-clr
+                         for(let i=0; i<p.count; i++) {
+                             const x = p.getX(i), z = p.getZ(i); 
+                             const w = Math.sin(x * 3.0 + t * 4) * 0.3 + Math.cos(z * 2.5 + t * 3.5) * 0.25 + Math.sin((x+z)*5.0 + t*5.0) * 0.1;
+@@ -1186,15 +1289,10 @@
+                     glowPlane.position.z = -0.2;
+                     swordContainer.add(glowPlane);
+ 
+-                    const sword1 = swordContainer.clone();
+-                    sword1.position.set(-1.2, 0, 1.5);
+-                    sword1.rotation.z = Math.PI / 4;
+-
+-                    const sword2 = swordContainer.clone();
+-                    sword2.position.set(1.2, 0, 1.5);
+-                    sword2.rotation.z = Math.PI / 4;
+-
+-                    group.add(sword1, sword2);
++                    // Single centered sword
++                    swordContainer.position.set(0, -0.3, 0);
++                    swordContainer.rotation.z = Math.PI / 4;
++                    group.add(swordContainer);
+                     
+                     // Extra point light for weapon shininess
+                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
+@@ -1202,19 +1300,20 @@
+                     group.add(pointLight);
+ 
+                     update = (t) => { 
+-                        sword1.position.y = Math.sin(t * 2) * 0.1; 
+-                        sword2.position.y = Math.cos(t * 2) * 0.1;
++                        swordContainer.position.y = -0.3 + Math.sin(t * 2) * 0.1; 
+                     };
+                 } else if (el === 'MISSILE') {
+                     const starShape = new THREE.Shape();
+-                    const outerRadius = 1.6;
+-                    const innerRadius = 0.45;
+-                    for (let i = 0; i < 8; i++) {
+-                        const angle = (i * Math.PI) / 4;
+-                        const r = i % 2 === 0 ? outerRadius : innerRadius;
+-                        if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+-                        else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+-                    }
++                    // 4-pointed shuriken matching the projectile geometry
++                    starShape.moveTo(0, 1.6);
++                    starShape.lineTo(0.25, 0.25);
++                    starShape.lineTo(1.6, 0);
++                    starShape.lineTo(0.25, -0.25);
++                    starShape.lineTo(0, -1.6);
++                    starShape.lineTo(-0.25, -0.25);
++                    starShape.lineTo(-1.6, 0);
++                    starShape.lineTo(-0.25, 0.25);
++                    starShape.lineTo(0, 1.6);
+                     const starGeo = new THREE.ExtrudeGeometry(starShape, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
+                     starGeo.center();
+                     const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.6, roughness: 0.2, emissive: 0x444444});
+@@ -1240,12 +1339,9 @@
+                     glowPlane.position.z = -0.2;
+                     starGroup.add(glowPlane);
+ 
+-                    const star1 = starGroup.clone();
+-                    star1.position.set(-1.2, 0, 1.5);
+-                    const star2 = starGroup.clone();
+-                    star2.position.set(1.2, 0, 1.5);
+-
+-                    group.add(star1, star2);
++                    // Single centered star
++                    starGroup.position.set(0, 0, 0);
++                    group.add(starGroup);
+                     
+                     // Extra point light for weapon shininess
+                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
+@@ -1253,8 +1349,7 @@
+                     group.add(pointLight);
+ 
+                     update = (t) => { 
+-                        star1.rotation.z = -t * 0.1; 
+-                        star2.rotation.z = t * 0.1; 
++                        starGroup.rotation.z = -t * 2.0; 
+                     };
+                 } else if (el === 'SHIELD') {
+                     const addOutline = (mesh) => {
+@@ -1271,7 +1366,7 @@
+                     
+                     const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 3 });
+                     shieldGeo.center();
+-                    const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444});
++                    const shieldMat = new THREE.MeshStandardMaterial({color: 0x1a237e, metalness: 0.7, roughness: 0.3, emissive: 0x050a2e});
+                     const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                     shield.scale.set(1.4, 1.4, 1.4);
+                     addOutline(shield);
+@@ -1279,7 +1374,7 @@
+                     // Inner shield design
+                     const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.25, bevelEnabled: false });
+                     innerGeo.center();
+-                    const innerMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.1, roughness: 0.2});
++                    const innerMat = new THREE.MeshStandardMaterial({color: 0x0d47a1, metalness: 0.3, roughness: 0.2});
+                     const innerShield = new THREE.Mesh(innerGeo, innerMat);
+                     innerShield.scale.set(0.5, 0.5, 1.0);
+                     innerShield.position.z = 0; // centered so it pokes out both sides
+@@ -1660,6 +1755,106 @@
+             });
+         }
+ 
++        window.equippedWeapon = null;
++        window.equippedArmor = null;
++
++        window.handleBagClick = (cardName, catDesc) => {
++            if (catDesc === 'Weapon') {
++                window.equippedWeapon = cardName;
++                window.renderBag();
++            } else if (catDesc === 'Armor') {
++                window.equippedArmor = cardName;
++                window.renderBag();
++            } else {
++                emitAction(cardName);
++            }
++        };
++
++        window.renderBag = () => {
++            const container = document.getElementById('bag-container');
++            container.innerHTML = '';
++            
++            const weapons = combatCategories.filter(c => c.desc === 'Weapon');
++            const armor = combatCategories.filter(c => c.desc === 'Armor');
++            const items = combatCategories.filter(c => c.desc === 'Item');
++            
++            const createRow = (title, cats) => {
++                if (cats.length === 0) return;
++                const titleEl = document.createElement('div');
++                titleEl.className = 'bag-row-title';
++                titleEl.textContent = title;
++                container.appendChild(titleEl);
++                
++                const rowEl = document.createElement('div');
++                rowEl.className = 'bag-row';
++                
++                cats.forEach((cat) => {
++                    cat.cards.forEach((cardName) => {
++                        const col = document.createElement('div');
++                        col.className = 'col-stack';
++                        
++                        col.innerHTML = generateCardHTML(cat, cardName, 0, true, true);
++                        
++                        if (window.equippedWeapon === cardName || window.equippedArmor === cardName) {
++                            col.innerHTML += `<div class="equip-badge">EQUIPPED</div>`;
++                        }
++                        
++                        rowEl.appendChild(col);
++                    });
++                });
++                container.appendChild(rowEl);
++                
++                // Mount 3D canvases for these newly injected cards
++                mountAllCanvases(rowEl);
++            };
++            
++            createRow('Weapons', weapons);
++            createRow('Armor', armor);
++            createRow('Items', items);
++        };
++
++        function generateCardHTML(cat, name, depth, isTop, isBag = false) {
++            let tooltipHTML = '';
++            if (isTop && !isBag) {
++                tooltipHTML = `
++                    <div class="card-tooltip">
++                        <div class="tt-header">${name}</div>
++                        <div class="tt-desc">${cat.desc}</div>
++                        <div class="tt-attr">${cat.attr}</div>
++                    </div>
++                `;
++            }
++            
++            let qtyHTML = '';
++            if (isTop && cat.qty !== undefined) {
++                qtyHTML = `<div class="card-badge">${cat.qty}</div>`;
++            }
++            
++            const clickHandler = isBag ? `handleBagClick('${name}', '${cat.desc}')` : `emitAction('${name}', this)`;
++            
++            return `
++                <div class="guide-card card-${(cat.id === 'KATANA' || cat.id === 'SHIELD' || cat.id === 'MISSILE') ? 'item' : cat.id.toLowerCase()}" 
++                     data-depth="${depth}" 
++                     ${isTop && cat.qty !== undefined ? `data-qty="${cat.qty}"` : ''}
++                     onclick="${clickHandler}">
++                    ${tooltipHTML}
++                    <div class="card-top-row">
++                        <span class="card-kanji">${cat.kanji}</span>
++                        <div class="card-type-pill">${cat.id}</div>
++                        ${qtyHTML}
++                    </div>
++                    <div class="card-title-group">
++                        <div class="card-title">${name}</div>
++                        <div class="card-desc">${cat.desc}</div>
++                    </div>
++                    <div class="card-icon-container">
++                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
++                    </div>
++                    <div class="card-attr-pill">${cat.attr}</div>
++                </div>
++            `;
++        }
++
+         function setup() {
+             loadDeck(categories);
+             
+@@ -1672,6 +1867,90 @@
+             if (mode !== 'combat') {
+                 initAvatar();
+             }
++
++            // --- DIALS SETUP & INTERACTION ---
++            const outerDial = document.getElementById('dial-outer');
++            const innerDial = document.getElementById('dial-inner');
++            
++            // Inject ticks into outer dial
++            for (let i = 0; i < 12; i++) {
++                if (i % 3 === 0) continue; // Skip N E S W
++                let tick = document.createElement('div');
++                tick.className = 'dial-tick';
++                tick.style.transform = `rotate(${i * 30}deg)`;
++                outerDial.appendChild(tick);
++            }
++            
++            // Inject moon phases into inner dial
++            const moonSymbols = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
++            const moonNames = ['NEW MOON', 'WAXING CRESCENT', 'FIRST QUARTER', 'WAXING GIBBOUS', 'FULL MOON', 'WANING GIBBOUS', 'LAST QUARTER', 'WANING CRESCENT'];
++            for (let i = 0; i < 8; i++) {
++                let m = document.createElement('div');
++                m.className = 'dial-marker marker-moon';
++                let ang = (i * 45 - 90) * (Math.PI / 180);
++                // Radius of inner dial is 145px
++                m.style.left = (145 + Math.cos(ang) * 145) + 'px';
++                m.style.top = (145 + Math.sin(ang) * 145) + 'px';
++                m.textContent = moonSymbols[i];
++                innerDial.appendChild(m);
++            }
++
++            function setupDialInteraction(el) {
++                let isDragging = false;
++                let startAngle = 0;
++                let currentRot = 0;
++                let center = {x:0, y:0};
++                
++                el.addEventListener('pointerdown', (e) => {
++                    isDragging = true;
++                    const rect = el.getBoundingClientRect();
++                    center.x = rect.left + rect.width / 2;
++                    center.y = rect.top + rect.height / 2;
++                    startAngle = Math.atan2(e.clientY - center.y, e.clientX - center.x) * (180 / Math.PI) - currentRot;
++                    el.style.transition = 'none';
++                    e.preventDefault();
++                });
++                
++                window.addEventListener('pointermove', (e) => {
++                    if (!isDragging) return;
++                    let angle = Math.atan2(e.clientY - center.y, e.clientX - center.x) * (180 / Math.PI);
++                    currentRot = angle - startAngle;
++                    el.style.transform = `rotate(${currentRot}deg)`;
++                });
++                
++                window.addEventListener('pointerup', () => {
++                    if (!isDragging) return;
++                    isDragging = false;
++                    el.style.transition = 'transform 0.3s ease-out';
++                    
++                    // Snap to nearest 30 deg for outer, 45 deg for inner
++                    const snapDeg = el.id === 'dial-outer' ? 30 : 45;
++                    currentRot = Math.round(currentRot / snapDeg) * snapDeg;
++                    el.style.transform = `rotate(${currentRot}deg)`;
++                    
++                    // Trigger broadcast after snap
++                    if (el.id === 'dial-inner') {
++                        let phaseIdx = (Math.round(-currentRot / 45) % 8 + 8) % 8;
++                        const moonLabel = document.getElementById('moonphase-label');
++                        if (moonLabel) moonLabel.textContent = moonNames[phaseIdx];
++                        window.parent.postMessage({ type: 'MOON_PHASE', phase: moonNames[phaseIdx] }, '*');
++                    } else if (el.id === 'dial-outer') {
++                        const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
++                        let dirIdx = (Math.round(-currentRot / 45) % 8 + 8) % 8;
++                        // Example: mapped compass to elements, or just pass compass
++                        window.parent.postMessage({ type: 'ACTIVE_ELEMENT', element: dirs[dirIdx] }, '*');
++                    }
++                });
++            }
++            
++            setupDialInteraction(outerDial);
++            setupDialInteraction(innerDial);
++
++            // Broadcast initial state
++            setTimeout(() => {
++                window.parent.postMessage({ type: 'MOON_PHASE', phase: 'NEW MOON' }, '*');
++                window.parent.postMessage({ type: 'ACTIVE_ELEMENT', element: 'N' }, '*');
++            }, 1000);
+         }
+ 
+         function playAvatarAnim(name) {
+@@ -1812,6 +2091,21 @@
+                 }
+             }
+             
++            // Bag UI Toggle
++            if (a === 'BAG') {
++                const bag = document.getElementById('bag-container');
++                const guides = document.getElementById('guides-container');
++                if (bag.classList.contains('active')) {
++                    bag.classList.remove('active');
++                    guides.style.display = 'flex';
++                } else {
++                    guides.style.display = 'none';
++                    bag.classList.add('active');
++                    if (typeof window.renderBag === 'function') window.renderBag();
++                }
++                return;
++            }
++            
+             // Dice UI Toggle
+             if (a === 'WAGER') {
+                 const guideCont = document.getElementById('guides-container');
+@@ -2263,7 +2557,7 @@
+                         card = document.createElement('div');
+                         card.id = 'loot-c-' + item.id;
+                         
+-                        const cat = defaultCategories.find(c => c.cards.includes(item.cardName)) || defaultCategories[0];
++                        const cat = defaultCategories.find(c => c.cards.includes(item.cardName)) || combatCategories.find(c => c.cards.includes(item.cardName)) || defaultCategories[0];
+                         card.className = `guide-card card-${cat.id.toLowerCase()}`;
+                         card.dataset.depth = "0";
+                         card.style.position = 'absolute';
