@@ -52,16 +52,16 @@
         body.dark-mode {
             --bg-panel: #1e2022;
             --bg-circle: #17181a;
-            --bg-glass: #232527; 
-            --bg-gray-variant-1: #2a2c2e;
-            --bg-gray-variant-2: #303336;
+            --bg-glass: #1a1a1c; 
+            --bg-gray-variant-1: #222225;
+            --bg-gray-variant-2: #282a2e;
 
-            --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+            --glass-border: 2px solid #111;
             --color-text: #ffffff;
             --color-text-dim: #7f8a93;
             --nm-shadow: rgba(0, 0, 0, 0.9);
             --nm-shadow-light: rgba(20, 22, 24, 0.6);
-            --nm-shadow-inner: inset 4px 4px 10px rgba(0,0,0,0.8), inset -2px -2px 6px rgba(255,255,255,0.05);
+            --nm-shadow-inner: inset 2px 2px 6px rgba(0,0,0,0.8), inset -1px -1px 3px rgba(255,255,255,0.05);
             --nm-shadow-dark: rgba(0, 0, 0, 1.0);
         }
 
@@ -353,9 +353,9 @@
         }
 
         
-        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), 0 0 6px rgba(255,255,255,0.25), inset 0 0 0 1px rgba(255,255,255,0.1) !important; }
-        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), 0 0 4px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.05) !important; filter: brightness(0.9); }
-        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 3px rgba(255,255,255,0.1); filter: brightness(0.7); }
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), var(--nm-shadow-inner) !important; }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 2px 2px 6px rgba(0,0,0,0.4) !important; filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4); filter: brightness(0.7); }
         .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: none; filter: brightness(0.5); }
         .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
         
@@ -388,9 +388,9 @@
         .inv-grid .playing-card {
             position: relative; transform: none !important; opacity: 1 !important; z-index: 1 !important;
             filter: none !important; margin: 0; transition: transform 0.2s, box-shadow 0.2s; cursor: grab;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 0 6px rgba(255,255,255,0.15), inset 0 0 0 1px rgba(255,255,255,0.1) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8), var(--nm-shadow-inner) !important;
         }
-        .inv-grid .playing-card:hover { transform: translateY(-5px) !important; box-shadow: 0 8px 16px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.3), inset 0 0 0 1px rgba(255,255,255,0.2) !important; z-index: 10 !important; }
+        .inv-grid .playing-card:hover { transform: translateY(-5px) !important; box-shadow: 0 8px 16px rgba(0,0,0,0.8), var(--nm-shadow-inner) !important; z-index: 10 !important; }
         
         .inv-grid .playing-card:active { cursor: grabbing; }
         .equipped-card { border: 2px solid #00ffcc !important; box-shadow: 0 0 15px rgba(0,255,204,0.5), inset 0 0 10px rgba(0,255,204,0.2) !important; filter: brightness(1.1) !important; }
@@ -827,7 +827,9 @@
                     inset 4px 4px 8px rgba(0,0,0,0.9),
                     inset -2px -2px 6px rgba(255,255,255,0.05);
                 pointer-events: none;
+                transition: transform 0.07s linear; /* Smooth interpolation between ~20hz updates */
             }
+
             
             /* Compass Indents (Tick Marks) */
             .compass-outer-ring::after {
@@ -848,11 +850,13 @@
                 color: #5a5f6a;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.05);
                 z-index: 20;
+                transition: transform 0.07s linear; /* Matches compass ring */
             }
             .compass-marker.north { top: -13px; left: 50%; transform: translateX(-50%); }
             .compass-marker.south { bottom: -13px; left: 50%; transform: translateX(-50%); }
             .compass-marker.east { right: -11px; top: 50%; transform: translateY(-50%); }
             .compass-marker.west { left: -11px; top: 50%; transform: translateY(-50%); }
+
 
             .season-outer-ring {
                 position: absolute;
@@ -871,47 +875,36 @@
 
             .moon-selector {
                 position: absolute;
-                top: -6px;
+                top: -24px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 6px solid transparent;
-                border-right: 6px solid transparent;
-                border-top: 8px solid #00ffcc;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                border: 2px solid #ffb300;
+                filter: drop-shadow(0 0 6px #ffb300);
                 z-index: 30;
-                filter: drop-shadow(0 0 4px #00ffcc);
+                box-sizing: border-box;
             }
 
             .moon-icon {
                 position: absolute;
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background: #151519;
-                box-shadow: 
-                    inset 2px 2px 4px rgba(0,0,0,0.8), 
-                    inset -1px -1px 2px rgba(255,255,255,0.1);
+                top: 50%; left: 50%;
+                width: 16px; height: 16px;
+                font-size: 16px; line-height: 16px; text-align: center;
+                margin: -8px 0 0 -8px;
+                color: #e0e5ec;
+                text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+                filter: grayscale(100%) brightness(1.4) contrast(1.2);
             }
-            /* Moons are pushed inwards (+6px or -6px) to center them on the new 16px inset border */
-            .moon-icon.new-moon {
-                top: 14.65%; left: 14.65%; transform: translate(calc(-50% + 6px), calc(-50% + 6px));
-            }
-            .moon-icon.first-quarter {
-                top: 14.65%; right: 14.65%; transform: translate(calc(50% - 6px), calc(-50% + 6px));
-                background: linear-gradient(90deg, #151519 50%, #e0e5ec 50%);
-                box-shadow: 0 0 4px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.5);
-            }
-            .moon-icon.full-moon {
-                bottom: 14.65%; right: 14.65%; transform: translate(calc(50% - 6px), calc(50% - 6px));
-                background: radial-gradient(circle at 30% 30%, #e0e5ec, #7a828e);
-                box-shadow: 0 0 6px rgba(255,255,255,0.2), inset -1px -1px 3px rgba(0,0,0,0.5);
-            }
-            .moon-icon.last-quarter {
-                bottom: 14.65%; left: 14.65%; transform: translate(calc(-50% + 6px), calc(50% - 6px));
-                background: linear-gradient(90deg, #e0e5ec 50%, #151519 50%);
-                box-shadow: 0 0 4px rgba(255,255,255,0.1), inset 1px -1px 2px rgba(0,0,0,0.5);
-            }
+            .moon-icon.phase-0 { transform: rotate(0deg) translateY(-142px) rotate(0deg); }
+            .moon-icon.phase-1 { transform: rotate(45deg) translateY(-142px) rotate(-45deg); }
+            .moon-icon.phase-2 { transform: rotate(90deg) translateY(-142px) rotate(-90deg); }
+            .moon-icon.phase-3 { transform: rotate(135deg) translateY(-142px) rotate(-135deg); }
+            .moon-icon.phase-4 { transform: rotate(180deg) translateY(-142px) rotate(-180deg); }
+            .moon-icon.phase-5 { transform: rotate(225deg) translateY(-142px) rotate(-225deg); }
+            .moon-icon.phase-6 { transform: rotate(270deg) translateY(-142px) rotate(-270deg); }
+            .moon-icon.phase-7 { transform: rotate(315deg) translateY(-142px) rotate(-315deg); }
 
             .pip-vignette {
                 position: absolute;
@@ -969,9 +962,12 @@
                 }
                 
                 const phase = getMoonPhase(); // 0 to 7
+                const phaseNames = ['NEW MOON', 'WAXING CRESCENT', 'FIRST QUARTER', 'WAXING GIBBOUS', 'FULL MOON', 'WANING GIBBOUS', 'LAST QUARTER', 'WANING CRESCENT'];
+                window.parent.postMessage({ type: 'MOON_PHASE', phase: phaseNames[phase] }, '*');
+
                 const ring = document.querySelector('.season-outer-ring');
                 if (ring) {
-                    const rotation = 45 - (phase * 45);
+                    const rotation = -(phase * 45);
                     ring.style.transform = `rotate(${rotation}deg)`;
                 }
             });
@@ -989,10 +985,14 @@
             </div>
             
             <div class="season-outer-ring">
-                <div class="moon-icon new-moon" title="New Moon"></div>
-                <div class="moon-icon first-quarter" title="First Quarter"></div>
-                <div class="moon-icon full-moon" title="Full Moon"></div>
-                <div class="moon-icon last-quarter" title="Last Quarter"></div>
+                <div class="moon-icon phase-0" title="New Moon">🌑</div>
+                <div class="moon-icon phase-1" title="Waxing Crescent">🌒</div>
+                <div class="moon-icon phase-2" title="First Quarter">🌓</div>
+                <div class="moon-icon phase-3" title="Waxing Gibbous">🌔</div>
+                <div class="moon-icon phase-4" title="Full Moon">🌕</div>
+                <div class="moon-icon phase-5" title="Waning Gibbous">🌖</div>
+                <div class="moon-icon phase-6" title="Last Quarter">🌗</div>
+                <div class="moon-icon phase-7" title="Waning Crescent">🌘</div>
             </div>
             
             <div class="pip-vignette"></div>
@@ -2523,8 +2523,26 @@
             });
         }
 
+        // --- Compass Direction Dial Update ---
+        // Called in real-time (~20hz) by PLAYER_ROT_REALTIME and on grid change by PLAYER_MOVE.
+        function updateCompass(rot) {
+            const compass = document.querySelector('.compass-outer-ring');
+            if (!compass) return;
+            const rotDeg = (rot * 180) / Math.PI;
+            compass.style.transform = `rotate(${rotDeg}deg)`;
+            const n = compass.querySelector('.north');
+            if (n) n.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
+            const s = compass.querySelector('.south');
+            if (s) s.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
+            const e_marker = compass.querySelector('.east');
+            if (e_marker) e_marker.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
+            const w = compass.querySelector('.west');
+            if (w) w.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
+        }
+
         // Listen for combat state changes from main relay
         window.addEventListener('message', (e) => {
+
             if (e.data && e.data.type === 'SHOW_COMBAT') {
                 const ez = document.getElementById('encounter-zone');
                 if (!ez.classList.contains('active')) {
@@ -2761,21 +2779,10 @@
             } else if (e.data && e.data.type === 'LOG_EVENT') {
                 window.logEvent(e.data.text, e.data.logType || 'system');
             } else if (e.data && e.data.type === 'PLAYER_MOVE') {
-                if (e.data.rot !== undefined) {
-                    const compass = document.querySelector('.compass-outer-ring');
-                    if (compass) {
-                        const rotDeg = (e.data.rot * 180) / Math.PI;
-                        compass.style.transform = `rotate(${rotDeg}deg)`;
-                        const n = compass.querySelector('.north');
-                        if (n) n.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
-                        const s = compass.querySelector('.south');
-                        if (s) s.style.transform = `translateX(-50%) rotate(${-rotDeg}deg)`;
-                        const e_marker = compass.querySelector('.east');
-                        if (e_marker) e_marker.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
-                        const w = compass.querySelector('.west');
-                        if (w) w.style.transform = `translateY(-50%) rotate(${-rotDeg}deg)`;
-                    }
-                }
+                if (e.data.rot !== undefined) updateCompass(e.data.rot);
+            } else if (e.data && e.data.type === 'PLAYER_ROT_REALTIME') {
+                // Real-time rotation update (broadcasted ~20hz from FPV engine)
+                if (e.data.rot !== undefined) updateCompass(e.data.rot);
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
