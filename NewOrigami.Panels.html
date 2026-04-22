@@ -877,11 +877,11 @@
             .compass-marker {
                 position: absolute;
                 font-family: 'Roboto', sans-serif;
-                font-weight: 800;
-                font-size: 11px;
-                color: #5a5f6a;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.05);
-            z-index: 20;
+                font-weight: 900;
+                font-size: 18px;
+                color: #000000;
+                text-shadow: none;
+            z-index: 40; /* Above the moon-selector glass */
             transition: transform 0.15s ease-out;
         }
             .compass-marker.north { top: -16px; left: 50%; transform: translateX(-50%); }
@@ -912,7 +912,7 @@
                 position: absolute;
                 inset: 0px;
                 border-radius: 50%;
-                border: 16px solid rgba(12, 12, 15, 0.95);
+                border: 24px solid rgba(12, 12, 15, 0.95);
                 box-sizing: border-box;
                 box-shadow:
                     /* Outer raised ring */
@@ -928,27 +928,20 @@
 
             .moon-selector {
                 position: absolute;
-                top: -24px;
+                top: -10px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 32px;
-                height: 32px;
+                width: 24px;
+                height: 24px;
                 border-radius: 50%;
-                border: 2px solid #ffb300;
-                filter: drop-shadow(0 0 6px #ffb300);
+                /* Glass / Magnifying Lens Effect */
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(3px) brightness(1.2);
+                -webkit-backdrop-filter: blur(3px) brightness(1.2);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.3);
                 z-index: 30;
                 box-sizing: border-box;
-            }
-            .moon-selector::before {
-                content: '+';
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: #ff5252;
-                font-size: 16px;
-                font-weight: 300;
-                opacity: 0.8;
                 pointer-events: none;
             }
 
@@ -962,12 +955,12 @@
             }
             .moon-icon span {
                 position: absolute;
-                top: -16px;
+                top: -20px;
                 left: 50%;
                 width: 16px;
                 height: 16px;
                 margin-left: -8px;
-                margin-top: 0px; /* Aligns exactly with the top of the 16px border */
+                margin-top: 0px; /* Centered in the 24px border */
                 line-height: 16px;
                 text-align: center;
                 font-size: 13px;
@@ -1214,7 +1207,7 @@
             </div>
 
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
-                <div id="action-zone">
+                <div id="action-zone" class="outer-active">
                     <div class="level-badge" id="player-level-badge">1</div>
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
                     <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
@@ -1435,7 +1428,7 @@
             { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
             { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
             { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
-            { id: 'SHIELD', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['DEFEND'] },
+            { id: 'ITEM', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['SHIELD'] },
             { id: 'SCROLL', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['POTION'] }
         ];
 
