@@ -4869,12 +4869,15 @@
                     delta = 0; // Swallow elapsed time perfectly to freeze the simulation
                 }
                 
-                // Monster animations only tick while player is moving (real-time mode)
-                // When idle, monsters freeze mid-stride — time-stop effect
-                if (currentlyMoving) {
-                    this.mixers.forEach(mixer => mixer.update(delta));
-                }
+                // Monster mixers time-stop: only advance when player is physically moving.
+                // Use this.physMoving (set previous frame) since currentlyMoving isn't scoped yet.
+                // Explicitly skip playerMixer here — it always updates below.
+                this.mixers.forEach(mixer => {
+                    if (mixer === this.playerMixer) return;
+                    if (this.physMoving) mixer.update(delta);
+                });
                 if (this.playerMixer) this.playerMixer.update(delta);
+
                 let moveDir = 0;
                 let turnDir = 0;
                 
@@ -6185,9 +6188,10 @@
                         this.playerAvatar.position.set(camWX, 0, camWZ);
                         this.playerAvatar.rotation.y = this.player.rot; // Update rotation
                         
-                        // Handle walk animation
+                        // Handle walk animation — only walk when actually translating (not just turning)
                         if (this.playerMixer && this.playerWalkAction) {
-                            if (this.physMoving) {
+                            const actuallyWalking = this.physMoving && (this.keys.w || this.keys.s || this.autoWalkPath?.length > 0);
+                            if (actuallyWalking) {
                                 if (this.playerMixer._current !== 'walk') {
                                     if (this.playerIdleAction) this.playerIdleAction.stop();
                                     this.playerWalkAction.reset();
@@ -6199,6 +6203,7 @@
                                     this.playerWalkAction.stop();
                                     if (this.playerIdleAction) {
                                         this.playerIdleAction.reset();
+                                        this.playerIdleAction.setLoop(THREE.LoopRepeat);
                                         this.playerIdleAction.play();
                                     }
                                     this.playerMixer._current = 'idle';
