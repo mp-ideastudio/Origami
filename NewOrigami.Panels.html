@@ -197,7 +197,7 @@
         .avatar-circle::after { display: none; } /* HP ring removed */
 
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
-        .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
+        .pos-n { --tx: 0px; --ty: -59px; } .pos-s { --tx: 0px; --ty: 59px; } .pos-e { --tx: 59px; --ty: 0px; } .pos-w { --tx: -59px; --ty: 0px; }
         
         .btn-action {
             width: 44px !important; height: 44px !important; border-radius: 50% !important;
@@ -3232,6 +3232,8 @@
                  mapRotating = true; rotStart.x = e.clientX; rotStart.y = e.clientY;
                  document.addEventListener("mousemove", onRotMove);
                  document.addEventListener("mouseup", onRotEnd, { once: true });
+                 document.addEventListener("mouseleave", onRotEnd, { once: true });
+                 window.addEventListener("blur", onRotEnd, { once: true });
                  return;
             }
             if (e.target.closest("#pipCanvas")) {
@@ -3240,6 +3242,8 @@
                      mapPanning = true; panStart.x = e.clientX; panStart.y = e.clientY;
                      document.addEventListener("mousemove", onPanMove);
                      document.addEventListener("mouseup", onPanEnd, { once: true });
+                     document.addEventListener("mouseleave", onPanEnd, { once: true });
+                     window.addEventListener("blur", onPanEnd, { once: true });
                      return;
                 }
             } else if (e.target === pip) {
@@ -3253,6 +3257,8 @@
                     dragStart.left = rect.left; dragStart.top = rect.top;
                     document.addEventListener("mousemove", onDragMove);
                     document.addEventListener("mouseup", onDragEnd, { once: true });
+                    document.addEventListener("mouseleave", onDragEnd, { once: true });
+                    window.addEventListener("blur", onDragEnd, { once: true });
                     return;
                 }
             }
@@ -3293,7 +3299,7 @@
             pip.style.right = "auto";
             syncRect();
         };
-        const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); };
+        const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(); savePiPState(); document.removeEventListener("mousemove", onDragMove); document.removeEventListener("mouseleave", onDragEnd); window.removeEventListener("blur", onDragEnd); };
         
         const onRotMove = (e) => {
             if (!mapRotating) return;
@@ -3301,7 +3307,7 @@
             rotStart.x = e.clientX; rotStart.y = e.clientY;
             post({ type: 'PIP_ROTATE', dx, dy });
         };
-        const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); };
+        const onRotEnd = () => { mapRotating = false; document.removeEventListener("mousemove", onRotMove); document.removeEventListener("mouseleave", onRotEnd); window.removeEventListener("blur", onRotEnd); };
         
         const onPanMove = (e) => {
             if (!mapPanning) return;
@@ -3313,8 +3319,10 @@
         const onPanEnd = (e) => { 
             mapPanning = false; 
             document.removeEventListener("mousemove", onPanMove); 
+            document.removeEventListener("mouseleave", onPanEnd); 
+            window.removeEventListener("blur", onPanEnd); 
             // Clicks to move player
-            if (Math.hypot(e.clientX - panStart.x, e.clientY - panStart.y) < 5) {
+            if (e && e.clientX && Math.hypot(e.clientX - panStart.x, e.clientY - panStart.y) < 5) {
                 const canvas = document.getElementById('pipCanvas');
                 if (!canvas) return;
                 const rect = canvas.getBoundingClientRect();
@@ -3342,6 +3350,8 @@
                 pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
                 document.addEventListener("mousemove", onResizeMove);
                 document.addEventListener("mouseup", onResizeEnd, { once: true });
+                document.addEventListener("mouseleave", onResizeEnd, { once: true });
+                window.addEventListener("blur", onResizeEnd, { once: true });
             });
         });
         
@@ -3367,6 +3377,8 @@
             resizing = false; pip.classList.remove("resizing"); 
             clampPiPIntoViewport(); savePiPState(); syncRect(); 
             document.removeEventListener("mousemove", onResizeMove); 
+            document.removeEventListener("mouseleave", onResizeEnd); 
+            window.removeEventListener("blur", onResizeEnd); 
         };
         
         // Initialize
