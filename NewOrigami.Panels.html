@@ -860,6 +860,7 @@
                 inset -2px -2px 5px rgba(255,255,255,0.06);
             pointer-events: none;
             transition: transform 0.15s ease-out;
+            z-index: 40; /* Crucial: Must be higher than moon-selector to prevent clipping */
         }
 
             /* Compass Indents (Tick Marks) */
