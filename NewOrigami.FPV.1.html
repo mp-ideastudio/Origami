@@ -5992,7 +5992,7 @@
                                   || (this.mapData[bGX]?.[bGZ]?.type === 'wall');
 
                     if (bWallHit) {
-                        if (b.userData.isBoulder || b.userData.isWater) {
+                        if (b.userData.isWater) {
                             // Pinball bounce normal based on which cell boundary we crossed
                             const cellCenterX = bGX * this.gridSize;
                             const cellCenterZ = bGZ * this.gridSize;
@@ -6013,11 +6013,9 @@
                             }
                             
                             // Spawn VFX on wall hit
-                            if (b.userData.isWater) {
-                                this.spawnWaterSplash(b.position.clone());
-                            }
+                            this.spawnWaterSplash(b.position.clone());
                         } else {
-                            // Missiles stick and disappear
+                            // Missiles and BOULDERS explode and disappear
                             if (b.userData.isFireball) {
                                 this.spawnFireExplosion(b.position.clone());
                             } else if (b.userData.isWind) {
@@ -6065,6 +6063,15 @@
                                             b.userData.hitEnemies.add(child.userData.id);
                                             this.flattenGoblin(child, b.userData.dmg);
                                             this.addCameraTrauma(0.2);
+                                            
+                                            // Explode after hitting 3 monsters
+                                            if (b.userData.hitEnemies.size >= 3) {
+                                                this.spawnRockExplosion(b.position.clone());
+                                                this.scene.remove(b);
+                                                this.boulders.splice(bi, 1);
+                                                bHitEntity = true;
+                                                break;
+                                            }
                                         }
                                     } else {
                                         const ep = b.position.clone();
