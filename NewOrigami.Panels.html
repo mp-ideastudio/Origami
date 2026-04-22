@@ -374,7 +374,7 @@
         #inventory-modal {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(10, 10, 15, 0.95);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
             z-index: 20000; display: none; flex-direction: column;
             padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow-y: auto;
             color: #ffffff; opacity: 0; transition: opacity 0.3s ease;
@@ -870,6 +870,7 @@
                 border-radius: 50%;
                 background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.15) 0deg, rgba(255,255,255,0.15) 0.5deg, transparent 0.5deg, transparent 10deg);
                 -webkit-mask: radial-gradient(closest-side, transparent 88%, black 89%);
+                mask: radial-gradient(closest-side, transparent 88%, black 89%);
                 pointer-events: none;
             }
 
@@ -2465,7 +2466,7 @@
         
         // Touch / Mouse D-Pad Controls
         const handleDPadInput = (e, isDown) => {
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             const btn = e.target.closest('[data-key]');
             if (!btn) return;
             const key = btn.dataset.key;
@@ -2479,13 +2480,11 @@
         };
 
         const leftPanel = document.getElementById('left-panel');
-        leftPanel.addEventListener('mousedown', e => handleDPadInput(e, true));
-        leftPanel.addEventListener('mouseup', e => handleDPadInput(e, false));
-        leftPanel.addEventListener('mouseleave', e => handleDPadInput(e, false));
-        
-        leftPanel.addEventListener('touchstart', e => handleDPadInput(e, true), {passive: false});
-        leftPanel.addEventListener('touchend', e => handleDPadInput(e, false), {passive: false});
-        leftPanel.addEventListener('touchcancel', e => handleDPadInput(e, false), {passive: false});
+        // Use pointer events instead to unify touch/mouse and avoid sticky keys
+        leftPanel.addEventListener('pointerdown', e => handleDPadInput(e, true));
+        leftPanel.addEventListener('pointerup', e => handleDPadInput(e, false));
+        leftPanel.addEventListener('pointerleave', e => handleDPadInput(e, false));
+        leftPanel.addEventListener('pointercancel', e => handleDPadInput(e, false));
 
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode');
@@ -2532,7 +2531,7 @@
                 }
             }
             
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key) && !document.activeElement.classList.contains('chat-input') && document.activeElement.id !== 'bottom-panel') {
+            if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key) && !document.activeElement.classList.contains('chat-input') && document.activeElement.id !== 'bottom-panel') {
                 playAvatarAnim('walk');
             }
             if (!document.activeElement.classList.contains('chat-input')) {
@@ -2540,7 +2539,7 @@
             }
         });
         window.addEventListener('keyup', e => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+            if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key)) {
                 playAvatarAnim('idle');
             }
             window.parent.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
@@ -2917,21 +2916,8 @@
         updateViewportReadout();
     </script>
 
-<script>
-setTimeout(() => {
-    const gc = document.getElementById('guides-container');
-    const ic = document.getElementById('input-container');
-    const cards = document.querySelectorAll('.card-column');
-    console.log("GC rect:", gc.getBoundingClientRect());
-    console.log("IC rect:", ic.getBoundingClientRect());
-    if (cards.length > 0) {
-        console.log("First card left:", cards[0].getBoundingClientRect().left);
-        console.log("Last card right:", cards[cards.length-1].getBoundingClientRect().right);
-    }
-}, 3000);
 
-// (Dojo Shoji Texture removed; reverting side-panels to standard glass texture to match playing cards)
-</script>
+
 
 <script>
     (function() {
