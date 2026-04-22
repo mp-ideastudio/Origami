@@ -5504,8 +5504,8 @@
                 // ---------------------------------------------------------------------
                 // RENDER PASSES
                 // ---------------------------------------------------------------------
-                const winW = window.innerWidth;
-                const winH = window.innerHeight;
+                const winW = this.renderer.domElement.clientWidth;
+                const winH = this.renderer.domElement.clientHeight;
                 
                 // Render FPV Frame — viewport/scissor now set per-mode inside the RENDER PASSES block below
 
