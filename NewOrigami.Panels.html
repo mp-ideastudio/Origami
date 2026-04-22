@@ -1051,7 +1051,6 @@
                     };
                 } else if (el === 'WATER') {
                     const geo = new THREE.SphereGeometry(2.8, 64, 64);
-                    geo.scale(1, 1, 0.08); // only a little bumps worth for 3dness
                     geo.computeVertexNormals();
                     const mat = new THREE.MeshStandardMaterial({
                         color: 0xffffff, roughness: 0.1, metalness: 0.9, vertexColors: true
@@ -1171,7 +1170,7 @@
 
                     const swordContainer = new THREE.Group();
                     swordContainer.add(hilt, blade, guard);
-                    swordContainer.scale.set(0.8, 0.8, 0.1); // flatten z depth
+                    swordContainer.scale.set(0.8, 0.8, 0.8); // Restore full 3D shape
                     
                     // White bloom glow behind
                     const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -1225,7 +1224,7 @@
                     hole.rotation.x = Math.PI / 2;
                     const starGroup = new THREE.Group();
                     starGroup.add(star, hole);
-                    starGroup.scale.set(0.9, 0.9, 0.1); // flat z
+                    starGroup.scale.set(0.9, 0.9, 0.9); // Restore full 3D shape
                     
                     // White bloom glow behind
                     const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -1469,8 +1468,7 @@
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
                 
-                // Throttle to 30 FPS for UI components
-                if (time - lastRender < 33) return;
+                // Full 60 FPS for UI components
                 lastRender = time;
                 
                 // Optimization: Do not render heavy 3D icons or avatars when the main dock is hidden

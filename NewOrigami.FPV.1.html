@@ -3092,19 +3092,18 @@
                                     tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
                                 };
                             } else if (catId === 'WATER') {
-                                const geo = new THREE.SphereGeometry(2.2, 32, 32);
+                                const geo = new THREE.SphereGeometry(2.8, 32, 24); 
                                 const mat = new THREE.MeshStandardMaterial({
-                                    color: 0x0277D4,
-                                    roughness: 0.1,
-                                    metalness: 0.1,
-                                    transparent: true,
-                                    opacity: 0.9
+                                    color: 0x0277D4, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.9
                                 });
-                                const mesh = new THREE.Mesh(geo, mat);
-                                iconMesh.add(mesh);
+                                const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; iconMesh.add(mesh);
                                 customUpdate = (t) => {
-                                    mesh.rotation.y = t * 0.5;
-                                    mesh.rotation.x = t * 0.2;
+                                    const pos = geo.attributes.position;
+                                    for(let i=0; i<pos.count; i++) {
+                                        const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
+                                        if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
+                                    }
+                                    pos.needsUpdate = true;
                                 };
                             } else if (catId === 'KATANA') {
                                 const addGlow = (mesh) => {
@@ -3141,7 +3140,7 @@
                                 swordContainer.position.z = 1.2; // Push Katana forward so it doesn't clip the card
                                 swordContainer.rotation.z = Math.PI / 4; 
                                 
-                                swordContainer.scale.set(0.8, 0.8, 0.1); // 10% normal z depth
+                                swordContainer.scale.set(0.8, 0.8, 0.8); // Restore full 3D shape
 
                                 const sword1 = swordContainer;
                                 sword1.position.set(0, -0.3, 0);
@@ -3180,7 +3179,7 @@
                                 
                                 const starGroup = new THREE.Group();
                                 starGroup.add(starMesh, hole);
-                                starGroup.scale.set(0.8, 0.8, 0.1); // 10% normal z depth
+                                starGroup.scale.set(0.8, 0.8, 0.8); // Restore full 3D shape
                                 
                                 const star1 = starGroup;
                                 star1.position.set(0, 0, 0);
@@ -3235,7 +3234,7 @@
                                 addOutline(boss);
                                 
                                 iconMesh.add(dome, guard, horn1, horn2, boss);
-                                iconMesh.scale.set(1.0, 1.0, 0.1); // flatten z index to 10%
+                                iconMesh.scale.set(1.0, 1.0, 1.0); // Restore full 3D shape
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
                             } else if (catId === 'SHIELD') {
                                 const addOutline = (mesh) => {
@@ -3255,7 +3254,7 @@
                                 
                                 const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444, side: THREE.DoubleSide});
                                 const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                                shield.scale.set(1.4, 1.4, 0.14); // 10% z depth scale
+                                shield.scale.set(1.4, 1.4, 1.4); // Restore full 3D shape
                                 addOutline(shield);
                                 
                                 // Inner shield design
@@ -3338,7 +3337,7 @@
                         
                         // Set the model directly at Z=0 so it physically pierces the card symmetrically
                         iconModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
-                        iconModel.iconMesh.position.set(0, -0.096, 0);
+                        iconModel.iconMesh.position.set(0, -0.096, 0.5);
                         iconWrapper.add(iconModel.iconMesh);
                         
                         cardGroup.add(iconWrapper);
