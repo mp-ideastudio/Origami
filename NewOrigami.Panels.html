@@ -824,7 +824,7 @@
             #moondial-wrapper {
                 position: absolute;
                 top: 75px;
-                left: 75px;
+                left: 20px;
                 width: clamp(200px, 25vw, 300px);
                 height: clamp(200px, 25vw, 300px);
                 border-radius: 50%;
@@ -3221,15 +3221,15 @@
         function clampPiPIntoViewport() {
             const rect = pip.getBoundingClientRect();
             const vw = window.innerWidth, vh = window.innerHeight;
-            let left = Math.min(Math.max(75, rect.left), Math.max(75, vw - rect.width - 75));
-            let top = Math.min(Math.max(75, rect.top), Math.max(75, vh - rect.height - 75));
+            let left = Math.min(Math.max(20, rect.left), Math.max(20, vw - rect.width - 20));
+            let top = Math.min(Math.max(20, rect.top), Math.max(20, vh - rect.height - 20));
             pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
         }
 
         function loadPiPState() {
             if (window.innerWidth <= 768) return; 
             try {
-                const raw = localStorage.getItem("mapPiPState.v2");
+                const raw = localStorage.getItem("mapPiPState.v3");
                 if (!raw) return;
                 const s = JSON.parse(raw);
                 if (!s || typeof s !== "object") return;
@@ -3243,7 +3243,7 @@
         function savePiPState() {
             if (window.innerWidth <= 768) return;
             const rect = pip.getBoundingClientRect();
-            try { localStorage.setItem("mapPiPState.v2", JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
+            try { localStorage.setItem("mapPiPState.v3", JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
         }
 
         const onDragMove = (e) => {
