@@ -3326,11 +3326,34 @@
                                 shape.holes.push(holePath);
                                 const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
                                 coinGeo.center();
-                                // Basic Material for bright visibility inside the unlit card container
-                                const coinMat = new THREE.MeshBasicMaterial({color: 0xffd700, side: THREE.DoubleSide});
+                                
+                                // Real gold material
+                                const coinMat = new THREE.MeshStandardMaterial({
+                                    color: 0xd4af37, // Real Gold color
+                                    metalness: 1.0, 
+                                    roughness: 0.25,
+                                    side: THREE.DoubleSide
+                                });
                                 const coin = new THREE.Mesh(coinGeo, coinMat);
+                                
+                                // Static tilt so the player can see the top/hole without it spinning
+                                coin.rotation.x = Math.PI / 12;
+                                coin.rotation.y = Math.PI / 6;
+                                
                                 iconMesh.add(coin);
-                                customUpdate = (t) => { coin.rotation.y = t * 2.5; };
+                                
+                                // Add lights directly to the iconMesh to illuminate the metal since cards have no ambient light
+                                const mainLight = new THREE.PointLight(0xffffff, 2.5, 10);
+                                mainLight.position.set(3, 4, 3);
+                                iconMesh.add(mainLight);
+                                
+                                const rimLight = new THREE.PointLight(0xfff0cc, 1.5, 10);
+                                rimLight.position.set(-3, -2, -2);
+                                iconMesh.add(rimLight);
+
+                                customUpdate = (t) => { 
+                                    // Coin remains static per user request
+                                };
                             } else {
                                 // DICE fallback
                                 const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
@@ -3388,8 +3411,8 @@
                     this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
                     
                     // Spawn Gold Yen Coin Loot directly in front of player
-                    const goldAmount = Math.floor(Math.random() * 51) + 50; // 50 to 100
-                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'GOLD COINS', 'Wealth.', '円', `${goldAmount} GOLD`);
+                    const goldAmount = Math.random() < 0.5 ? 50 : 100;
+                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'YEN COIN', 'Precious metal.', '円', `+${goldAmount} GOLD`);
                     // Explicitly spawn Samurai Helmet to the left of Room 1 Goblin
                     this.spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
                     
@@ -3827,12 +3850,17 @@
                     { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged Wep.', attr:'SKILL CARD' },
                     { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
                     { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
-                    { name:'GOLD COINS',el:'GOLD_COIN',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
+                    { name:'YEN COIN',  el:'GOLD_COIN', kanji:'\u91d1', desc:'Precious metal.', attr:'GOLD' }
                 ];
                 
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
                 
-                this.spawnLootCard(gridX, gridZ, lc.el, lc.name, lc.desc, lc.kanji, lc.attr);
+                let attr = lc.attr;
+                if (lc.el === 'GOLD_COIN') {
+                    attr = '+' + (Math.random() < 0.5 ? 50 : 100) + ' GOLD';
+                }
+                
+                this.spawnLootCard(gridX, gridZ, lc.el, lc.name, lc.desc, lc.kanji, attr);
                 window.parent.postMessage({ type: 'LOG_EVENT', text: `You hear a card drop to the floor.`, logType: 'system' }, '*');
             },
 
