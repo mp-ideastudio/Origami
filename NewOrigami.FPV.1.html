@@ -3140,7 +3140,7 @@
                                 swordContainer.position.z = 1.2; // Push Katana forward so it doesn't clip the card
                                 swordContainer.rotation.z = Math.PI / 4; 
                                 
-                                swordContainer.scale.set(0.8, 0.8, 0.8); // Restore full 3D shape
+                                swordContainer.scale.set(0.8, 0.8, 0.1); // flatten z depth
 
                                 const sword1 = swordContainer;
                                 sword1.position.set(0, -0.3, 0);
@@ -3179,7 +3179,7 @@
                                 
                                 const starGroup = new THREE.Group();
                                 starGroup.add(starMesh, hole);
-                                starGroup.scale.set(0.8, 0.8, 0.8); // Restore full 3D shape
+                                starGroup.scale.set(0.8, 0.8, 0.1); // flatten z depth
                                 
                                 const star1 = starGroup;
                                 star1.position.set(0, 0, 0);
@@ -3234,7 +3234,7 @@
                                 addOutline(boss);
                                 
                                 iconMesh.add(dome, guard, horn1, horn2, boss);
-                                iconMesh.scale.set(1.0, 1.0, 1.0); // Restore full 3D shape
+                                iconMesh.scale.set(1.0, 1.0, 0.1); // flatten z depth
                                 customUpdate = (t) => { iconMesh.rotation.y = t * 1.5; };
                             } else if (catId === 'SHIELD') {
                                 const addOutline = (mesh) => {
@@ -3254,7 +3254,7 @@
                                 
                                 const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444, side: THREE.DoubleSide});
                                 const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                                shield.scale.set(1.4, 1.4, 1.4); // Restore full 3D shape
+                                shield.scale.set(1.4, 1.4, 0.14); // flatten z depth
                                 addOutline(shield);
                                 
                                 // Inner shield design
@@ -3337,7 +3337,7 @@
                         
                         // Set the model directly at Z=0 so it physically pierces the card symmetrically
                         iconModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
-                        iconModel.iconMesh.position.set(0, -0.096, 0.5);
+                        iconModel.iconMesh.position.set(0, -0.096, 0);
                         iconWrapper.add(iconModel.iconMesh);
                         
                         cardGroup.add(iconWrapper);
