@@ -2914,7 +2914,7 @@
                         else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
                         else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
                         else if (catId === 'MISSILE') themeColor = '#ab47bc';
-                        else if (catId === 'GOLD_COIN') themeColor = '#ffd700';
+                        else if (catId === 'GOLD_COIN') themeColor = '#d4af37';
                         else themeColor = '#66bb6a'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
@@ -3331,16 +3331,15 @@
                                 holePath.lineTo(-0.4, 0.4);
                                 shape.holes.push(holePath);
                                 
-                                // Embed depth evenly through card
-                                const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
+                                // Embed depth evenly through card (make it thick enough to pierce the card given the 0.07 scale, but not excessively huge)
+                                const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 2 });
                                 coinGeo.center();
                                 
                                 // Pure gold metal color texture
                                 const coinMat = new THREE.MeshStandardMaterial({
                                     color: 0xd4af37,
                                     metalness: 1.0, 
-                                    roughness: 0.25,
-                                    emissive: 0x332500, // gentle base light so it's not pitch black
+                                    roughness: 0.3,
                                     side: THREE.DoubleSide
                                 });
                                 const coin = new THREE.Mesh(coinGeo, coinMat);
@@ -3351,14 +3350,7 @@
                                 
                                 iconMesh.add(coin);
                                 
-                                // Add lights directly to the iconMesh to illuminate the metal since cards have no ambient light
-                                const mainLight = new THREE.PointLight(0xffffff, 2.5, 10);
-                                mainLight.position.set(3, 4, 3);
-                                iconMesh.add(mainLight);
-                                
-                                const rimLight = new THREE.PointLight(0xfff0cc, 1.5, 10);
-                                rimLight.position.set(-3, -2, -2);
-                                iconMesh.add(rimLight);
+                                // Removed PointLights to eliminate massive bloom artifacts
 
                                 customUpdate = (t) => { 
                                     // Coin remains static per user request
