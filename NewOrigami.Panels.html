@@ -75,7 +75,7 @@
         body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
-        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: stretch; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
@@ -144,9 +144,9 @@
         .btn-icon-circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; background: rgba(255,255,255,0.08); }
         .sp-btn i { color: var(--theme-clr); font-size: 11px; text-align: center; }
 
-        .btn-wager { background: var(--wager-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-wager { background: var(--wager-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; margin-top: auto; }
         .btn-wager i, .btn-wager .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
-        .btn-attack { background: var(--attack-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .btn-attack { background: var(--attack-solid) !important; color: #ffffff !important; border-color: rgba(255,255,255,0.3) !important; margin-top: auto; }
         .btn-attack i, .btn-attack .btn-icon-circle { color: #ffffff !important; border-color: #ffffff; }
 
         body.dark-mode .sp-btn:not(.btn-wager):not(.btn-attack) { color: #ffffff !important; border-color: rgba(255,255,255,0.25); }
@@ -858,6 +858,7 @@
                 inset 3px 3px 8px rgba(0,0,0,0.95),
                 inset -2px -2px 5px rgba(255,255,255,0.06);
             pointer-events: none;
+            transition: transform 0.15s ease-out;
         }
 
             /* Compass Indents (Tick Marks) */
@@ -880,6 +881,7 @@
                 color: #5a5f6a;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.05);
             z-index: 20;
+            transition: transform 0.15s ease-out;
         }
             .compass-marker.north { top: -13px; left: 50%; transform: translateX(-50%); }
             .compass-marker.south { bottom: -13px; left: 50%; transform: translateX(-50%); }

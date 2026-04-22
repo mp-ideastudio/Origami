@@ -4874,7 +4874,7 @@
                 // Explicitly skip playerMixer here — it always updates below.
                 this.mixers.forEach(mixer => {
                     if (mixer === this.playerMixer) return;
-                    if (this.physMoving) mixer.update(delta);
+                    if (this.physMoving || this.combatState !== 'idle') mixer.update(delta);
                 });
                 if (this.playerMixer) this.playerMixer.update(delta);
 
