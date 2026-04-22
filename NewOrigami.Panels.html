@@ -1808,17 +1808,21 @@
                     
                     if (el === 'DICE_CENTER') {
                         // Two completely mapped 3D Dice
-                        function createDie(isBlack) {
+                        function createDie() {
                             const mat = new THREE.MeshStandardMaterial({
-                                color: isBlack ? 0x111111 : 0xffffff, 
-                                emissive: isBlack ? 0x000000 : 0xffffff,
-                                emissiveIntensity: isBlack ? 0 : 0.4,
-                                roughness: 0.1, metalness: 0.3
+                                color: 0xffffff, 
+                                emissive: 0xffffff,
+                                emissiveIntensity: 0.6, /* Bright white to match symbols */
+                                roughness: 1.0, metalness: 0.0 /* Flat non-metallic */
                             });
                             const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat);
                             
                             const dotGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
-                            const dotMat = new THREE.MeshStandardMaterial({color: isBlack ? 0xffffff : 0x111111});
+                            const dotMat = new THREE.MeshStandardMaterial({
+                                color: 0x000000, 
+                                roughness: 1.0, 
+                                metalness: 0.0
+                            });
                             mesh.userData.dotMat = dotMat;
                             
                             function addDot(x, y, z, rx, ry, rz) {
