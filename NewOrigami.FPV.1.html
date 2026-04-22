@@ -444,7 +444,7 @@
         <div id="blood-vignette"></div>
         <div id="interaction-prompt">Press E to Interact</div>
         <div id="fps-counter">FPS: --/60</div>
-        <div id="moonphase-label">NEW MOON</div>
+        <div id="moonphase-label">NEW MOON PHASE</div>
 
 
 
@@ -1967,7 +1967,7 @@
                 ];
                 
                 const loader = new THREE.GLTFLoader();
-                if (loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
+                if (window.location.protocol !== 'file:' && loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
                 
                 const initAvatar = (gltf) => {
                     const avatarMesh = gltf.scene;
@@ -1984,11 +1984,8 @@
                     
                     avatarMesh.traverse((child) => {
                         if (child.isMesh) {
-                            child.layers.set(3); 
-                            // MeshLambertMaterial restores dimensional shadows and rim lighting depth so it stops looking "wonky"
-                            child.material = new THREE.MeshLambertMaterial({ 
-                                color: 0xcccccc
-                            });
+                            child.castShadow = true;
+                            child.receiveShadow = true;
                         }
                     });
 
@@ -2913,17 +2910,19 @@
                         let themeColor = '#66BB6A'; // Default Item
                         
                         // Exact CSS var mapping for accents ONLY
-                        if (catId === 'SPELL' || catId === 'WIND') themeColor = '#90a4ae';
-                        else if (catId === 'DEFEND' || catId === 'EARTH') themeColor = '#00bcd4';
-                        else if (catId === 'THRUST' || catId === 'WATER') themeColor = '#2196f3';
-                        else if (catId === 'SLASH' || catId === 'FIRE') themeColor = '#f44336';
-                        else themeColor = '#e91e63'; // SCROLL
+                        if (catId === 'WIND' || catId === 'SPELL') themeColor = '#b0bec5';
+                        else if (catId === 'EARTH') themeColor = '#5C4033';
+                        else if (catId === 'SHIELD' || catId === 'DEFEND') themeColor = '#5c6bc0';
+                        else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
+                        else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
+                        else if (catId === 'MISSILE') themeColor = '#ab47bc';
+                        else themeColor = '#66bb6a'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
                         ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
                         
-                        // Dark outer border
-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2; ctx.stroke();
+                        // Thin element color outer border
+                        ctx.strokeStyle = themeColor; ctx.lineWidth = 1; ctx.stroke();
                         
                         // Clean inner border for 3D playing card look
                         ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth = 2;
@@ -3021,7 +3020,7 @@
                         const createLootIcon = () => {
                             let iconMesh = new THREE.Group();
                             let customUpdate = null;
-                            const matColor = { EARTH: 0x5C4033, WATER: 0x0275d8, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[catId] || 0x444444;
+                            const matColor = { EARTH: 0x5C4033, WATER: 0x0d6efd, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[catId] || 0x444444;
                             const mat = new THREE.MeshStandardMaterial({ 
                                 color: matColor, roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                             });
@@ -3529,16 +3528,22 @@
                         const k = data.key.toLowerCase();
                         if (k === 'w' || data.key === 'ArrowUp') {
                             if (!this.handleHaltedAttack()) {
-                                if (this.combatState === 'player_turn') this.executeCombatMove(1);
-                                else if (this.combatState === 'idle') this.keys.w = true;
+                                this.keys.w = true;
+                                if (this.combatState === 'player_turn') this.combatState = 'idle';
                             }
                         }
-                        if (k === 'a' || data.key === 'ArrowLeft') this.keys.a = true;
-                        if (k === 's' || data.key === 'ArrowDown') {
-                            if (this.combatState === 'player_turn') this.executeCombatMove(-1);
-                            else if (this.combatState === 'idle') this.keys.s = true;
+                        if (k === 'a' || data.key === 'ArrowLeft') {
+                            this.keys.a = true;
+                            if (this.combatState === 'player_turn') this.combatState = 'idle';
                         }
-                        if (k === 'd' || data.key === 'ArrowRight') this.keys.d = true;
+                        if (k === 's' || data.key === 'ArrowDown') {
+                            this.keys.s = true;
+                            if (this.combatState === 'player_turn') this.combatState = 'idle';
+                        }
+                        if (k === 'd' || data.key === 'ArrowRight') {
+                            this.keys.d = true;
+                            if (this.combatState === 'player_turn') this.combatState = 'idle';
+                        }
                     } else if (data.type === 'KEY_UP') {
                         const k = data.key.toLowerCase();
                         if (k === 'w' || data.key === 'ArrowUp') this.keys.w = false;
@@ -3554,17 +3559,8 @@
                         this.activeChat.fading = true;
                         this._haltPlayer = false; // Release movement lock
                     } else if (e.target === this.renderer.domElement) {
-                        // FPV Raycaster for click-to-move
-                        const rect = this.renderer.domElement.getBoundingClientRect();
-                        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                        const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                        
-                        this.raycaster.setFromCamera({x, y}, this.camera);
-                        const intersects = this.raycaster.intersectObjects(this.worldGroup.children, true);
-                        if (intersects.length > 0) {
-                            const point = intersects[0].point;
-                            this.setWaypointPath(point.x / this.gridSize, point.z / this.gridSize);
-                        }
+                        // Click-to-move disabled by user request. 
+                        // "stop autorun, dont autorun"
                     }
                 });
 
@@ -3574,16 +3570,22 @@
                     this.clearAutoWalk(); // Interrupt autowalk
                     if (k === 'w' || e.key === 'ArrowUp') {
                         if (!this.handleHaltedAttack()) {
-                            if (this.combatState === 'player_turn') this.executeCombatMove(1);
-                            else if (this.combatState === 'idle') this.keys.w = true;
+                            this.keys.w = true;
+                            if (this.combatState === 'player_turn') this.combatState = 'idle';
                         }
                     }
-                    if (k === 'a' || e.key === 'ArrowLeft') this.keys.a = true;
-                    if (k === 's' || e.key === 'ArrowDown') {
-                        if (this.combatState === 'player_turn') this.executeCombatMove(-1);
-                        else if (this.combatState === 'idle') this.keys.s = true;
+                    if (k === 'a' || e.key === 'ArrowLeft') {
+                        this.keys.a = true;
+                        if (this.combatState === 'player_turn') this.combatState = 'idle';
                     }
-                    if (k === 'd' || e.key === 'ArrowRight') this.keys.d = true;
+                    if (k === 's' || e.key === 'ArrowDown') {
+                        this.keys.s = true;
+                        if (this.combatState === 'player_turn') this.combatState = 'idle';
+                    }
+                    if (k === 'd' || e.key === 'ArrowRight') {
+                        this.keys.d = true;
+                        if (this.combatState === 'player_turn') this.combatState = 'idle';
+                    }
                 });
                 
                 window.addEventListener('keyup', (e) => {
@@ -3840,18 +3842,8 @@
                     speed = 18.0;
                     vY = 6.0;
                     if (!this._boulderSharedMat) {
-                        const sc = document.createElement('canvas');
-                        sc.width = sc.height = 128;
-                        const sCtx = sc.getContext('2d');
-                        sCtx.fillStyle = '#888'; sCtx.fillRect(0, 0, 128, 128);
-                        for (let i = 0; i < 300; i++) {
-                            const px = Math.random() * 128, py = Math.random() * 128, r = Math.random() * 10 + 2, v = Math.floor(80 + Math.random() * 80);
-                            sCtx.fillStyle = `rgba(${v},${v - 8},${v - 18},0.55)`; sCtx.beginPath(); sCtx.arc(px, py, r, 0, Math.PI * 2); sCtx.fill();
-                        }
-                        sCtx.strokeStyle = 'rgba(25,15,5,0.6)'; sCtx.lineWidth = 2;
-                        for (let i = 0; i < 12; i++) { sCtx.beginPath(); sCtx.moveTo(Math.random() * 128, Math.random() * 128); sCtx.quadraticCurveTo(Math.random() * 128, Math.random() * 128, Math.random() * 128, Math.random() * 128); sCtx.stroke(); }
-                        this._boulderSharedMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(sc), roughness: 0.95, metalness: 0.02, color: 0xbbbbaa });
-                        this._boulderSharedGeo = new THREE.SphereGeometry(0.55, 10, 10);
+                        this._boulderSharedMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8, flatShading: true });
+                        this._boulderSharedGeo = new THREE.DodecahedronGeometry(0.8, 2);
                     }
                     projectileMesh.add(new THREE.Mesh(this._boulderSharedGeo, this._boulderSharedMat));
                 } else if (spellData.el === 'FIRE') {
@@ -3859,35 +3851,100 @@
                     const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true }));
                     projectileMesh.add(core);
                     projectileMesh.userData.isFireball = true;
+                    projectileMesh.userData.fireTimer = 0;
                 } else if (spellData.el === 'WIND') {
                     speed = 12.0;
-                    // Wind uses a small spinning tornado projectile
                     const tornado = new THREE.Group();
                     const numSpirals = 2; 
                     const mat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
                     for(let i=0; i<numSpirals; i++) {
                         const pts = [];
-                        const pointsCount = 20;
+                        const pointsCount = 40;
                         const phaseOffset = (i / numSpirals) * Math.PI * 2;
                         for(let j=0; j<=pointsCount; j++) {
                             const h = j / pointsCount; 
-                            const r = Math.pow(h, 2.0) * 0.8 + 0.1; 
-                            const y = (h - 0.5) * 1.5; 
-                            const angle = h * Math.PI * 8 + phaseOffset; 
+                            const r = Math.pow(h, 2.0) * 0.75 + 0.1; 
+                            const y = (h - 0.5) * 1.25; 
+                            const angle = h * Math.PI * 12 + phaseOffset; 
                             pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
                         }
                         const curve = new THREE.CatmullRomCurve3(pts);
-                        const geometry = new THREE.TubeGeometry(curve, 20, 0.05, 5, false);
+                        const geometry = new THREE.TubeGeometry(curve, 40, 0.05, 5, false);
                         tornado.add(new THREE.Mesh(geometry, mat));
                     }
                     projectileMesh.add(tornado);
                     projectileMesh.userData.isWind = true;
                 } else if (spellData.el === 'WATER') {
-                    speed = 15.0;
-                    const mat = new THREE.MeshStandardMaterial({ color: 0x0277D4, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.2, flatShading: true });
-                    const geo = new THREE.SphereGeometry(0.6, 16, 12);
-                    projectileMesh.add(new THREE.Mesh(geo, mat));
+                    speed = 10.0;
+                    vY = 4.0;
+                    
+                    // 1. Outer Glass Shell
+                    const glassGeo = new THREE.SphereGeometry(0.5, 32, 24);
+                    const glassMat = new THREE.MeshPhysicalMaterial({
+                        color: 0xffffff, transmission: 0.8, opacity: 1, transparent: true,
+                        roughness: 0.1, metalness: 0.1, clearcoat: 1.0
+                    });
+                    const glassMarble = new THREE.Mesh(glassGeo, glassMat);
+                    projectileMesh.add(glassMarble);
+                    
+                    // 2. Inner Fluid
+                    const geo = new THREE.SphereGeometry(0.48, 64, 64);
+                    geo.computeVertexNormals();
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.5, vertexColors: true });
+                    const fluid = new THREE.Mesh(geo, mat);
+                    projectileMesh.add(fluid);
+                    
+                    const pos = geo.attributes.position;
+                    const originalYs = new Float32Array(pos.count);
+                    for(let i=0; i<pos.count; i++) originalYs[i] = pos.getY(i);
+                    geo.setAttribute('originalY', new THREE.BufferAttribute(originalYs, 1));
+                    
+                    const colors = new Float32Array(pos.count * 3);
+                    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                    
                     projectileMesh.userData.isWater = true;
+                    projectileMesh.userData.waterTimer = 0;
+                    
+                    // Sunshine PointLight
+                    const sunLight = new THREE.PointLight(0xffffff, 2.0, 5);
+                    sunLight.position.set(0, 1, 1);
+                    projectileMesh.add(sunLight);
+                    
+                    projectileMesh.userData.customUpdate = (t) => {
+                        const p = geo.attributes.position;
+                        const origY = geo.attributes.originalY;
+                        const c = geo.attributes.color;
+                        const white = new THREE.Color(0xffffff);
+                        const bsBlue = new THREE.Color(0x0d6efd); // Bootstrap Blue
+                        const deepBlue = new THREE.Color(0x0a58ca);
+                        
+                        for(let i=0; i<p.count; i++) {
+                            const x = p.getX(i), z = p.getZ(i), oy = origY.getX(i);
+                            const w = Math.sin(x * 6.0 + t * 4) * 0.05 + Math.cos(z * 5.0 + t * 3.5) * 0.05 + Math.sin((x+z)*10.0 + t*5.0) * 0.02;
+                            
+                            const waterLevel = -0.05;
+                            
+                            if (oy > waterLevel) {
+                                const dist2D = Math.sqrt(x*x + z*z);
+                                const maxR = Math.sqrt(0.48*0.48 - waterLevel*waterLevel);
+                                
+                                let taper = 1.0 - Math.pow(dist2D/maxR, 4);
+                                if (taper < 0) taper = 0;
+                                
+                                p.setY(i, waterLevel + w * taper);
+                                
+                                const heightMix = Math.max(0, Math.min(1, w * 15.0)); 
+                                let col = bsBlue.clone().lerp(white, heightMix * 0.5);
+                                c.setXYZ(i, col.r, col.g, col.b);
+                            } else {
+                                p.setY(i, oy);
+                                c.setXYZ(i, deepBlue.r, deepBlue.g, deepBlue.b);
+                            }
+                        }
+                        p.needsUpdate = true;
+                        c.needsUpdate = true;
+                        fluid.geometry.computeVertexNormals();
+                    };
                 } else if (action === 'SHURIKEN') {
                     speed = 35.0;
                     if (!this._cachedShurikenGeo) {
@@ -4124,8 +4181,59 @@
                 this.triggerHitStop(80);
             },
 
+            spawnFireExplosion(pos) {
+                for (let i = 0; i < 25; i++) {
+                    const size = 0.1 + Math.random() * 0.3;
+                    const frag = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), new THREE.MeshStandardMaterial({
+                        color: Math.random() > 0.5 ? 0xff4400 : 0xffaa00, emissive: 0xff2200, emissiveIntensity: 2
+                    }));
+                    frag.position.copy(pos);
+                    const angle = Math.random() * Math.PI * 2;
+                    const elev  = Math.random() * 0.5 + 0.2;
+                    const spd   = 4.0 + Math.random() * 4.0;
+                    frag.userData = {
+                        isRockFrag: true,
+                        vX: Math.cos(angle) * Math.cos(elev) * spd,
+                        vY: Math.sin(elev) * spd * 1.2,
+                        vZ: Math.sin(angle) * Math.cos(elev) * spd,
+                        rX: Math.random() * 0.5, rY: Math.random() * 0.5, rZ: Math.random() * 0.5,
+                        life: 20 + Math.floor(Math.random() * 20),
+                        isFire: true
+                    };
+                    this.worldGroup.add(frag);
+                }
+                const flash = new THREE.PointLight(0xff5500, 15.0, this.gridSize * 5);
+                flash.position.copy(pos);
+                this.scene.add(flash);
+                setTimeout(() => this.scene.remove(flash), 150);
+                this.addCameraTrauma(0.85);
+                this.triggerHitStop(80);
+            },
+
+            spawnWaterSplash(pos) {
+                for (let i = 0; i < 25; i++) {
+                    const size = 0.05 + Math.random() * 0.15;
+                    const frag = new THREE.Mesh(new THREE.IcosahedronGeometry(size, 1), new THREE.MeshStandardMaterial({
+                        color: 0x0d6efd, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.1
+                    }));
+                    frag.position.copy(pos);
+                    const angle = Math.random() * Math.PI * 2;
+                    const spd = 2.0 + Math.random() * 4.0;
+                    frag.userData = {
+                        isRockFrag: true,
+                        vX: Math.cos(angle) * spd,
+                        vY: 2.0 + Math.random() * 4.0,
+                        vZ: Math.sin(angle) * spd,
+                        rX: 0, rY: 0, rZ: 0,
+                        life: 30 + Math.floor(Math.random() * 20)
+                    };
+                    this.worldGroup.add(frag);
+                }
+                this.addCameraTrauma(0.5);
+            },
+
             // Wind swirl VFX when Gale hits a target
-            spawnWindSwirl(target) {
+            spawnWindSwirl(target, pos) {
                 const numSwirls = 12;
                 for(let i=0; i<numSwirls; i++) {
                     const material = new THREE.MeshBasicMaterial({ color: 0xddffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
@@ -4138,10 +4246,12 @@
                         angle: Math.random() * Math.PI * 2,
                         radius: 0.4 + Math.random() * 0.6,
                         speed: 8.0 + Math.random() * 6.0,
-                        life: 30 + Math.floor(Math.random() * 20)
+                        life: 30 + Math.floor(Math.random() * 20),
+                        basePos: pos ? pos.clone() : (target ? target.position.clone() : new THREE.Vector3())
                     };
                     
-                    mesh.position.y = target.position.y + Math.random() * 1.5;
+                    mesh.position.copy(mesh.userData.basePos);
+                    mesh.position.y += Math.random() * 1.5;
                     this.worldGroup.add(mesh);
                 }
             },
@@ -4624,8 +4734,8 @@
                             'BOULDER':    { el:'EARTH', color:0x7B5E3A, dmg:25, trauma:0.6, label:'\u{1FAA8} BOULDER',        range: Infinity }, // Projectile: no lock-on needed
                             'FISSURE':    { el:'EARTH', color:0x5C4033, dmg:35, trauma:0.7, label:'\uD83C\uDF0B FISSURE',        range: 5.0 },
                             'GALE':       { el:'WIND',  color:0x90caf9, dmg:20, trauma:0.4, label:'\uD83D\uDCA8 GALE',           range: 5.0 },
-                            'TIDE':       { el:'WATER', color:0x0288d1, dmg:20, trauma:0.5, label:'\uD83C\uDF0A TIDE',           range: 4.0 },
-                            'SURGE':      { el:'WATER', color:0x006994, dmg:30, trauma:0.6, label:'\uD83C\uDF0A SURGE',          range: 5.0 },
+                            'TIDE':       { el:'WATER', color:0x0d6efd, dmg:20, trauma:0.5, label:'\uD83C\uDF0A TIDE',           range: 4.0 },
+                            'SURGE':      { el:'WATER', color:0x0d6efd, dmg:30, trauma:0.6, label:'\uD83C\uDF0A SURGE',          range: 5.0 },
                             'POTION':     { el:'SCROLL',  color:0x00e676, dmg:-20, trauma:0.0, label:'\uD83E\uDDEA POTION (HEAL)', range: Infinity },
                             'SCROLL OF IDENTITY': { el:'SCROLL', color:0xffd740, dmg:0, trauma:0.0, label:'\uD83D\uDCDC SCROLL',  range: Infinity },
                             'SLASH':      { el:'KATANA',color:0xffffff, dmg:20, trauma:0.5, label:'\u2694 SLASH',          range: Infinity }, // Gated by melee block
@@ -5158,6 +5268,20 @@
                 if (!this._lastRotBroadcast || (_now - this._lastRotBroadcast) > 50) {
                     this._lastRotBroadcast = _now;
                     window.parent.postMessage({ type: 'PLAYER_ROT_REALTIME', rot: this.player.rot }, '*');
+                    
+                    // Radar Data Broadcast (Max distance 15 units)
+                    const radarEnemies = [];
+                    this.scene.children.forEach(c => {
+                        if (c.userData && c.userData.type === 'enemy' && c.userData.hp > 0) {
+                            const dx = c.position.x - this.player.x;
+                            const dz = c.position.z - this.player.z;
+                            const dist = Math.hypot(dx, dz);
+                            if (dist <= 15) {
+                                radarEnemies.push({ dx, dz, dist });
+                            }
+                        }
+                    });
+                    window.parent.postMessage({ type: 'RADAR_UPDATE', enemies: radarEnemies, rot: this.player.rot }, '*');
                 }
                 
                 // Grid change detection for AI and Triggers
@@ -5627,7 +5751,13 @@
                             child.rotation.x  += child.userData.rX;
                             child.rotation.y  += child.userData.rY;
                             child.rotation.z  += child.userData.rZ;
-                            if (child.position.y < 0.08) {
+                            
+                            if (child.userData.isFire) {
+                                child.scale.multiplyScalar(0.9);
+                                child.userData.vY += 0.02; // Float up
+                                child.userData.vX *= 0.95;
+                                child.userData.vZ *= 0.95;
+                            } else if (child.position.y < 0.08) {
                                 child.position.y  = 0.08;
                                 child.userData.vY *= -0.18;   // low bounce — heavy debris
                                 child.userData.vX *= 0.60;
@@ -5643,10 +5773,13 @@
 
                         // --- WIND FRAGMENT PHYSICS (swirl explosion) ---
                         if (child.userData?.isWindFrag) {
+                            child.userData.angle += child.userData.speed * 0.016;
                             if (child.userData.target && child.userData.target.position) {
-                                child.userData.angle += child.userData.speed * 0.016;
                                 child.position.x = child.userData.target.position.x + Math.cos(child.userData.angle) * child.userData.radius;
                                 child.position.z = child.userData.target.position.z + Math.sin(child.userData.angle) * child.userData.radius;
+                            } else if (child.userData.basePos) {
+                                child.position.x = child.userData.basePos.x + Math.cos(child.userData.angle) * child.userData.radius;
+                                child.position.z = child.userData.basePos.z + Math.sin(child.userData.angle) * child.userData.radius;
                             }
                             child.position.y += 0.03; // rise up
                             child.rotation.x += 0.2;
@@ -5731,11 +5864,32 @@
                     // Gravity arc if boulder
                     if (b.userData.isBoulder) {
                         b.userData.vY -= 18.0 * delta;
+                    } else if (b.userData.isWater) {
+                        b.userData.vY -= 10.0 * delta;
+                        b.scale.addScalar(delta * 0.8);
+                    } else if (b.userData.isFireball) {
+                        b.userData.fireTimer += delta;
+                        if (b.userData.fireTimer > 0.05) {
+                            b.userData.fireTimer = 0;
+                            const sMat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xffea00 : 0xff4500, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+                            const sGeo = new THREE.TetrahedronGeometry(0.15 + Math.random() * 0.15, 0);
+                            const spark = new THREE.Mesh(sGeo, sMat);
+                            spark.position.copy(b.position);
+                            spark.position.x += (Math.random() - 0.5) * 0.4;
+                            spark.position.y += (Math.random() - 0.5) * 0.4;
+                            spark.position.z += (Math.random() - 0.5) * 0.4;
+                            spark.userData = { isRockFrag: true, isFire: true, vY: 1.5 + Math.random() * 2.0, vX: (Math.random() - 0.5) * 2.0, vZ: (Math.random() - 0.5) * 2.0, rX: Math.random(), rY: Math.random(), rZ: Math.random(), life: 30 };
+                            this.worldGroup.add(spark);
+                        }
                     }
                     
                     b.position.x += b.userData.vX * delta;
                     b.position.y += b.userData.vY * delta;
                     b.position.z += b.userData.vZ * delta;
+                    
+                    if (b.userData.customUpdate) {
+                        b.userData.customUpdate(this.clock.getElapsedTime());
+                    }
 
                     // Realistic rolling/spinning dynamically perpendicular to actual travel direction
                     const spd2D = Math.hypot(b.userData.vX, b.userData.vZ);
@@ -5747,15 +5901,18 @@
                             b.rotateOnWorldAxis(dynamicSpinAxis, spd2D * delta * 0.6);
                         } else if (b.userData.isWind) {
                             b.rotation.y += 20.0 * delta;
+                        } else if (b.userData.isFireball) {
+                            b.rotation.x += 10.0 * delta;
+                            b.rotation.y += 15.0 * delta;
                         }
                     }
 
                     // Floor bounce (damped — heavy rock)
-                    if (b.userData.isBoulder && b.position.y <= 0.55) {
+                    if ((b.userData.isBoulder || b.userData.isWater) && b.position.y <= 0.55) {
                         b.position.y = 0.55;
                         if (b.userData.vY < -1.5) {
                             // Hard bounce
-                            b.userData.vY = Math.abs(b.userData.vY) * 0.8; // More bouncy pinball!
+                            b.userData.vY = Math.abs(b.userData.vY) * (b.userData.isWater ? 0.9 : 0.8); // More bouncy pinball!
                             b.userData.vX *= 0.95;
                             b.userData.vZ *= 0.95;
                         } else {
@@ -5780,7 +5937,7 @@
                                   || (this.mapData[bGX]?.[bGZ]?.type === 'wall');
 
                     if (bWallHit) {
-                        if (b.userData.isBoulder) {
+                        if (b.userData.isBoulder || b.userData.isWater) {
                             // Pinball bounce normal based on which cell boundary we crossed
                             const cellCenterX = bGX * this.gridSize;
                             const cellCenterZ = bGZ * this.gridSize;
@@ -5791,17 +5948,28 @@
                             if (Math.abs(dx) > Math.abs(dz)) {
                                 // Hit the X-facing wall
                                 b.userData.vX *= -1.0; // PERFECT BOUNCE!
+                                b.userData.vZ += (Math.random() - 0.5) * 10.0; // Random deflection
                                 b.position.x += b.userData.vX * delta * 2; // push out
                             } else {
                                 // Hit the Z-facing wall
                                 b.userData.vZ *= -1.0; // PERFECT BOUNCE!
+                                b.userData.vX += (Math.random() - 0.5) * 10.0; // Random deflection
                                 b.position.z += b.userData.vZ * delta * 2;
                             }
-                            // Spawn a tiny bit of dust/sparks on wall hit
-                            this.spawnRockExplosion(b.position.clone());
+                            
+                            // Spawn VFX on wall hit
+                            if (b.userData.isWater) {
+                                this.spawnWaterSplash(b.position.clone());
+                            }
                         } else {
                             // Missiles stick and disappear
-                            this.spawnRockExplosion(b.position.clone());
+                            if (b.userData.isFireball) {
+                                this.spawnFireExplosion(b.position.clone());
+                            } else if (b.userData.isWind) {
+                                this.spawnWindSwirl(null, b.position.clone());
+                            } else {
+                                this.spawnRockExplosion(b.position.clone());
+                            }
                             this.scene.remove(b);
                             this.boulders.splice(bi, 1);
                             continue;
@@ -5836,14 +6004,28 @@
                                         this.addCameraTrauma(0.1);
                                         bHitEntity = true;
                                         break;
+                                    } else if (b.userData.isBoulder) {
+                                        if (!b.userData.hitEnemies) b.userData.hitEnemies = new Set();
+                                        if (!b.userData.hitEnemies.has(child.userData.id)) {
+                                            b.userData.hitEnemies.add(child.userData.id);
+                                            this.flattenGoblin(child, b.userData.dmg);
+                                            this.addCameraTrauma(0.2);
+                                        }
                                     } else {
                                         const ep = b.position.clone();
                                         const isWind = b.userData.isWind;
+                                        const isFire = b.userData.isFireball;
+                                        const isWater = b.userData.isWater;
                                         this.scene.remove(b);
                                         this.boulders.splice(bi, 1);
                                         this.flattenGoblin(child, b.userData.dmg);
+                                        
                                         if (isWind) {
                                             this.spawnWindSwirl(child);
+                                        } else if (isFire) {
+                                            this.spawnFireExplosion(ep);
+                                        } else if (isWater) {
+                                            this.spawnWaterSplash(ep);
                                         } else {
                                             this.spawnRockExplosion(ep);
                                         }
@@ -6190,7 +6372,7 @@
                         
                         // Handle walk animation — only walk when actually translating (not just turning)
                         if (this.playerMixer && this.playerWalkAction) {
-                            const actuallyWalking = this.physMoving && (this.keys.w || this.keys.s || this.autoWalkPath?.length > 0);
+                            const actuallyWalking = this.physMoving;
                             if (actuallyWalking) {
                                 if (this.playerMixer._current !== 'walk') {
                                     if (this.playerIdleAction) this.playerIdleAction.stop();

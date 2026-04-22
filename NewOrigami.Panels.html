@@ -40,7 +40,7 @@
             --earth-clr: #00bcd4; --earth-bg: rgba(0, 188, 212, 0.1);
             --wind-clr: #90a4ae;  --wind-bg: rgba(144, 164, 174, 0.1);
             --fire-clr: #f44336;  --fire-bg: rgba(244, 67, 54, 0.1);
-            --water-clr: #2196f3; --water-bg: rgba(33, 150, 243, 0.1);
+            --water-clr: #0d6efd; --water-bg: rgba(13, 110, 253, 0.1);
             --item-clr: #e91e63;  --item-bg: rgba(233, 30, 99, 0.1);
             
             --wager-solid: #1b5e20;
@@ -97,7 +97,7 @@
 
         /* Full Height Tactical Bars - Blooms Removed */
         .side-panel::before { content: ''; position: absolute; height: 100%; width: 5px; top: 0; }
-        #pax-console::before { left: 0; background: var(--item-clr); } /* Removed box-shadow */
+        #pax-console::before { left: 0; background: #26c6da; } /* Ghost ethereal blue green accent */
         #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
 
 
@@ -189,7 +189,7 @@
         .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
         .avatar-circle { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 58px; height: 58px; border-radius: 50%; z-index: 50; 
+            width: 44px; height: 44px; border-radius: 50%; z-index: 50; 
             background: var(--bg-glass); --hp-pct: 100%; 
             box-shadow: 3px 3px 8px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05);
             border: 1px solid rgba(255,255,255,0.4);
@@ -229,6 +229,7 @@
         body.dark-mode .avatar-circle {
              box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), inset 1px 1px 2px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.4);
              border: 1px solid rgba(255,255,255,0.05);
+             background: var(--bg-glass) !important; /* Force match thumb button background */
         }
         body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
             box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
@@ -306,7 +307,7 @@
             background: var(--bg-glass) !important;   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; box-sizing: border-box;
-            border: 1px solid rgba(255,255,255,0.09) !important;
+            border: 0.5px solid var(--theme-clr, rgba(255,255,255,0.09)) !important;
             box-shadow:
                 4px 4px 12px rgba(0,0,0,0.8),
                 -2px -2px 6px rgba(255,255,255,0.04),
@@ -692,7 +693,7 @@
             #player-hp-val { color: #4caf50; }
             .action-icon-3d { position: absolute; top: -5px; left: -5px; width: 54px; height: 54px; pointer-events: none; z-index: 10; }
             .action-icon-3d canvas { width: 100%; height: 100%; object-fit: contain; }
-            #lower-ui-row { display:flex; width:100%; align-items:flex-end; justify-content:space-between; }
+            /* lower-ui-row grid override removed to restore proper grid layout */
             .wager-card-container { position:relative; transform:none; flex: 0 0 calc(50% - 10px); cursor:pointer; }
             .wager-pill { background:var(--wager-solid); }
             .wager-title-text { font-size:16px; }
@@ -822,8 +823,8 @@
             /* Moondial UI */
             #moondial-wrapper {
                 position: absolute;
-                top: 50px;
-                left: 20px;
+                top: 75px;
+                left: 75px;
                 width: clamp(200px, 25vw, 300px);
                 height: clamp(200px, 25vw, 300px);
                 border-radius: 50%;
@@ -845,10 +846,10 @@
 
             .compass-outer-ring {
                 position: absolute;
-                inset: -14px;
+                inset: -44px;
                 border-radius: 50%;
                 background: transparent;
-                border: 14px solid #151519;
+                border: 44px solid #151519;
                 box-sizing: border-box;
                 box-shadow:
                     /* Outer raised — light from top-left, deep shadow bottom-right */
@@ -865,7 +866,7 @@
             .compass-outer-ring::after {
                 content: '';
                 position: absolute;
-                inset: -14px;
+                inset: -44px;
                 border-radius: 50%;
                 background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.15) 0deg, rgba(255,255,255,0.15) 0.5deg, transparent 0.5deg, transparent 10deg);
                 -webkit-mask-image: radial-gradient(closest-side, transparent 88%, black 89%);
@@ -876,22 +877,52 @@
             .compass-marker {
                 position: absolute;
                 font-family: 'Roboto', sans-serif;
-                font-weight: 800;
-                font-size: 11px;
-                color: #5a5f6a;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.05);
-            z-index: 20;
-            transition: transform 0.15s ease-out;
-        }
-            .compass-marker.north { top: -13px; left: 50%; transform: translateX(-50%); }
-            .compass-marker.south { bottom: -13px; left: 50%; transform: translateX(-50%); }
-            .compass-marker.east { right: -11px; top: 50%; transform: translateY(-50%); }
-            .compass-marker.west { left: -11px; top: 50%; transform: translateY(-50%); }
+                font-weight: 900;
+                font-size: 14px;
+                color: #e0e5ec;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.9), -1px -1px 2px rgba(255,255,255,0.1);
+                width: 32px;
+                height: 32px;
+                line-height: 32px;
+                text-align: center;
+                border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.2) 80%);
+                box-shadow: 
+                    inset 1px 1px 3px rgba(255,255,255,0.3), 
+                    inset -1px -1px 3px rgba(0,0,0,0.8),
+                    0 2px 4px rgba(0,0,0,0.5);
+                border: 1px solid rgba(255,255,255,0.1);
+                z-index: 20;
+                transition: transform 0.15s ease-out;
+            }
+            .compass-marker.north { top: -38px; left: 50%; transform: translateX(-50%); color: #ff5252; }
+            .compass-marker.south { bottom: -38px; left: 50%; transform: translateX(-50%); }
+            .compass-marker.east { right: -38px; top: 50%; transform: translateY(-50%); }
+            .compass-marker.west { left: -38px; top: 50%; transform: translateY(-50%); }
+
+            #radar-overlay {
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 15;
+            }
+            .radar-blip {
+                position: absolute;
+                width: 6px;
+                height: 6px;
+                background: #ff1a1a;
+                border-radius: 50%;
+                box-shadow: 0 0 8px #ff1a1a, inset 1px 1px 2px rgba(255,255,255,0.8);
+                top: 50%; left: 50%;
+                margin-top: -3px; margin-left: -3px;
+                transition: transform 0.2s ease-out;
+            }
 
 
             .season-outer-ring {
                 position: absolute;
-                inset: 0px;
+                inset: 2px;
                 border-radius: 50%;
                 border: 16px solid rgba(12, 12, 15, 0.95);
                 box-sizing: border-box;
@@ -909,17 +940,35 @@
 
             .moon-selector {
                 position: absolute;
-                top: -24px;
+                top: -44px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                border: 2px solid #ffb300;
-                filter: drop-shadow(0 0 6px #ffb300);
+                width: 44px;
+                height: 44px;
+                border-radius: 6px;
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 50%, rgba(0,0,0,0.5) 100%);
+                box-shadow: 
+                    0 4px 8px rgba(0,0,0,0.8),
+                    inset 1px 1px 4px rgba(255,255,255,0.8),
+                    inset -1px -1px 4px rgba(0,0,0,0.5);
                 z-index: 30;
-                box-sizing: border-box;
+                pointer-events: none;
+                transition: transform 1s ease-in-out;
             }
+            .moon-selector::before {
+                content: '+';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #ff5252;
+                font-size: 24px;
+                font-weight: 300;
+                opacity: 0.8;
+                pointer-events: none;
+            }
+
 
             .moon-icon {
                 position: absolute;
@@ -931,12 +980,13 @@
             }
             .moon-icon span {
                 position: absolute;
-                top: -16px;
+                top: -8px;
                 left: 50%;
                 width: 16px;
                 height: 16px;
                 margin-left: -8px;
-                margin-top: 0px; /* Aligns exactly with the top of the 16px border */
+                margin-top: -8px; /* Move UP by 8px so the center of the 16px icon is in the center of the 16px border */
+                top: 8px; /* Center inside the 16px season-outer-ring border */
                 line-height: 16px;
                 text-align: center;
                 font-size: 13px;
@@ -1000,6 +1050,48 @@
                 pointer-events: none;
             }
 
+            .pip-zoom-controls {
+                position: absolute;
+                right: 15px;
+                left: auto;
+                top: 50%;
+                transform: translateY(-50%);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 50;
+            }
+
+            .pip-zoom-btn {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%);
+                border: 1px solid rgba(255,255,255,0.2);
+                color: #fff;
+                font-size: 18px;
+                font-weight: bold;
+                line-height: 1;
+                cursor: pointer;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.2);
+                transition: all 0.2s;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .pip-zoom-btn:hover {
+                background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.4) 100%);
+                border-color: rgba(255,255,255,0.4);
+                transform: scale(1.1);
+            }
+
+            .pip-zoom-btn:active {
+                transform: scale(0.95);
+                box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8);
+            }
+
             #pipCanvas {
                 display: block;
                 width: 100%;
@@ -1043,7 +1135,7 @@
                 }
                 
                 const phase = getMoonPhase(); // 0 to 7
-                const phaseNames = ['NEW MOON', 'WAXING CRESCENT', 'FIRST QUARTER', 'WAXING GIBBOUS', 'FULL MOON', 'WANING GIBBOUS', 'LAST QUARTER', 'WANING CRESCENT'];
+                const phaseNames = ['NEW MOON PHASE', 'WAXING CRESCENT MOON PHASE', 'FIRST QUARTER MOON PHASE', 'WAXING GIBBOUS MOON PHASE', 'FULL MOON PHASE', 'WANING GIBBOUS MOON PHASE', 'LAST QUARTER MOON PHASE', 'WANING CRESCENT MOON PHASE'];
                 window.parent.postMessage({ type: 'MOON_PHASE', phase: phaseNames[phase] }, '*');
 
                 const ring = document.querySelector('.season-outer-ring');
@@ -1065,6 +1157,8 @@
                 <span class="compass-marker west">W</span>
             </div>
             
+            <div id="radar-overlay"></div>
+            
             <div class="season-outer-ring">
                 <div class="moon-icon phase-0" title="New Moon"><span>🌑</span></div>
                 <div class="moon-icon phase-1" title="Waxing Crescent"><span>🌒</span></div>
@@ -1077,6 +1171,11 @@
             </div>
             
             <div class="pip-vignette"></div>
+            
+            <div class="pip-zoom-controls">
+                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: -1 }, '*')">+</button>
+                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: 1 }, '*')">−</button>
+            </div>
         </div>
 
         <div id="lower-ui-row">
@@ -1251,7 +1350,7 @@
                     let themeClr = '#66BB6A';
                     if (c.def.id === 'SPELL' || c.def.id === 'WIND') themeClr = '#90a4ae';
                     else if (c.def.id === 'DEFEND' || c.def.id === 'EARTH') themeClr = '#00bcd4';
-                    else if (c.def.id === 'THRUST' || c.def.id === 'WATER') themeClr = '#2196f3';
+                    else if (c.def.id === 'THRUST' || c.def.id === 'WATER') themeClr = '#0d6efd';
                     else if (c.def.id === 'SLASH' || c.def.id === 'FIRE' || c.def.id === 'KATANA') themeClr = '#f44336';
                     else themeClr = '#e91e63'; 
                     cardEl.style.setProperty('--theme-clr', themeClr);
@@ -1455,51 +1554,77 @@
                         // Z ROTATION REMOVED
                     };
                 } else if (el === 'WATER') {
-                    const geo = new THREE.SphereGeometry(2.8, 64, 64);
+                    // 1. The Glass Marble Shell
+                    const glassGeo = new THREE.SphereGeometry(1.8, 32, 32);
+                    const glassMat = new THREE.MeshPhysicalMaterial({
+                        color: 0xffffff, transmission: 0.8, opacity: 1, transparent: true,
+                        roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.1
+                    });
+                    const glassMarble = new THREE.Mesh(glassGeo, glassMat);
+                    group.add(glassMarble);
+                    
+                    // 2. The Inner Water Fluid
+                    const geo = new THREE.SphereGeometry(1.75, 64, 64);
                     geo.computeVertexNormals();
                     const mat = new THREE.MeshStandardMaterial({
-                        color: 0xffffff, roughness: 0.1, metalness: 0.9, vertexColors: true
+                        color: 0xffffff, roughness: 0.1, metalness: 0.5, vertexColors: true
                     });
                     const pos = geo.attributes.position;
+                    // We need original Ys to restore the spherical bottom
+                    const originalYs = new Float32Array(pos.count);
+                    for(let i=0; i<pos.count; i++) originalYs[i] = pos.getY(i);
+                    geo.setAttribute('originalY', new THREE.BufferAttribute(originalYs, 1));
+                    
                     const colors = new Float32Array(pos.count * 3);
                     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                    const mesh = new THREE.Mesh(geo, mat); 
-                    mesh.position.y = -1.8; 
+                    const fluid = new THREE.Mesh(geo, mat);
                     
-                    // Sunshine PointLight
-                    const sunLight = new THREE.PointLight(0xffffff, 3.0, 10);
+                    group.add(fluid);
+                    
+                    const sunLight = new THREE.PointLight(0xffffff, 2.0, 10);
                     sunLight.position.set(0, 3, 2);
-                    group.add(mesh, sunLight);
+                    group.add(sunLight);
                     
                     update = (t) => {
                         const p = geo.attributes.position;
+                        const origY = geo.attributes.originalY;
                         const c = geo.attributes.color;
                         const white = new THREE.Color(0xffffff);
-                        const sunshine = new THREE.Color(0xffffff);
-                        const brightNavy = new THREE.Color(0x0044ff); // Bright Navy Blue
+                        const bsBlue = new THREE.Color(0x0d6efd); // Bootstrap Blue
+                        const deepBlue = new THREE.Color(0x0a58ca);
+                        
                         for(let i=0; i<p.count; i++) {
-                            const x = p.getX(i), z = p.getZ(i); 
-                            const w = Math.sin(x * 3.0 + t * 4) * 0.3 + Math.cos(z * 2.5 + t * 3.5) * 0.25 + Math.sin((x+z)*5.0 + t*5.0) * 0.1;
+                            const x = p.getX(i), z = p.getZ(i), oy = origY.getX(i);
                             
-                            // Only animate the top surface
-                            if(p.getY(i) > 0.5) {
-                                p.setY(i, 1.4 + w);
+                            // Wavy surface
+                            const w = Math.sin(x * 3.0 + t * 4) * 0.15 + Math.cos(z * 2.5 + t * 3.5) * 0.1 + Math.sin((x+z)*5.0 + t*5.0) * 0.05;
+                            
+                            // Water fills up to slightly below middle
+                            const waterLevel = -0.2;
+                            
+                            if (oy > waterLevel) {
+                                // Project to the flat surface with waves
+                                const dist2D = Math.sqrt(x*x + z*z);
+                                const maxR = Math.sqrt(1.75*1.75 - waterLevel*waterLevel);
                                 
-                                // Wave tips get white foam, slopes get sunshine reflection
-                                const heightMix = Math.max(0, Math.min(1, (w - 0.15) * 3.0));
-                                const sunMix = Math.max(0, Math.min(1, w * 1.5));
+                                // Flatten it, taper at edge
+                                let taper = 1.0 - Math.pow(dist2D/maxR, 4);
+                                if (taper < 0) taper = 0;
                                 
-                                let col = brightNavy.clone();
-                                if (heightMix > 0) col.lerp(white, heightMix); // White caps
-                                else col.lerp(sunshine, sunMix); // Sunshine reflection on slopes
+                                p.setY(i, waterLevel + w * taper);
+                                
+                                // Foam on peaks
+                                const heightMix = Math.max(0, Math.min(1, w * 5.0)); 
+                                let col = bsBlue.clone().lerp(white, heightMix * 0.5);
                                 c.setXYZ(i, col.r, col.g, col.b);
                             } else {
-                                c.setXYZ(i, brightNavy.r, brightNavy.g, brightNavy.b); // Deep body
+                                p.setY(i, oy); // Restore original bottom
+                                c.setXYZ(i, deepBlue.r, deepBlue.g, deepBlue.b);
                             }
                         }
                         p.needsUpdate = true;
                         c.needsUpdate = true;
-                        mesh.geometry.computeVertexNormals(); // Update lighting based on new wave shapes
+                        fluid.geometry.computeVertexNormals();
                     };
                 } else if (el === 'SCROLL') {
                     const potionGroup = new THREE.Group();
@@ -1980,8 +2105,9 @@
                         }
                         container.style.backgroundImage = 'url("assets/models/Player.A.png")';
                         container.style.backgroundPosition = 'center';
-                        container.style.backgroundSize = 'cover';
-                        container.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                        container.style.backgroundSize = '60%';
+                        container.style.backgroundRepeat = 'no-repeat';
+                        container.style.backgroundBlendMode = 'multiply';
                         return;
                     }
                     
@@ -2716,6 +2842,27 @@
                         card.onclick = (e) => {
                             e.stopPropagation();
                             card.classList.add('launching');
+                            
+                            // Show card in PIP
+                            const pipOverlay = document.createElement('img');
+                            pipOverlay.src = item.dataURL;
+                            pipOverlay.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0); width: 60px; height: 90px; border-radius: 6px; box-shadow: 0 0 20px rgba(255,255,255,0.8); z-index: 50; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; pointer-events: none;";
+                            const moondial = document.getElementById('moondial-wrapper');
+                            if (moondial) moondial.appendChild(pipOverlay);
+                            
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    pipOverlay.style.transform = 'translate(-50%, -50%) scale(1)';
+                                    pipOverlay.style.opacity = '1';
+                                });
+                            });
+                            
+                            setTimeout(() => {
+                                pipOverlay.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                                pipOverlay.style.opacity = '0';
+                                setTimeout(() => pipOverlay.remove(), 400);
+                            }, 800);
+
                             setTimeout(() => {
                                 card.classList.remove('launching');
                                 if (window.emitAction) window.emitAction(item.cardName, card);
@@ -2862,6 +3009,48 @@
             } else if (e.data && e.data.type === 'PLAYER_ROT_REALTIME') {
                 // Real-time rotation update (broadcasted ~20hz from FPV engine)
                 if (e.data.rot !== undefined) updateCompass(e.data.rot);
+            } else if (e.data && e.data.type === 'RADAR_UPDATE') {
+                if (e.data.rot !== undefined) updateCompass(e.data.rot);
+                const radarOverlay = document.getElementById('radar-overlay');
+                if (radarOverlay && e.data.enemies) {
+                    // Reuse DOM elements instead of trashing layout 20x a second
+                    const existingBlips = radarOverlay.children;
+                    const maxDist = 15.0;
+                    
+                    for (let i = 0; i < e.data.enemies.length; i++) {
+                        const en = e.data.enemies[i];
+                        const cosR = Math.cos(e.data.rot);
+                        const sinR = Math.sin(e.data.rot);
+                        
+                        const localX = en.dx * cosR - en.dz * sinR;
+                        const localZ = en.dx * sinR + en.dz * cosR;
+                        
+                        const pctX = (localX / maxDist) * 50;
+                        const pctY = (localZ / maxDist) * 50;
+                        
+                        let blip = existingBlips[i];
+                        if (!blip) {
+                            blip = document.createElement('div');
+                            blip.className = 'radar-blip';
+                            radarOverlay.appendChild(blip);
+                        }
+                        
+                        // Use CSS transform for hardware acceleration instead of left/top!
+                        // Since blip has top:50%; left:50%; we can translate by % of parent.
+                        blip.style.transform = `translate(calc(-50% + ${pctX * 2}vw), calc(-50% + ${pctY * 2}vh))`;
+                        // Wait, pctX is % of the container (which is ~250px). 
+                        // Actually, if we keep top:50%; left:50%, we can just use margin or translate(px).
+                        const pxX = (pctX / 50) * (radarOverlay.offsetWidth / 2);
+                        const pxY = (pctY / 50) * (radarOverlay.offsetHeight / 2);
+                        blip.style.transform = `translate(${pxX}px, ${pxY}px)`;
+                        blip.style.display = 'block';
+                    }
+                    
+                    // Hide any extra blips
+                    for (let i = e.data.enemies.length; i < existingBlips.length; i++) {
+                        existingBlips[i].style.display = 'none';
+                    }
+                }
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
                     document.body.classList.add('is-moving');
@@ -2954,6 +3143,8 @@
 
         setTimeout(() => {
             updateViewportReadout();
+            clampPiPIntoViewport();
+            syncRect();
             if (window.innerWidth >= 1024) {
                 const az = document.getElementById('action-zone');
                 if (az && !az.classList.contains('outer-active')) az.classList.add('outer-active');
@@ -3052,8 +3243,8 @@
         function clampPiPIntoViewport() {
             const rect = pip.getBoundingClientRect();
             const vw = window.innerWidth, vh = window.innerHeight;
-            let left = Math.min(Math.max(0, rect.left), Math.max(0, vw - rect.width));
-            let top = Math.min(Math.max(0, rect.top), Math.max(0, vh - rect.height));
+            let left = Math.min(Math.max(75, rect.left), Math.max(75, vw - rect.width - 75));
+            let top = Math.min(Math.max(75, rect.top), Math.max(75, vh - rect.height - 75));
             pip.style.left = left + "px"; pip.style.top = top + "px"; pip.style.right = "auto";
         }
 
@@ -3165,6 +3356,10 @@
         clampPiPIntoViewport();
         // Give layout a tick before measuring rect
         setTimeout(syncRect, 100);
+        window.addEventListener('resize', () => {
+            clampPiPIntoViewport();
+            syncRect();
+        });
     })();
     
     window.rollDiceAnimation = function(betIsEven, amount) {
