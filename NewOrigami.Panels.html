@@ -866,6 +866,8 @@
                 inset: -24px;
                 border-radius: 50%;
                 background: transparent;
+                border: 24px solid transparent; /* Required to keep padding box inside for absolute children */
+                box-sizing: border-box;
                 pointer-events: none;
                 transition: transform 0.15s ease-out;
                 z-index: 40; /* Crucial: Must be higher than moon-selector to prevent clipping */
