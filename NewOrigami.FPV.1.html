@@ -6165,11 +6165,9 @@
                     this.topDownCamera.aspect = aspect;
                     this.topDownCamera.updateProjectionMatrix();
 
-                    // Initialize or use interactive PiP orbit controls
+                    // Initialize PiP orbit controls (north-up fixed — only compass dial rotates)
                     if (!this._pipRot) this._pipRot = { theta: 0, phi: 0.8 };
-                    
-                    // Lock PiP rotation to FPV to maintain proper alignment
-                    this._pipRot.theta = this.player.rot;
+                    // theta intentionally NOT locked to player.rot — map stays north-up always
                     
                     // Use directly smoothed height and back offsets for fluid zoom/pan
                     const camPosY = this._pipHeight;

@@ -79,9 +79,13 @@
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
-            border: var(--glass-border); padding: 20px 8px 25px 8px; 
+            border: 1px solid rgba(255,255,255,0.08); padding: 20px 8px 25px 8px; 
             box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
-            box-shadow: 0 15px 45px var(--nm-shadow-dark); 
+            box-shadow:
+                6px 6px 16px rgba(0,0,0,0.8),
+                -3px -3px 8px rgba(255,255,255,0.04),
+                inset 1px 1px 2px rgba(255,255,255,0.08),
+                inset -1px -1px 3px rgba(0,0,0,0.5);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
         }
         #pax-console { border-radius: 0 24px 24px 0; border-left: none; transform: translateX(-150%); opacity: 0; pointer-events: none; }
@@ -300,7 +304,13 @@
             justify-content: flex-start; text-align: center; color: var(--color-text); 
             background: var(--bg-glass) !important;   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 0; box-sizing: border-box; border: var(--glass-border) !important;
+            padding: 0; box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.09) !important;
+            box-shadow:
+                4px 4px 12px rgba(0,0,0,0.8),
+                -2px -2px 6px rgba(255,255,255,0.04),
+                inset 1px 1px 2px rgba(255,255,255,0.1),
+                inset -1px -1px 3px rgba(0,0,0,0.5) !important;
             transform-origin: top center;
         }
         .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
@@ -499,7 +509,14 @@
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             margin: 6px auto 0 auto;
         }
-        .chat-pill { position: relative; min-width: 0; width: 100%; height: 54px; background: var(--bg-glass); box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner); border-radius: 12px; display: flex; align-items: center; padding: 0 18px; border: var(--glass-border); box-sizing: border-box; margin: 0; }
+        .chat-pill { position: relative; min-width: 0; width: 100%; height: 54px; background: var(--bg-glass);
+            box-shadow:
+                5px 5px 14px rgba(0,0,0,0.7),
+                -3px -3px 8px rgba(255,255,255,0.04),
+                inset 1px 1px 2px rgba(255,255,255,0.08),
+                inset -1px -1px 3px rgba(0,0,0,0.6);
+            border-radius: 12px; display: flex; align-items: center; padding: 0 18px;
+            border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box; margin: 0; }
         .chat-pill::before { content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 9px; pointer-events: none; z-index: 0; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02); border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1); }
         .chat-input, .enter-symbol, .event-toggle { position: relative; z-index: 1; }
         .chat-input { flex: 1; width: 10px; background: transparent; border: none; outline: none; color: #FFF; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
@@ -690,14 +707,18 @@
                 width: 24px;
                 height: 44px;
                 background: var(--bg-glass);
-                border: var(--glass-border);
+                border: 1px solid rgba(255,255,255,0.07);
+                box-shadow:
+                    3px 3px 8px rgba(0,0,0,0.7),
+                    -1px -1px 4px rgba(255,255,255,0.04),
+                    inset 1px 1px 2px rgba(255,255,255,0.07),
+                    inset -1px -1px 2px rgba(0,0,0,0.5);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 z-index: 100;
                 font-weight: 900;
-                box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
                 transition: all 0.3s;
                 color: var(--color-text);
             }
@@ -717,7 +738,7 @@
                 width: 36px;
                 height: 26px;
                 background: var(--bg-glass);
-                border: var(--glass-border);
+                border: 1px solid rgba(255,255,255,0.07);
                 border-bottom: none;
                 border-radius: 12px 12px 0 0;
                 display: flex;
@@ -728,7 +749,10 @@
                 color: var(--color-text);
                 font-weight: 900;
                 transition: all 0.2s;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+                box-shadow:
+                    3px 3px 8px rgba(0,0,0,0.5),
+                    -1px -1px 4px rgba(255,255,255,0.03),
+                    inset 1px 1px 2px rgba(255,255,255,0.07);
             }
             .event-toggle:hover { background: rgba(255, 255, 255, 0.15); }
             #event-log-container.active ~ #input-container .event-toggle i::before { content: "\f068"; }
@@ -748,8 +772,12 @@
                 padding: 0 15px;
                 box-sizing: border-box;
                 margin-bottom: 0px;
-                border: var(--glass-border);
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner);
+                border: 1px solid rgba(255,255,255,0.07);
+                box-shadow:
+                    5px 5px 14px rgba(0,0,0,0.7),
+                    -3px -3px 8px rgba(255,255,255,0.04),
+                    inset 1px 1px 2px rgba(255,255,255,0.08),
+                    inset -1px -1px 3px rgba(0,0,0,0.6);
             }
             #event-log-container.active {
                 height: 100px;
@@ -760,7 +788,7 @@
                 border-bottom-right-radius: 0;
                 pointer-events: auto;
                 overflow-y: auto;
-                border: var(--glass-border);
+                border: 1px solid rgba(255,255,255,0.07);
                 border-bottom: none;
             }
             #event-log-container.active ~ #input-container { margin-top: 0; }
@@ -816,18 +844,20 @@
 
             .compass-outer-ring {
                 position: absolute;
-                inset: -14px; /* Matches border width to sit outside */
+                inset: -14px;
                 border-radius: 50%;
                 background: transparent;
                 border: 14px solid #151519;
                 box-sizing: border-box;
-                box-shadow: 
-                    8px 8px 16px rgba(0,0,0,0.8),
-                    -4px -4px 10px rgba(255,255,255,0.05),
-                    inset 4px 4px 8px rgba(0,0,0,0.9),
-                    inset -2px -2px 6px rgba(255,255,255,0.05);
+                box-shadow:
+                    /* Outer raised — light from top-left, deep shadow bottom-right */
+                    6px 6px 18px rgba(0,0,0,0.9),
+                    -3px -3px 8px rgba(255,255,255,0.06),
+                    /* Inner bevel — pressed inset */
+                    inset 3px 3px 8px rgba(0,0,0,0.95),
+                    inset -2px -2px 5px rgba(255,255,255,0.06);
                 pointer-events: none;
-                transition: transform 0.07s linear; /* Smooth interpolation between ~20hz updates */
+                transition: transform 0.07s linear;
             }
 
             
@@ -860,16 +890,19 @@
 
             .season-outer-ring {
                 position: absolute;
-                inset: 0px; /* Inside the 14px compass border */
+                inset: 0px;
                 border-radius: 50%;
-                border: 16px solid rgba(12, 12, 15, 0.95); /* Solid dark dial */
+                border: 16px solid rgba(12, 12, 15, 0.95);
                 box-sizing: border-box;
-                box-shadow: 
-                    inset 2px 2px 6px rgba(0,0,0,0.9),
-                    inset -1px -1px 4px rgba(255,255,255,0.05),
-                    0 0 10px rgba(0,0,0,0.8);
+                box-shadow:
+                    /* Outer raised ring */
+                    4px 4px 12px rgba(0,0,0,0.9),
+                    -2px -2px 6px rgba(255,255,255,0.05),
+                    /* Inner bevel — pressed */
+                    inset 3px 3px 8px rgba(0,0,0,0.95),
+                    inset -1px -1px 4px rgba(255,255,255,0.06);
                 pointer-events: none;
-                z-index: 12; /* Ensure it is fully visible above the PiP map */
+                z-index: 12;
                 transition: transform 1s ease-in-out;
             }
 
