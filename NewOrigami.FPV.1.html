@@ -2914,7 +2914,7 @@
                         else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
                         else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
                         else if (catId === 'MISSILE') themeColor = '#ab47bc';
-                        else if (catId === 'GOLD_COIN') themeColor = '#d4af37';
+                        else if (catId === 'GOLD_COIN') themeColor = '#b8860b';
                         else themeColor = '#66bb6a'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
@@ -3340,11 +3340,11 @@
                                 tCanvas.width = 128; tCanvas.height = 128;
                                 const tCtx = tCanvas.getContext('2d');
                                 const grd = tCtx.createLinearGradient(0, 0, 128, 128);
-                                grd.addColorStop(0, '#f9f295');
-                                grd.addColorStop(0.3, '#d4af37');
-                                grd.addColorStop(0.5, '#f9f295');
-                                grd.addColorStop(0.7, '#8a6b1c');
-                                grd.addColorStop(1, '#d4af37');
+                                grd.addColorStop(0, '#d4af37');   // Darker highlight
+                                grd.addColorStop(0.3, '#b8860b'); // Darker base
+                                grd.addColorStop(0.5, '#d4af37'); // Darker highlight
+                                grd.addColorStop(0.7, '#6b4f00'); // Deep shadow
+                                grd.addColorStop(1, '#b8860b');   // Darker base
                                 tCtx.fillStyle = grd;
                                 tCtx.fillRect(0, 0, 128, 128);
                                 const goldTex = new THREE.CanvasTexture(tCanvas);
