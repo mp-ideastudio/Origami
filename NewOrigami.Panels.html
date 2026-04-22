@@ -861,7 +861,6 @@
                 transition: transform 0.07s linear;
             }
 
-            
             /* Compass Indents (Tick Marks) */
             .compass-outer-ring::after {
                 content: '';
@@ -869,8 +868,8 @@
                 inset: -14px;
                 border-radius: 50%;
                 background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.15) 0deg, rgba(255,255,255,0.15) 0.5deg, transparent 0.5deg, transparent 10deg);
-                -webkit-mask: radial-gradient(closest-side, transparent 88%, black 89%);
-                mask: radial-gradient(closest-side, transparent 88%, black 89%);
+                -webkit-mask-image: radial-gradient(closest-side, transparent 88%, black 89%);
+                mask-image: radial-gradient(closest-side, transparent 88%, black 89%);
                 pointer-events: none;
             }
 
@@ -924,22 +923,41 @@
 
             .moon-icon {
                 position: absolute;
-                top: 50%; left: 50%;
-                width: 16px; height: 16px;
-                font-size: 16px; line-height: 16px; text-align: center;
-                margin: -8px 0 0 -8px;
+                inset: 0;
                 color: #e0e5ec;
                 text-shadow: 0 1px 3px rgba(0,0,0,0.9);
                 filter: grayscale(100%) brightness(1.4) contrast(1.2);
+                pointer-events: none;
             }
-            .moon-icon.phase-0 { transform: rotate(0deg) translateY(-142px) rotate(0deg); }
-            .moon-icon.phase-1 { transform: rotate(45deg) translateY(-142px) rotate(-45deg); }
-            .moon-icon.phase-2 { transform: rotate(90deg) translateY(-142px) rotate(-90deg); }
-            .moon-icon.phase-3 { transform: rotate(135deg) translateY(-142px) rotate(-135deg); }
-            .moon-icon.phase-4 { transform: rotate(180deg) translateY(-142px) rotate(-180deg); }
-            .moon-icon.phase-5 { transform: rotate(225deg) translateY(-142px) rotate(-225deg); }
-            .moon-icon.phase-6 { transform: rotate(270deg) translateY(-142px) rotate(-270deg); }
-            .moon-icon.phase-7 { transform: rotate(315deg) translateY(-142px) rotate(-315deg); }
+            .moon-icon span {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 16px;
+                height: 16px;
+                margin-left: -8px;
+                margin-top: 0px; /* Aligns exactly with the top of the 16px border */
+                line-height: 16px;
+                text-align: center;
+                font-size: 13px;
+                display: block;
+            }
+            .moon-icon.phase-0 { transform: rotate(0deg); }
+            .moon-icon.phase-0 span { transform: rotate(0deg); }
+            .moon-icon.phase-1 { transform: rotate(45deg); }
+            .moon-icon.phase-1 span { transform: rotate(-45deg); }
+            .moon-icon.phase-2 { transform: rotate(90deg); }
+            .moon-icon.phase-2 span { transform: rotate(-90deg); }
+            .moon-icon.phase-3 { transform: rotate(135deg); }
+            .moon-icon.phase-3 span { transform: rotate(-135deg); }
+            .moon-icon.phase-4 { transform: rotate(180deg); }
+            .moon-icon.phase-4 span { transform: rotate(-180deg); }
+            .moon-icon.phase-5 { transform: rotate(225deg); }
+            .moon-icon.phase-5 span { transform: rotate(-225deg); }
+            .moon-icon.phase-6 { transform: rotate(270deg); }
+            .moon-icon.phase-6 span { transform: rotate(-270deg); }
+            .moon-icon.phase-7 { transform: rotate(315deg); }
+            .moon-icon.phase-7 span { transform: rotate(-315deg); }
 
             .pip-vignette {
                 position: absolute;
@@ -1020,14 +1038,14 @@
             </div>
             
             <div class="season-outer-ring">
-                <div class="moon-icon phase-0" title="New Moon">🌑</div>
-                <div class="moon-icon phase-1" title="Waxing Crescent">🌒</div>
-                <div class="moon-icon phase-2" title="First Quarter">🌓</div>
-                <div class="moon-icon phase-3" title="Waxing Gibbous">🌔</div>
-                <div class="moon-icon phase-4" title="Full Moon">🌕</div>
-                <div class="moon-icon phase-5" title="Waning Gibbous">🌖</div>
-                <div class="moon-icon phase-6" title="Last Quarter">🌗</div>
-                <div class="moon-icon phase-7" title="Waning Crescent">🌘</div>
+                <div class="moon-icon phase-0" title="New Moon"><span>🌑</span></div>
+                <div class="moon-icon phase-1" title="Waxing Crescent"><span>🌒</span></div>
+                <div class="moon-icon phase-2" title="First Quarter"><span>🌓</span></div>
+                <div class="moon-icon phase-3" title="Waxing Gibbous"><span>🌔</span></div>
+                <div class="moon-icon phase-4" title="Full Moon"><span>🌕</span></div>
+                <div class="moon-icon phase-5" title="Waning Gibbous"><span>🌖</span></div>
+                <div class="moon-icon phase-6" title="Last Quarter"><span>🌗</span></div>
+                <div class="moon-icon phase-7" title="Waning Crescent"><span>🌘</span></div>
             </div>
             
             <div class="pip-vignette"></div>
