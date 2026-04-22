@@ -469,7 +469,7 @@
     </div>
 
     <!-- AI Brain Layer (Headless) -->
-        <iframe id="ai-frame" title="Game AI Brain" class="logic-frame" src="NewOrigamiAi.html" sandbox="allow-scripts allow-same-origin"></iframe>
+        <!-- Removed legacy AI Brain for rebuild -->
     </div>
 
     <script>
@@ -1033,8 +1033,11 @@
                         screen.style.opacity = '0';
                         setTimeout(() => { if (screen.parentNode) screen.parentNode.removeChild(screen); }, 500);
                     }
-                    // Start rendering now that the scene is fully populated
-                    requestAnimationFrame(() => this.animate());
+                    // Start rendering now that the scene is fully populated (prevent multiple loops)
+                    if (!this.isAnimating) {
+                        this.isAnimating = true;
+                        requestAnimationFrame(() => this.animate());
+                    }
                 };
             },
             
@@ -1074,163 +1077,9 @@
                 });
             },
             
-            updateCombatAI(delta) {
-                // Player Tweening during combat moves
-                if (this.combatState === 'player_moving' && this.targetTile) {
-                    const dx = this.targetTile.x - this.player.x;
-                    const dz = this.targetTile.z - this.player.z;
-                    const dist = Math.hypot(dx, dz);
-                    
-                    if (dist < 0.1) {
-                        this.player.x = this.targetTile.x;
-                        this.player.z = this.targetTile.z;
-                        this.targetTile = null;
-                        this.combatState = 'monster_turn';
-                        this.processMonsterTurn();
-                    } else {
-                        this.player.x += dx * 10 * delta;
-                        this.player.z += dz * 10 * delta;
-                        
-                        this.player.isWalking = true;
-                        this.bobTimer += delta * 12.0;
-                        this.bobHeight = Math.sin(this.bobTimer) * this.BOB_AMP;
-                        this.bobSway = Math.sin(this.bobTimer * 0.5) * this.SWAY_AMP;
-                        
-                        this.camera.position.set(this.player.x + this.bobSway, this.player.y + this.bobHeight, this.player.z);
-                    }
-                }
-
-                // Monster Tweening
-                this.worldGroup.children.forEach(child => {
-                    if (child.userData && child.userData.targetMove) {
-                        const dx = child.userData.targetMove.x - child.position.x;
-                        const dz = child.userData.targetMove.z - child.position.z;
-                        if (Math.hypot(dx, dz) < 0.1) {
-                            child.position.x = child.userData.targetMove.x;
-                            child.position.z = child.userData.targetMove.z;
-                            child.userData.targetMove = null;
-                            if (child.userData.onMoveComplete) {
-                                child.userData.onMoveComplete();
-                                child.userData.onMoveComplete = null;
-                            }
-                        } else {
-                            child.position.x += dx * 5 * delta;
-                            child.position.z += dz * 5 * delta;
-                            // Re-aim monster to look at player while walking
-                            child.lookAt(this.player.x, child.position.y, this.player.z);
-                        }
-                    }
-                });
-            },
+            // legacy combat tweening removed for AI rebuild
             
-            executeCombatMove(dir) {
-                if (this.combatState !== 'player_turn' || this.targetTile !== null) return;
-                
-                const moveDist = this.gridSize * dir;
-                
-                // Discretize player rotation to nearest 90 degrees so we move in strict grid tiles
-                const snapRot = Math.round(this.player.rot / (Math.PI / 2)) * (Math.PI / 2);
-                
-                let tx = this.player.x - Math.sin(snapRot) * moveDist;
-                let tz = this.player.z - Math.cos(snapRot) * moveDist;
-                
-                let gridX = Math.round(tx / this.gridSize);
-                let gridZ = Math.round(tz / this.gridSize);
-                
-                if (this.isValidGridSpace(gridX, gridZ)) {
-                    this.targetTile = { x: gridX * this.gridSize, z: gridZ * this.gridSize };
-                    this.combatState = 'player_moving';
-                }
-            },
-            
-            async processMonsterTurn() {
-                const hostiles = [];
-                this.worldGroup.children.forEach(child => {
-                    if (child.userData && child.userData.type === 'enemy' && child.userData.isHostile && !child.userData.isDead) {
-                        hostiles.push(child);
-                    }
-                });
-                
-                if (hostiles.length === 0) {
-                    this.combatState = 'player_turn'; 
-                    return;
-                }
-                
-                for (let i = 0; i < hostiles.length; i++) {
-                    const monster = hostiles[i];
-                    if (monster.userData.isDead) continue; // might have died during previous monster's turn
-                    
-                    await new Promise(resolve => {
-                        const eX = Math.round(monster.position.x / this.gridSize);
-                        const eZ = Math.round(monster.position.z / this.gridSize);
-                        const pX = Math.round(this.player.x / this.gridSize);
-                        const pZ = Math.round(this.player.z / this.gridSize);
-                        
-                        const dist = Math.hypot(pX - eX, pZ - eZ);
-                        
-                        // Check if we need to drop combat due to distance
-                        if (dist > 12.0) {
-                            // Monster gives up chase
-                            setTimeout(resolve, 100);
-                            return;
-                        }
-                        
-                        if (dist <= 1.5) {
-                            // Melee Attack
-                            const executeGoblinStrike = () => {
-                                if (!monster.userData.isDead) {
-                                    if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike(monster.userData.name || 'Goblin', 10);
-                                    this.player.hp = Math.max(0, this.player.hp - 10);
-                                    this.syncPlayerStats();
-                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${monster.userData.name || 'Goblin'} hit you for 10 DMG!` }, '*');
-                                    this.addCameraTrauma(0.6);
-                                }
-                                setTimeout(resolve, 200); // slight pause after hit
-                            };
-                            
-                            const mixer = monster.userData.mixer;
-                            const slashAnim = monster.userData.attackAction;
-                            if (mixer && slashAnim) {
-                                mixer.stopAllAction();
-                                slashAnim.reset();
-                                slashAnim.setLoop(THREE.LoopOnce, 1);
-                                slashAnim.clampWhenFinished = true;
-                                slashAnim.play();
-                                setTimeout(executeGoblinStrike, 300); // Sync hit with animation frame
-                            } else {
-                                setTimeout(executeGoblinStrike, 300);
-                            }
-                        } else {
-                            // Move 1 tile towards player
-                            const path = this.findPath(eX, eZ, pX, pZ);
-                            if (path && path.length > 1) {
-                                const nextNode = path[1];
-                                monster.userData.targetMove = { 
-                                    x: nextNode.x * this.gridSize, 
-                                    z: nextNode.z * this.gridSize 
-                                };
-                                monster.userData.onMoveComplete = resolve;
-                                
-                                // Play walk animation if available
-                                const mixer = monster.userData.mixer;
-                                const walkAnim = monster.userData.walkAction;
-                                if (mixer && walkAnim && walkAnim.isRunning() === false) {
-                                    walkAnim.reset();
-                                    walkAnim.setEffectiveWeight(1);
-                                    walkAnim.play();
-                                }
-                            } else {
-                                setTimeout(resolve, 100); // Can't move, skip turn
-                            }
-                        }
-                    });
-                }
-                
-                // Done iterating all monsters
-                if (this.combatState === 'monster_turn') {
-                    this.combatState = 'player_turn';
-                }
-            },
+            // processMonsterTurn has been removed for AI rebuild
 
             generateMap() {
                 // Room definitions for future dungeon editing
@@ -2133,9 +1982,17 @@
 
                 window.addEventListener('resize', () => {
                     this.camera.aspect = window.innerWidth / window.innerHeight;
-                    
-                    // Maintain the 150px optical shift dynamically upon resize
                     this.camera.setViewOffset(window.innerWidth, window.innerHeight, 0, 150, window.innerWidth, window.innerHeight);
+                    this.camera.updateProjectionMatrix();
+                    
+                    if (this.topDownCamera) {
+                        this.topDownCamera.aspect = window.innerWidth / window.innerHeight;
+                        this.topDownCamera.updateProjectionMatrix();
+                    }
+                    if (window._pipMaskCam) {
+                        window._pipMaskCam.aspect = window.innerWidth / window.innerHeight;
+                        window._pipMaskCam.updateProjectionMatrix();
+                    }
                     
                     if (this.renderer) {
                         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -2497,6 +2354,27 @@
                 }
                 instancedFloor.instanceMatrix.needsUpdate = true;
                 this.worldGroup.add(instancedFloor);
+
+                // --- NETHACK PiP FOG OF WAR ---
+                const fogGeo = new THREE.PlaneGeometry(this.gridSize * 1.05, this.gridSize * 1.05);
+                const fogMat = new THREE.MeshBasicMaterial({ color: 0x06020f, depthWrite: true, depthTest: true });
+                const fogCount = this.mapWidth * this.mapHeight;
+                this.pipFogMesh = new THREE.InstancedMesh(fogGeo, fogMat, fogCount);
+                this.pipFogMesh.frustumCulled = false;
+                this.pipFogMesh.layers.set(3); // Exclusive to Map View
+                this.pipFogState = new Array(fogCount).fill(false); // false = unexplored
+
+                let fogIdx = 0;
+                for (let x = 0; x < this.mapWidth; x++) {
+                    for (let z = 0; z < this.mapHeight; z++) {
+                        dummy.position.set(x * this.gridSize, wallHeight + 0.1, z * this.gridSize); // Float above walls
+                        dummy.rotation.x = -Math.PI / 2;
+                        dummy.updateMatrix();
+                        this.pipFogMesh.setMatrixAt(fogIdx++, dummy.matrix);
+                    }
+                }
+                this.pipFogMesh.instanceMatrix.needsUpdate = true;
+                this.worldGroup.add(this.pipFogMesh);
                 
                 // --- ROOM NUMBERS (Samurai Dojo Theme) ---
                 if (this.rooms) {
@@ -2595,7 +2473,18 @@
                         name: sp.name || (isMon ? 'Yakuza Goblin' : 'Yakuza Gambler'),
                         type: isMon ? 'enemy' : 'gambler', 
                         hp: sp.hp ?? 50, 
-                        maxHp: sp.maxHp ?? 50 
+                        maxHp: sp.maxHp ?? 50,
+                        isHostile: sp.type !== 'shopkeeper', // Initial hostile flag
+                        ai: {
+                            state: sp.type === 'shopkeeper' ? 'IDLE' : 'WANDERING',
+                            homeX: sp.x * this.gridSize,
+                            homeZ: sp.z * this.gridSize,
+                            targetX: sp.x * this.gridSize,
+                            targetZ: sp.z * this.gridSize,
+                            reputation: sp.type === 'shopkeeper' ? 10 : 0, // 10 = ally, -10 = hostile
+                            actionTimer: Math.random() * 2,
+                            attackCooldown: 0
+                        }
                     };
                     
                     if (isMon) {
@@ -2914,7 +2803,7 @@
                         else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
                         else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
                         else if (catId === 'MISSILE') themeColor = '#ab47bc';
-                        else if (catId === 'GOLD_COIN') themeColor = '#b8860b';
+                        else if (catId === 'GOLD_COIN') themeColor = '#d4af37';
                         else themeColor = '#66bb6a'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
@@ -3775,6 +3664,196 @@
                     }
                 }
                 return hitEntity ? hitEntity : false; // Return the entity if hit, otherwise False means space is clear
+            },
+            // --- NEW SUPER AI ARCHITECTURE ---
+            processSuperAI(delta) {
+                if (!this.worldGroup || !this.player) return;
+                
+                const pX = Math.round(this.player.x / this.gridSize);
+                const pZ = Math.round(this.player.z / this.gridSize);
+                
+                this.worldGroup.children.forEach(child => {
+                    if (!child.userData || !child.userData.ai || child.userData.isDead) return;
+                    
+                    const ai = child.userData.ai;
+                    ai.actionTimer -= delta;
+                    if (ai.attackCooldown > 0) ai.attackCooldown -= delta;
+                    
+                    // Simple tweening for smooth grid movement
+                    if (child.userData.targetMove) {
+                        const dx = child.userData.targetMove.x - child.position.x;
+                        const dz = child.userData.targetMove.z - child.position.z;
+                        if (Math.hypot(dx, dz) < 0.1) {
+                            child.position.x = child.userData.targetMove.x;
+                            child.position.z = child.userData.targetMove.z;
+                            child.userData.targetMove = null;
+                        } else {
+                            child.position.x += dx * 5 * delta;
+                            child.position.z += dz * 5 * delta;
+                            child.lookAt(child.userData.targetMove.x, child.position.y, child.userData.targetMove.z);
+                        }
+                        return; // Still moving, wait
+                    }
+                    
+                    // Throttle heavy AI updates to roughly 4 times a second per monster
+                    if (ai.actionTimer > 0) return;
+                    ai.actionTimer = 0.25 + Math.random() * 0.1; 
+                    
+                    const eX = Math.round(child.position.x / this.gridSize);
+                    const eZ = Math.round(child.position.z / this.gridSize);
+                    const distToPlayer = Math.hypot(pX - eX, pZ - eZ);
+                    
+                    // Detect attack spam -> global hostility
+                    if (this.globalHostilityTriggered && ai.reputation > -10 && child.userData.type !== 'shopkeeper') {
+                        ai.reputation = -10;
+                        child.userData.isHostile = true;
+                    }
+
+                    // Super AI State Machine
+                    if (ai.reputation >= 10) ai.state = 'ALLY';
+                    else if (ai.reputation <= -10) ai.state = 'HOSTILE';
+                    else if (distToPlayer < 6 && child.userData.type !== 'shopkeeper') ai.state = 'EVALUATING';
+                    else if (ai.state !== 'GAMBLING') ai.state = 'WANDERING';
+                    
+                    switch(ai.state) {
+                        case 'EVALUATING':
+                            if (distToPlayer > 6) {
+                                ai.state = 'WANDERING';
+                            } else if (distToPlayer <= 2 && Math.random() < 0.1) {
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${child.userData.name} sizes you up. "Care for a wager?"` }, '*');
+                                ai.state = 'GAMBLING';
+                            }
+                            break;
+                            
+                        case 'GAMBLING':
+                            if (distToPlayer > 4) {
+                                ai.state = 'WANDERING'; 
+                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${child.userData.name} sneers as you walk away.` }, '*');
+                            }
+                            break;
+                            
+                        case 'WANDERING':
+                            if (Math.random() < 0.2) {
+                                const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                                const [dx, dz] = dirs[Math.floor(Math.random() * dirs.length)];
+                                const isBlocked = this.isValidGridSpace(eX + dx, eZ + dz);
+                                if (isBlocked === false || (typeof isBlocked === 'object' && isBlocked.userData.id !== child.userData.id)) {
+                                    // Blocked
+                                } else {
+                                    child.userData.targetMove = { x: (eX + dx) * this.gridSize, z: (eZ + dz) * this.gridSize };
+                                    if (child.userData.walkAction && !child.userData.walkAction.isRunning()) {
+                                        child.userData.walkAction.reset();
+                                        child.userData.walkAction.play();
+                                    }
+                                }
+                            }
+                            break;
+                            
+                        case 'HOSTILE':
+                            if (distToPlayer <= 1.5) {
+                                // Melee Attack
+                                if (ai.attackCooldown <= 0) {
+                                    child.lookAt(this.player.x, child.position.y, this.player.z);
+                                    
+                                    const executeStrike = () => {
+                                        if (child.userData.isDead) return;
+                                        if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike(child.userData.name || 'Monster', 8);
+                                        this.player.hp = Math.max(0, this.player.hp - 8);
+                                        this.syncPlayerStats();
+                                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${child.userData.name} attacks for 8 DMG!` }, '*');
+                                        this.addCameraTrauma(0.5);
+                                    };
+                                    
+                                    const mixer = child.userData.mixer;
+                                    const slashAnim = child.userData.attackAction;
+                                    if (mixer && slashAnim) {
+                                        mixer.stopAllAction();
+                                        slashAnim.reset();
+                                        slashAnim.setLoop(THREE.LoopOnce, 1);
+                                        slashAnim.clampWhenFinished = true;
+                                        slashAnim.play();
+                                        setTimeout(executeStrike, 300);
+                                    } else {
+                                        setTimeout(executeStrike, 300);
+                                    }
+                                    
+                                    ai.attackCooldown = 1.5; // 1.5 seconds between attacks
+                                }
+                            } else if (distToPlayer < 8) {
+                                // Pathfind to player
+                                const path = this.findPath(eX, eZ, pX, pZ);
+                                if (path && path.length > 1) {
+                                    const nextNode = path[1];
+                                    const isBlocked = this.isValidGridSpace(nextNode.x, nextNode.z);
+                                    if (isBlocked === false || (typeof isBlocked === 'object' && isBlocked.userData.id !== child.userData.id)) {
+                                        // Wait or path around
+                                    } else {
+                                        child.userData.targetMove = { x: nextNode.x * this.gridSize, z: nextNode.z * this.gridSize };
+                                        if (child.userData.walkAction && !child.userData.walkAction.isRunning()) {
+                                            child.userData.walkAction.reset();
+                                            child.userData.walkAction.play();
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                            
+                        case 'ALLY':
+                            if (distToPlayer > 3 && distToPlayer < 12) {
+                                // Follow player loosely
+                                const path = this.findPath(eX, eZ, pX, pZ);
+                                if (path && path.length > 1) {
+                                    child.userData.targetMove = { x: path[1].x * this.gridSize, z: path[1].z * this.gridSize };
+                                }
+                            }
+                            break;
+                    }
+                });
+            },
+
+            // --- NETHACK FOG OF WAR REVEAL ---
+            updateFogOfWar() {
+                if (!this.pipFogMesh || !this.pipFogState) return;
+                const pX = Math.round(this.player.x / this.gridSize);
+                const pZ = Math.round(this.player.z / this.gridSize);
+                
+                let updated = false;
+                const dummy = new THREE.Object3D();
+                
+                for (let dx = -4; dx <= 4; dx++) {
+                    for (let dz = -4; dz <= 4; dz++) {
+                        if (dx*dx + dz*dz > 20) continue; 
+                        const x = pX + dx;
+                        const z = pZ + dz;
+                        if (x >= 0 && x < this.mapWidth && z >= 0 && z < this.mapHeight) {
+                            const idx = x * this.mapHeight + z;
+                            if (!this.pipFogState[idx]) {
+                                // Line of sight check (simple) - if blocked by a wall, don't reveal behind it unless very close
+                                let blocked = false;
+                                if (Math.abs(dx) > 1 || Math.abs(dz) > 1) {
+                                    // simplistic ray
+                                    let stepX = Math.sign(dx);
+                                    let stepZ = Math.sign(dz);
+                                    if (this.mapData[pX + stepX] && this.mapData[pX + stepX][pZ + stepZ]?.type === 'wall') {
+                                        blocked = true;
+                                    }
+                                }
+                                
+                                if (!blocked) {
+                                    this.pipFogState[idx] = true;
+                                    dummy.position.set(x * this.gridSize, -50, z * this.gridSize); // Move under map
+                                    dummy.updateMatrix();
+                                    this.pipFogMesh.setMatrixAt(idx, dummy.matrix);
+                                    updated = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (updated) {
+                    this.pipFogMesh.instanceMatrix.needsUpdate = true;
+                }
             },
 
             isValidGridSpace(cx, cz) {
@@ -4774,11 +4853,6 @@
                                 this.player.z += dz;
                             }
                             this._haltPlayer = false; // Player retreated, they can move again
-                            
-                            if (this.combatState === 'player_turn') {
-                                this.combatState = 'monster_turn';
-                                setTimeout(() => this.processMonsterTurn(), 500);
-                            }
                         }
                         // --- SPELL CARD IMPACT SYSTEM ---
                         // Maps card names → element → visual + damage
@@ -4811,11 +4885,6 @@
                                 this.spawnProjectile(action, spell);
                             }
                             
-                            // Advance turn after playing a card
-                            if (this.combatState === 'player_turn') {
-                                this.combatState = 'monster_turn';
-                                setTimeout(() => this.processMonsterTurn(), 800); // Wait for animations
-                            }
                         }
                     } else if (e.data.type === 'PIP_TOGGLE') {
                         this.cameraMode = (this.cameraMode === 'topdown') ? 'fpv' : 'topdown';
@@ -5901,16 +5970,9 @@
                     }
                 }
 
-                // --- Autonomous Monster Combat Logic ---
-                // Hybrid Turn-Based System!
-                // AI gets to move if player is moving OR if the player injected action time by using a card.
-                if (currentlyMoving || this.actionTimePool > 0) {
-                    this.updateCombatAI(delta);
-                    if (!currentlyMoving && this.actionTimePool > 0) {
-                        this.actionTimePool -= delta;
-                        if (this.actionTimePool < 0) this.actionTimePool = 0;
-                    }
-                }
+                // --- NEW SUPER AI ---
+                this.processSuperAI(delta);
+                this.updateFogOfWar();
 
                 // --- PROJECTILE PHYSICS ---
                 for (let bi = this.boulders.length - 1; bi >= 0; bi--) {
@@ -6157,7 +6219,7 @@
                                 // YOU GOT! Card Showcase Overlay
                                 if (loot.userData.cardDataURL) {
                                     const pNode = document.createElement('div');
-                                    pNode.style.cssText = "position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); z-index:9000; text-align:center; pointer-events:none; animation: cardLootAnim 2.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;";
+                                    pNode.style.cssText = "position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); z-index:1800; text-align:center; pointer-events:none; animation: cardLootAnim 2.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;";
                                     pNode.innerHTML = `
                                         <h1 style="color:#00ffcc; font-size:62px; text-shadow:0 0 30px #00ffcc; margin-bottom: 20px; font-weight:900; letter-spacing:4px; font-family: 'Impact', sans-serif;">YOU GOT!</h1>
                                         <div style="position:relative; display:inline-block; margin:0 auto;">
@@ -6335,6 +6397,16 @@
                             break;
                         }
                     }
+                    
+                    if (activeRoom) {
+                        if (this.currentRoomId !== activeRoom.id) {
+                            this.currentRoomId = activeRoom.id;
+                            window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Entered ${activeRoom.name}: ${activeRoom.description}` }, '*');
+                        }
+                    } else if (this.currentRoomId !== null) {
+                        this.currentRoomId = null;
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Entered the dark hallways.` }, '*');
+                    }
 
                     // Calculate camera parameters based on location
                     let targetFOV, targetHeight, targetBack, lookAtX, lookAtZ;
@@ -6343,7 +6415,7 @@
                         // ROOM MODE: Precisely frame entire room + 1 tile border
                         const roomCenterX = (activeRoom.x + activeRoom.w / 2) * this.gridSize;
                         const roomCenterZ = (activeRoom.y + activeRoom.h / 2) * this.gridSize;
-                        const roomSpan = Math.max(activeRoom.w, activeRoom.h) + 2; // +1 tile each side
+                        const roomSpan = Math.max(activeRoom.w, activeRoom.h) + 5; // +5 min buffer so it doesn't chop off the left side
                         const roomWorldSize = roomSpan * this.gridSize; // Total world units to fit
                         
                         // Physically scale camera placement to lower height and pull further back for a sharper Diablo-style angled perspective
