@@ -2937,9 +2937,10 @@
                         ctx.fillStyle = themeColor;
                         ctx.beginPath(); ctx.roundRect(W/2 - 45, 20, 90, 30, 8); ctx.fill();
                         ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
-                        ctx.font = '800 16px sans-serif'; ctx.fillStyle = '#ffffff';
+                        ctx.font = '800 16px sans-serif'; 
+                        ctx.fillStyle = (catId === 'GOLD_COIN') ? '#000000' : '#ffffff';
                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.fillText(catId, W/2, 35);
+                        ctx.fillText(catId === 'GOLD_COIN' ? 'GOLD' : catId, W/2, 35);
 
                         // Title (Auto-scaling to prevent overflow)
                         ctx.fillStyle = '#ffffff';
@@ -3318,26 +3319,18 @@
                                     liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
                                 };
                             } else if (catId === 'GOLD_COIN') {
-                                const shape = new THREE.Shape();
-                                shape.arc(0, 0, 1.4, 0, Math.PI * 2, false);
-                                const holePath = new THREE.Path();
-                                // Square hole
-                                holePath.moveTo(-0.4, -0.4); holePath.lineTo(0.4, -0.4); holePath.lineTo(0.4, 0.4); holePath.lineTo(-0.4, 0.4); holePath.lineTo(-0.4, -0.4);
-                                shape.holes.push(holePath);
-                                const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
-                                coinGeo.center();
+                                // Simple solid cylinder to avoid geometry triangulation artifacts
+                                const coinGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.15, 32);
                                 
                                 // Real gold material
-                                const coinMat = new THREE.MeshStandardMaterial({
+                                const coinMat = new THREE.MeshBasicMaterial({
                                     color: 0xd4af37, // Real Gold color
-                                    metalness: 1.0, 
-                                    roughness: 0.25,
                                     side: THREE.DoubleSide
                                 });
                                 const coin = new THREE.Mesh(coinGeo, coinMat);
                                 
-                                // Static tilt so the player can see the top/hole without it spinning
-                                coin.rotation.x = Math.PI / 12;
+                                // Static tilt so the player can see the top without it spinning
+                                coin.rotation.x = Math.PI / 2 + Math.PI / 12;
                                 coin.rotation.y = Math.PI / 6;
                                 
                                 iconMesh.add(coin);
@@ -3412,7 +3405,7 @@
                     
                     // Spawn Gold Coin Loot directly in front of player
                     const goldAmount = Math.random() < 0.5 ? 50 : 100;
-                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'GOLD', 'Wealth.', '\u91d1', `+${goldAmount} GOLD`);
+                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'COINS', 'Wealth.', '\u91d1', `+${goldAmount} GOLD`);
                     // Explicitly spawn Samurai Helmet to the left of Room 1 Goblin
                     this.spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
                     
@@ -3850,7 +3843,7 @@
                     { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged Wep.', attr:'SKILL CARD' },
                     { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
                     { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
-                    { name:'GOLD',      el:'GOLD_COIN', kanji:'\u91d1', desc:'Wealth.',     attr:'GOLD' }
+                    { name:'COINS',     el:'GOLD_COIN', kanji:'\u91d1', desc:'Wealth.',     attr:'GOLD' }
                 ];
                 
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
