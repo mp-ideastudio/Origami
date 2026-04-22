@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NewOrigami Master Launcher</title>
+    
+    <style>
+      :root {
+        --bg-body: #000000;
+        --surface-color: #1a1a1d;
+        --shadow-dark: rgba(0, 0, 0, 0.9);
+        --shadow-light: rgba(255, 255, 255, 0.05);
+        --edge: rgba(255, 255, 255, 0.15);
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: var(--bg-body);
+        font-family: "Inter", sans-serif;
+        color: #ffffff;
+      }
+
+      /* Main Application Wrapper */
+      #main-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      /* FPV Background (Fullscreen) */
+      #fpv-viewport {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: auto;
+      }
+      #fpv-viewport iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+
+      /* Bottom Control Panel - Full height so encounter-zone top:50% = true screen center */
+      #adventure-panel {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 30;
+        display: block;
+        pointer-events: none;
+        background: transparent !important;
+      }
+      #adventure-panel iframe {
+        pointer-events: auto;
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent !important;
+      }
+
+      /* Middle Combat Panels (Left/Right) */
+      #combat-panels-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 25;
+        pointer-events: none;
+        display: none;
+      }
+      #combat-panels-wrapper iframe {
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent;
+      }
+      #combat-panels-wrapper.active {
+        display: block;
+      }
+      #combat-panels-wrapper.active iframe {
+        pointer-events: auto;
+      }
+
+      #ai-engine {
+         display: none;
+      }
+    </style>
+  </head>
+  <body class="dark-mode">
+
+    <div id="main-container">
+      
+      <!-- FPV Background (Fullscreen) -->
+      <div id="fpv-viewport">
+        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.1.html" allow="autoplay; fullscreen"></iframe>
+      </div>
+
+      <!-- Bottom Control Panel -->
+      <div id="adventure-panel">
+        <iframe id="panels-iframe" title="Action Panels" src="NewOrigami.Panels.html?mode=dock"></iframe>
+      </div>
+      
+      <!-- Middle Combat Panels (Left/Right) -->
+      <div id="combat-panels-wrapper">
+         <iframe id="combat-iframe" title="Combat Panels" src="NewOrigami.Panels.html?mode=combat"></iframe>
+      </div>
+
+      <!-- AI Brain (Hidden) -->
+      <div id="ai-engine">
+         <iframe id="ai-iframe" title="AI Brain" src="NewOrigamiAi.html"></iframe>
+      </div>
+
+    </div>
+
+    <script>
+      (function() {
+         document.addEventListener("DOMContentLoaded", () => {
+            const engines = {
+               fpv: document.getElementById('fpv-iframe'),
+               combat: document.getElementById('combat-iframe'),
+               panels: document.getElementById('panels-iframe'),
+               ai: document.getElementById('ai-iframe')
+            };
+            const combatWrapper = document.getElementById('combat-panels-wrapper');
+            let cachedInitEntities = null;
+
+            function notifyEngine(engineKey, payload) {
+               const frame = engines[engineKey];
+               if (frame && frame.contentWindow) {
+                  frame.contentWindow.postMessage(payload, '*');
+               }
+            }
+
+            function broadcastKey(type, payload) {
+               const msg = { type, ...payload };
+               notifyEngine('fpv', msg);
+            }
+
+            document.addEventListener('keydown', (e) => {
+               if (e.repeat) return;
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_DOWN', { key: e.key, code: e.code });
+            });
+
+            document.addEventListener('keyup', (e) => {
+               if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+               broadcastKey('KEY_UP', { key: e.key, code: e.code });
+            });
+
+            window.addEventListener('message', (e) => {
+               if (!e.data || !e.data.type) return;
+
+               switch (e.data.type) {
+                  case 'MAP_ENGINE_READY':
+                     if (cachedInitEntities) notifyEngine('fpv', cachedInitEntities);
+                     break;
+
+                  case 'PLAYER_MOVE':
+                     notifyEngine('ai', e.data); // Forward movement to AI brain
+                     break;
+
+                  case 'PLAYER_ATTACK':
+                     notifyEngine('ai', e.data); // Forward attack triggers to AI brain
+                     break;
+
+                  case 'COMBAT_ATTACK':
+                  case 'SYNC_ENTITIES': 
+                     if (e.data.type === 'COMBAT_ATTACK') {
+                         notifyEngine('panels', e.data);
+                     }
+                     break;
+
+                  case 'PLAYER_MOVE_STATE':
+                  case 'LCD_EVENT':
+                  case 'LOG_EVENT':
+                  case 'SYNC_STATS':
+                  case 'UPDATE_LOOT_CARDS':
+                  case 'ADD_CARD':
+                     notifyEngine('panels', e.data);
+                     notifyEngine('combat', e.data); // Make sure both mode=dock and mode=combat get events
+                     break;
+
+                  case 'SHOW_COMBAT':
+                     notifyEngine('panels', e.data); // mode=dock panels
+                     notifyEngine('combat', e.data); // mode=combat side panels
+                     combatWrapper.classList.add('active'); // Reactivate left/right tactical panels
+                     break;
+
+                  case 'HIDE_COMBAT':
+                  case 'HIDE_ALL':
+                     notifyEngine('panels', e.data); // Reset bottom UI
+                     notifyEngine('combat', e.data); // Reset side UI
+                     combatWrapper.classList.remove('active'); // Hide left/right tactical panels
+                     break;
+
+                  case 'INIT_ENTITIES':
+                     cachedInitEntities = e.data;
+                     notifyEngine('fpv', e.data);
+                     notifyEngine('ai', e.data); // Seed AI brain with dungeon map
+                     break;
+
+                  case 'AI_UPDATES':
+                  case 'AI_DEATH':
+                  case 'COMBAT_UPDATE':
+                     notifyEngine('fpv', e.data); // Route AI logic back down to 3D engine
+                     break;
+
+                  case 'KEY_DOWN':
+                  case 'KEY_UP':
+                     broadcastKey(e.data.type, e.data);
+                     break;
+
+                  case 'EXPLORE_ROOM':
+                  case 'SEARCH_ADJACENT':
+                  case 'AUTO_EXPLORE':
+                  case 'APPROACH_MONSTER':
+                  case 'TEXT_COMMAND':
+                  case 'FPV_ACTION':
+                  case 'EQUIP_CARD':
+                  case 'CHAT_SUBMIT':
+                  case 'WAGER':
+                  case 'PARLEY':
+                  case 'ATTACK':
+                  case 'RETREAT':
+                  case 'PIP_ZOOM':
+                  case 'PIP_TOGGLE':
+                  case 'PIP_ROTATE':
+                  case 'PIP_PAN':
+                  case 'PIP_CLICK':
+                  case 'PIP_SYNC_RECT':
+                     notifyEngine('fpv', e.data);
+                     break;
+               }
+            });
+         });
+      })();
+    </script>
+  </body>
+</html>
