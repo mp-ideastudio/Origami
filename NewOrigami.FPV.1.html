@@ -3410,9 +3410,9 @@
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
                     this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
                     
-                    // Spawn Gold Yen Coin Loot directly in front of player
+                    // Spawn Gold Coin Loot directly in front of player
                     const goldAmount = Math.random() < 0.5 ? 50 : 100;
-                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'YEN COIN', 'Precious metal.', '円', `+${goldAmount} GOLD`);
+                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'GOLD', 'Wealth.', '\u91d1', `+${goldAmount} GOLD`);
                     // Explicitly spawn Samurai Helmet to the left of Room 1 Goblin
                     this.spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
                     
@@ -3850,7 +3850,7 @@
                     { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged Wep.', attr:'SKILL CARD' },
                     { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
                     { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
-                    { name:'YEN COIN',  el:'GOLD_COIN', kanji:'\u91d1', desc:'Precious metal.', attr:'GOLD' }
+                    { name:'GOLD',      el:'GOLD_COIN', kanji:'\u91d1', desc:'Wealth.',     attr:'GOLD' }
                 ];
                 
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
