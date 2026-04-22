@@ -4865,13 +4865,7 @@
                 if (this.keys.a) turnDir = 1;
                 if (this.keys.d) turnDir = -1;
 
-                const currentlyMoving = (moveDir !== 0 || turnDir !== 0);
-                
-                if (this._lastIsMoving !== currentlyMoving) {
-                    this._lastIsMoving = currentlyMoving;
-                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: currentlyMoving }, '*');
-                }
-                
+
                 // --- Autowalk Logic ---
                 if (this.autoWalkPath && this.autoWalkPath.length > 0) {
                     const targetNode = this.autoWalkPath[0];
@@ -5126,6 +5120,16 @@
                     
                     this.player.x = nextX;
                     this.player.z = nextZ;
+                }
+                
+                const distMovedSq = Math.pow(this.player.x - (this._lastAvatarX || this.player.x), 2) + Math.pow(this.player.z - (this._lastAvatarZ || this.player.z), 2);
+                this.physMoving = distMovedSq > 0.00001 || turnDir !== 0;
+                this._lastAvatarX = this.player.x;
+                this._lastAvatarZ = this.player.z;
+                
+                if (this._lastIsMoving !== this.physMoving) {
+                    this._lastIsMoving = this.physMoving;
+                    window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: this.physMoving }, '*');
                 }
                 
                 // Grid change detection for AI and Triggers
@@ -6062,7 +6066,7 @@
                         
                         // Handle walk animation
                         if (this.playerMixer && this.playerWalkAction) {
-                            if (currentlyMoving) {
+                            if (this.physMoving) {
                                 if (this.playerMixer._current !== 'walk') {
                                     if (this.playerIdleAction) this.playerIdleAction.stop();
                                     this.playerWalkAction.reset();
