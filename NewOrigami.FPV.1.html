@@ -2914,6 +2914,7 @@
                         else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
                         else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
                         else if (catId === 'MISSILE') themeColor = '#ab47bc';
+                        else if (catId === 'GOLD_COIN') themeColor = '#ffd700';
                         else themeColor = '#66bb6a'; // SCROLL
                         
                         ctx.fillStyle = baseColor;
@@ -3316,6 +3317,20 @@
                                     liquid.rotation.x = Math.sin(t * 5) * 0.2; // sloshing
                                     liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
                                 };
+                            } else if (catId === 'GOLD_COIN') {
+                                const shape = new THREE.Shape();
+                                shape.arc(0, 0, 1.4, 0, Math.PI * 2, false);
+                                const holePath = new THREE.Path();
+                                // Square hole
+                                holePath.moveTo(-0.4, -0.4); holePath.lineTo(0.4, -0.4); holePath.lineTo(0.4, 0.4); holePath.lineTo(-0.4, 0.4); holePath.lineTo(-0.4, -0.4);
+                                shape.holes.push(holePath);
+                                const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 });
+                                coinGeo.center();
+                                // Basic Material for bright visibility inside the unlit card container
+                                const coinMat = new THREE.MeshBasicMaterial({color: 0xffd700, side: THREE.DoubleSide});
+                                const coin = new THREE.Mesh(coinGeo, coinMat);
+                                iconMesh.add(coin);
+                                customUpdate = (t) => { coin.rotation.y = t * 2.5; };
                             } else {
                                 // DICE fallback
                                 const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
@@ -3372,6 +3387,9 @@
                     const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
                     this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
                     
+                    // Spawn Gold Yen Coin Loot directly in front of player
+                    const goldAmount = Math.floor(Math.random() * 51) + 50; // 50 to 100
+                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'GOLD_COIN', 'GOLD COINS', 'Wealth.', '円', `${goldAmount} GOLD`);
                     // Explicitly spawn Samurai Helmet to the left of Room 1 Goblin
                     this.spawnLootCard(this.rooms[0].center.x - 2, this.rooms[0].center.y, 'ARMOR', 'SAMURAI HELMET', '+15 DEF.', '兜', 'EQUIP');
                     
@@ -3809,7 +3827,7 @@
                     { name:'SHURIKEN',  el:'MISSILE',kanji:'\u6295', desc:'Ranged Wep.', attr:'SKILL CARD' },
                     { name:'SHORT BOW', el:'MISSILE',kanji:'\u5f13', desc:'Quick shot.',    attr:'SKILL CARD' },
                     { name:'LONG BOW',  el:'MISSILE',kanji:'\u9577', desc:'Heavy shot.',    attr:'SKILL CARD' },
-                    { name:'GOLD COINS',el:'SCROLL',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
+                    { name:'GOLD COINS',el:'GOLD_COIN',   kanji:'\u91d1', desc:'Wealth.',        attr:'GOLD' }
                 ];
                 
                 const lc = LOOT_CARDS[Math.floor(Math.random() * LOOT_CARDS.length)];
