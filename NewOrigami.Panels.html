@@ -844,24 +844,32 @@
                 transition: none;
             }
 
-            .compass-outer-ring {
+            .compass-bg-ring {
                 position: absolute;
                 inset: -24px;
                 border-radius: 50%;
                 background: transparent;
                 border: 24px solid #151519;
+                outline: var(--glass-border);
                 box-sizing: border-box;
                 box-shadow:
-                    /* Outer raised — light from top-left, deep shadow bottom-right */
                     6px 6px 18px rgba(0,0,0,0.9),
                     -3px -3px 8px rgba(255,255,255,0.06),
-                    /* Inner bevel — pressed inset */
-                inset 3px 3px 8px rgba(0,0,0,0.95),
-                inset -2px -2px 5px rgba(255,255,255,0.06);
-            pointer-events: none;
-            transition: transform 0.15s ease-out;
-            z-index: 40; /* Crucial: Must be higher than moon-selector to prevent clipping */
-        }
+                    inset 3px 3px 8px rgba(0,0,0,0.95),
+                    inset -2px -2px 5px rgba(255,255,255,0.06);
+                pointer-events: none;
+                z-index: 20;
+            }
+
+            .compass-outer-ring {
+                position: absolute;
+                inset: -24px;
+                border-radius: 50%;
+                background: transparent;
+                pointer-events: none;
+                transition: transform 0.15s ease-out;
+                z-index: 40; /* Crucial: Must be higher than moon-selector to prevent clipping */
+            }
 
             /* Compass Indents (Tick Marks) */
             .compass-outer-ring::after {
@@ -1130,6 +1138,7 @@
         <!-- Moondial UI -->
         <div id="moondial-wrapper" class="primary-view">
             <canvas id="pipCanvas"></canvas>
+            <div class="compass-bg-ring"></div>
             <div class="moon-selector"></div>
             <div class="compass-outer-ring">
                 <span class="compass-marker north">N</span>
