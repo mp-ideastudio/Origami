@@ -3335,11 +3335,9 @@
                                 const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 2 });
                                 coinGeo.center();
                                 
-                                // Pure gold metal color texture
-                                const coinMat = new THREE.MeshStandardMaterial({
+                                // Pure gold metal color (BasicMaterial so it's fully bright without light sources, perfectly matching the canvas themeColor)
+                                const coinMat = new THREE.MeshBasicMaterial({
                                     color: 0xd4af37,
-                                    metalness: 1.0, 
-                                    roughness: 0.3,
                                     side: THREE.DoubleSide
                                 });
                                 const coin = new THREE.Mesh(coinGeo, coinMat);
