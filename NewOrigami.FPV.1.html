@@ -2708,49 +2708,30 @@
                         }
                         
                         
-                        // Initialize Animation Pipeline
+                        // Initialize Animation Pipeline — AI-driven state machine
                         if (gltf.animations && gltf.animations.length > 0) {
                             const mixer = new THREE.AnimationMixer(goblin);
                             const actions = gltf.animations.map(a => mixer.clipAction(a));
-                            
-                            // Sequencer: 4=Bow, 2=Laugh, 0=Idle, 3=Look Around 
-                            // Sequence: Bow -> Idle -> Look Around -> Laugh -> repeat
-                            const seqIndices = [4, 0, 3, 2];
-                            let currentSeqStep = 0;
-                            
-                            const playNextAnim = () => {
-                                mixer.stopAllAction();
-                                // Bounds safety check in case gltf models differ
-                                const idx = seqIndices[currentSeqStep] % actions.length;
-                                const act = actions[idx];
-                                if (act) {
-                                    act.reset();
-                                    act.setLoop(THREE.LoopOnce, 1);
-                                    act.clampWhenFinished = true;
-                                    act.play();
-                                }
-                                currentSeqStep = (currentSeqStep + 1) % seqIndices.length;
-                            };
-                            
-                            mixer.addEventListener('finished', playNextAnim);
-                            playNextAnim(); // Kick off the loop immediately
-                            
                             this.mixers.push(mixer);
                             entityWrapper.userData.mixer = mixer;
-                            entityWrapper.userData.clips = gltf.animations;
+                            entityWrapper.userData.clips  = gltf.animations;
                             entityWrapper.userData.actions = actions;
-                            
-                            // Find specific Attack Action by Name (Prioritize Slash as requested by User)
-                            const slashClip = gltf.animations.find(a => a.name.toLowerCase().includes('slash'));
-                            const attackClip = slashClip || gltf.animations.find(a => a.name.toLowerCase().match(/attack|strike|swing/));
-                            entityWrapper.userData.attackAction = attackClip ? mixer.clipAction(attackClip) : actions[1];
-                            
-                            // Debug animation names to Event Log
-                            let animNames = [];
-                            gltf.animations.forEach((anim, i) => {
-                                animNames.push(`[${i}] ${anim.name}`);
-                            });
-                            // window.parent.postMessage({ type: 'LOG_EVENT', text: 'Goblin Anims: ' + animNames.join(', '), logType: 'system' }, '*');
+
+                            // Resolve named clips — walk/run, idle, attack/slash
+                            const _findClip = (rx) => gltf.animations.find(a => rx.test(a.name.toLowerCase()));
+                            const idleClip   = _findClip(/idle/) || gltf.animations[0];
+                            const walkClip   = _findClip(/walk|run|move/) || gltf.animations[1] || gltf.animations[0];
+                            const slashClip  = _findClip(/slash/) || _findClip(/attack|strike|swing/);
+
+                            entityWrapper.userData.idleAction   = idleClip   ? mixer.clipAction(idleClip)   : actions[0];
+                            entityWrapper.userData.walkAction   = walkClip   ? mixer.clipAction(walkClip)   : actions[0];
+                            entityWrapper.userData.attackAction = slashClip  ? mixer.clipAction(slashClip)  : (actions[1] || actions[0]);
+                            entityWrapper.userData._animKey     = null; // tracks current active state
+
+                            // Boot into idle loop
+                            const idleAct = entityWrapper.userData.idleAction;
+                            if (idleAct) { idleAct.reset(); idleAct.setLoop(THREE.LoopRepeat); idleAct.play(); }
+                            entityWrapper.userData._animKey = 'idle';
                         }
                         
                         
@@ -2855,24 +2836,24 @@
                             if (fallbackGltf.animations && fallbackGltf.animations.length > 0) {
                                 const mixer = new THREE.AnimationMixer(goblin);
                                 const actions = fallbackGltf.animations.map(a => mixer.clipAction(a));
-                                const seqIndices = [4, 0, 3, 2];
-                                let currentSeqStep = 0;
-                                const playNextAnim = () => {
-                                    mixer.stopAllAction();
-                                    const i = seqIndices[currentSeqStep] % actions.length;
-                                    const act = actions[i];
-                                    if (act) { act.reset(); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.play(); }
-                                    currentSeqStep = (currentSeqStep + 1) % seqIndices.length;
-                                };
-                                mixer.addEventListener('finished', playNextAnim);
-                                playNextAnim();
                                 this.mixers.push(mixer);
-                                entityWrapper.userData.mixer = mixer;
-                                entityWrapper.userData.clips = fallbackGltf.animations;
+                                entityWrapper.userData.mixer   = mixer;
+                                entityWrapper.userData.clips   = fallbackGltf.animations;
                                 entityWrapper.userData.actions = actions;
-                                const slashClip = fallbackGltf.animations.find(a => a.name.toLowerCase().includes('slash'));
-                                const attackClip = slashClip || fallbackGltf.animations.find(a => a.name.toLowerCase().match(/attack|strike|swing/));
-                                entityWrapper.userData.attackAction = attackClip ? mixer.clipAction(attackClip) : actions[1];
+
+                                const _fc = (rx) => fallbackGltf.animations.find(a => rx.test(a.name.toLowerCase()));
+                                const idleClip  = _fc(/idle/)  || fallbackGltf.animations[0];
+                                const walkClip  = _fc(/walk|run|move/) || fallbackGltf.animations[1] || fallbackGltf.animations[0];
+                                const slashClip = _fc(/slash/) || _fc(/attack|strike|swing/);
+
+                                entityWrapper.userData.idleAction   = idleClip  ? mixer.clipAction(idleClip)  : actions[0];
+                                entityWrapper.userData.walkAction   = walkClip  ? mixer.clipAction(walkClip)  : actions[0];
+                                entityWrapper.userData.attackAction = slashClip ? mixer.clipAction(slashClip) : (actions[1] || actions[0]);
+                                entityWrapper.userData._animKey     = null;
+
+                                const idleAct = entityWrapper.userData.idleAction;
+                                if (idleAct) { idleAct.reset(); idleAct.setLoop(THREE.LoopRepeat); idleAct.play(); }
+                                entityWrapper.userData._animKey = 'idle';
                             }
                             
                             // Apply hologram shader (same as primary load)
@@ -4888,7 +4869,11 @@
                     delta = 0; // Swallow elapsed time perfectly to freeze the simulation
                 }
                 
-                this.mixers.forEach(mixer => mixer.update(delta));
+                // Monster animations only tick while player is moving (real-time mode)
+                // When idle, monsters freeze mid-stride — time-stop effect
+                if (currentlyMoving) {
+                    this.mixers.forEach(mixer => mixer.update(delta));
+                }
                 if (this.playerMixer) this.playerMixer.update(delta);
                 let moveDir = 0;
                 let turnDir = 0;
@@ -5293,237 +5278,226 @@
                 this.camera.position.set(camX, camY, camZ);
                 this.camera.rotation.z = camRotZ;
                 
-                // Procedural Breathing & State Machine AI (IDLE, CHASE, SEARCH, RETURN)
-                // TIME-STOP / TURN-BASED: Freeze time and logic if player is idle
-                if (currentlyMoving) {
-                    this.gameTime += delta; 
-                }
-                const time = this.gameTime * 2.5; // Equivalent scaling to the old Date.now() * 0.0025
-                
-                // Monster AI always ticks in real-time (idle wandering runs even when player is still)
+                // Procedural float time — only advances when player moves
+                if (currentlyMoving) { this.gameTime += delta; }
+                const time = this.gameTime * 2.5;
+
+                // ─────────────────────────────────────────────────────────────
+                // MONSTER AI  ·  Real-time while moving / Frozen when idle
+                // ─────────────────────────────────────────────────────────────
                 if (this.worldGroup) {
-                    
-                    // Raycaster setup for LoS
-                    const pPos = new THREE.Vector3(this.player.x * this.gridSize, 1.0, this.player.z * this.gridSize);
-                    
-                    // Use the walls array generated during buildWorldGeometry()
-                    const walls = this.walls || [];
+
+                    // ── Animation helper: transition to target state once ──
+                    const setAnim = (wrapper, key) => {
+                        if (!wrapper.userData.mixer) return;
+                        if (wrapper.userData._animKey === key) return;
+                        const action = wrapper.userData[key + 'Action'];
+                        if (!action) return;
+                        wrapper.userData.mixer.stopAllAction();
+                        action.reset();
+                        action.setLoop(key === 'attack' ? THREE.LoopOnce : THREE.LoopRepeat);
+                        action.clampWhenFinished = false;
+                        action.play();
+                        wrapper.userData._animKey = key;
+                    };
 
                     this.worldGroup.children.forEach(child => {
-                        if (child.userData && child.userData.type === 'enemy') {
-                            const model = child.children[0];
-                            const aiData = this.mobSpawns.find(s => s.id === child.userData.id);
-                            
-                            // 1. Calculate Grid Distance to camera for Proximity Fading
-                            const mPosV = new THREE.Vector3().copy(child.position);
-                            mPosV.y += 1.0; 
-                            const cPosV = new THREE.Vector3().copy(this.camera.position);
-                            const distToPlayerGrid = cPosV.distanceTo(mPosV) / this.gridSize;
+                        if (!child.userData || child.userData.type !== 'enemy') return;
 
-                            // Monsters are always visible — scene fog handles natural distance fade
-                            child.visible = !child.userData.isDead;
-                            let targetOpacity = this.fxConfig.baseOpacity;
-                            
-                            const isCombatTarget = this.activeTarget && this.activeTarget.userData && this.activeTarget.userData.id === child.userData.id;
+                        const model    = child.children[0];
+                        const aiData   = this.mobSpawns.find(s => s.id === child.userData.id);
+                        const isCombatTarget = this.activeTarget?.userData?.id === child.userData.id;
 
-                            if (model && child.visible) {
-                                // Dynamic Translucency mapping
-                                model.traverse((n) => {
-                                    if (n.isMesh && n.material) {
-                                        const mats = Array.isArray(n.material) ? n.material : [n.material];
-                                        mats.forEach(mat => {
-                                            if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
-                                                if (targetOpacity <= 0.05) mat.opacity = 0.0; 
-                                                else mat.opacity = 1.0;
-                                            } else if (mat.name !== 'mist') { // Don't override mist physics
-                                                mat.transparent = true;
-                                                mat.opacity = Math.min(targetOpacity, 0.45); // Ghostly transparency request
-                                                // Glass properties are now statically updated by the dat.gui onChange events
-                                            }
-                                        });
-                                    }
-                                });
-                                
-                                // Ethereal Float Engine
-                                if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
-                                if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
-                                
-                                // "yakuza goblin needs to gently float up and down by 1 foot either direction" (1 foot = 0.1 units)
-                                const isInteracting = (isCombatTarget || distToPlayerGrid <= 2.0);
-                                const floatAmp = isInteracting ? 0.15 : 0.1; 
-                                const floatOffset = isInteracting ? 1.0 : 0.1; // Gentle hover to prevent clipping
-                                
-                                // Lerp the model's Y position physically into the air relative to its original bounding box base
-                                const targetY = model.userData.baseY + floatOffset + Math.sin(time * 2.0 + child.userData.bobPhase) * floatAmp;
-                                model.position.y += (targetY - model.position.y) * 0.1;
-                            }
-                            
-                            if (model && !child.userData.mixer) {
-                                // Swirl Mist Particles
-                                if (child.userData.mistGroup) {
-                                    child.userData.mistGroup.rotation.y += delta * 0.4; // Rotate entire cloud slowly
-                                    child.userData.mistGroup.children.forEach(sprite => {
-                                        sprite.position.y = 0.2 + Math.abs(Math.sin(time * sprite.userData.speed + sprite.userData.angleOffset)) * 1.5;
-                                        const s = 3.0 + Math.sin(time * sprite.userData.speed * 2.0) * 1.2;
-                                        sprite.scale.set(s, s, s);
-                                        sprite.material.opacity = 0.6 + Math.sin(time * sprite.userData.speed) * 0.4;
+                        // Always: visibility
+                        child.visible = !child.userData.isDead;
+                        const targetOpacity = this.fxConfig.baseOpacity;
+
+                        // Always: opacity / hologram translucency
+                        if (model && child.visible) {
+                            model.traverse(n => {
+                                if (n.isMesh && n.material) {
+                                    const mats = Array.isArray(n.material) ? n.material : [n.material];
+                                    mats.forEach(mat => {
+                                        if (mat.emissive && mat.emissive.getHex() === 0xffffff && mat.emissiveIntensity > 2.0) {
+                                            mat.opacity = targetOpacity <= 0.05 ? 0.0 : 1.0;
+                                        } else if (mat.name !== 'mist') {
+                                            mat.transparent = true;
+                                            mat.opacity = Math.min(targetOpacity, 0.45);
+                                        }
                                     });
                                 }
-                            }
-                            
-                            if (!aiData) return;
-                            
-                            // Line of Sight Check (True 3D Raycaster as requested)
-                            this._anim_mPos.copy(child.position);
-                            this._anim_mPos.y += 1.0; // Aim at chest height
-                            this._anim_cPos.copy(this.camera.position);
-                            
-                            const distToPlayer3D = this._anim_cPos.distanceTo(this._anim_mPos);
-                            this._anim_dirToPlayer3D.subVectors(this._anim_cPos, this._anim_mPos).normalize();
-                            this._anim_dirFromPlayer3D.subVectors(this._anim_mPos, this._anim_cPos).normalize();
-                            
-                            let hasLoS = true;
-                            // Limit sight strictly to 40 feet (4 grids * approx dist)
-                            if (distToPlayer3D > (4.0 * this.gridSize)) {
-                                hasLoS = false;
-                            } else {
-                                this._anim_ray.set(this._anim_cPos, this._anim_dirFromPlayer3D);
-                                // Mathematical AABB loop
-                                for (const box of this.wallBoxes) {
-                                    if (this._anim_ray.intersectBox(box, this._anim_target)) {
-                                        if (this._anim_cPos.distanceTo(this._anim_target) < (distToPlayer3D - 0.5)) {
-                                            hasLoS = false; // Blocked by wall AABB
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // 90-degree frontal arc check for the monster (Front is local +Z)
-                            // Calculate if player is in front of the monster's current rotation
-                            this._anim_mFacingDir.set(0, 0, 1);
-                            this._anim_mFacingDir.applyAxisAngle(this._anim_upAxis, child.rotation.y);
-                            const monsterDot = this._anim_dirToPlayer3D.dot(this._anim_mFacingDir);
-                            
-                            // If the monster is IDLE or RETURN, it can only spot the player if within frontal arc (~90 degrees -> dot > ~0.707)
-                            if (hasLoS && monsterDot < 0.707 && (aiData.state === 'IDLE' || aiData.state === 'RETURN')) {
-                                hasLoS = false; 
-                            }
+                            });
 
-                            // State Machine Transitions
-                            if (hasLoS) {
-                                aiData.state = 'CHASE';
-                                aiData.searchTimer = 0;
-                            } else if (aiData.state === 'CHASE') {
-                                aiData.state = 'SEARCH';
-                                aiData.searchTimer = 0;
-                            }
-                            
-                            // State Execution
-                            let viewAngle = 0; // Where is the monster looking?
-                            
-                            if (aiData.state === 'CHASE') {
-                                // Move towards player
-                                const angle = Math.atan2(this._anim_dirToPlayer3D.x, this._anim_dirToPlayer3D.z);
-                                // The model itself and the arrow face local +Z. Rotate wrapper to point +Z at player.
-                                child.rotation.y = angle; 
-                                
-                                const dx = Math.sin(angle) * (aiData.speed * 0.75) * delta;
-                                const dz = Math.cos(angle) * (aiData.speed * 0.75) * delta;
-                                child.position.x += dx;
-                                child.position.z += dz;
-                                
-                                // Circle remains static
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
-                                
-                            } else if (aiData.state === 'SEARCH') {
-                                aiData.searchTimer += delta;
-                                // Stand still, scan left and right
-                                child.rotation.y += Math.sin(time * 2) * delta;
-                                // Circle remains static
-                                
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
-
-                                if (aiData.searchTimer > 4.0) { // 4 seconds of searching
-                                    aiData.state = 'RETURN';
-                                }
-                                
-                            } else if (aiData.state === 'RETURN') {
-                                this._anim_hPos.set(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
-                                this._anim_dirToHome.subVectors(this._anim_hPos, this._anim_mPos);
-                                const distToHome = this._anim_dirToHome.length();
-                                
-                                if (distToHome < 0.5) {
-                                    aiData.state = 'IDLE';
-                                } else {
-                                    this._anim_dirToHome.normalize();
-                                    const angle = Math.atan2(this._anim_dirToHome.x, this._anim_dirToHome.z);
-                                    child.rotation.y = angle;
-                                    
-                                    const dx = Math.sin(angle) * aiData.speed * delta;
-                                    const dz = Math.cos(angle) * aiData.speed * delta;
-                                    child.position.x += dx;
-                                    child.position.z += dz;
-                                }
-                                
-                                // Circle remains static
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
-                                
-                            } else {
-                                // IDLE — Random Wander
-                                if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
-
-                                // Initialize wandering state
-                                if (child.userData.wanderTimer === undefined) {
-                                    child.userData.wanderTimer = Math.random() * 2.0; // Stagger starts
-                                    child.userData.wanderAngle = Math.random() * Math.PI * 2;
-                                    child.userData.wanderDuration = 0;
-                                    child.userData.wanderCooldown = 0;
-                                }
-
-                                if (child.userData.wanderCooldown > 0) {
-                                    // Waiting before next wander
-                                    child.userData.wanderCooldown -= delta;
-                                } else if (child.userData.wanderDuration > 0) {
-                                    // Actively wandering in a direction
-                                    child.userData.wanderDuration -= delta;
-                                    const wdx = Math.sin(child.userData.wanderAngle) * (aiData.speed * 0.25) * delta;
-                                    const wdz = Math.cos(child.userData.wanderAngle) * (aiData.speed * 0.25) * delta;
-                                    const nx = child.position.x / this.gridSize + wdx / this.gridSize;
-                                    const nz = child.position.z / this.gridSize + wdz / this.gridSize;
-                                    // Only move if next position is walkable (not a wall)
-                                    const tileX = Math.round(nx);
-                                    const tileZ = Math.round(nz);
-                                    const isWalkable = this.mapData[tileX] && this.mapData[tileX][tileZ] && this.mapData[tileX][tileZ].type !== 'wall';
-                                    if (isWalkable) {
-                                        child.position.x += wdx;
-                                        child.position.z += wdz;
-                                        child.rotation.y = child.userData.wanderAngle;
-                                    } else {
-                                        // Hit a wall — reverse and set cooldown
-                                        child.userData.wanderDuration = 0;
-                                        child.userData.wanderCooldown = 0.5 + Math.random() * 1.0;
-                                    }
-                                } else {
-                                    // Pick a new wander destination
-                                    child.userData.wanderTimer -= delta;
-                                    if (child.userData.wanderTimer <= 0) {
-                                        // Pick a random cardinal or diagonal direction
-                                        const dirs = [0, Math.PI / 2, Math.PI, -Math.PI / 2,
-                                                       Math.PI / 4, -Math.PI / 4, 3 * Math.PI / 4, -3 * Math.PI / 4];
-                                        child.userData.wanderAngle = dirs[Math.floor(Math.random() * dirs.length)];
-                                        child.userData.wanderDuration = 0.6 + Math.random() * 0.8; // Walk 0.6–1.4s
-                                        child.userData.wanderCooldown = 0;
-                                        child.userData.wanderTimer = 2.0 + Math.random() * 3.0; // Wait 2–5s before next
-                                    }
-                                }
-                            }
-                            
-                            // Keep circle black even when in active combat engagement
+                            // Ethereal float bob
+                            if (child.userData.bobPhase === undefined) child.userData.bobPhase = Math.random() * Math.PI * 2;
+                            if (model.userData.baseY === undefined) model.userData.baseY = model.position.y;
+                            const distToPlayerGrid = this.camera.position.distanceTo(child.position) / this.gridSize;
+                            const isInteracting = isCombatTarget || distToPlayerGrid <= 2.0;
+                            const floatAmp    = isInteracting ? 0.15 : 0.1;
+                            const floatOffset = isInteracting ? 1.0  : 0.1;
+                            const targetY = model.userData.baseY + floatOffset + Math.sin(time * 2.0 + child.userData.bobPhase) * floatAmp;
+                            model.position.y += (targetY - model.position.y) * 0.1;
                         }
-                    });
-                }
-                
+
+                        // Mist swirl (sprite-based monsters without a mixer)
+                        if (model && !child.userData.mixer && child.userData.mistGroup) {
+                            child.userData.mistGroup.rotation.y += delta * 0.4;
+                            child.userData.mistGroup.children.forEach(s => {
+                                s.position.y = 0.2 + Math.abs(Math.sin(time * s.userData.speed + s.userData.angleOffset)) * 1.5;
+                                const sc = 3.0 + Math.sin(time * s.userData.speed * 2.0) * 1.2;
+                                s.scale.set(sc, sc, sc);
+                                s.material.opacity = 0.6 + Math.sin(time * s.userData.speed) * 0.4;
+                            });
+                        }
+
+                        if (!aiData) return;
+
+                        // ── TURN-BASED FREEZE: player is idle → monsters pause ──
+                        if (!currentlyMoving) {
+                            setAnim(child, 'idle');
+                            return;
+                        }
+
+                        // ── Line-of-Sight check ──
+                        this._anim_mPos.copy(child.position); this._anim_mPos.y += 1.0;
+                        this._anim_cPos.copy(this.camera.position);
+                        const distToPlayer3D = this._anim_cPos.distanceTo(this._anim_mPos);
+                        this._anim_dirToPlayer3D.subVectors(this._anim_cPos, this._anim_mPos).normalize();
+                        this._anim_dirFromPlayer3D.subVectors(this._anim_mPos, this._anim_cPos).normalize();
+
+                        let hasLoS = distToPlayer3D <= (4.0 * this.gridSize);
+                        if (hasLoS) {
+                            this._anim_ray.set(this._anim_cPos, this._anim_dirFromPlayer3D);
+                            for (const box of this.wallBoxes) {
+                                if (this._anim_ray.intersectBox(box, this._anim_target) &&
+                                    this._anim_cPos.distanceTo(this._anim_target) < distToPlayer3D - 0.5) {
+                                    hasLoS = false; break;
+                                }
+                            }
+                        }
+                        // Frontal 90° arc restriction for IDLE / RETURN
+                        this._anim_mFacingDir.set(0, 0, 1).applyAxisAngle(this._anim_upAxis, child.rotation.y);
+                        if (hasLoS && this._anim_dirToPlayer3D.dot(this._anim_mFacingDir) < 0.707 &&
+                            (aiData.state === 'IDLE' || aiData.state === 'RETURN')) { hasLoS = false; }
+
+                        // ── State transitions ──
+                        if (hasLoS) {
+                            aiData.state = 'CHASE'; aiData.searchTimer = 0;
+                        } else if (aiData.state === 'CHASE') {
+                            aiData.state = 'SEARCH'; aiData.searchTimer = 0;
+                        }
+
+                        // ── Cooldown ticks ──
+                        if (child.userData.attackCooldown > 0) child.userData.attackCooldown -= delta;
+                        // Auto-clear attack anim key when clip finishes
+                        if (child.userData._animKey === 'attack') {
+                            const atk = child.userData.attackAction;
+                            if (atk && !atk.isRunning()) child.userData._animKey = null;
+                        }
+
+                        if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+
+                        // ── CHASE ──
+                        if (aiData.state === 'CHASE') {
+                            const angle = Math.atan2(this._anim_dirToPlayer3D.x, this._anim_dirToPlayer3D.z);
+                            child.rotation.y = angle;
+                            const meleeRange = this.gridSize * 1.5;
+
+                            if (distToPlayer3D <= meleeRange) {
+                                // ── Monster Counter-Attack ──
+                                const rdy = !child.userData.attackCooldown || child.userData.attackCooldown <= 0;
+                                if (rdy && child.userData._animKey !== 'attack') {
+                                    setAnim(child, 'attack');
+                                    child.userData.attackCooldown = 1.5 + Math.random() * 1.0;
+                                    const name = child.userData.name || aiData.name || 'Goblin';
+                                    const dmg  = aiData.damage || 8;
+                                    this.player.hp = Math.max(0, this.player.hp - dmg);
+                                    this.syncPlayerStats();
+                                    this.addCameraTrauma(0.55);
+                                    this.spawnDamageText(dmg, this.camera.position, true);
+                                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage',
+                                        text: `⚔️ ${name} strikes for ${dmg} DMG!` }, '*');
+                                    window.parent.postMessage({ type: 'SHOW_COMBAT',
+                                        health: this.player.hp, maxHp: this.player.maxHp || 100,
+                                        name: 'Player', entityType: 'player' }, '*');
+                                } else if (child.userData._animKey !== 'attack') {
+                                    setAnim(child, 'idle'); // waiting on cooldown
+                                }
+                            } else {
+                                // ── Move towards player ──
+                                setAnim(child, 'walk');
+                                child.position.x += Math.sin(angle) * aiData.speed * 0.75 * delta;
+                                child.position.z += Math.cos(angle) * aiData.speed * 0.75 * delta;
+                            }
+
+                        // ── SEARCH ──
+                        } else if (aiData.state === 'SEARCH') {
+                            setAnim(child, 'idle');
+                            aiData.searchTimer += delta;
+                            child.rotation.y += Math.sin(time * 2) * delta;
+                            if (child.userData.searchLight) child.userData.searchLight.intensity = 2.0;
+                            if (aiData.searchTimer > 4.0) aiData.state = 'RETURN';
+
+                        // ── RETURN ──
+                        } else if (aiData.state === 'RETURN') {
+                            this._anim_hPos.set(aiData.homeX * this.gridSize, 1.0, aiData.homeZ * this.gridSize);
+                            this._anim_dirToHome.subVectors(this._anim_hPos, this._anim_mPos);
+                            const distHome = this._anim_dirToHome.length();
+                            if (distHome < 0.5) {
+                                aiData.state = 'IDLE';
+                                setAnim(child, 'idle');
+                            } else {
+                                setAnim(child, 'walk');
+                                this._anim_dirToHome.normalize();
+                                const ang = Math.atan2(this._anim_dirToHome.x, this._anim_dirToHome.z);
+                                child.rotation.y = ang;
+                                child.position.x += Math.sin(ang) * aiData.speed * delta;
+                                child.position.z += Math.cos(ang) * aiData.speed * delta;
+                            }
+
+                        // ── IDLE — Random Wander ──
+                        } else {
+                            if (child.userData.wanderTimer === undefined) {
+                                child.userData.wanderTimer    = Math.random() * 2.0;
+                                child.userData.wanderAngle    = Math.random() * Math.PI * 2;
+                                child.userData.wanderDuration = 0;
+                                child.userData.wanderCooldown = 0;
+                            }
+                            if (child.userData.wanderCooldown > 0) {
+                                child.userData.wanderCooldown -= delta;
+                                setAnim(child, 'idle');
+                            } else if (child.userData.wanderDuration > 0) {
+                                child.userData.wanderDuration -= delta;
+                                const wdx = Math.sin(child.userData.wanderAngle) * aiData.speed * 0.25 * delta;
+                                const wdz = Math.cos(child.userData.wanderAngle) * aiData.speed * 0.25 * delta;
+                                const tx  = Math.round(child.position.x / this.gridSize + wdx / this.gridSize);
+                                const tz  = Math.round(child.position.z / this.gridSize + wdz / this.gridSize);
+                                if (this.mapData[tx]?.[tz]?.type !== 'wall') {
+                                    setAnim(child, 'walk');
+                                    child.position.x += wdx;
+                                    child.position.z += wdz;
+                                    child.rotation.y  = child.userData.wanderAngle;
+                                } else {
+                                    child.userData.wanderDuration = 0;
+                                    child.userData.wanderCooldown = 0.5 + Math.random();
+                                    setAnim(child, 'idle');
+                                }
+                            } else {
+                                setAnim(child, 'idle');
+                                child.userData.wanderTimer -= delta;
+                                if (child.userData.wanderTimer <= 0) {
+                                    const dirs = [0, Math.PI/2, Math.PI, -Math.PI/2,
+                                                  Math.PI/4, -Math.PI/4, 3*Math.PI/4, -3*Math.PI/4];
+                                    child.userData.wanderAngle    = dirs[Math.floor(Math.random() * dirs.length)];
+                                    child.userData.wanderDuration = 0.6 + Math.random() * 0.8;
+                                    child.userData.wanderCooldown = 0;
+                                    child.userData.wanderTimer    = 2.0 + Math.random() * 3.0;
+                                }
+                            }
+                        }
+                    }); // end forEach enemy
+                } // end worldGroup
+
                 // ---------------------------------------------------------------------
                 // RENDER PASSES
                 // ---------------------------------------------------------------------

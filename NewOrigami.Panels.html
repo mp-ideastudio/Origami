@@ -194,7 +194,8 @@
             box-shadow: 3px 3px 8px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05);
             border: 1px solid rgba(255,255,255,0.4);
         }
-        .avatar-circle::after { content: ''; position: absolute; top: -2px; left: -2px; width: calc(100% + 4px); height: calc(100% + 4px); border-radius: 50%; background: conic-gradient(#4caf50 var(--hp-pct), #ff5252 0); z-index: -1; pointer-events: none; -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 2px)); }
+        .avatar-circle::after { display: none; } /* HP ring removed */
+
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
         .pos-n { --tx: 0px; --ty: -54px; } .pos-s { --tx: 0px; --ty: 54px; } .pos-e { --tx: 54px; --ty: 0px; } .pos-w { --tx: -54px; --ty: 0px; }
         
