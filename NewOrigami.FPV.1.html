@@ -3319,19 +3319,35 @@
                                     liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
                                 };
                             } else if (catId === 'GOLD_COIN') {
-                                // Simple solid cylinder to avoid geometry triangulation artifacts
-                                const coinGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.15, 32);
+                                const shape = new THREE.Shape();
+                                shape.arc(0, 0, 1.4, 0, Math.PI * 2, false); // CCW outer
                                 
-                                // Real gold material
-                                const coinMat = new THREE.MeshBasicMaterial({
-                                    color: 0xd4af37, // Real Gold color
+                                const holePath = new THREE.Path();
+                                // CW inner square cutout for Yen shape
+                                holePath.moveTo(-0.4, 0.4);
+                                holePath.lineTo(0.4, 0.4);
+                                holePath.lineTo(0.4, -0.4);
+                                holePath.lineTo(-0.4, -0.4);
+                                holePath.lineTo(-0.4, 0.4);
+                                shape.holes.push(holePath);
+                                
+                                // Embed depth evenly through card
+                                const coinGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 });
+                                coinGeo.center();
+                                
+                                // Pure gold metal color texture
+                                const coinMat = new THREE.MeshStandardMaterial({
+                                    color: 0xd4af37,
+                                    metalness: 1.0, 
+                                    roughness: 0.25,
+                                    emissive: 0x332500, // gentle base light so it's not pitch black
                                     side: THREE.DoubleSide
                                 });
                                 const coin = new THREE.Mesh(coinGeo, coinMat);
                                 
-                                // Static tilt so the player can see the top without it spinning
-                                coin.rotation.x = Math.PI / 2 + Math.PI / 12;
-                                coin.rotation.y = Math.PI / 6;
+                                // Flat against the card, NO tilting to prevent it getting chopped by the card plane
+                                coin.rotation.x = 0;
+                                coin.rotation.y = 0;
                                 
                                 iconMesh.add(coin);
                                 
