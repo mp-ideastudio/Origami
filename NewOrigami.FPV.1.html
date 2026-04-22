@@ -161,6 +161,11 @@
             z-index: 90; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none;
             -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
         }
+        #moonphase-label {
+            position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+            color: #888; font-family: monospace; font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 1px; z-index: 90; text-shadow: 0 1px 2px #000; pointer-events: none;
+        }
 
         #turn-counter {
             position: absolute; top: 15px; right: 15px; 
@@ -439,6 +444,7 @@
         <div id="blood-vignette"></div>
         <div id="interaction-prompt">Press E to Interact</div>
         <div id="fps-counter">FPS: --/60</div>
+        <div id="moonphase-label">NEW MOON</div>
 
 
 
@@ -1927,14 +1933,8 @@
                 
                 const baseGroup = new THREE.Group();
                 
-                // White Border Base
-                const borderGeo = new THREE.CircleGeometry(0.85, 32);
-                const borderMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const borderMesh = new THREE.Mesh(borderGeo, borderMat);
-                borderMesh.rotation.x = -Math.PI / 2;
-                borderMesh.position.y = 0.03;
-                borderMesh.layers.set(3);
-                
+                // White Border Base removed (green health ring)
+
                 // Black Circle Core
                 const baseGeo = new THREE.CircleGeometry(0.7, 32);
                 const baseMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -1952,7 +1952,6 @@
                 noseMesh.layers.set(3);
 
                 baseGroup.add(baseMesh);
-                baseGroup.add(borderMesh);
                 baseGroup.add(noseMesh);
                 // Important: Do not give the base any animation controllers, preserving the "do not animate circle" requirement
                 this.playerAvatar.add(baseGroup);
@@ -2351,7 +2350,7 @@
                     ceil: new THREE.MeshStandardMaterial({ map: ceilTex, color: 0xFFFFFF, roughness: 1.0, metalness: 0.0 }),
                     wall: new THREE.MeshStandardMaterial({ map: wallTex, color: 0xFFFFFF, roughness: 0.8, metalness: 0.0 }),
                     pipWall: new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.15, depthWrite: false }),
-                    wallTop: new THREE.MeshStandardMaterial({ map: wallTopTex, color: 0xFFFFFF, roughness: 0.9, metalness: 0.0 }),
+                    wallTop: new THREE.MeshStandardMaterial({ map: wallTopTex, color: 0xE6E6E6, roughness: 0.9, metalness: 0.0 }),
                     npc: new THREE.MeshStandardMaterial({ color: '#7cfc00', map: objTex, roughness: 0.6 }),
                     monster: new THREE.MeshStandardMaterial({ color: '#b85450', map: objTex, roughness: 0.6 })
                 };
@@ -4502,6 +4501,10 @@
                         this._pipRect.top = e.data.top;
                         this._pipRect.bottom = e.data.bottom;
                         return;
+                    } else if (e.data.type === 'MOON_PHASE') {
+                        const mpLabel = document.getElementById('moonphase-label');
+                        if (mpLabel) mpLabel.textContent = e.data.phase;
+                        return;
                     } else if (e.data.type === 'PIP_ZOOM') {
                         this._pipLastInteractionTime = Date.now();
                         if (!this._pipZoomScale) this._pipZoomScale = 0.5;
@@ -5161,6 +5164,13 @@
                     this._lastIsMoving = this.physMoving;
                     window.parent.postMessage({ type: 'PLAYER_MOVE_STATE', isMoving: this.physMoving }, '*');
                 }
+
+                // --- REAL-TIME Direction Dial Update (throttled to ~20hz to avoid message flood) ---
+                const _now = performance.now();
+                if (!this._lastRotBroadcast || (_now - this._lastRotBroadcast) > 50) {
+                    this._lastRotBroadcast = _now;
+                    window.parent.postMessage({ type: 'PLAYER_ROT_REALTIME', rot: this.player.rot }, '*');
+                }
                 
                 // Grid change detection for AI and Triggers
                 const curGridX = Math.round(this.player.x);
@@ -5290,7 +5300,8 @@
                 }
                 const time = this.gameTime * 2.5; // Equivalent scaling to the old Date.now() * 0.0025
                 
-                if (this.worldGroup && currentlyMoving) {
+                // Monster AI always ticks in real-time (idle wandering runs even when player is still)
+                if (this.worldGroup) {
                     
                     // Raycaster setup for LoS
                     const pPos = new THREE.Vector3(this.player.x * this.gridSize, 1.0, this.player.z * this.gridSize);
@@ -5459,8 +5470,53 @@
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
                                 
                             } else {
-                                // IDLE
+                                // IDLE — Random Wander
                                 if (child.userData.searchLight) child.userData.searchLight.intensity = 0;
+
+                                // Initialize wandering state
+                                if (child.userData.wanderTimer === undefined) {
+                                    child.userData.wanderTimer = Math.random() * 2.0; // Stagger starts
+                                    child.userData.wanderAngle = Math.random() * Math.PI * 2;
+                                    child.userData.wanderDuration = 0;
+                                    child.userData.wanderCooldown = 0;
+                                }
+
+                                if (child.userData.wanderCooldown > 0) {
+                                    // Waiting before next wander
+                                    child.userData.wanderCooldown -= delta;
+                                } else if (child.userData.wanderDuration > 0) {
+                                    // Actively wandering in a direction
+                                    child.userData.wanderDuration -= delta;
+                                    const wdx = Math.sin(child.userData.wanderAngle) * (aiData.speed * 0.25) * delta;
+                                    const wdz = Math.cos(child.userData.wanderAngle) * (aiData.speed * 0.25) * delta;
+                                    const nx = child.position.x / this.gridSize + wdx / this.gridSize;
+                                    const nz = child.position.z / this.gridSize + wdz / this.gridSize;
+                                    // Only move if next position is walkable (not a wall)
+                                    const tileX = Math.round(nx);
+                                    const tileZ = Math.round(nz);
+                                    const isWalkable = this.mapData[tileX] && this.mapData[tileX][tileZ] && this.mapData[tileX][tileZ].type !== 'wall';
+                                    if (isWalkable) {
+                                        child.position.x += wdx;
+                                        child.position.z += wdz;
+                                        child.rotation.y = child.userData.wanderAngle;
+                                    } else {
+                                        // Hit a wall — reverse and set cooldown
+                                        child.userData.wanderDuration = 0;
+                                        child.userData.wanderCooldown = 0.5 + Math.random() * 1.0;
+                                    }
+                                } else {
+                                    // Pick a new wander destination
+                                    child.userData.wanderTimer -= delta;
+                                    if (child.userData.wanderTimer <= 0) {
+                                        // Pick a random cardinal or diagonal direction
+                                        const dirs = [0, Math.PI / 2, Math.PI, -Math.PI / 2,
+                                                       Math.PI / 4, -Math.PI / 4, 3 * Math.PI / 4, -3 * Math.PI / 4];
+                                        child.userData.wanderAngle = dirs[Math.floor(Math.random() * dirs.length)];
+                                        child.userData.wanderDuration = 0.6 + Math.random() * 0.8; // Walk 0.6–1.4s
+                                        child.userData.wanderCooldown = 0;
+                                        child.userData.wanderTimer = 2.0 + Math.random() * 3.0; // Wait 2–5s before next
+                                    }
+                                }
                             }
                             
                             // Keep circle black even when in active combat engagement
