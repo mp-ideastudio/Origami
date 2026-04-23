@@ -82,10 +82,10 @@
             border: 1px solid rgba(255,255,255,0.08); padding: 20px 8px 25px 8px; 
             box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
             box-shadow:
-                6px 6px 16px rgba(0,0,0,0.8),
-                -3px -3px 8px rgba(255,255,255,0.04),
-                inset 1px 1px 2px rgba(255,255,255,0.08),
-                inset -1px -1px 3px rgba(0,0,0,0.5);
+                3px 3px 10px rgba(0,0,0,0.5),
+                -1px -1px 4px rgba(255,255,255,0.03),
+                inset 1px 1px 2px rgba(255,255,255,0.06),
+                inset -1px -1px 3px rgba(0,0,0,0.4);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
         }
         #pax-console { border-radius: 0 24px 24px 0; border-left: none; transform: translateX(-150%); opacity: 0; pointer-events: none; }
@@ -181,19 +181,18 @@
         .anim-slash-btn { animation: avatarSlashBtn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         /* --- DOCK & WINGS --- */
-        .u-panel { pointer-events: auto; outline: none; }
+        .u-panel { pointer-events: auto; outline: none; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .u-panel.pip-collide { transform: translateY(80px); }
         .u-wing { position: relative; width: 100%; height: var(--wing-height); display: flex; align-items: center; justify-content: center; }
-        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass);   border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
+        #left-panel { border-right: 1.5px solid rgba(255,255,255,0.15); }
+        #right-panel { border-left: 1.5px solid rgba(255,255,255,0.15); }
+        body.dark-mode #left-panel { border-right: 1.5px solid rgba(0,0,0,0.4); }
+        body.dark-mode #right-panel { border-left: 1.5px solid rgba(0,0,0,0.4); }
+        .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
-        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
+        .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; box-shadow: 4px 4px 10px var(--nm-shadow-dark); font-size: 20px; color: var(--color-text); }
         .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-        .avatar-circle { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 44px; height: 44px; border-radius: 50%; z-index: 50; 
-            background: var(--bg-glass); --hp-pct: 100%; 
-            box-shadow: 3px 3px 8px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.4);
-        }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
         .avatar-circle::after { display: none; } /* HP ring removed */
 
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
@@ -225,11 +224,6 @@
                 inset 1px 1px 2px rgba(255,255,255,0.1),
                 inset -1px -1px 2px rgba(0,0,0,0.4) !important;
              border: 1px solid rgba(255,255,255,0.05) !important;
-        }
-        body.dark-mode .avatar-circle {
-             box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), inset 1px 1px 2px rgba(255,255,255,0.1), inset -1px -1px 2px rgba(0,0,0,0.4);
-             border: 1px solid rgba(255,255,255,0.05);
-             background: var(--bg-glass) !important; /* Force match thumb button background */
         }
         body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
             box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
@@ -307,15 +301,27 @@
             background: var(--bg-glass) !important;   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; box-sizing: border-box;
-            border: 0.5px solid var(--theme-clr, rgba(255,255,255,0.09)) !important;
+            border: none !important;
             box-shadow:
                 4px 4px 12px rgba(0,0,0,0.8),
                 -2px -2px 6px rgba(255,255,255,0.04),
-                inset 1px 1px 2px rgba(255,255,255,0.1),
-                inset -1px -1px 3px rgba(0,0,0,0.5) !important;
+                inset 1px 1px 0px rgba(255,255,255,0.2),
+                inset 2px 2px 0px var(--theme-clr, rgba(255,255,255,0.15)),
+                inset -2px -2px 0px rgba(0,0,0,0.5),
+                0 0 0 1px var(--theme-clr, transparent) !important;
             transform-origin: top center;
         }
-        .guide-card[data-depth="0"]::before { content: '\f105'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 6px; top: 48%; transform: translateY(-50%); font-size: 8px; color: var(--color-text); opacity: 0.15; pointer-events: none; }
+        
+        .guide-card::before {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; 
+            border-radius: inherit; pointer-events: none; z-index: 0;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+        }
+        body.dark-mode .guide-card::before {
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
+            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        }
         
         .card-badge {
             position: absolute; top: -10px; right: -6px; width: 22px; height: 22px; 
@@ -345,7 +351,7 @@
         }
         .guide-card.selected-card {
             animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
-            border: 2px solid var(--theme-clr, #00ffff) !important;
+            border: none !important;
             transform: translateY(-6px) scale(1.04) !important;
             z-index: 40 !important;
         }
@@ -400,9 +406,22 @@
         .inv-grid .playing-card {
             position: relative; transform: none !important; opacity: 1 !important; z-index: 1 !important;
             filter: none !important; margin: 0; transition: transform 0.2s, box-shadow 0.2s; cursor: grab;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8), var(--nm-shadow-inner) !important;
+            border: none !important;
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.8),
+                -2px -2px 6px rgba(255,255,255,0.04),
+                inset 2px 2px 0px rgba(255,255,255,0.15),
+                inset -2px -2px 0px rgba(0,0,0,0.3) !important;
         }
-        .inv-grid .playing-card:hover { transform: translateY(-5px) !important; box-shadow: 0 8px 16px rgba(0,0,0,0.8), var(--nm-shadow-inner) !important; z-index: 10 !important; }
+        .inv-grid .playing-card:hover { 
+            transform: translateY(-5px) !important; 
+            box-shadow: 
+                0 8px 16px rgba(0,0,0,0.8), 
+                -2px -2px 6px rgba(255,255,255,0.04),
+                inset 2px 2px 0px rgba(255,255,255,0.15),
+                inset -2px -2px 0px rgba(0,0,0,0.3) !important; 
+            z-index: 10 !important; 
+        }
         
         .inv-grid .playing-card:active { cursor: grabbing; }
         .equipped-card { border: 2px solid #00ffcc !important; box-shadow: 0 0 15px rgba(0,255,204,0.5), inset 0 0 10px rgba(0,255,204,0.2) !important; filter: brightness(1.1) !important; }
@@ -419,14 +438,32 @@
         /* Rigid Vertical Symmetry Zones */
         .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
         .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
-        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
+        .card-type-pill { background: var(--theme-clr); color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); font-style: normal !important; }
         
-        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; }
-        .card-desc { font-style: italic; font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; }
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; }
+        .card-desc { font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; }
         
-        .card-icon-3d { width: 45px; height: 45px; border-radius: 50%; background: #000000; box-shadow: inset 0px 5px 15px rgba(0,0,0,0.9), inset 0px 0px 5px rgba(0,0,0,1); margin: 0 auto; overflow: hidden; position: relative; border: 1.5px solid rgba(255,255,255,0.1); flex-shrink: 0; margin-bottom: 5px; }
-        .dark-mode .card-icon-3d { background: #000000; }
-        .card-icon-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+        .card-icon-3d { 
+            width: 45px; height: 45px; border-radius: 50%; 
+            margin: 0 auto 5px auto; overflow: hidden; position: relative; flex-shrink: 0; 
+            background: #e0e5ec;
+            box-shadow: inset 4px 4px 8px rgba(163,177,198,0.8), inset -4px -4px 8px rgba(255,255,255,0.8);
+        }
+        .dark-mode .card-icon-3d { 
+            background: #0d0d12; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 5px 5px 15px rgba(0,0,0,1), inset -3px -3px 8px rgba(255,255,255,0.1), 0 2px 5px rgba(255,255,255,0.05);
+        }
+        .card-icon-3d canvas { 
+            display: block; width: 100% !important; height: 100% !important; 
+            transform: scale(0.85); border-radius: 50%; 
+        }
+        .card-icon-3d::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%; pointer-events: none; z-index: 10;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, rgba(0,0,0,0) 60%);
+            box-shadow: inset -5px -5px 12px rgba(0,0,0,0.8), inset 2px 2px 8px rgba(255,255,255,0.4);
+        }
         .card-attr-fused { 
             width: 100%; 
             height: 25px; 
@@ -437,6 +474,7 @@
             font-weight: 900; 
             font-size: 8px;
             letter-spacing: 0px; 
+            font-style: normal !important;
             padding: 0 8px; 
             text-transform: uppercase; 
             display: flex; 
@@ -709,12 +747,6 @@
                 width: 24px;
                 height: 44px;
                 background: var(--bg-glass);
-                border: 1px solid rgba(255,255,255,0.07);
-                box-shadow:
-                    3px 3px 8px rgba(0,0,0,0.7),
-                    -1px -1px 4px rgba(255,255,255,0.04),
-                    inset 1px 1px 2px rgba(255,255,255,0.07),
-                    inset -1px -1px 2px rgba(0,0,0,0.5);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -725,8 +757,25 @@
                 color: var(--color-text);
             }
             .panel-toggle:hover { background: rgba(255,255,255,0.1); }
-            .toggle-left { right: -24px; border-radius: 0 8px 8px 0; border-left: none; }
-            .toggle-right { left: -24px; border-radius: 8px 0 0 8px; border-right: none; }
+            
+            .toggle-left { 
+                right: -24px; 
+                border-radius: 0 8px 8px 0; 
+                border: 1px solid rgba(255,255,255,0.07);
+                border-left: none; 
+                box-shadow: 
+                    3px 3px 6px rgba(0,0,0,0.6), 
+                    inset -1px -1px 2px rgba(0,0,0,0.4); 
+            }
+            .toggle-right { 
+                left: -24px; 
+                border-radius: 8px 0 0 8px; 
+                border: 1px solid rgba(255,255,255,0.07);
+                border-right: none; 
+                box-shadow: 
+                    -3px 3px 6px rgba(0,0,0,0.6), 
+                    inset 1px 1px 2px rgba(255,255,255,0.05); 
+            }
             
             #encounter-zone.active #pax-console.minimized { transform: translateX(calc(-100% - 20px)); }
             #encounter-zone.active #action-rail.minimized { transform: translateX(calc(100% + 20px)); }
@@ -1549,8 +1598,8 @@
                     // 1. The Glass Marble Shell
                     const glassGeo = new THREE.SphereGeometry(1.8, 32, 32);
                     const glassMat = new THREE.MeshPhysicalMaterial({
-                        color: 0xffffff, transmission: 0.8, opacity: 1, transparent: true,
-                        roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.1
+                        color: 0xffffff, opacity: 0.3, transparent: true,
+                        roughness: 0.05, metalness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.1
                     });
                     const glassMarble = new THREE.Mesh(glassGeo, glassMat);
                     group.add(glassMarble);
@@ -1559,7 +1608,8 @@
                     const geo = new THREE.SphereGeometry(1.75, 64, 64);
                     geo.computeVertexNormals();
                     const mat = new THREE.MeshStandardMaterial({
-                        color: 0xffffff, roughness: 0.1, metalness: 0.5, vertexColors: true
+                        color: 0xffffff, roughness: 0.1, metalness: 0.1, vertexColors: true,
+                        emissive: 0x0d6efd, emissiveIntensity: 0.3
                     });
                     const pos = geo.attributes.position;
                     // We need original Ys to restore the spherical bottom
@@ -2072,7 +2122,7 @@
             avatarScene = new THREE.Scene();
             avatarCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
             avatarCamera.position.set(0, 1.2, 4.8);
-            avatarCamera.lookAt(0, 1.0, 0); // Explicitly look at the avatar's chest/head height
+            avatarCamera.lookAt(0, 0.85, 0); // Look lower so the avatar moves UP (+1px) and its legs aren't covered
             
             const ambLight = new THREE.AmbientLight(0xffffff, 1.5); // Brighter ambient light
             avatarScene.add(ambLight);
@@ -2143,10 +2193,12 @@
                             if (!avatarIdleAction) {
                                 avatarIdleAction = avatarActions[0] || avatarMixer.clipAction(gltf.animations[0]);
                             }
+                            avatarActions['idle'] = avatarIdleAction;
                             
                             // Play idle immediately if it logically exists
                             if (avatarIdleAction) {
                                 avatarCurrentAction = avatarIdleAction;
+                                if (avatarIdleAction === avatarActions.walk) avatarIdleAction.setEffectiveTimeScale(0);
                                 avatarIdleAction.play();
                             }
                         }
@@ -2208,16 +2260,25 @@
                 btn.classList.remove('anim-idle-btn', 'anim-walk-btn', 'anim-slash-btn');
                 if (name === 'slash' || name === 'attack') btn.classList.add('anim-slash-btn');
                 else if (name === 'walk') btn.classList.add('anim-walk-btn');
-                if (isMoving) btn.classList.add('anim-walk-btn');
+                else if (name === 'idle') btn.classList.add('anim-idle-btn');
+                if (typeof isMoving !== 'undefined' && isMoving) btn.classList.add('anim-walk-btn');
             }
 
             if (avatarCurrentAction) {
                 targetAction.time = 0;
-                targetAction.setEffectiveTimeScale(name === 'walk' ? 1.5 : 1);
+                let timescale = name === 'walk' ? 1.5 : 1;
+                // If we fallback to walk animation for idle, pause it so they stand still
+                if (name === 'idle' && targetAction === avatarActions['walk']) timescale = 0;
+                targetAction.setEffectiveTimeScale(timescale);
                 targetAction.setEffectiveWeight(1);
                 targetAction.crossFadeFrom(avatarCurrentAction, 0.2, true);
+            } else {
+                let timescale = name === 'walk' ? 1.5 : 1;
+                if (name === 'idle' && targetAction === avatarActions['walk']) timescale = 0;
+                targetAction.setEffectiveTimeScale(timescale);
             }
             targetAction.play();
+            avatarCurrentAction = targetAction;
             
             if (name === 'slash' || name === 'attack') {
                 targetAction.setLoop(THREE.LoopOnce, 1);
@@ -2632,18 +2693,22 @@
             });
         }
         
-        // Touch / Mouse D-Pad Controls
+        const activeDPadPointers = new Map();
         const handleDPadInput = (e, isDown) => {
             if (e.cancelable) e.preventDefault();
-            const btn = e.target.closest('[data-key]');
-            if (!btn) return;
-            const key = btn.dataset.key;
             if (isDown) {
+                const btn = e.target.closest('[data-key]');
+                if (!btn) return;
+                const key = btn.dataset.key;
+                activeDPadPointers.set(e.pointerId, key);
                 playAvatarAnim('walk');
                 window.parent.postMessage({ type: 'KEY_DOWN', key: key, code: key }, '*');
             } else {
+                const key = activeDPadPointers.get(e.pointerId);
+                if (!key) return; // Ignores pointerup/leave if this pointer didn't press a button
                 playAvatarAnim('idle');
                 window.parent.postMessage({ type: 'KEY_UP', key: key, code: key }, '*');
+                activeDPadPointers.delete(e.pointerId);
             }
         };
 
@@ -2711,6 +2776,15 @@
                 playAvatarAnim('idle');
             }
             window.parent.postMessage({ type: 'KEY_UP', key: e.key, code: e.code }, '*');
+        });
+        
+        window.addEventListener('blur', () => {
+            // Failsafe: if the browser or iframe loses focus, flush all movement keys
+            ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].forEach(k => {
+                window.parent.postMessage({ type: 'KEY_UP', key: k, code: k }, '*');
+            });
+            playAvatarAnim('idle');
+            activeDPadPointers.clear();
         });
         setup();
 
@@ -2827,6 +2901,11 @@
                         indicator.className = 'monster-turn';
                         indicator.textContent = 'ENEMY TURN';
                     }
+                }
+            } else if (e.data && e.data.type === 'SYNC_UI' && e.data.event === 'MONSTER_DEATH') {
+                const ez = document.getElementById('encounter-zone');
+                if (ez) {
+                    ez.classList.remove('active');
                 }
             } else if (e.data && e.data.type === 'UPDATE_LOOT_CARDS') {
                 const layer = document.getElementById('floating-loot-layer');
@@ -3161,8 +3240,8 @@
 
         setTimeout(() => {
             updateViewportReadout();
-            clampPiPIntoViewport();
-            syncRect();
+            if (window.clampPiPIntoViewport) window.clampPiPIntoViewport();
+            if (window.syncRect) window.syncRect();
             if (window.innerWidth >= 1024) {
                 const az = document.getElementById('action-zone');
                 if (az && !az.classList.contains('outer-active')) az.classList.add('outer-active');
@@ -3202,6 +3281,7 @@
                 post({ type: 'PIP_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
             }
         }
+        window.syncRect = syncRect;
 
         // Prevent context menu
         pip.addEventListener("contextmenu", e => { 
@@ -3286,6 +3366,30 @@
             pip.style.right = isAnchorRight ? safeRight + "px" : "auto";
             pip.style.top = isAnchorBottom ? "auto" : safeTop + "px";
             pip.style.bottom = isAnchorBottom ? safeBottom + "px" : "auto";
+            checkPiPCollision();
+        }
+        window.clampPiPIntoViewport = clampPiPIntoViewport;
+        
+        function checkPiPCollision() {
+            if (window.innerWidth <= 768) return;
+            const pipRect = pip.getBoundingClientRect();
+            const leftPanel = document.getElementById('left-panel');
+            const rightPanel = document.getElementById('right-panel');
+            if (!leftPanel || !rightPanel) return;
+            const lpRect = leftPanel.getBoundingClientRect();
+            
+            const overlap = !(pipRect.right < lpRect.left || 
+                              pipRect.left > lpRect.right || 
+                              pipRect.bottom < lpRect.top || 
+                              pipRect.top > lpRect.bottom);
+                              
+            if (overlap) {
+                leftPanel.classList.add('pip-collide');
+                rightPanel.classList.add('pip-collide');
+            } else {
+                leftPanel.classList.remove('pip-collide');
+                rightPanel.classList.remove('pip-collide');
+            }
         }
 
         function loadPiPState() {
@@ -3300,6 +3404,7 @@
                 if (s.right !== undefined) pip.style.right = s.right + "px"; else pip.style.right = "auto";
                 if (s.top !== undefined) pip.style.top = s.top + "px"; else pip.style.top = "auto";
                 if (s.bottom !== undefined) pip.style.bottom = s.bottom + "px"; else pip.style.bottom = "auto";
+                setTimeout(checkPiPCollision, 50);
             } catch {}
         }
 
@@ -3321,6 +3426,7 @@
             pip.style.right = "auto";
             pip.style.bottom = "auto";
             syncRect();
+            checkPiPCollision();
         };
         const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(true); savePiPState(); document.removeEventListener("mousemove", onDragMove); document.removeEventListener("mouseleave", onDragEnd); window.removeEventListener("blur", onDragEnd); };
         
