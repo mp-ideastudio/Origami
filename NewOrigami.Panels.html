@@ -2488,7 +2488,30 @@
                                 holdInterval = setInterval(() => {
                                     holdTarget.classList.add('launching');
                                     emitAction(actionName, holdTarget);
-                                    setTimeout(() => holdTarget.classList.remove('launching'), 450);
+                                    
+                                    let qty = holdTarget.dataset.qty ? parseInt(holdTarget.dataset.qty) : 1;
+                                    if (qty > 1) {
+                                        qty--;
+                                        holdTarget.dataset.qty = qty;
+                                        const badge = holdTarget.querySelector('.card-badge');
+                                        if (badge) badge.textContent = qty;
+                                        setTimeout(() => holdTarget.classList.remove('launching'), 450);
+                                    } else {
+                                        clearInterval(holdInterval);
+                                        holdInterval = null;
+                                        setTimeout(() => {
+                                            holdTarget.classList.remove('launching');
+                                            holdTarget.remove();
+                                            const remainingCards = Array.from(col.querySelectorAll('.guide-card'));
+                                            if (remainingCards.length === 0) {
+                                                col.style.width = '0px'; col.style.flex = '0 0 0px';
+                                                col.style.marginRight = '0px'; col.style.opacity = '0';
+                                                setTimeout(() => col.remove(), 300);
+                                            } else {
+                                                remainingCards.forEach((c, i) => c.dataset.depth = i.toString());
+                                            }
+                                        }, 450);
+                                    }
                                 }, 300);
                             }
                         }, 300);
@@ -2557,19 +2580,28 @@
                                     emitAction(actionName, clickedCard);
                                     setTimeout(() => { 
                                         clickedCard.classList.remove('launching'); 
-                                        clickedCard.remove();
                                         
-                                        const remainingCards = Array.from(col.querySelectorAll('.guide-card'));
-                                        if (remainingCards.length === 0) {
-                                            col.style.width = '0px';
-                                            col.style.flex = '0 0 0px';
-                                            col.style.marginRight = '0px';
-                                            col.style.opacity = '0';
-                                            setTimeout(() => col.remove(), 300);
+                                        let qty = clickedCard.dataset.qty ? parseInt(clickedCard.dataset.qty) : 1;
+                                        if (qty > 1) {
+                                            qty--;
+                                            clickedCard.dataset.qty = qty;
+                                            const badge = clickedCard.querySelector('.card-badge');
+                                            if (badge) badge.textContent = qty;
                                         } else {
-                                            remainingCards.forEach((c, i) => {
-                                                c.dataset.depth = i.toString();
-                                            });
+                                            clickedCard.remove();
+                                            
+                                            const remainingCards = Array.from(col.querySelectorAll('.guide-card'));
+                                            if (remainingCards.length === 0) {
+                                                col.style.width = '0px';
+                                                col.style.flex = '0 0 0px';
+                                                col.style.marginRight = '0px';
+                                                col.style.opacity = '0';
+                                                setTimeout(() => col.remove(), 300);
+                                            } else {
+                                                remainingCards.forEach((c, i) => {
+                                                    c.dataset.depth = i.toString();
+                                                });
+                                            }
                                         }
                                     }, 450);
                                 } else {
