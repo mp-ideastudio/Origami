@@ -1683,7 +1683,7 @@
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 // Cap pixel ratio to 1.0 - on Retina screens pixelRatio=2 means 4x the pixels to render.
                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                this.renderer.setPixelRatio(1.0); // Clamped to 1.0 to prevent 4K Bloom/Outline resolution drops
 
                 // Global shadow mapping enabled with PCFSoft for performance-friendly AAA shadow blurring
                 this.renderer.shadowMap.enabled = true;
@@ -2851,6 +2851,9 @@
                             context.fillText(line, x, y);
                         }
                         wrapText(ctx, desc, W/2, 130, W * 0.8, 22);
+                        
+                        // [PLAYING CARD CACHE] Save clean canvas state before punching physical hole
+                        const cleanCardURL = canvas.toDataURL();
 
                         // Deep Icon Cavity (Porthole) Hole Cutout
                         ctx.save();
@@ -3002,26 +3005,70 @@
                                     tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
                                 };
                             } else if (catId === 'WATER') {
-                                const geo = new THREE.SphereGeometry(2.5, 32, 32);
+                                // 1. The Inner Water Fluid (without the glass marble shell, as spawnLootCard adds a generic glassBubble)
+                                const geo = new THREE.SphereGeometry(1.75, 64, 64);
+                                geo.computeVertexNormals();
                                 const mat = new THREE.MeshStandardMaterial({
-                                    color: 0x0d6efd, transparent: true, opacity: 0.6, roughness: 0.1, metalness: 0.8
+                                    color: 0xffffff, roughness: 0.1, metalness: 0.1, vertexColors: true,
+                                    emissive: 0x0d6efd, emissiveIntensity: 0.3
                                 });
-                                const mesh = new THREE.Mesh(geo, mat);
-                                mesh.position.y = -1.8;
-                                iconMesh.add(mesh);
+                                const pos = geo.attributes.position;
+                                // We need original Ys to restore the spherical bottom
+                                const originalYs = new Float32Array(pos.count);
+                                for(let i=0; i<pos.count; i++) originalYs[i] = pos.getY(i);
+                                geo.setAttribute('originalY', new THREE.BufferAttribute(originalYs, 1));
                                 
-                                const basePos = geo.attributes.position.clone();
+                                const colors = new Float32Array(pos.count * 3);
+                                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                const fluid = new THREE.Mesh(geo, mat);
+                                
+                                iconMesh.add(fluid);
+                                
+                                const sunLight = new THREE.PointLight(0xffffff, 2.0, 10);
+                                sunLight.position.set(0, 3, 2);
+                                iconMesh.add(sunLight);
                                 
                                 customUpdate = (t) => {
-                                    const pos = geo.attributes.position;
-                                    for(let i=0; i<pos.count; i++) {
-                                        const x = basePos.getX(i), y = basePos.getY(i), z = basePos.getZ(i); 
-                                        const w = Math.sin(x * 2.0 + t * 5) * 0.08 + Math.cos(y * 3.0 + t * 4) * 0.08 + Math.sin(z * 2.5 + t * 3) * 0.08;
-                                        pos.setX(i, x + x * w);
-                                        pos.setY(i, y + y * w);
-                                        pos.setZ(i, z + z * w);
+                                    const p = geo.attributes.position;
+                                    const origY = geo.attributes.originalY;
+                                    const c = geo.attributes.color;
+                                    const white = new THREE.Color(0xffffff);
+                                    const bsBlue = new THREE.Color(0x0d6efd); // Bootstrap Blue
+                                    const deepBlue = new THREE.Color(0x0a58ca);
+                                    
+                                    for(let i=0; i<p.count; i++) {
+                                        const x = p.getX(i), z = p.getZ(i), oy = origY.getX(i);
+                                        
+                                        // Wavy surface
+                                        const w = Math.sin(x * 3.0 + t * 4) * 0.15 + Math.cos(z * 2.5 + t * 3.5) * 0.1 + Math.sin((x+z)*5.0 + t*5.0) * 0.05;
+                                        
+                                        // Water fills up to slightly below middle
+                                        const waterLevel = -0.2;
+                                        
+                                        if (oy > waterLevel) {
+                                            // Project to the flat surface with waves
+                                            const dist2D = Math.sqrt(x*x + z*z);
+                                            const maxR = Math.sqrt(1.75*1.75 - waterLevel*waterLevel);
+                                            
+                                            // Optional: push vertices inward to create flat surface
+                                            if (dist2D < maxR) {
+                                                p.setY(i, waterLevel + w);
+                                                // Coloring: Crests are white/bright, troughs are deep blue
+                                                const mixRatio = (w + 0.25) / 0.5; // Map [-0.25, 0.25] to [0, 1]
+                                                const vertColor = deepBlue.clone().lerp(white, mixRatio);
+                                                c.setXYZ(i, vertColor.r, vertColor.g, vertColor.b);
+                                            } else {
+                                                p.setY(i, oy);
+                                                c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
+                                            }
+                                        } else {
+                                            // Bottom of the sphere
+                                            p.setY(i, oy);
+                                            c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
+                                        }
                                     }
-                                    pos.needsUpdate = true;
+                                    p.needsUpdate = true;
+                                    c.needsUpdate = true;
                                     geo.computeVertexNormals();
                                 };
                             } else if (catId === 'KATANA') {
@@ -3317,15 +3364,17 @@
                         iconWrapper.add(iconModel.iconMesh);
                         
                         // The Glass Bubble Enclosure
-                        const glassBubbleGeo = new THREE.SphereGeometry(0.2, 32, 32);
-                        const glassBubbleMat = new THREE.MeshPhysicalMaterial({
-                            color: 0xe0f0ff, transparent: true, opacity: 0.55,
-                            roughness: 0.05, metalness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.05,
-                            ior: 1.5, depthWrite: false
-                        });
-                        const glassBubble = new THREE.Mesh(glassBubbleGeo, glassBubbleMat);
+                        if (!this._sharedGlassBubbleGeo) {
+                            this._sharedGlassBubbleGeo = new THREE.SphereGeometry(0.2, 32, 32);
+                            this._sharedGlassBubbleMat = new THREE.MeshPhysicalMaterial({
+                                color: 0xe0f0ff, transparent: true, opacity: 0.55,
+                                roughness: 0.05, metalness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.05,
+                                ior: 1.5, depthWrite: false
+                            });
+                        }
+                        const glassBubble = new THREE.Mesh(this._sharedGlassBubbleGeo, this._sharedGlassBubbleMat);
                         glassBubble.position.set(0, -0.096, 0);
-                        glassBubble.scale.set(1, 1, 0.45); // Squish slightly into a lens shape
+                        glassBubble.scale.set(1, 1, 0.75); // Deeper dome to enclose unwarped 3D models
                         glassBubble.renderOrder = 10;
                         iconWrapper.add(glassBubble);
 
@@ -3338,7 +3387,7 @@
                         cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
                         cardGroup.userData = { 
                             type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, 
-                            cardDataURL: canvas.toDataURL(), iconMesh: iconWrapper, customUpdate: combinedUpdate,
+                            cardDataURL: canvas.toDataURL(), cleanCardURL: cleanCardURL, iconMesh: iconWrapper, customUpdate: combinedUpdate,
                             cardData: { el: catId, name: inTitle, desc: desc, kanji: kanji, attr: attr, themeClr: themeColor, qty: qty },
                             cardName: title, // Use modified title (with x5) for UI
                             isShopItem: isShopItem,
@@ -4046,13 +4095,15 @@
                 if (spellData && ['EARTH', 'FIRE', 'WIND', 'WATER'].includes(spellData.el)) {
                     useMarbleSequence = true;
                     
-                    // 1. Outer Photorealistic Glass Shell (Optimized)
-                    const glassGeo = new THREE.SphereGeometry(0.5, 32, 24);
+                    // 1. Outer Photorealistic Glass Shell (Geometry shared, Material unique for fading)
+                    if (!this._sharedSpellGlassGeo) {
+                        this._sharedSpellGlassGeo = new THREE.SphereGeometry(0.5, 32, 24);
+                    }
                     const glassMat = new THREE.MeshStandardMaterial({
                         color: 0xffffff, transparent: true, opacity: 0.4,
                         roughness: 0.1, metalness: 0.8
                     });
-                    const glassMarble = new THREE.Mesh(glassGeo, glassMat);
+                    const glassMarble = new THREE.Mesh(this._sharedSpellGlassGeo, glassMat);
                     projectileMesh.add(glassMarble);
 
                     // 2. PointLight for magical bloom (explodes on launch)
@@ -5772,8 +5823,10 @@
                             }
                             child.userData.life--;
                             if (child.userData.life <= 0) {
-                                if (child.material) child.material.dispose();
-                                if (child.geometry) child.geometry.dispose();
+                                if (!child.userData.sharedMaterial) {
+                                    if (child.material) child.material.dispose();
+                                    if (child.geometry) child.geometry.dispose();
+                                }
                                 this.worldGroup.remove(child); i--;
                             }
                         }
@@ -5907,20 +5960,32 @@
 
                         // Particle Trails
                         if (b.userData.age % 0.05 < delta) { 
-                            let pColor = 0xffffff;
-                            if (b.userData.isFireball) pColor = 0xff4500;
-                            else if (b.userData.isEarth) pColor = 0xbdb76b;
-                            else if (b.userData.isWater) pColor = 0x00bfff;
-                            else if (b.userData.isWind) pColor = 0xccffff;
+                            // [ARCHITECTURE OPTIMIZATION] Initialize global shared particle resources ONCE
+                            if (!this._sharedParticleMats) {
+                                this._sharedParticleMats = {
+                                    FIRE: new THREE.MeshBasicMaterial({ color: 0xff4500, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }),
+                                    EARTH: new THREE.MeshBasicMaterial({ color: 0xbdb76b, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }),
+                                    WATER: new THREE.MeshBasicMaterial({ color: 0x00bfff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }),
+                                    WIND: new THREE.MeshBasicMaterial({ color: 0xccffff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }),
+                                    DEFAULT: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending })
+                                };
+                                this._sharedParticleGeo = new THREE.TetrahedronGeometry(0.15, 0); // Shared geometry instance!
+                            }
 
-                            const sMat = new THREE.MeshBasicMaterial({ color: pColor, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
-                            const sGeo = new THREE.TetrahedronGeometry(0.1 + Math.random() * 0.1, 0);
-                            const spark = new THREE.Mesh(sGeo, sMat);
+                            let sMat = this._sharedParticleMats.DEFAULT;
+                            if (b.userData.isFireball) sMat = this._sharedParticleMats.FIRE;
+                            else if (b.userData.isEarth) sMat = this._sharedParticleMats.EARTH;
+                            else if (b.userData.isWater) sMat = this._sharedParticleMats.WATER;
+                            else if (b.userData.isWind) sMat = this._sharedParticleMats.WIND;
+
+                            const spark = new THREE.Mesh(this._sharedParticleGeo, sMat);
+                            const pScale = 0.6 + Math.random() * 0.8;
+                            spark.scale.setScalar(pScale);
                             spark.position.copy(b.position);
                             spark.position.x += (Math.random() - 0.5) * 0.5;
                             spark.position.y += (Math.random() - 0.5) * 0.5;
                             spark.position.z += (Math.random() - 0.5) * 0.5;
-                            spark.userData = { isRockFrag: true, vY: (Math.random() - 0.5) * 2.0, vX: (Math.random() - 0.5) * 2.0, vZ: (Math.random() - 0.5) * 2.0, rX: Math.random(), rY: Math.random(), rZ: Math.random(), life: 20 };
+                            spark.userData = { isRockFrag: true, sharedMaterial: true, vY: (Math.random() - 0.5) * 2.0, vX: (Math.random() - 0.5) * 2.0, vZ: (Math.random() - 0.5) * 2.0, rX: Math.random(), rY: Math.random(), rZ: Math.random(), life: 20 };
                             this.worldGroup.add(spark);
                         }
 
@@ -6117,8 +6182,8 @@
                         const loot = this.lootItems[i];
                         loot.userData.floatTimer += delta;
                         loot.position.y = loot.userData.basePos + Math.sin(loot.userData.floatTimer * 2.5) * 0.18;
-                        // All loot spins gracefully on Y axis
-                        loot.rotation.y += delta * (loot.userData.type === 'loot_gold' ? 2.0 : 1.2);
+                        // All loot spins gracefully on Y axis (Slowed by 20%)
+                        loot.rotation.y += delta * (loot.userData.type === 'loot_gold' ? 1.6 : 0.96);
                         
                         if (loot.userData.iconMesh) {
                             // Call the mirrored animation update logic
@@ -6158,11 +6223,37 @@
                                 if (loot.userData.cardDataURL) {
                                     const pNode = document.createElement('div');
                                     pNode.style.cssText = "position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); z-index:9000; text-align:center; pointer-events:none; animation: cardLootAnim 2.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;";
+                                    const c = loot.userData.cardData;
+                                    const themeClr = c.themeClr;
                                     pNode.innerHTML = `
-                                        <h1 style="color:#00ffcc; font-size:62px; text-shadow:0 0 30px #00ffcc; margin-bottom: 20px; font-weight:900; letter-spacing:4px; font-family: 'Impact', sans-serif;">YOU GOT!</h1>
-                                        <div style="position:relative; display:inline-block; margin:0 auto;">
-                                            <img src="${loot.userData.cardDataURL}" style="width:240px; height:360px; border-radius:18px; box-shadow: 0 0 50px rgba(0,255,200,0.4);" />
-                                            <div id="loot3dOverlay" style="position:absolute; top:58%; left:50%; transform:translate(-50%, -50%); width:120px; height:120px; border-radius:50%; overflow:hidden;"></div>
+                                        <style>
+                                            .yg-card {
+                                                background: #232527; color: white;
+                                                width: 200px; min-height: 280px; border-radius: 12px;
+                                                display: flex; flex-direction: column; align-items: center; text-align: center;
+                                                box-shadow: 0 10px 40px rgba(0,0,0,0.9), inset 1px 1px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.5), 0 0 0 1.5px ${themeClr};
+                                                font-family: sans-serif; position: relative; margin: 0 auto;
+                                            }
+                                            .yg-card::before {
+                                                content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px;
+                                                border-radius: 9px; pointer-events: none; z-index: 0;
+                                                box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.05);
+                                                border: 1px solid rgba(0,0,0,0.3);
+                                            }
+                                            .yg-header { width: 100%; display: flex; justify-content: space-between; padding: 12px 16px; box-sizing: border-box; z-index: 1; align-items: center; }
+                                            .yg-kanji { font-size: 22px; font-weight: 900; color: ${themeClr}; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+                                            .yg-pill { background: ${themeClr}; color: ${c.el === 'GOLD_COIN' ? '#000' : '#fff'}; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 13px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.2); }
+                                            .yg-title { font-size: 24px; font-weight: 900; letter-spacing: 1px; z-index: 1; margin-top: 0px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+                                            .yg-desc { font-size: 13px; color: #aaa; margin-bottom: 8px; font-weight: 600; z-index: 1; }
+                                            .yg-attr { background: rgba(10,10,12,0.85); width: 100%; margin-top: auto; padding: 12px; box-sizing: border-box; border-radius: 0 0 12px 12px; font-weight: 800; font-size: 14px; z-index: 1; border-top: 1px solid rgba(255,255,255,0.1); }
+                                        </style>
+                                        <h1 style="color:#00ffcc; font-size:52px; text-shadow:0 0 30px rgba(0,255,200,0.8); margin-bottom: 15px; font-weight:900; letter-spacing:3px; font-family: 'Impact', sans-serif;">YOU GOT!</h1>
+                                        <div class="yg-card">
+                                            <div class="yg-header"><span class="yg-kanji">${c.kanji}</span><span class="yg-pill">${c.el === 'GOLD_COIN' ? 'GOLD' : c.el}</span></div>
+                                            <div class="yg-title">${loot.userData.cardName}</div>
+                                            <div class="yg-desc">${c.desc}</div>
+                                            <div id="loot3dOverlay" style="width:100px; height:100px; margin:5px auto 15px auto; border-radius:50%; overflow:hidden; background: radial-gradient(circle at 30% 30%, #555, #111); box-shadow: inset -10px -10px 20px rgba(0,0,0,0.8), inset 10px 10px 20px rgba(255,255,255,0.2), 0 10px 15px rgba(0,0,0,0.5); position:relative; z-index:1; transform: translateZ(0); clip-path: circle(50% at 50% 50%); border: 1px solid ${themeClr};"></div>
+                                            <div class="yg-attr">${c.attr}</div>
                                         </div>
                                     `;
                                     document.getElementById('game-container').appendChild(pNode);
@@ -6178,7 +6269,9 @@
                                     if (loot.userData.iconMesh) {
                                         const miniContainer = document.getElementById('loot3dOverlay');
                                         const miniRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-                                        miniRenderer.setSize(120, 120);
+                                        miniRenderer.setSize(100, 100);
+                                        miniRenderer.domElement.style.borderRadius = "50%";
+                                        miniRenderer.domElement.style.clipPath = "circle(50% at 50% 50%)"; // WebGL rendering overflow fix
                                         miniContainer.appendChild(miniRenderer.domElement);
                                         
                                         const miniScene = new THREE.Scene();
