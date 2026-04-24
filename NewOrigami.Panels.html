@@ -189,10 +189,10 @@
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 52px; height: 52px; border-radius: 50%; z-index: 15; font-size: 20px; color: var(--color-text); }
         .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); clip-path: circle(50% at 50% 50%); -webkit-clip-path: circle(50% at 50% 50%); }
         .avatar-circle::after { display: none; } /* HP ring removed */
 
-        .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; }
+        .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; clip-path: circle(50% at 50% 50%); -webkit-clip-path: circle(50% at 50% 50%); }
         .pos-n { --tx: 0px; --ty: -59px; } .pos-s { --tx: 0px; --ty: 59px; } .pos-e { --tx: 59px; --ty: 0px; } .pos-w { --tx: -59px; --ty: 0px; }
         
         .btn-action {
@@ -410,7 +410,8 @@
                 0 4px 12px rgba(0,0,0,0.8),
                 -2px -2px 6px rgba(255,255,255,0.04),
                 inset 2px 2px 0px rgba(255,255,255,0.15),
-                inset -2px -2px 0px rgba(0,0,0,0.3) !important;
+                inset -2px -2px 0px rgba(0,0,0,0.3),
+                0 0 0 1px var(--theme-clr) !important;
         }
         .inv-grid .playing-card:hover { 
             transform: translateY(-5px) !important; 
@@ -418,7 +419,8 @@
                 0 8px 16px rgba(0,0,0,0.8), 
                 -2px -2px 6px rgba(255,255,255,0.04),
                 inset 2px 2px 0px rgba(255,255,255,0.15),
-                inset -2px -2px 0px rgba(0,0,0,0.3) !important; 
+                inset -2px -2px 0px rgba(0,0,0,0.3),
+                0 0 0 1px var(--theme-clr) !important; 
             z-index: 10 !important; 
         }
         
@@ -546,6 +548,8 @@
         /* --- HIGH PERFORMANCE INPUT --- */
         #input-container { 
             width: 100%; min-width: 0; max-width: calc(var(--card-w) * 6 + 70px);
+            width: 90vw; /* Hard clamp on mobile */
+            max-width: 100%;
             height: 60px; display: flex; justify-content: center; align-items: center; 
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin-top 0.3s ease;
             margin: 6px auto 5px auto;
@@ -586,7 +590,7 @@
             z-index: 40000;
             opacity: 0; pointer-events: none; /* Auto-faded by default */
             transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            resize: horizontal; overflow: hidden; /* Allow Native Resizing */
+            overflow: hidden; /* Removed resize: horizontal */
         }
         
         #lcd-event-panel.active, #lcd-event-panel:hover {
@@ -1600,6 +1604,7 @@
                         tornado.add(mesh);
                     }
                     tornado.position.y = -0.2;
+                    tornado.scale.set(0.65, 0.65, 0.65); // Scale down to fit inside the bubble!
                     group.add(tornado);
                     
                     update = (t) => { 
