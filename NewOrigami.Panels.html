@@ -217,15 +217,15 @@
         }
         body.dark-mode .btn-action, body.dark-mode .u-btn, body.dark-mode .kp-center-btn, body.dark-mode .chat-pill, body.dark-mode #event-log-container {
              box-shadow: 
-                4px 4px 10px rgba(0,0,0,0.6), 
-                -4px -4px 10px rgba(255,255,255,0.05),
-                inset 2px 2px 4px rgba(255,255,255,0.1),
-                inset -2px -2px 4px rgba(0,0,0,0.5);
-             border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.3);
+                4px 4px 10px rgba(0,0,0,0.8), 
+                -4px -4px 10px rgba(255,255,255,0.02),
+                inset 2px 2px 4px rgba(255,255,255,0.05),
+                inset -2px -2px 4px rgba(0,0,0,0.8);
+             border: 1px solid rgba(255,255,255,0.04); background: #000000;
         }
         body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
-            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8), inset -2px -2px 6px rgba(255,255,255,0.01);
+            border: 1px solid rgba(0,0,0,0.5); background: #000000;
         }
         .btn-action > i, .btn-action > span, .u-btn > i, .kp-center-btn > div, .kp-center-btn > i, .avatar-circle > i, .avatar-circle > canvas { position: relative; z-index: 1; pointer-events: none; }
         .outer-active .btn-action { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
@@ -272,21 +272,17 @@
         .card-column.focused .guide-card[data-depth="0"] { transform: translateY(-10px) scale(1.05); box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 20px var(--theme-clr); border-color: var(--theme-clr); }
 
         @media (max-width: 1100px) {
-            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 5 + 56px); }
             .card-column:nth-child(n+6) { display: none !important; }
         }
         @media (max-width: 900px) {
-            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 4 + 42px); }
             .card-column:nth-child(n+5) { display: none !important; }
         }
         @media (max-width: 750px) { 
-            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
             .card-column:nth-child(n+4) { display: none !important; }
             #left-panel { transform: scale(0.85); transform-origin: left center; }
             #right-panel { transform: scale(0.85); transform-origin: right center; }
         }
         @media (max-width: 500px) { 
-            #bottom-panel, #input-container, #event-log-container { width: calc(var(--card-w) * 3 + 28px); }
             .card-column:nth-child(n+4) { display: none !important; }
             #left-panel { transform: scale(0.75); transform-origin: left center; }
             #right-panel { transform: scale(0.75); transform-origin: right center; }
@@ -1533,6 +1529,52 @@
 
         let categories = defaultCategories;
 
+        const UXAI = {
+            stats: JSON.parse(localStorage.getItem('Origami_UX_Stats') || '{}'),
+            trackClick(cardName) {
+                this.stats[cardName] = (this.stats[cardName] || 0) + 1;
+                localStorage.setItem('Origami_UX_Stats', JSON.stringify(this.stats));
+            },
+            sortCategory(cat) {
+                if (!cat || !cat.cards) return;
+                cat.cards.sort((a, b) => {
+                    const scoreA = this.stats[a] || 0;
+                    const scoreB = this.stats[b] || 0;
+                    return scoreB - scoreA;
+                });
+            },
+            initViewportManager() {
+                const container = document.getElementById('guides-container');
+                const bottomPanel = document.getElementById('bottom-panel');
+                const inputContainer = document.getElementById('input-container');
+                const eventLog = document.getElementById('event-log-container');
+                if (!container || !bottomPanel) return;
+
+                const alignWidth = () => {
+                    const columns = Array.from(container.querySelectorAll('.card-column'))
+                        .filter(c => getComputedStyle(c).display !== 'none');
+                    if (columns.length === 0) return;
+                    
+                    const first = columns[0];
+                    const last = columns[columns.length - 1];
+                    const width = (last.offsetLeft + last.offsetWidth) - first.offsetLeft;
+                    
+                    if (width > 0) {
+                        const px = width + 'px';
+                        bottomPanel.style.width = px;
+                        bottomPanel.style.maxWidth = px;
+                        if (inputContainer) { inputContainer.style.width = px; inputContainer.style.maxWidth = px; }
+                        if (eventLog) { eventLog.style.width = px; eventLog.style.maxWidth = px; }
+                    }
+                };
+
+                const ro = new ResizeObserver(alignWidth);
+                ro.observe(container);
+                window.addEventListener('resize', alignWidth);
+                setTimeout(alignWidth, 100);
+            }
+        };
+
         let focusedColIndex = 0, pendingAction = null, wheelThrottle = false;
         const scenes = {}, dpr = window.devicePixelRatio || 1;
         
@@ -2272,6 +2314,7 @@
 
         function setup() {
             loadDeck(categories);
+            UXAI.initViewportManager();
             
             document.getElementById('bottom-panel').onwheel = e => {
                 if (document.activeElement.id !== 'bottom-panel' || wheelThrottle) return;
@@ -2392,6 +2435,7 @@
 
         window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
         window.emitAction = (a, explicitBtn = null) => { 
+            UXAI.trackClick(a);
             window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
             let btn = explicitBtn;
             if (!btn && window.event && window.event.currentTarget) {
@@ -2471,6 +2515,7 @@
             container.innerHTML = '';
             
             categories.forEach((cat, idx) => {
+                UXAI.sortCategory(cat);
                 const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
                 col.draggable = false;
                 
