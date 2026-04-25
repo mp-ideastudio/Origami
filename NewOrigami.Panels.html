@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/data/cards.js"></script>
 
     <script type="importmap">
     {
@@ -287,7 +288,7 @@
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
             justify-content: flex-start; text-align: center; color: var(--card-text, var(--color-text)); 
-            background: var(--theme-bg, #1a1a1a) !important;   
+            background: var(--bg-glass) !important; -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; box-sizing: border-box;
             border: none !important;
@@ -297,7 +298,7 @@
                 inset 1px 1px 0px rgba(255,255,255,0.2),
                 inset 2px 2px 0px var(--theme-clr, rgba(255,255,255,0.15)),
                 inset -2px -2px 0px rgba(0,0,0,0.5),
-                0 0 0 1px var(--theme-clr, transparent) !important;
+                0 0 0 1px var(--theme-clr) !important;
             transform-origin: bottom center;
         }
         
@@ -511,7 +512,7 @@
         .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
         .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
         .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; }
-        .card-missile, .card-weapon, .card-katana, .card-slash, .card-thrust, .card-armor, .card-shield, .card-defend { --theme-clr: #ffffff; --theme-bg: #e0e0e0; --pill-text: #000000; --card-text: #000000; --card-text-dim: #333333; --card-kanji-clr: #000000; }
+        .card-missile, .card-weapon, .card-katana, .card-slash, .card-thrust, .card-armor, .card-shield, .card-defend { --theme-clr: #ffffff; --theme-bg: #e0e0e0; --pill-text: #000000; --card-kanji-clr: #ffffff; }
         .card-scroll  { --theme-clr: #66bb6a; --theme-bg: #1b5e20; }
         .card-gold_coin { --theme-clr: #b8860b; --theme-bg: #ffd700; }
         .card-item      { --theme-clr: #66bb6a; --theme-bg: #1b5e20; }
@@ -2540,17 +2541,24 @@
                 col.onpointercancel = endDrag;
 
                 cat.cards.forEach((name, i) => {
+                    const masterCard = (window.OrigamiCards || []).find(c => c.name === name);
+                    const kanji = masterCard ? masterCard.kanji : (cat.kanji || '');
+                    const typePill = masterCard ? masterCard.type.toUpperCase() : cat.id;
+                    const desc = masterCard ? masterCard.desc : cat.desc;
+                    const elId = masterCard ? masterCard.el : cat.id;
+                    const attr = masterCard ? masterCard.attr : (cat.attr || '');
+                    
                     const card = document.createElement('div');
-                    card.className = `guide-card card-${cat.id.toLowerCase()}`;
+                    card.className = `guide-card card-${elId.toLowerCase()}`;
                     card.dataset.depth = i;
                     if (cat.qty !== undefined) card.dataset.qty = cat.qty;
                     
                     const badgeHtml = cat.qty !== undefined ? `<div class="card-badge">${cat.qty}</div>` : '';
                     card.innerHTML = `
-                        <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><span class="card-type-pill">${cat.id}</span></div>
-                        <div class="card-title">${name}</div><div class="card-desc">${cat.desc}</div>
-                        <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
-                        <div class="card-attr-fused">${cat.attr || ''}</div>
+                        <div class="card-header"><span class="card-kanji">${kanji}</span><span class="card-type-pill">${typePill}</span></div>
+                        <div class="card-title">${name}</div><div class="card-desc">${desc}</div>
+                        <div class="card-icon-3d" data-element="${elId}"><canvas></canvas></div>
+                        <div class="card-attr-fused">${attr}</div>
                         <div class="card-click-overlay"></div>
                         ${badgeHtml}
                     `;

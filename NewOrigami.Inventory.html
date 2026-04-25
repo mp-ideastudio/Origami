@@ -32,88 +32,52 @@
             padding: 40px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 25px;
             align-content: start;
         }
 
         .inv-card {
-            --card-w: 140px;
-            --card-h: 210px;
-            -webkit-user-select: none; user-select: none;
-            position: relative; width: var(--card-w); height: var(--card-h); 
-            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
-            justify-content: flex-start; text-align: center; color: #fff; 
-            background: #1a1a1a;   
-            transition: transform 0.2s, box-shadow 0.2s;
-            padding: 0; box-sizing: border-box;
-            border: none;
-            box-shadow:
-                4px 4px 12px rgba(0,0,0,0.8),
-                -2px -2px 6px rgba(255,255,255,0.04),
-                inset 1px 1px 0px rgba(255,255,255,0.2),
-                inset 2px 2px 0px var(--theme-clr, rgba(255,255,255,0.15)),
-                inset -2px -2px 0px rgba(0,0,0,0.5),
-                0 0 0 1px var(--theme-clr, transparent);
+            background: rgba(30, 35, 40, 0.9);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             cursor: pointer;
-        }
-        
-        .inv-card::before {
-            content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px; 
-            border-radius: inherit; pointer-events: none; z-index: 0;
-            border: 1px solid rgba(255,255,255,0.05); background: transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.05);
         }
 
         .inv-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.8), 0 0 0 2px var(--theme-clr);
+            box-shadow: 0 12px 30px rgba(88, 166, 255, 0.2), 0 0 0 2px var(--accent-color);
         }
 
-        /* Rigid Vertical Symmetry Zones */
-        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; z-index: 1; margin-top: 5px; }
-        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 900; color: var(--theme-clr); font-family: 'Noto Sans JP', sans-serif; text-shadow: 0 0 10px var(--theme-clr); }
-        .card-type-pill { background: var(--theme-clr); color: #fff; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
-        
-        .card-title { font-weight: 900; font-size: 13px; height: 18px; display: flex; align-items: center; margin: 4px 0 0 0; text-transform: uppercase; flex-shrink: 0; z-index: 1; }
-        .card-desc { font-weight: 800; font-size: 8px; height: 12px; display: flex; align-items: center; color: var(--text-muted); margin-bottom: 5px; flex-shrink: 0; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
-        
-        .card-icon-3d { 
-            width: 70px; height: 70px; border-radius: 50%; 
-            margin: auto; overflow: hidden; position: relative; flex-shrink: 0; 
-            background: #0d0d12; z-index: 1;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: inset 5px 5px 15px rgba(0,0,0,1), inset -3px -3px 8px rgba(255,255,255,0.1), 0 2px 5px rgba(255,255,255,0.05);
-            display: flex; align-items: center; justify-content: center;
+        .inv-kanji {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(255,255,255,0.3);
+            font-family: 'Noto Sans JP', sans-serif;
         }
-        .card-icon-3d i { font-size: 32px; color: var(--theme-clr); opacity: 0.8; }
-        
-        .card-icon-3d::after {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 50%; pointer-events: none; z-index: 10;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, rgba(0,0,0,0) 60%);
-            box-shadow: inset -5px -5px 12px rgba(0,0,0,0.8), inset 2px 2px 8px rgba(255,255,255,0.4);
+
+        .inv-title {
+            font-size: 16px;
+            font-weight: 900;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
         }
-        
-        .card-attr-fused { 
-            width: 100%; 
-            height: 25px; 
-            margin-top: auto; 
-            background: rgba(10, 10, 12, 0.8); 
-            border-top: 1px solid rgba(255,255,255,0.05);
-            color: #ffffff;
-            font-weight: 900; 
-            font-size: 9px;
-            padding: 0 8px; 
-            text-transform: uppercase; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            flex-shrink: 0; 
-            text-align: center; 
-            box-sizing: border-box; 
-            border-radius: 0 0 11px 11px;
-            z-index: 1;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+        .inv-type {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
         }
 
         /* EDITOR PANEL (RIGHT) */
@@ -371,167 +335,16 @@
             'GOLD_COIN': '#ffd700'
         };
 
-        const iconClasses = {
-            'FIRE': 'fa-fire',
-            'WATER': 'fa-water',
-            'EARTH': 'fa-mountain',
-            'WIND': 'fa-wind',
-            'KATANA': 'fa-burst',
-            'MISSILE': 'fa-arrow-up',
-            'ITEM': 'fa-flask',
-            'SCROLL': 'fa-scroll',
-            'ARMOR': 'fa-shield',
-            'GOLD_COIN': 'fa-coins'
-        };
-
-        const scenes = {};
-        const dpr = window.devicePixelRatio || 1;
-
-        function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'SHIELD', 'DICE_EVEN', 'DICE_ODD', 'SCROLL', 'MISSILE', 'ARMOR'];
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            
-            elements.forEach(el => {
-                const scene = new THREE.Scene();
-                scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-                const dir = new THREE.DirectionalLight(0xffffff, 2.2);
-                dir.position.set(5, 5, 5); scene.add(dir);
-                
-                const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0x0d47a1, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
-                    roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
-                });
-                
-                let group = new THREE.Group(), update = () => {};
-                if (el === 'EARTH') {
-                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), mat); group.add(rock);
-                    update = (t) => {
-                        const b = Math.abs(Math.sin(t * 1.5)); rock.position.y = (b * 0.7) - 0.35; 
-                        rock.rotation.x = t * 1.8; rock.rotation.z = t * 1.2;
-                        if (b < 0.2) group.position.set(Math.sin(t * 5) * (0.2-b)*2, Math.cos(t * 6) * (0.1-b/2)*2, 0);
-                        else group.position.set(0, 0, 0);
-                    };
-                } else if (el === 'FIRE') {
-                    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 5, flatShading: true })); group.add(core);
-                    const flames = [];
-                    for(let i=0; i<36; i++) {
-                        const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
-                        const ang = (i / 36) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
-                        s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); group.add(s);
-                        flames.push({ m: s, s: 6 + Math.random() * 10, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 5, bx: s.position.x, bz: s.position.z });
-                    }
-                    update = (t) => {
-                        core.rotation.y = t * 1.2; core.scale.setScalar(1 + Math.sin(t * 12) * 0.08);
-                        flames.forEach(f => {
-                            const w = Math.sin(t * f.s + f.o); f.m.scale.setScalar(0.4 + w * 0.6); f.m.position.y = 0.3 + w * 0.4;
-                            f.m.position.x = f.bx + Math.sin(t * 5 + f.o) * 0.1; f.m.position.z = f.bz + Math.cos(t * 5 + f.o) * 0.1; f.m.rotation.x = t * f.rs;
-                        });
-                    };
-                } else if (el === 'WIND') {
-                    const tornado = new THREE.Group();
-                    for(let i=0; i<10; i++) {
-                        const h = i/10, r = (h*1.4)+0.4, pts = [];
-                        for(let j=0; j<=12; j++) pts.push(new THREE.Vector3(Math.cos((j/12)*Math.PI*2)*r, 0, Math.sin((j/12)*Math.PI*2)*r));
-                        const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x37474f, opacity: 0.8, transparent: true }));
-                        line.position.y = (h-0.5)*2.5; tornado.add(line);
-                    }
-                    group.add(tornado);
-                    update = (t) => { tornado.children.forEach((l, idx) => { l.rotation.y = t*(idx+70); l.position.x = Math.sin(t*8 + idx)*0.1; }); tornado.rotation.z = Math.sin(t*4)*0.1; };
-                } else if (el === 'WATER') {
-                    const geo = new THREE.SphereGeometry(2.8, 32, 24); const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -1.8; group.add(mesh);
-                    update = (t) => {
-                        const pos = geo.attributes.position;
-                        for(let i=0; i<pos.count; i++) {
-                            const x = pos.getX(i), z = pos.getZ(i); const w = Math.sin(x * 1.5 + t * 4) * 0.4 + Math.cos(z * 1.5 + t * 3) * 0.3;
-                            if(pos.getY(i) > 0.5) pos.setY(i, 1.4 + w);
-                        }
-                        pos.needsUpdate = true;
-                    };
-                } else if (el === 'ITEM') {
-                    const vial = new THREE.Group();
-                    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, flatShading: true }));
-                    const liq = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.0, 12), new THREE.MeshStandardMaterial({ color: 0x1b5e20, emissive: 0x002e03, emissiveIntensity: 0.5 }));
-                    liq.position.y = -0.3; vial.add(body, liq);
-                    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
-                    cork.position.y = 1.6; vial.add(cork); group.add(vial);
-                    update = (t) => { vial.rotation.z = Math.sin(t * 2) * 0.2; liq.scale.y = 0.9 + Math.sin(t * 3) * 0.1; };
-                } else if (el === 'KATANA') {
-                    const hiltGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
-                    const hiltMat = new THREE.MeshStandardMaterial({color: 0x222222});
-                    const hilt = new THREE.Mesh(hiltGeo, hiltMat);
-                    const bladeGeo = new THREE.BoxGeometry(0.1, 3.5, 0.4);
-                    const bladeMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2});
-                    const blade = new THREE.Mesh(bladeGeo, bladeMat);
-                    blade.position.y = 2.0;
-                    const guardGeo = new THREE.BoxGeometry(0.8, 0.1, 0.8);
-                    const guardMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
-                    const guard = new THREE.Mesh(guardGeo, guardMat);
-                    guard.position.y = 0.6;
-                    group.add(hilt, blade, guard);
-                    group.position.y = -1.0;
-                    update = (t) => { group.rotation.z = Math.sin(t * 3) * 0.2; group.rotation.y = t * 0.5; };
-                } else if (el === 'SHIELD' || el === 'ARMOR') {
-                    const shieldGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
-                    const shieldMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.6, roughness: 0.4});
-                    const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                    shield.rotation.x = Math.PI / 2;
-                    const bossGeo = new THREE.SphereGeometry(0.4, 16, 16);
-                    const bossMat = new THREE.MeshStandardMaterial({color: 0xaa8800});
-                    const boss = new THREE.Mesh(bossGeo, bossMat);
-                    boss.position.z = 0.1;
-                    group.add(shield, boss);
-                    update = (t) => { group.rotation.y = t * 1.5; group.rotation.x = Math.sin(t * 2) * 0.2; };
-                } else {
-                    const boxGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
-                    const box = new THREE.Mesh(boxGeo, mat);
-                    group.add(box);
-                    update = (t) => { box.rotation.x = t * 2.5; box.rotation.y = t * 3.1; };
-                }
-                
-                scene.add(group); scenes[el] = { scene, update };
-            });
-
-            const iconCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100); 
-            iconCamera.position.set(0, 0, 7.5);
-            
-            function renderLoop(time) {
-                requestAnimationFrame(renderLoop);
-                const t = time * 0.001;
-
-                elements.forEach(el => {
-                    scenes[el].update(t);
-                    const canvases = document.querySelectorAll(`.inv-card .card-icon-3d[data-element="${el}"] canvas`);
-                    canvases.forEach(cvs => {
-                        const cw = cvs.clientWidth, ch = cvs.clientHeight;
-                        if (cw === 0 || ch === 0) return; 
-                        const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
-                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
-                        renderer.setSize(cw, ch, false);
-                        
-                        renderer.render(scenes[el].scene, iconCamera);
-                        
-                        const ctx = cvs.getContext('2d');
-                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
-                    });
-                });
-            }
-            renderLoop(0);
-        }
-
         function renderGallery() {
             gallery.innerHTML = '';
             db.forEach(card => {
                 const el = document.createElement('div');
                 el.className = 'inv-card';
                 const c = elementColors[card.el] || '#fff';
-                el.style.setProperty('--theme-clr', c);
-                const iCls = iconClasses[card.el] || 'fa-box';
                 el.innerHTML = `
-                   <div class="card-header"><span class="card-kanji">${card.kanji}</span> <span class="card-type-pill">${card.type}</span></div>
-                   <div class="card-title">${card.name}</div>
-                   <div class="card-desc">${card.desc}</div>
-                   <div class="card-icon-3d" data-element="${card.el}"><canvas></canvas></div>
-                   <div class="card-attr-fused">${card.attr}</div>
+                    <div class="inv-kanji" style="color: ${c}">${card.kanji}</div>
+                    <div class="inv-title">${card.name}</div>
+                    <div class="inv-type">${card.type} - ${card.el}</div>
                 `;
                 el.onclick = () => loadEditor(card);
                 gallery.appendChild(el);
@@ -592,7 +405,6 @@
 
         // Initialize
         renderGallery();
-        init3DIcons();
         if (db.length > 0) loadEditor(db[0]);
 
     </script>
