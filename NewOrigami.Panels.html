@@ -75,7 +75,7 @@
         body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
-        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: stretch; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: stretch; padding: 0; box-sizing: border-box; pointer-events: none; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
@@ -127,14 +127,12 @@
             cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
             padding: 0 10px; box-sizing: border-box;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05), var(--nm-shadow-inner);
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.06);
             color: var(--color-text);
         }
-        .sp-btn::before {
-            content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; 
-            border-radius: 5px; pointer-events: none; z-index: 0;
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
-            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+        .sp-btn:active {
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.6), inset -4px -4px 8px rgba(255,255,255,0.05);
+            transform: translateY(2px);
         }
         .sp-btn > * { position: relative; z-index: 1; }
         
@@ -594,7 +592,6 @@
         <div id="encounter-zone">
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
-                <div class="panel-toggle toggle-left" id="toggle-pax" onclick="toggleSidePanel('pax-console', 'toggle-pax', true)">&lt;</div>
                 <div class="sp-title" id="monster-name">Yakuza Goblin</div>
                 <div class="sp-sub" id="monster-type-label">ENEMY * <span class="dist-text">40 ft</span></div>
                 <div class="sp-bar-wrap">
@@ -619,7 +616,6 @@
             </div>
             <!-- ACTION RAIL (Red Accent) -->
             <div id="action-rail" class="side-panel">
-                <div class="panel-toggle toggle-right" id="toggle-rail" onclick="toggleSidePanel('action-rail', 'toggle-rail', false)">&gt;</div>
                 <div class="sp-title">PLAYER</div>
                 <div class="sp-sub sp-gold-status">GOLD: <span id="player-gold-val">0</span></div>
                 <div class="sp-bar-wrap">
@@ -674,46 +670,7 @@
             .wager-icon-container { width:60px; height:60px; }
             .wager-attr-text { background:#111; color:#fff; }
             
-            /* Side Panel Minimized Toggles */
-            .panel-toggle {
-                position: absolute;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 24px;
-                height: 44px;
-                background: var(--bg-glass);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                z-index: 100;
-                font-weight: 900;
-                transition: all 0.3s;
-                color: var(--color-text);
-            }
-            .panel-toggle:hover { background: rgba(255,255,255,0.1); }
-            
-            .toggle-left { 
-                right: -24px; 
-                border-radius: 0 8px 8px 0; 
-                border: 1px solid rgba(255,255,255,0.07);
-                border-left: none; 
-                box-shadow: 
-                    3px 3px 6px rgba(0,0,0,0.6), 
-                    inset -1px -1px 2px rgba(0,0,0,0.4); 
-            }
-            .toggle-right { 
-                left: -24px; 
-                border-radius: 8px 0 0 8px; 
-                border: 1px solid rgba(255,255,255,0.07);
-                border-right: none; 
-                box-shadow: 
-                    -3px 3px 6px rgba(0,0,0,0.6), 
-                    inset 1px 1px 2px rgba(255,255,255,0.05); 
-            }
-            
-            #encounter-zone.active #pax-console.minimized { transform: translateX(calc(-100% - 20px)); }
-            #encounter-zone.active #action-rail.minimized { transform: translateX(calc(100% + 20px)); }
+
 
 
             #event-log-container {
@@ -2646,17 +2603,20 @@
             closeModal(); 
         };
         
-        function toggleSidePanel(id, arrowId, isLeft) {
-            const el = document.getElementById(id);
-            const btn = document.getElementById(arrowId);
-            el.classList.toggle('minimized');
-            if (el.classList.contains('minimized')) {
-                btn.innerHTML = isLeft ? '&gt;' : '&lt;';
-            } else {
-                btn.innerHTML = isLeft ? '&lt;' : '&gt;';
-            }
+        // Event Log focus expansion
+        const _chatInput = document.querySelector('.chat-input');
+        const _evtLog = document.getElementById('event-log-container');
+        if (_chatInput && _evtLog) {
+            _chatInput.addEventListener('focus', () => _evtLog.classList.add('active'));
+            _chatInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement !== _chatInput) {
+                        _evtLog.classList.remove('active');
+                    }
+                }, 100);
+            });
         }
-        
+
 
 
         // INIT AND EVENTS PANEL LOGIC ---
