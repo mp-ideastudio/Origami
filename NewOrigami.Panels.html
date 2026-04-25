@@ -296,7 +296,7 @@
             -webkit-user-select: none; user-select: none;
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h); 
             border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
-            justify-content: flex-start; text-align: center; color: var(--color-text); 
+            justify-content: flex-start; text-align: center; color: var(--card-text, var(--color-text)); 
             background: var(--theme-bg, #1a1a1a) !important;   
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             padding: 0; box-sizing: border-box;
@@ -344,9 +344,9 @@
             100% { opacity: 0.5; transform: scale(1.0); }
         }
         @keyframes card-launch {
-            0%   { transform: translateY(-5px) scale(1.02); opacity: 1; }
-            40%  { transform: translateY(-80px) scale(1.15) rotate(-3deg); opacity: 0.8; }
-            100% { transform: translateY(0) scale(1); opacity: 0; }
+            0%   { transform: translateY(-5px) scale(1.02); filter: brightness(1.2); }
+            40%  { transform: translateY(-40px) scale(1.15) rotate(-3deg); filter: brightness(1.5); }
+            100% { transform: translateY(0) scale(1); filter: brightness(1.0); }
         }
         .guide-card.selected-card {
             animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
@@ -444,11 +444,11 @@
         
         /* Rigid Vertical Symmetry Zones */
         .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
-        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--theme-clr); }
+        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--card-kanji-clr, var(--theme-clr)); }
         .card-type-pill { background: var(--theme-clr); color: var(--pill-text, #ffffff); font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); font-style: normal !important; }
         
         .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; }
-        .card-desc { font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--color-text-dim); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; }
+        .card-desc { font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--card-text-dim, var(--color-text-dim)); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; }
         
         .card-icon-3d { 
             width: 45px; height: 45px; border-radius: 50%; 
@@ -523,7 +523,7 @@
         .card-wind  { --theme-clr: var(--wind-clr); --theme-bg: #263238; } 
         .card-fire  { --theme-clr: var(--fire-clr); --theme-bg: #b71c1c; } 
         .card-water { --theme-clr: var(--water-clr); --theme-bg: #0d47a1; }
-        .card-missile, .card-weapon, .card-katana, .card-slash, .card-thrust, .card-armor, .card-shield, .card-defend { --theme-clr: #ffffff; --theme-bg: #e0e0e0; --pill-text: #000000; }
+        .card-missile, .card-weapon, .card-katana, .card-slash, .card-thrust, .card-armor, .card-shield, .card-defend { --theme-clr: #ffffff; --theme-bg: #e0e0e0; --pill-text: #000000; --card-text: #000000; --card-text-dim: #333333; --card-kanji-clr: #000000; }
         .card-scroll  { --theme-clr: #66bb6a; --theme-bg: #1b5e20; }
         .card-gold_coin { --theme-clr: #b8860b; --theme-bg: #ffd700; }
         .card-item      { --theme-clr: #66bb6a; --theme-bg: #1b5e20; }
@@ -1376,7 +1376,7 @@
             const weaponTypes = ['KATANA', 'MISSILE', 'SLASH', 'THRUST'];
             const armorTypes = ['SHIELD', 'ARMOR'];
             const spellTypes = ['FIRE', 'WATER', 'EARTH', 'WIND', 'SPELL'];
-            const itemTypes = ['SCROLL', 'POTION', 'WAND'];
+            const itemTypes = ['ITEM', 'HEAL POTION', 'WAND'];
 
             // We need a helper to find the card info from default/combat categories
             const allDefs = [...defaultCategories, ...combatCategories];
@@ -1517,7 +1517,7 @@
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Magic Wand', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
             { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
-            { id: 'SCROLL', kanji: '具', icon: 'fa-scroll', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['POTION', 'SCROLL OF IDENTITY'] }
+            { id: 'ITEM', kanji: '具', icon: 'fa-scroll', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['HEAL POTION', 'SCROLL OF IDENTITY'] }
         ];
 
         const combatCategories = [
@@ -1528,7 +1528,7 @@
             { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
             { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
             { id: 'ITEM', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['SHIELD'] },
-            { id: 'SCROLL', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['POTION'] }
+            { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['HEAL POTION'] }
         ];
 
         let categories = defaultCategories;
@@ -1543,7 +1543,7 @@
         let avatarScene, avatarCamera, avatarRenderer, avatarClock;
 
         function init3DIcons() {
-            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'SCROLL', 'KATANA', 'MISSILE', 'DEFEND', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
+            const elements = ['EARTH', 'WATER', 'FIRE', 'WIND', 'ITEM', 'KATANA', 'MISSILE', 'DEFEND', 'DICE_EVEN', 'DICE_ODD', 'DICE_CENTER'];
             const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
             renderer.setClearColor(0x000000, 0); // Critial fix to prevent black squares
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -1556,7 +1556,7 @@
                 dir.position.set(5, 5, 5); scene.add(dir);
                 
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: { EARTH: 0x5C4033, WATER: 0xffffff, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[el] || 0x444444,
+                    color: { EARTH: 0x5C4033, WATER: 0xffffff, FIRE: 0xb71c1c, WIND: 0x37474f, ITEM: 0x1b5e20 }[el] || 0x444444,
                     roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
                 });
                 
@@ -1702,7 +1702,7 @@
                         c.needsUpdate = true;
                         fluid.geometry.computeVertexNormals();
                     };
-                } else if (el === 'SCROLL') {
+                } else if (el === 'ITEM') {
                     const potionGroup = new THREE.Group();
 
                     // 5% grayish smokey vial glass
