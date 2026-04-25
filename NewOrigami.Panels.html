@@ -558,7 +558,7 @@
             border-radius: 12px; display: flex; align-items: center; padding: 0 18px;
             border: 1px solid rgba(255,255,255,0.4) !important; box-sizing: border-box; margin: 0; }
         .chat-pill::before { content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 9px; pointer-events: none; z-index: 0; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02); border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1); }
-        .chat-input, .enter-symbol, .event-toggle { position: relative; z-index: 1; }
+        .chat-input, .enter-symbol { position: relative; z-index: 1; }
         .chat-input { flex: 1; width: 10px; background: transparent; border: none; outline: none; color: #FFF; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
         .chat-input::placeholder { color: rgba(255,255,255,0.7); font-weight: 800; opacity: 0.8; }
         .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
@@ -715,34 +715,7 @@
             #encounter-zone.active #pax-console.minimized { transform: translateX(calc(-100% - 20px)); }
             #encounter-zone.active #action-rail.minimized { transform: translateX(calc(100% + 20px)); }
 
-            /* Event Log Foldup */
-            .event-toggle {
-                position: absolute;
-                top: -26px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 36px;
-                height: 26px;
-                background: var(--bg-glass);
-                border: 1px solid rgba(255,255,255,0.07);
-                border-bottom: none;
-                border-radius: 12px 12px 0 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                z-index: 100;
-                color: var(--color-text);
-                font-weight: 900;
-                transition: all 0.2s;
-                box-shadow:
-                    3px 3px 8px rgba(0,0,0,0.5),
-                    -1px -1px 4px rgba(255,255,255,0.03),
-                    inset 1px 1px 2px rgba(255,255,255,0.07);
-            }
-            .event-toggle:hover { background: rgba(255, 255, 255, 0.15); }
-            #event-log-container.active ~ #input-container .event-toggle i::before { content: "\f068"; }
-            
+
             #event-log-container {
                 position: relative;
                 width: 100%;
@@ -1213,7 +1186,7 @@
                         </div>
                     </div>
                     <div id="event-log-container"></div><div id="input-container">
-                        <div class="event-toggle" onclick="toggleEventLog()"><i class="fa-solid fa-plus"></i></div>
+
                         <div class="chat-pill">
                             <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
                             <i class="fa-solid fa-turn-down enter-symbol"></i>
@@ -2684,10 +2657,7 @@
             }
         }
         
-        function toggleEventLog() {
-            const el = document.getElementById('event-log-container');
-            el.classList.toggle('active');
-        }
+
 
         // INIT AND EVENTS PANEL LOGIC ---
         window.showLcdEvent = function(text) {
