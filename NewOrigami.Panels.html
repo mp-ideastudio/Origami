@@ -182,7 +182,7 @@
 
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 200; }
-        .u-panel.pip-collide { transform: translateY(80px); }
+        .u-panel.pip-collide { /* Transform removed to prevent layout collision on small screens */ }
         .u-wing { position: relative; flex: 1; min-width: 220px; height: var(--wing-height); display: flex; align-items: center; justify-content: center; z-index: 100; }
         /* Panel borders removed to prevent vertical lines near input */
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
@@ -212,20 +212,17 @@
         }
         body.dark-mode .u-panel { }
         body.dark-mode .u-btn, body.dark-mode .kp-center-btn, body.dark-mode .btn-action {
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
-            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.8), -3px -3px 8px rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); background: var(--bg-glass);
         }
-        body.dark-mode .btn-action, body.dark-mode .u-btn, body.dark-mode .kp-center-btn, body.dark-mode .chat-pill, body.dark-mode #event-log-container {
+        body.dark-mode .chat-pill, body.dark-mode #event-log-container {
              box-shadow: 
                 4px 4px 10px rgba(0,0,0,0.8), 
-                -4px -4px 10px rgba(255,255,255,0.02),
-                inset 2px 2px 4px rgba(255,255,255,0.05),
-                inset -2px -2px 4px rgba(0,0,0,0.8);
+                -4px -4px 10px rgba(255,255,255,0.02);
              border: 1px solid rgba(255,255,255,0.04); background: #000000;
         }
-        body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before {
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8), inset -2px -2px 6px rgba(255,255,255,0.01);
-            border: 1px solid rgba(0,0,0,0.5); background: #000000;
+        body.dark-mode .btn-action::before, body.dark-mode .u-btn::before, body.dark-mode .kp-center-btn::before, body.dark-mode .avatar-circle::before, body.dark-mode .chat-pill::before {
+            display: none;
         }
         .btn-action > i, .btn-action > span, .u-btn > i, .kp-center-btn > div, .kp-center-btn > i, .avatar-circle > i, .avatar-circle > canvas { position: relative; z-index: 1; pointer-events: none; }
         .outer-active .btn-action { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1); }
@@ -307,14 +304,12 @@
         }
         
         .guide-card::before {
-            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; 
+            content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px; 
             border-radius: inherit; pointer-events: none; z-index: 0;
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(255,255,255,0.7);
-            border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01);
+            border: 1px solid rgba(255,255,255,0.2); background: transparent;
         }
         body.dark-mode .guide-card::before {
-            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02);
-            border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.05); background: transparent;
         }
         
         .card-badge {
@@ -371,8 +366,8 @@
         }
 
         
-        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), var(--nm-shadow-inner), 0 0 0 1px var(--theme-clr) !important; }
-        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(-12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 2px 2px 6px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.9); }
+        .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), 0 0 0 1px var(--theme-clr) !important; }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(-12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.9); }
         .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(-24px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.7); }
         .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(-36px) scale(0.85); box-shadow: 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.5); }
         .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(-48px) scale(0.80); box-shadow: none; pointer-events: none; }
@@ -382,7 +377,7 @@
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(10, 10, 15, 0.95);
             -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-            z-index: 4000; display: none; flex-direction: column;
+            z-index: 45000; display: none; flex-direction: column;
             padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow-y: auto;
             color: #ffffff; opacity: 0; transition: opacity 0.3s ease;
         }
@@ -549,11 +544,10 @@
         /* --- HIGH PERFORMANCE INPUT --- */
         #input-container { 
             width: 100%; min-width: 0; max-width: calc(var(--card-w) * 6 + 70px);
-            width: 90vw; /* Hard clamp on mobile */
-            max-width: 100%;
             height: 60px; display: flex; justify-content: center; align-items: center; 
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin-top 0.3s ease;
             margin: 6px auto 5px auto;
+            position: relative;
         }
         .chat-pill { position: relative; min-width: 0; width: 100%; height: 54px; background: var(--bg-glass);
             box-shadow: 
@@ -576,67 +570,7 @@
         .theme-red { --theme-clr: #f44336; }
         .viewport-text { color: #FFF; font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; opacity: 0.8; }
 
-        /* --- DRAGGABLE LCD EVENT PANEL --- */
-        #lcd-event-panel {
-            position: absolute;
-            top: 20%; left: 50%; transform: translateX(-50%);
-            width: 200px; /* Resizeable container */
-            min-width: 140px; max-width: 400px;
-            background: rgba(10, 20, 30, 0.4); /* Dark glass */
-             
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,255,255,0.05);
-            display: flex; flex-direction: column;
-            z-index: 40000;
-            opacity: 0; pointer-events: none; /* Auto-faded by default */
-            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            resize: none; overflow: hidden; /* Removed resize: horizontal */
-        }
-        
-        #lcd-event-panel.active, #lcd-event-panel:hover {
-            opacity: 1; pointer-events: auto;
-        }
-        
-        #lcd-event-panel:hover {
-            border-color: rgba(0, 255, 255, 0.6);
-            background: rgba(10, 20, 30, 0.6);
-        }
 
-        #lcd-header {
-            width: 100%; height: 16px;
-            background: rgba(0, 255, 255, 0.15);
-            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-            color: rgba(0, 255, 255, 0.8);
-            font-size: 7px; font-weight: 900; letter-spacing: 1px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: grab; flex-shrink: 0;
-            -webkit-user-select: none; user-select: none;
-        }
-        #lcd-header:active { cursor: grabbing; }
-
-        #lcd-text {
-            flex: 1;
-            padding: 12px 15px;
-            color: #e0ffff;
-            font-family: 'Courier New', Courier, monospace; /* LCD Look */
-            font-weight: 900;
-            font-size: 22px;
-            letter-spacing: 2px;
-            text-align: center;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.4);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Caps at ~8 chars visually */
-            display: flex; align-items: center; justify-content: center;
-            -webkit-user-select: none; user-select: none;
-        }
-        
-        #lcd-resize-handle {
-            position: absolute; bottom: 0; right: 0;
-            width: 15px; height: 15px;
-            cursor: ew-resize;
-            background: linear-gradient(135deg, transparent 50%, rgba(0,255,255,0.3) 50%);
-            pointer-events: none; /* Lets native CSS resize take over */
-        }
 
         @media (min-width: 1200px) {
             .side-panel { width: 260px; }
@@ -656,13 +590,7 @@
     <div id="modal-overlay" onclick="closeModal()"></div>
 
     <div id="ui-dock">
-        <!-- Draggable LCD Event Panel -->
-        <div id="lcd-event-panel">
-            <div id="lcd-header">SYSTEM EVENTS</div>
-            <div id="lcd-text">READY_</div>
-            <div id="lcd-resize-handle"></div>
-        </div>
-        
+
         <div id="encounter-zone">
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
@@ -1329,6 +1257,9 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        
+        window.THREE = THREE;
+        if (typeof window.init3DIcons === 'function') window.init3DIcons();
 
         // Fix for missing toggleRing action buttons
         window.toggleRing = function() {
@@ -1782,10 +1713,21 @@
                     potionGroup.position.y = -0.4; // Center in card
                     potionGroup.scale.set(1.2, 1.2, 1.2); // Make it pop
                     
-                    group.add(potionGroup);
+                    const potion1 = potionGroup.clone();
+                    potion1.position.set(-1.0, 0, 1.5); 
+                    const potion2 = potionGroup.clone();
+                    potion2.position.set(1.0, 0, 1.5);
+                    group.add(potion1, potion2);
+                    
+                    const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
+                    pointLight.position.set(0, 0, 3);
+                    group.add(pointLight);
+                    
                     update = (t) => { 
-                        potionGroup.rotation.y = t * 1.5; 
-                        potionGroup.rotation.z = Math.sin(t * 1.5) * 0.05;
+                        potion1.rotation.y = t * 1.5; 
+                        potion1.rotation.z = Math.sin(t * 1.5) * 0.05;
+                        potion2.rotation.y = -t * 1.5; 
+                        potion2.rotation.z = Math.sin(t * 1.5) * -0.05;
                         
                         // Liquid sloshing
                         // We distort the top vertices of the liquid cylinder
@@ -1888,9 +1830,11 @@
                     starGroup.add(glowPlane);
 
                     const star1 = starGroup.clone();
-                    star1.position.set(0, 0, 1.5); // Centered single shuriken
+                    star1.position.set(-1.0, 0, 1.5); 
+                    const star2 = starGroup.clone();
+                    star2.position.set(1.0, 0, 1.5);
 
-                    group.add(star1);
+                    group.add(star1, star2);
                     
                     // Extra point light for weapon shininess
                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
@@ -1899,6 +1843,7 @@
 
                     update = (t) => { 
                         star1.rotation.z = -t * 0.1; 
+                        star2.rotation.z = t * 0.1; 
                     };
                 } else if (el === 'DEFEND') {
                     const addOutline = (mesh) => {
@@ -2707,7 +2652,7 @@
             });
             
             // Ensure 3D icons are rendered for the newly built deck
-            if (typeof init3DIcons === 'function') init3DIcons();
+            if (window.THREE && typeof init3DIcons === 'function') init3DIcons();
         }
         
         function getDragAfterElement(container, x) {
@@ -2745,50 +2690,9 @@
         }
 
         // INIT AND EVENTS PANEL LOGIC ---
-        const lcdPanel = document.getElementById('lcd-event-panel');
-        const lcdHeader = document.getElementById('lcd-header');
-        const lcdText = document.getElementById('lcd-text');
-        let lcdTimeout = null;
-        let isLcdDragging = false, lcdStartX, lcdStartY, lcdStartLeft, lcdStartTop;
-
         window.showLcdEvent = function(text) {
-            if (!lcdPanel || !lcdText) return;
-            lcdText.textContent = text.substring(0, 8); // Hardware cap ~8 chars
-            lcdPanel.classList.add('active');
-            if (lcdTimeout) clearTimeout(lcdTimeout);
-            lcdTimeout = setTimeout(() => {
-                lcdPanel.classList.remove('active');
-            }, 2000);
+            window.addLogEntry('system', text);
         };
-
-        if (lcdHeader && lcdPanel) {
-            lcdHeader.addEventListener('pointerdown', (e) => {
-                isLcdDragging = true;
-                lcdStartX = e.clientX;
-                lcdStartY = e.clientY;
-                const rect = lcdPanel.getBoundingClientRect();
-                lcdStartLeft = rect.left;
-                lcdStartTop = rect.top;
-                // De-couple from flexible transform positioning
-                lcdPanel.style.transform = 'none';
-                lcdPanel.style.left = lcdStartLeft + 'px';
-                lcdPanel.style.top = lcdStartTop + 'px';
-                lcdHeader.setPointerCapture(e.pointerId);
-            });
-            
-            lcdHeader.addEventListener('pointermove', (e) => {
-                if (!isLcdDragging) return;
-                const dx = e.clientX - lcdStartX;
-                const dy = e.clientY - lcdStartY;
-                lcdPanel.style.left = (lcdStartLeft + dx) + 'px';
-                lcdPanel.style.top = (lcdStartTop + dy) + 'px';
-            });
-            
-            lcdHeader.addEventListener('pointerup', (e) => {
-                isLcdDragging = false;
-                lcdHeader.releasePointerCapture(e.pointerId);
-            });
-        }
         
         const activeDPadPointers = new Map();
         const handleDPadInput = (e, isDown) => {
@@ -2817,15 +2721,6 @@
         leftPanel.addEventListener('pointercancel', e => handleDPadInput(e, false));
 
         const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode');
-        if (mode === 'combat') {
-            document.getElementById('lower-ui-row').style.display = 'none';
-            document.body.classList.remove('focus-active');
-        } else if (mode === 'dock') {
-            // NOTE: Do NOT hide encounter-zone with display:none here.
-            // The #pax-console and #action-rail inside it are already off-screen via CSS transform.
-            // Hiding the parent with display:none would prevent SHOW_COMBAT from sliding them in via .active class.
-        }
 
         window.isKeyboardSelectorActive = false;
         
@@ -3496,8 +3391,9 @@
                 isAnchorBottom = (rect.top + rect.height / 2) > (vh / 2);
             }
             
+            let bottomDockHeight = window.innerWidth > 768 ? 230 : 0;
             let safeLeft = Math.max(25, Math.min(vw - rect.width - 25, rect.left));
-            let safeTop = Math.max(25, Math.min(vh - rect.height - 25, rect.top));
+            let safeTop = Math.max(25, Math.min(vh - rect.height - bottomDockHeight - 20, rect.top));
             let safeRight = vw - (safeLeft + rect.width);
             let safeBottom = vh - (safeTop + rect.height);
             
@@ -3505,31 +3401,13 @@
             pip.style.right = isAnchorRight ? safeRight + "px" : "auto";
             pip.style.top = isAnchorBottom ? "auto" : safeTop + "px";
             pip.style.bottom = isAnchorBottom ? safeBottom + "px" : "auto";
-            checkPiPCollision();
+            
+            // Re-sync rect to ensure the engine knows the new clamped position
+            syncRect();
         }
         window.clampPiPIntoViewport = clampPiPIntoViewport;
         
-        function checkPiPCollision() {
-            if (window.innerWidth <= 768) return;
-            const pipRect = pip.getBoundingClientRect();
-            const leftPanel = document.getElementById('left-panel');
-            const rightPanel = document.getElementById('right-panel');
-            if (!leftPanel || !rightPanel) return;
-            const lpRect = leftPanel.getBoundingClientRect();
-            
-            const overlap = !(pipRect.right < lpRect.left || 
-                              pipRect.left > lpRect.right || 
-                              pipRect.bottom < lpRect.top || 
-                              pipRect.top > lpRect.bottom);
-                              
-            if (overlap) {
-                leftPanel.classList.add('pip-collide');
-                rightPanel.classList.add('pip-collide');
-            } else {
-                leftPanel.classList.remove('pip-collide');
-                rightPanel.classList.remove('pip-collide');
-            }
-        }
+
 
         function loadPiPState() {
             if (window.innerWidth <= 768) return; 
@@ -3543,7 +3421,7 @@
                 if (s.right !== undefined) pip.style.right = s.right + "px"; else pip.style.right = "auto";
                 if (s.top !== undefined) pip.style.top = s.top + "px"; else pip.style.top = "auto";
                 if (s.bottom !== undefined) pip.style.bottom = s.bottom + "px"; else pip.style.bottom = "auto";
-                setTimeout(checkPiPCollision, 50);
+                setTimeout(syncRect, 50);
             } catch {}
         }
 
@@ -3565,7 +3443,7 @@
             pip.style.right = "auto";
             pip.style.bottom = "auto";
             syncRect();
-            checkPiPCollision();
+            syncRect();
         };
         const onDragEnd = () => { dragging = false; pip.style.willChange = "auto"; pip.classList.remove("dragging"); clampPiPIntoViewport(true); savePiPState(); document.removeEventListener("mousemove", onDragMove); document.removeEventListener("mouseleave", onDragEnd); window.removeEventListener("blur", onDragEnd); };
         

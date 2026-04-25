@@ -3149,9 +3149,13 @@
                                 const star1 = starGroup;
                                 star1.position.set(0, 0, 0);
 
-                                iconMesh.add(star1);
+                                const star2 = starGroup.clone();
+                                star2.rotation.y = Math.PI;
+
+                                iconMesh.add(star1, star2);
                                 customUpdate = (t) => { 
                                     star1.rotation.z = -t * 0.5; 
+                                    star2.rotation.z = -t * 0.5;
                                 };
                             } else if (catId === 'ITEM' || catId === 'DEFEND') {
                                 const addOutline = (mesh) => {
@@ -3348,20 +3352,29 @@
                         // Fully 3D model exactly matching the UI panels
                         const EXACT_SCALE = 0.07;
                         
-                        // Set the model directly at Z=0 so it physically pierces the card symmetrically
-                        iconModel.iconMesh.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
-                        iconModel.iconMesh.position.set(0, -0.096, 0);
-                        // Force all inner items to render AFTER the glass bubble to avoid optical tinting
-                        iconModel.iconMesh.traverse((child) => {
+                        // FRONT ICON
+                        const frontIcon = iconModel.iconMesh;
+                        frontIcon.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
+                        frontIcon.position.set(0, -0.096, 0.031);
+                        
+                        // Traverse to ensure DoubleSide materials and transparency
+                        frontIcon.traverse((child) => {
                             if (child.isMesh) {
                                 if (child.material && !Array.isArray(child.material)) {
                                     child.material.transparent = true;
+                                    child.material.side = THREE.DoubleSide;
                                     child.material.needsUpdate = true;
                                 }
                                 child.renderOrder = 20;
                             }
                         });
-                        iconWrapper.add(iconModel.iconMesh);
+                        iconWrapper.add(frontIcon);
+
+                        // BACK ICON
+                        const backIcon = frontIcon.clone();
+                        backIcon.position.set(0, -0.096, -0.031);
+                        backIcon.rotation.y = Math.PI;
+                        iconWrapper.add(backIcon);
                         
                         // The Glass Bubble Enclosure
                         if (!this._sharedGlassBubbleGeo) {
@@ -6284,7 +6297,10 @@
                                         
                                         const clonedIcon = loot.userData.iconMesh.clone();
                                         clonedIcon.position.set(0, 0, 0);
-                                        clonedIcon.scale.set(1.5, 1.5, 1.5); // Ensure it looks big and shiny in the card
+                                        // The underlying iconMesh wrapper is scaled to 0.07 inside build3DIcon for the grid.
+                                        // To render it large in the YOU GOT card, we counteract the 0.07 scale (1/0.07 = 14.28) 
+                                        // and multiply by the desired scale 1.875 to get 26.78
+                                        clonedIcon.scale.set(26.78, 26.78, 26.78); 
                                         miniScene.add(clonedIcon);
                                         
                                         let animFrame;
