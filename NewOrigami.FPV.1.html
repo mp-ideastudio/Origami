@@ -1685,6 +1685,16 @@
                 // Post-processing bloom already softens edges; antialias=false also saves MSAA cost.
                 this.renderer.setPixelRatio(1.0); // Clamped to 1.0 to prevent 4K Bloom/Outline resolution drops
 
+                // --- HIGH-RESOLUTION PiP RENDERER ---
+                this.pipRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                this.pipRenderer.setPixelRatio(window.devicePixelRatio || 1); // Full Retina resolution
+                this.pipRenderer.domElement.style.position = 'absolute';
+                this.pipRenderer.domElement.style.pointerEvents = 'none';
+                this.pipRenderer.domElement.style.zIndex = '10'; // Above FPV, behind Panels
+                this.pipRenderer.domElement.style.borderRadius = '50%';
+                this.pipRenderer.domElement.style.clipPath = 'circle(50% at 50% 50%)';
+                document.getElementById('game-container').appendChild(this.pipRenderer.domElement);
+
                 // Global shadow mapping enabled with PCFSoft for performance-friendly AAA shadow blurring
                 this.renderer.shadowMap.enabled = true;
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1764,9 +1774,8 @@
                 this.headlamp = headlamp;
                 this.outerGlow = outerGlow;
                 
-                // --- TOP-DOWN PiP CAMERA (Diablo ARPG Perspective) ---
-                // PerspectiveCamera with tight FOV creates the real Diablo 3D depth look
-                this.topDownCamera = new THREE.PerspectiveCamera(40, 1, 1, 500);
+                // Orthographic Top-Down PiP Camera
+                this.topDownCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 1, 500);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
@@ -6356,73 +6365,7 @@
                 const safeW = pipW - (inset * 2);
                 const safeH = pipH - (inset * 2);
 
-                // Initialize the Depth Mask Scene (Run Once)
-                if (!window._pipMaskScene) {
-                    window._pipMaskScene = new THREE.Scene();
-                    window._pipMaskCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-                    const maskGeom = new THREE.PlaneGeometry(2, 2);
-                    
-                    // The depth-mask ring (writes depth, no color, outside the circle)
-                    const maskMat = new THREE.ShaderMaterial({
-                        depthWrite: true,
-                        depthTest: true,
-                        colorWrite: false, 
-                        vertexShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                vUv = uv;
-                                gl_Position = vec4(position.xy, -0.99, 1.0); 
-                            }
-                        `,
-                        fragmentShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                if (distance(vUv, vec2(0.5)) < 0.495) discard;
-                                gl_FragColor = vec4(1.0);
-                            }
-                        `
-                    });
-                    const maskMesh = new THREE.Mesh(maskGeom, maskMat);
-                    maskMesh.frustumCulled = false;
-                    window._pipMaskScene.add(maskMesh);
-                    
-                    // The background color dial (writes color, no depth, inside the circle)
-                    const bgMat = new THREE.ShaderMaterial({
-                        depthWrite: false, // Don't block the map terrain!
-                        depthTest: false,
-                        colorWrite: true,
-                        vertexShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                vUv = uv;
-                                gl_Position = vec4(position.xy, 0.99, 1.0); // Draw at the far back
-                            }
-                        `,
-                        fragmentShader: `
-                            varying vec2 vUv;
-                            void main() {
-                                if (distance(vUv, vec2(0.5)) > 0.495) discard;
-                                gl_FragColor = vec4(0.06, 0.06, 0.08, 1.0); // Solid dark dial background
-                            }
-                        `
-                    });
-                    const bgMesh = new THREE.Mesh(maskGeom, bgMat);
-                    bgMesh.frustumCulled = false;
-                    window._pipMaskScene.add(bgMesh);
-                }
-                
-                // Keep the 2D canvas size perfectly matched to the wrapper bounds * pixelRatio for Ultra HD resolution!
-                const pr = this.renderer.getPixelRatio();
-                const hdW = Math.max(1, Math.round(pipW * pr));
-                const hdH = Math.max(1, Math.round(pipH * pr));
-                
-                if (this.pipCanvasEl && (this.pipCanvasEl.width !== hdW || this.pipCanvasEl.height !== hdH)) {
-                    this.pipCanvasEl.width = hdW;
-                    this.pipCanvasEl.height = hdH;
-                    // Reset CSS style size so physical pixels scale down cleanly to logical pixels
-                    this.pipCanvasEl.style.width = pipW + 'px';
-                    this.pipCanvasEl.style.height = pipH + 'px';
-                }
+
 
                 // ── Update ortho zoom ──
                 if (this.topDownCamera) {
@@ -6471,8 +6414,11 @@
 
                     // Apply smoothed camera params
                     const aspect = (pipW > 0 && pipH > 0) ? (pipW / pipH) : 1;
-                    this.topDownCamera.fov = this._pipFOV;
-                    this.topDownCamera.aspect = aspect;
+                    const frustumSize = (this._pipFOV || 48) * 0.4 * this._pipZoomScale; // Approximate Ortho scale mapping
+                    this.topDownCamera.left = -frustumSize * aspect / 2;
+                    this.topDownCamera.right = frustumSize * aspect / 2;
+                    this.topDownCamera.top = frustumSize / 2;
+                    this.topDownCamera.bottom = -frustumSize / 2;
                     this.topDownCamera.updateProjectionMatrix();
 
                     // Initialize PiP orbit controls (north-up fixed — only compass dial rotates)
@@ -6552,10 +6498,8 @@
                     this.renderer.setViewport(0, 0, winW, winH);
                     this.renderer.setScissor(0, 0, winW, winH);
                     this.renderer.setScissorTest(true);
-                    // AAA RPG Vignette: Heavy fog bounding the screen edge geometry, blending with pitch black
                     this.scene.fog.color.setHex(0x06020f);
                     this.scene.fog.density = 0.02;
-                    // Lower ambient slightly from 1.6 to 0.7 so directional shadows actually render black, but keep visibility high
                     if (this.ambientLight) this.ambientLight.intensity = 0.7;
                     this.renderer.setClearColor(0x06020f, 1);
                     if (this.headlamp) this.headlamp.visible = false;
@@ -6563,45 +6507,31 @@
                     if (this.headlamp) this.headlamp.visible = true;
                     if (this.ambientLight) this.ambientLight.intensity = 0.5;
 
-                    // [2] Small FPV view rendered into mapview-container space
-                    this.renderer.setViewport(safeX, safeY, safeW, safeH);
-                    this.renderer.setScissor(safeX, safeY, safeW, safeH);
-                    this.renderer.setScissorTest(true);
-                    
-                    // CRITICAL: We MUST clear the depth buffer, or the PiP camera will physically Z-fight with geometry drawn beneath it on the entire screen!
-                    this.renderer.clearDepth();
-                    
-                    const oldAutoClear = this.renderer.autoClear;
-                    this.renderer.autoClear = false;
+                    // [2] Small FPV view rendered via pipRenderer
+                    this.pipRenderer.setSize(safeW, safeH, false);
+                    this.pipRenderer.domElement.style.left = safeX + 'px';
+                    this.pipRenderer.domElement.style.bottom = safeY + 'px';
+                    this.pipRenderer.domElement.style.width = safeW + 'px';
+                    this.pipRenderer.domElement.style.height = safeH + 'px';
+                    this.pipRenderer.setClearColor(0x0f0f14, 1);
 
-                    // Inject Circular Depth Mask
-                    this.renderer.render(window._pipMaskScene, window._pipMaskCam);
-                    
-                    // Fisheye Lens Optical Expansion
                     const originalFov = this.camera.fov;
                     this.camera.aspect = safeW / safeH;
                     this.camera.fov = originalFov * 1.25;
                     this.camera.updateProjectionMatrix();
 
                     this.scene.fog.density = 0.055;
-                    
-                    // CRITICAL: scene.background forces a depth clear in ThreeJS even if autoClear is false!
-                    // We must disable it during the PiP pass to preserve the depth mask.
                     const oldBg = this.scene.background;
                     this.scene.background = null;
                     
-                    this.renderer.render(this.scene, this.camera);
+                    this.pipRenderer.render(this.scene, this.camera);
                     
                     this.scene.background = oldBg;
-                    
-                    this.renderer.autoClear = oldAutoClear;
-
-                    // Restore original FOV for next frame
                     this.camera.fov = originalFov;
 
                 } else {
                     // ── FPV MAIN + TOP-DOWN PiP (default) ────────────────────────────
-                    // [1] FPV main render with scissor/viewport
+                    // [1] FPV main render
                     this.renderer.setClearColor(0x06020f, 1);
                     this.scene.fog.density = 0.055;
                     if (this.layoutData && this.layoutData.fpv) {
@@ -6620,46 +6550,38 @@
                         this.renderer.render(this.scene, this.camera);
                     }
 
-                    // [2] Top-down map PiP into mapview-container space
+                    // [2] Top-down map PiP via pipRenderer
                     if (this.topDownCamera) {
-                        this.renderer.setViewport(safeX, safeY, safeW, safeH);
-                        this.renderer.setScissor(safeX, safeY, safeW, safeH);
-                        this.renderer.setScissorTest(true);
-                        
-                        // CRITICAL: We MUST clear the depth buffer to isolate the PiP from the Composer FPV pass to stop intense Z-fighting rendering loops!
-                        this.renderer.clearDepth();
-                        
-                        const oldAutoClear = this.renderer.autoClear;
-                        this.renderer.autoClear = false;
+                        this.pipRenderer.setSize(safeW, safeH, false);
+                        this.pipRenderer.domElement.style.left = safeX + 'px';
+                        this.pipRenderer.domElement.style.bottom = safeY + 'px';
+                        this.pipRenderer.domElement.style.width = safeW + 'px';
+                        this.pipRenderer.domElement.style.height = safeH + 'px';
+                        this.pipRenderer.setClearColor(0x0f0f14, 1);
 
-                        // Inject Circular Depth Mask
-                        this.renderer.render(window._pipMaskScene, window._pipMaskCam);
-                        
-                        // Fisheye Lens Optical Expansion
-                        this.topDownCamera.aspect = safeW / safeH;
-                        this.topDownCamera.fov = (this._pipFOV || 60) * 1.25;
+                        // Adjust Orthographic Camera
+                        const aspect = safeW / safeH;
+                        const frustumSize = (this._pipFOV || 48) * 0.4 * this._pipZoomScale;
+                        this.topDownCamera.left = -frustumSize * aspect / 2;
+                        this.topDownCamera.right = frustumSize * aspect / 2;
+                        this.topDownCamera.top = frustumSize / 2;
+                        this.topDownCamera.bottom = -frustumSize / 2;
                         this.topDownCamera.updateProjectionMatrix();
-                        
-                        // AAA RPG Vignette
+
                         this.scene.fog.color.setHex(0x000000);
                         this.scene.fog.density = 0.02;
-                        if (this.ambientLight) this.ambientLight.intensity = 0.7; // Lowered from 1.6 to allow solid shadows to express
+                        if (this.ambientLight) this.ambientLight.intensity = 0.7;
                         if (this.headlamp) this.headlamp.visible = false;
-                        
-                        // CRITICAL: scene.background forces a depth clear in ThreeJS even if autoClear is false!
-                        // We must disable it during the PiP pass to preserve the depth mask.
+
                         const oldBg = this.scene.background;
                         this.scene.background = null;
 
-                        this.renderer.render(this.scene, this.topDownCamera);
-                        
+                        this.pipRenderer.render(this.scene, this.topDownCamera);
+
                         this.scene.background = oldBg;
                         if (this.headlamp) this.headlamp.visible = true;
-                        if (this.ambientLight) this.ambientLight.intensity = 0.5; // Restore FPV cinematic gloom
+                        if (this.ambientLight) this.ambientLight.intensity = 0.5;
                         
-                        this.renderer.autoClear = oldAutoClear;
-
-                        // Reset native FPV fog density to active default
                         this.scene.fog.color.setHex(0x08041a);
                         this.scene.fog.density = 0.055;
                     }
