@@ -267,8 +267,8 @@
         .roll-btn i { margin-right: 10px; font-size: 20px; }
 
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
-        .card-column.focused { z-index: 30; }
-        .card-column.focused .guide-card[data-depth="0"] { transform: translateY(-10px) scale(1); box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 20px var(--theme-clr); border-color: var(--theme-clr); }
+        .card-column.focused { z-index: 30; transform: translateY(-10px); }
+        .card-column.focused .guide-card[data-depth="0"] { box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 20px var(--theme-clr); border-color: var(--theme-clr); }
 
         @media (max-width: 1100px) {
             .card-column:nth-child(n+6) { display: none !important; }
@@ -303,7 +303,7 @@
                 inset 2px 2px 0px var(--theme-clr, rgba(255,255,255,0.15)),
                 inset -2px -2px 0px rgba(0,0,0,0.5),
                 0 0 0 1px var(--theme-clr, transparent) !important;
-            transform-origin: top center;
+            transform-origin: bottom center;
         }
         
         .guide-card::before {
@@ -372,10 +372,10 @@
 
         
         .guide-card[data-depth="0"] { opacity: 1; z-index: 20; transform: translateY(0) scale(1); box-shadow: 0 10px 20px rgba(0,0,0,0.8), var(--nm-shadow-inner), 0 0 0 1px var(--theme-clr) !important; }
-        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 2px 2px 6px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.9); }
-        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(22px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.7); }
-        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(30px) scale(0.85); box-shadow: 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.5); }
-        .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(38px) scale(0.80); box-shadow: none; pointer-events: none; }
+        .guide-card[data-depth="1"] { opacity: 0.9; z-index: 10; transform: translateY(-12px) scale(0.95); box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 2px 2px 6px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.9); }
+        .guide-card[data-depth="2"] { opacity: 0.7; z-index: 5; transform: translateY(-24px) scale(0.90); box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.7); }
+        .guide-card[data-depth="3"] { opacity: 0.4; z-index: 2; transform: translateY(-36px) scale(0.85); box-shadow: 0 0 0 1px var(--theme-clr) !important; filter: brightness(0.5); }
+        .guide-card[data-depth="4"], .guide-card[data-depth="5"] { opacity: 0.0; z-index: 1; transform: translateY(-48px) scale(0.80); box-shadow: none; pointer-events: none; }
         
         /* Inventory Modal */
         #inventory-modal {
