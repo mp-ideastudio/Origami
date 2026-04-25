@@ -548,26 +548,64 @@
             margin: 6px auto 5px auto;
             position: relative;
         }
-        .chat-pill { position: relative; min-width: 0; width: 100%; height: 54px; background: var(--bg-glass);
+        .chat-pill { 
+            position: relative; min-width: 0; width: 100%; height: 56px; 
+            background: rgba(15, 20, 25, 0.5);
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
             box-shadow: 
-                3px 3px 8px rgba(0,0,0,0.15), 
-                -3px -3px 8px rgba(255,255,255,0.8),
-                inset 1px 1px 2px rgba(255,255,255,0.5),
-                inset -1px -1px 2px rgba(0,0,0,0.05) !important;
-            border-radius: 12px; display: flex; align-items: center; padding: 0 18px;
-            border: 1px solid rgba(255,255,255,0.4) !important; box-sizing: border-box; margin: 0; }
-        .chat-pill::before { content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 9px; pointer-events: none; z-index: 0; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02); border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1); }
+                0 10px 25px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.1),
+                inset 0 -1px 0 rgba(0,0,0,0.2) !important;
+            border-radius: 16px; display: flex; align-items: center; padding: 0 20px;
+            border: 1px solid rgba(255,255,255,0.1) !important; box-sizing: border-box; margin: 0;
+            transition: all 0.3s ease;
+        }
+        .chat-pill:focus-within {
+            background: rgba(20, 25, 35, 0.65);
+            box-shadow: 
+                0 0 20px rgba(56, 189, 248, 0.15),
+                inset 0 0 10px rgba(56, 189, 248, 0.1) !important;
+            border-color: rgba(56, 189, 248, 0.4) !important;
+        }
+        .chat-pill::before { 
+            content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+            border-radius: inherit; transition: opacity 0.3s ease;
+            box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.0);
+        }
+        .chat-pill:focus-within::before {
+            box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+        
         .chat-input, .enter-symbol { position: relative; z-index: 1; }
-        .chat-input { flex: 1; width: 10px; background: transparent; border: none; outline: none; color: #FFF; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; text-shadow: none; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-        .chat-input::placeholder { color: rgba(255,255,255,0.7); font-weight: 800; opacity: 0.8; }
-        .enter-symbol { font-size: 14px; color: var(--color-text); opacity: 0.5; margin-left: 10px; transform: rotate(-90deg); display: block; }
+        .chat-input { 
+            flex: 1; width: 10px; background: transparent; border: none; outline: none; 
+            color: #e6edf3; font-family: 'SF Mono', 'Courier New', Courier, monospace; 
+            font-weight: 500; font-size: 15px; letter-spacing: 0.5px;
+            min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; 
+            transition: color 0.3s ease;
+        }
+        .chat-input::placeholder { color: rgba(230,237,243,0.3); font-weight: 400; letter-spacing: 1px; }
+        .chat-input:focus { color: #ffffff; text-shadow: 0 0 8px rgba(255,255,255,0.3); }
         
+        .enter-symbol { 
+            font-size: 16px; color: #38bdf8; opacity: 0.7; margin-left: 15px; 
+            display: flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 8px;
+            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.2s ease; cursor: pointer;
+        }
+        .chat-pill:focus-within .enter-symbol {
+            opacity: 1; background: rgba(56, 189, 248, 0.2); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
         
-
         /* Utility Classes for resolving linting errors */
         .theme-green { --theme-clr: #4caf50; }
         .theme-red { --theme-clr: #f44336; }
-        .viewport-text { color: #FFF; font-size: 8px; font-weight: 800; margin-left: auto; padding-left: 15px; text-transform: uppercase; white-space: nowrap; opacity: 0.8; }
+        .viewport-text { 
+            color: #8b949e; font-size: 9px; font-weight: 700; margin-left: auto; 
+            padding-left: 15px; text-transform: uppercase; white-space: nowrap; 
+            letter-spacing: 1px; position: relative; z-index: 1;
+        }
 
 
 
@@ -677,78 +715,73 @@
             #event-log-container {
                 position: relative;
                 width: 100%;
-                min-width: 0;
                 max-width: calc(var(--card-w) * 6 + 70px);
-                width: 90vw; /* Hard clamp on mobile */
-                max-width: 100%;
                 height: 0px;
                 overflow-y: hidden;
                 display: flex;
                 flex-direction: column;
-                background: rgba(10, 20, 30, 0.4);
-                border-radius: 12px;
-                transition: height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, max-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-radius 0.3s ease;
+                background: rgba(15, 20, 25, 0.6);
+                -webkit-backdrop-filter: blur(25px); backdrop-filter: blur(25px);
+                border-radius: 16px;
+                transition: height 0.4s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease, margin-top 0.3s ease;
                 opacity: 0;
                 pointer-events: none;
-                padding: 0 15px;
+                padding: 0 20px;
                 box-sizing: border-box;
-                margin-bottom: 0px;
-                border: 1px solid rgba(255,255,255,0.4) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
                 box-shadow: 
-                    3px 3px 8px rgba(0,0,0,0.15), 
-                    -3px -3px 8px rgba(255,255,255,0.8),
-                    inset 1px 1px 2px rgba(255,255,255,0.5),
-                    inset -1px -1px 2px rgba(0,0,0,0.05) !important;
+                    0 15px 35px rgba(0,0,0,0.5),
+                    inset 0 1px 0 rgba(255,255,255,0.1),
+                    inset 0 -1px 0 rgba(0,0,0,0.3) !important;
+                -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 100%);
+                mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 100%);
             }
             #event-log-container::before {
-                content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 9px; pointer-events: none; z-index: 0; box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5), inset -2px -2px 6px rgba(255,255,255,0.02); border: 1px solid rgba(0,0,0,0.3); background: rgba(0,0,0,0.1); transition: border-radius 0.3s ease, bottom 0.3s ease; opacity: 0;
+                content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+                border-radius: inherit; box-shadow: inset 0 0 20px rgba(0, 150, 255, 0.05);
             }
             #event-log-container.active {
-                height: 140px; margin-bottom: 0px; opacity: 1; pointer-events: auto; padding: 15px;
+                height: 160px; opacity: 1; pointer-events: auto; padding: 20px; padding-top: 25px;
                 border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-                border-bottom: none;
-                /* LCD Styling */
-                background: rgba(10, 20, 30, 0.8);
-                border-color: rgba(0, 255, 255, 0.3);
-                font-family: 'Courier New', Courier, monospace;
-                color: #e0ffff;
-                text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+                border-bottom: none !important;
+                font-family: 'SF Mono', 'Courier New', Courier, monospace;
+                color: #e6edf3;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.8);
                 overflow-y: auto;
-            }
-            #event-log-container.active::before {
-                opacity: 1; bottom: 0; border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+                margin-top: 10px;
             }
             
             /* Combined Flush Layout */
             #event-log-container.active + #input-container { margin-top: 0; }
             #event-log-container.active + #input-container .chat-pill {
                 border-top-left-radius: 0; border-top-right-radius: 0;
-                border-top: none;
-            }
-            #event-log-container.active + #input-container .chat-pill::before {
-                border-top-left-radius: 0; border-top-right-radius: 0;
-                top: 0; border-top: none;
+                border-top: none !important;
+                background: rgba(15, 20, 25, 0.75);
             }
             
             /* Custom minimalist scrollbar for log */
             #event-log-container::-webkit-scrollbar { width: 4px; }
-            #event-log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+            #event-log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; transition: background 0.2s; }
+            #event-log-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
             
             .log-entry {
-                font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 6px; 
-                text-shadow: 0 0 8px rgba(0, 255, 255, 0.5); line-height: 1.4;
-                animation: logFadeIn 0.3s ease forwards;
+                font-size: 13.5px; font-weight: 500; color: #e6edf3; margin-bottom: 8px; 
+                line-height: 1.5; letter-spacing: 0.3px; position: relative; z-index: 2;
+                animation: logSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                transform-origin: bottom left;
+                opacity: 0;
             }
-            @keyframes logFadeIn {
-                from { opacity: 0; transform: translateY(5px); }
-                to { opacity: 1; transform: translateY(0); }
+            @keyframes logSlideUp {
+                0% { opacity: 0; transform: translateY(15px) scale(0.95); filter: blur(4px) brightness(1.5); }
+                100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0) brightness(1); }
             }
-            .log-entry.system { color: #c0c0b0; font-style: italic; font-weight: 400; text-shadow: 0 0 8px rgba(192,192,176,0.5); }
-            .log-entry.damage { color: #ff3333; font-weight: 800; text-shadow: 0 0 8px rgba(255,51,51,0.6); }
-            .log-entry.healing, .log-entry.loot { color: #00e676; font-weight: 800; text-shadow: 0 0 8px rgba(0,230,118,0.6); }
-            .log-entry.combat { color: #ff9800; font-weight: 700; text-shadow: 0 0 8px rgba(255,152,0,0.6); }
-            .log-entry.chat { color: #81d4fa; font-style: italic; font-weight: 600; letter-spacing: 0.2px; text-shadow: 0 0 8px rgba(129,212,250,0.6); }
-            .log-entry b, .log-entry strong { color: #ffffff; text-shadow: 0 0 12px rgba(255,255,255,0.8); }
+            
+            .log-entry.system { color: #8b949e; font-style: italic; font-weight: 400; text-shadow: none; }
+            .log-entry.damage { color: #ff5555; font-weight: 700; text-shadow: 0 0 12px rgba(255,85,85,0.4); }
+            .log-entry.healing, .log-entry.loot { color: #4ade80; font-weight: 700; text-shadow: 0 0 12px rgba(74,222,128,0.4); }
+            .log-entry.combat { color: #fbbf24; font-weight: 600; text-shadow: 0 0 10px rgba(251,191,36,0.3); }
+            .log-entry.chat { color: #38bdf8; font-style: italic; font-weight: 500; text-shadow: 0 0 10px rgba(56,189,248,0.3); }
+            .log-entry b, .log-entry strong { color: #ffffff; font-weight: 800; text-shadow: 0 0 15px rgba(255,255,255,0.6); }
 
             /* Moondial UI */
             #moondial-wrapper {
@@ -1144,11 +1177,10 @@
                         </div>
                     </div>
                     <div id="event-log-container"></div><div id="input-container">
-
                         <div class="chat-pill">
-                            <input type="text" class="chat-input" placeholder="TYPE A COMMAND..." autocomplete="off">
-                            <i class="fa-solid fa-turn-down enter-symbol"></i>
-                            <div id="viewport-readout" class="viewport-text"></div>
+                            <input type="text" class="chat-input" placeholder="Enter command...">
+                            <span class="enter-symbol"><i class="fa-solid fa-arrow-up"></i></span>
+                            <div id="viewport-readout" class="viewport-text">VIEWPORT</div>
                         </div>
                     </div>
                 </div>
