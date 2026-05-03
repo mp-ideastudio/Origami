@@ -1482,32 +1482,16 @@ buildWorldGeometry() {
                 const buildEntity = (sp, isMon, mesh) => {
                     const id = isMon ? `mon_${++monCount}` : `npc_${++npcCount}`;
                     sp.id = id; // Keep track of ID to send to AI worker
-                    mesh.userData = { 
+                    
+                    // Preserve existing userData (like mixer, actions from GLTFLoader)
+                    mesh.userData = {
+                        ...(mesh.userData || {}),
                         id, 
                         name: sp.name || (isMon ? 'Yakuza Goblin' : 'Yakuza Gambler'),
                         type: isMon ? 'enemy' : 'gambler', 
                         hp: sp.hp ?? 50, 
                         maxHp: sp.maxHp ?? 50,
-                        weapon: isMon ? ["Rusty Cleaver", "Broken Katana", "Iron Pipe", "Serrated Dagger", "Jagged Axe", "Yakuza Tanto", "Heavy Club"][Math.floor(Math.random() * 7)] : "Fists",
-                        ai: {
-                            initialized: true,
-                            state: sp.type === 'shopkeeper' ? 'GAMBLING' : 'IDLE',
-                            homeX: sp.x * this.gridSize,
-                            homeZ: sp.z * this.gridSize,
-                            targetMove: null,
-                            actionTimer: Math.random() * 2,
-                            // Fuzzy logic traits (0.0 to 1.0)
-                            aggression: Math.random(),
-                            intelligence: Math.random(),
-                            greed: Math.random(),
-                            fear: Math.random(),
-                            // State memory
-                            memory: {
-                                knownRooms: new Set(),
-                                lastPlayerSeenAt: null,
-                                consecutiveHitsTaken: 0
-                            }
-                        }
+                        weapon: isMon ? ["Rusty Cleaver", "Broken Katana", "Iron Pipe", "Serrated Dagger", "Jagged Axe", "Yakuza Tanto", "Heavy Club"][Math.floor(Math.random() * 7)] : "Fists"
                     };
                     
                     if (isMon) {
@@ -1518,8 +1502,8 @@ buildWorldGeometry() {
                         const monBase = new THREE.Group();
                         monBase.name = "monBase";
                         
-                        // Tactical Monster Light Source (Red)
-                        const monLight = new THREE.PointLight(0xff2200, 1.0, 5.0);
+                        // Tactical Monster Light Source (Black/Off initially)
+                        const monLight = new THREE.PointLight(0x000000, 1.0, 5.0);
                         monLight.position.set(0, 1.5, 0); // Above the monster
                         monLight.layers.enable(0);
                         monLight.layers.enable(1);
@@ -1528,10 +1512,10 @@ buildWorldGeometry() {
                         
                         // --- Toy-like Photo Realistic Base (Matte Plastic Decal) ---
                         
-                        // FPV Realistic Red Core
+                        // FPV Realistic Black Core (Idle)
                         const fpvBaseGeo = new THREE.CircleGeometry(0.80, 64);
                         const fpvBaseMat = new THREE.MeshStandardMaterial({ 
-                            color: 0xcc3333, metalness: 0.05, roughness: 0.9, side: THREE.DoubleSide
+                            color: 0x000000, metalness: 0.05, roughness: 0.9, side: THREE.DoubleSide
                         });
                         const fpvBaseMesh = new THREE.Mesh(fpvBaseGeo, fpvBaseMat);
                         fpvBaseMesh.rotation.x = -Math.PI / 2;
@@ -1597,7 +1581,7 @@ buildWorldGeometry() {
                 };
 
                 // Load replacement monster model directly from user's remote GitHub repository
-                const TARGET_ENEMY_MODEL = './assets/models/YakuzaGoblinGhost.2.glb';
+                const TARGET_ENEMY_MODEL = './assets/models/Yakuza.Goblin.Animated.glb';
                 
                 const gltfLoader = new THREE.GLTFLoader();
                 gltfLoader.setCrossOrigin?.('anonymous');
@@ -1679,33 +1663,9 @@ buildWorldGeometry() {
                         goblin.traverse((child) => {
                             if (child.isMesh) {
                                 const nativeMat = child.material;
-                                const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
-                                const meshName = child.name ? child.name.toLowerCase() : "";
+                                nativeMat.side = THREE.DoubleSide;
                                 
-                                const eyeKeywords = ['eye', 'pupil', 'sclera', 'cornea', 'lens', 'iris'];
-                                const isEye = eyeKeywords.some(kw => matName.includes(kw) || meshName.includes(kw));
-                                
-                                // Apply Ethereal Blue Ghost Material (Reference Photo 2)
-                                if (!isEye) {
-                                    nativeMat.transparent = true;
-                                    nativeMat.opacity = 0.90; // Mostly solid but slightly ethereal
-                                    if (nativeMat.color) nativeMat.color.setHex(0x88ccff); // Soft blue base
-                                    nativeMat.emissive.setHex(0x114488); // Deep blue inner glow
-                                    nativeMat.emissiveIntensity = 0.5; // Enough to glow in dark without washing out
-                                    nativeMat.depthWrite = true;
-                                    nativeMat.roughness = 0.7; // Smooth but not shiny
-                                    nativeMat.metalness = 0.1;
-                                    child.material = nativeMat;
-                                } else {
-                                    // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
-                                    const eyeMat = nativeMat.clone();
-                                    if (eyeMat.color) eyeMat.color.setHex(0xffffff);
-                                    eyeMat.emissive.setHex(0xffffff);
-                                    eyeMat.emissiveIntensity = 5.0; // Extreme intensity for Bloom threshold 0.9
-                                    child.material = eyeMat;
-                                }
-                                
-                                child.castShadow = true;
+                                child.castShadow = false; // Disabled to restore 120 FPS
                                 child.receiveShadow = true;
                                 
                                 // Fix Z-Index sorting issue against the red targeting circle

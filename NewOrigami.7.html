@@ -75,6 +75,35 @@
       #ai-engine {
          display: none;
       }
+
+      /* Death Modal Styling */
+      #death-modal {
+        display: none; position: absolute; inset: 0; 
+        background: radial-gradient(circle, rgba(50,0,0,0.85) 0%, rgba(0,0,0,0.98) 100%); 
+        z-index: 9999; flex-direction: column; align-items: center; justify-content: center; 
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 1.5s ease;
+      }
+      #death-modal.visible {
+        display: flex;
+        opacity: 1;
+      }
+      .death-title {
+        color: #ff1a1a; font-size: 6rem; letter-spacing: 15px; margin-bottom: 40px; 
+        text-shadow: 0 0 40px rgba(255,0,0,0.8); font-weight: 900;
+        font-family: "Cinzel", serif;
+      }
+      .death-btn {
+        padding: 15px 50px; font-size: 1.2rem; background: rgba(255,0,0,0.1); 
+        color: white; border: 1px solid rgba(255,0,0,0.5); cursor: pointer; 
+        text-transform: uppercase; letter-spacing: 4px; transition: all 0.3s ease;
+        box-shadow: 0 0 15px rgba(255,0,0,0.2);
+      }
+      .death-btn:hover {
+        background: rgba(255,0,0,0.3); border-color: #ff3333; box-shadow: 0 0 25px rgba(255,0,0,0.6);
+      }
     </style>
   </head>
   <body class="dark-mode">
@@ -93,6 +122,12 @@
       <!-- AI Brain Engine -->
       <script src="NewOrigami.OniBaba.js"></script>
 
+      <!-- Death Modal Overlay -->
+      <div id="death-modal">
+        <h1 class="death-title">YOU DIED</h1>
+        <button class="death-btn" id="restart-btn">Restart</button>
+      </div>
+
     </div>
 
     <script>
@@ -104,6 +139,10 @@
                ai: document.getElementById('ai-iframe')
             };
             let cachedInitEntities = null;
+
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                window.location.reload();
+            });
 
             function notifyEngine(engineKey, payload) {
                const frame = engines[engineKey];
@@ -130,6 +169,13 @@
 
             window.addEventListener('message', (e) => {
                if (!e.data || !e.data.type) return;
+
+               // --- DEATH INTERCEPT ---
+               if (e.data.type === 'SYNC_STATS' && e.data.hp !== undefined && e.data.hp <= 0) {
+                   const deathModal = document.getElementById('death-modal');
+                   deathModal.classList.add('visible');
+                   // Still forward to panels so UI updates
+               }
 
                // --- MUTATION BUS INTERCEPT ---
                // The Dragon Princess watches all events passing through the Master Launcher.

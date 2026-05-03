@@ -170,8 +170,8 @@ initWebGL() {
                 // Spooky dungeon haze — light gray/teal fog
                 this.scene.fog = new THREE.FogExp2(0x556066, 0.015);
 
-                // Base FOV narrowed from 75 down to 52 for a dramatic 30% zoom scale
-                this.camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
+                // Base FOV restored to 75 to prevent the UI/combat view from being overwhelmingly large
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
                 this.camera.position.set(this.player.x * this.gridSize, 1.6, this.player.z * this.gridSize); // Eye level
                 this.camera.layers.enable(1); // Ensure FPV camera can see the ceiling (Layer 1)
                 this.camera.rotation.order = "YXZ";
@@ -238,10 +238,12 @@ initWebGL() {
                 // --- Baseline Lighting ---
                 // Spooky lighting: cool moonlight and muted dark shadows
                 const hemisphereLight = new THREE.HemisphereLight(0x8899aa, 0x222a33, 0.4);
+                this.hemisphereLight = hemisphereLight;
                 this.scene.add(hemisphereLight);
                 
                 // Pale moonlight directional light radiating down from above
                 const dirLight = new THREE.DirectionalLight(0xbbccdd, 0.3);
+                this.dirLight = dirLight;
                 const sunCenter = 150; // Approximates map center
                 dirLight.position.set(sunCenter, 400, sunCenter + 100); // High above, shifted slightly Z so walls cast shadows backwards
                 dirLight.target.position.set(sunCenter, 0, sunCenter);
@@ -263,6 +265,7 @@ initWebGL() {
                 
                 // Cool rim light from behind for silhouette separation
                 const rimLight = new THREE.DirectionalLight(0x99bbff, 0.183);
+                this.rimLight = rimLight;
                 rimLight.position.set(-20, 40, -30);
                 this.scene.add(rimLight);
                 
@@ -275,27 +278,30 @@ initWebGL() {
                 dirLight.layers.enable(3);
                 hemisphereLight.layers.enable(3);
                 
+                // CRITICAL FIX: Ensure global lights ALSO illuminate the environment (Layer 1) during Top Down passes
+                ambientLight.layers.enable(1);
+                dirLight.layers.enable(1);
+                hemisphereLight.layers.enable(1);
+                
                 this.scene.add(ambientLight);
                 
                 // Player Flashlight
-                const headlamp = new THREE.SpotLight(0xfff8e0, 0.1, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1); // Dropped brightness to prevent washout
-                headlamp.position.set(0, 0, 0);
-                headlamp.target.position.set(0, 0, -1);
+                this.headlamp = new THREE.SpotLight(0xfff8e0, 0.05, this.gridSize * 14, Math.PI / 6.8, 0.45, 1.1); // Dropped brightness to prevent washout
+                this.headlamp.position.set(0, 0, 0);
+                this.headlamp.target.position.set(0, 0, -1);
                 
-                const outerGlow = new THREE.SpotLight(0xffffff, 0.0, this.gridSize * 20, Math.PI / 8, 0.2, 0.8); // Zeroed out to prevent massive white bloom semicircle
-                outerGlow.position.set(0, 0, 0);
-                outerGlow.target.position.set(0, 0, -1);
+                this.outerGlow = new THREE.SpotLight(0xffffff, 0.0, this.gridSize * 20, Math.PI / 8, 0.2, 0.8); // Zeroed out to prevent massive white bloom semicircle
+                this.outerGlow.position.set(0, 0, 0);
+                this.outerGlow.target.position.set(0, 0, -1);
                 
-                this.camera.add(headlamp);
-                this.camera.add(headlamp.target);
-                this.camera.add(outerGlow);
-                this.camera.add(outerGlow.target);
+                this.camera.add(this.headlamp);
+                this.camera.add(this.headlamp.target);
+                this.camera.add(this.outerGlow);
+                this.camera.add(this.outerGlow.target);
                 
                 this.scene.add(this.camera); // Add camera to scene so child components render
                 
-                // Keep reference for flickering effect in animate()
-                this.headlamp = headlamp;
-                this.outerGlow = outerGlow;
+                // References kept for flickering effect in animate()
                 
                 // Isometric Perspective Camera for tactical Dojo Underworld view
                 // Narrow FOV (35) gives an orthographic feel while retaining 3D depth
@@ -809,10 +815,8 @@ initComms() {
                             
                             setTimeout(() => {
                                 let wOutcome = { won: false, multiplier: 1 };
-                                if (window.CombatEngine) wOutcome = window.CombatEngine.resolveWager(action);
+                                if (this.resolveWager) wOutcome = this.resolveWager(action);
                                 this.postToAI({ type: 'WAGER_RESULT', won: wOutcome.won, multiplier: wOutcome.multiplier });
-                                
-                                
                             }, 1500);
                             
                         } else if (action === 'RETREAT') {
@@ -859,13 +863,20 @@ initComms() {
                         const match = baseAction.match(/^(.*?)(?:\s+X\d+)?$/);
                         if (match) baseAction = match[1].trim();
                         
-                        const spell = SPELL_MAP[baseAction];
+                        let spell = SPELL_MAP[baseAction];
+                        
+                        // Range-based weapon switching: If it's a melee attack, but enemy is far (> 2 tiles), use Shuriken
+                        if (spell && spell.el === 'KATANA' && this.activeTargetDist > 2.0) {
+                            action = 'SHURIKEN';
+                            baseAction = 'SHURIKEN';
+                            spell = SPELL_MAP['SHURIKEN'];
+                        }
+                        
                         if (spell) {
                             if (spell.el === 'SCROLL' || spell.el === 'ARMOR' || action === 'HEAL POTION' || action === 'SCROLL OF IDENTITY') {
                                 this.spawnPotionUse(action, spell);
-                            } else if (spell.el === 'KATANA' || action === 'SLASH' || action === 'THRUST' || action === 'STRONG ATTACK') {
-                                this.spawnMeleeSlash(action, spell);
                             } else {
+                                // Intercept all spells and attacks (even melee) to auto-aim and hit the monster
                                 this.spawnProjectile(action, spell);
                             }
                             
@@ -1167,7 +1178,7 @@ animate() {
                 // --- TURN-BASED TIME-FLOW (SUPERHOT STYLE) ---
                 const nowTime = performance.now();
                 const justAttacked = this.lastAttackTime && (nowTime - this.lastAttackTime < 1200);
-                const timeFlowing = this.physMoving || moveDir !== 0 || strafeDir !== 0 || turnDir !== 0 || justAttacked || (this.timingAI && this.timingAI.ap < this.timingAI.maxAp);
+                const timeFlowing = this.physMoving || moveDir !== 0 || strafeDir !== 0 || turnDir !== 0 || justAttacked || (this.timingAI && this.timingAI.ap < this.timingAI.maxAp) || this.combatState === 'monster_turn';
                 
                 // TIMING AI: Watch physical movements and deduct AP
                 const prevX = this.player.x;
@@ -1176,15 +1187,7 @@ animate() {
                 // Monster mixers time-stop: only advance when player takes a turn
                 this.mixers.forEach(mixer => {
                     if (mixer === this.playerMixer) return;
-                    
-                    let overrideFreeze = false;
-                    this.worldGroup.children.forEach(c => {
-                        if (c.userData.mixer === mixer) {
-                            if (c.userData.attackAction && c.userData.attackAction.isRunning()) overrideFreeze = true;
-                        }
-                    });
-                    
-                    if (timeFlowing || overrideFreeze) mixer.update(delta);
+                    if (timeFlowing) mixer.update(delta);
                 });
                 if (this.playerMixer) this.playerMixer.update(delta);
 
@@ -1240,6 +1243,11 @@ animate() {
                         if (moveDir > 0.5 && (typeof colX === 'object' || typeof colZ === 'object')) {
                             const targetMesh = typeof colX === 'object' ? colX : colZ;
                             const now = performance.now();
+                            
+                            // DO NOT allow player to occupy the same tile as the monster
+                            if (typeof colX === 'object') nextX = this.player.x;
+                            if (typeof colZ === 'object') nextZ = this.player.z;
+                            
                             // TIMING AI: Must have at least 100 AP to execute an attack
                             if (this.timingAI.ap >= 100 && targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
                                 this.lastAttackTime = now;
@@ -1247,41 +1255,6 @@ animate() {
                                 if (targetMesh.userData.type === 'enemy') {
                                     if (typeof this.applyAimAssist === 'function') this.applyAimAssist();
                                     
-                                    // FIRST STRIKE WAGER EVENT (Goblin Retreats & Player Advances)
-                                    if (!targetMesh.userData.firstStrikeIssued) {
-                                        targetMesh.userData.firstStrikeIssued = true;
-                                        
-                                        // Grid vectors (-sin/cos face forward in Three.js coordinate system)
-                                        const dxGrid = -Math.sin(this.player.rot);
-                                        const dzGrid = -Math.cos(this.player.rot);
-                                        
-                                        // Calculate the target grid for the Goblin's retreat
-                                        const retreatGridX = (targetMesh.position.x / this.gridSize) + dxGrid;
-                                        const retreatGridZ = (targetMesh.position.z / this.gridSize) + dzGrid;
-                                        
-                                        // Check if the wall behind the Goblin is solid
-                                        if (!this.checkCollision(retreatGridX, retreatGridZ, 0.4)) {
-                                            // Safe to push Goblin backward 1 full grid tile (World Coordinates)
-                                            targetMesh.position.x += dxGrid * this.gridSize;
-                                            targetMesh.position.z += dzGrid * this.gridSize;
-                                            
-                                            // Pull Player forwards 1 grid tile into vacated spot (Logical Grid Coordinates)
-                                            // REMOVED: Player should not be grabbed/forced to move
-                                        }
-                                        // If blocked by a wall, they both just hold their ground to talk!
-                                        
-                                        // Pop the Wager Chat
-                                        fetch('js/data/haikus.json').then(r=>r.json()).then(data => {
-                                            const hList = data.combat_haikus || [];
-                                            const haiku = hList[Math.floor(Math.random() * hList.length)].replace(/\//g, ' ');
-                                            window.parent.postMessage({ type: 'LOG_EVENT', text: `Are you sure you wish to gamble only your life? [${haiku}]`, logType: 'chat' }, '*');
-                                        }).catch(e => console.warn(e));
-                                        
-                                        // Bypass actual combat hit and return!
-                                        return; 
-                                    }
-
-                                    // SECOND STRIKE: Goblin becomes hostile!
                                     if (!targetMesh.userData.isHostile) {
                                         // Aggro the entire room
                                         let currentRoom = null;
@@ -1313,32 +1286,16 @@ animate() {
                                                     
                                                     if (inRoom) {
                                                         child.userData.isHostile = true;
-                                                        if (child.userData.fpvBorderMesh) {
-                                                            child.userData.fpvBorderMesh.material.color.setHex(0xff0000);
-                                                            child.userData.fpvBorderMesh.material.emissive.setHex(0x330000);
-                                                        }
-                                                        if (child.userData.mapBorderMesh) {
-                                                            child.userData.mapBorderMesh.material.color.setHex(0xff0000);
-                                                        }
                                                     }
                                                 }
                                             });
                                         }
                                         
                                         targetMesh.userData.isHostile = true;
-                                        
-                                        // Spawn hostile text instantly on breaking wager
-                                        fetch('js/data/haikus.json').then(r=>r.json()).then(data => {
-                                            const mList = data.mad_haikus || ["You reject my wager?! Let the dice roll!"];
-                                            const haiku = mList[Math.floor(Math.random() * mList.length)].replace(/\//g, ' ');
-                                            window.parent.postMessage({ type: 'LOG_EVENT', text: `FOOLISH GAMBLER! [${haiku}]`, logType: 'chat' }, '*');
-                                        }).catch(e => {
-                                            window.parent.postMessage({ type: 'LOG_EVENT', text: `FOOLISH GAMBLER! [You reject my wager?! Let the dice roll!]`, logType: 'chat' }, '*');
-                                        });
                                     }
 
                                     // Trigger combat messsage
-                                    const finalDamage = window.CombatEngine ? window.CombatEngine.resolveMeleeStrike('Player', 25) : 25;
+                                    const finalDamage = this.resolveMeleeStrike ? this.resolveMeleeStrike('Player', 25) : 25;
                                     
                                     // TIMING AI: Attack costs 100 AP (1 full tile movement)
                                     this.timingAI.ap -= 100;
@@ -1378,6 +1335,9 @@ animate() {
                                         targetMesh.userData.ai.state = 'CHASING';
                                         targetMesh.userData.ai.actionTimer = 0.5; // Force quick counter-attack
                                     }
+                                    
+                                    // Trigger monster retaliation turn
+                                    setTimeout(() => { if (this.processMonsterTurn) this.processMonsterTurn(); }, 600);
                                 }
                                 
                                 // Violent spatial recoil removed to prevent Auto-Turn collision snapping.
@@ -1754,6 +1714,27 @@ animate() {
                         if (child.userData && child.userData.monBase) {
                             child.userData.monBase.position.set(child.position.x, 0, child.position.z);
                             child.userData.monBase.rotation.y = child.rotation.y;
+                            
+                            // Hostility indicator: Turn circle and light red if hit!
+                            if (child.userData.isHostile) {
+                                if (child.userData.monBaseFpvCore) {
+                                    if (child.userData.monBaseFpvCore.material.color.getHex() !== 0xcc3333) {
+                                        child.userData.monBaseFpvCore.material.color.setHex(0xcc3333); // Bright Red
+                                    }
+                                }
+                                
+                                if (child.userData.monLightObj === undefined) {
+                                    child.userData.monLightObj = child.userData.monBase.children.find(c => c.isLight) || null;
+                                }
+                                
+                                const lightObj = child.userData.monLightObj;
+                                if (lightObj) {
+                                    if (lightObj.color.getHex() !== 0xff2200) {
+                                        lightObj.color.setHex(0xff2200);
+                                        lightObj.intensity = 1.0;
+                                    }
+                                }
+                            }
                         }
                         
                         // Dice physics and garbage collection
@@ -1863,60 +1844,11 @@ animate() {
                 }
 
                 // Active Chat Bubble Tracking & Billboarding
-                if (this.activeChat && this.activeChat.mesh && this.activeChat.target) {
-                    const tPos = new THREE.Vector3();
-                    this.activeChat.target.getWorldPosition(tPos);
-                    
-                    this.activeChat.mesh.position.copy(tPos);
-                    // The origin of the chat group is the tip of its tail.
-                    // Pin it lower down on the Gobin's body so it stays comfortably in the camera frame at close range.
-                    this.activeChat.mesh.position.y += 0.8; 
-                    
-                    // Push chat bubble slightly towards the camera by 0.6 units so the tail tip points OUTSIDE the monster's face
-                    const camPos = new THREE.Vector3();
-                    this.camera.getWorldPosition(camPos);
-                    const toCam = new THREE.Vector3().subVectors(camPos, tPos).normalize();
-                    this.activeChat.mesh.position.addScaledVector(toCam, 0.6); 
-                    
-                    // Always face the player
-                    this.activeChat.mesh.lookAt(camPos);
+                // DELETED BY USER REQUEST: "all monster chat, all monster haiku"
 
-                    // --- Viewport Clamping ---
-                    // Project the bubble's approximate center (offset from tail tip) to screen space
-                    const bubbleCenter = this.activeChat.mesh.position.clone();
-                    bubbleCenter.y += 1.2; // Approximate center of balloon above tail
-                    const projected = bubbleCenter.clone().project(this.camera);
-                    // projected.x and projected.y are in NDC [-1, 1]
-                    const margin = 0.15; // Keep 15% margin from edges
-                    const maxX = 1.0 - margin;
-                    const maxY = 1.0 - margin;
-                    
-                    if (projected.x > maxX || projected.x < -maxX || projected.y > maxY || projected.y < -maxY) {
-                        // Calculate how much to nudge in screen space
-                        const clampedX = Math.max(-maxX, Math.min(maxX, projected.x));
-                        const clampedY = Math.max(-maxY, Math.min(maxY, projected.y));
-                        
-                        // Unproject both to get the world-space delta
-                        const clampedWorld = new THREE.Vector3(clampedX, clampedY, projected.z).unproject(this.camera);
-                        const originalWorld = new THREE.Vector3(projected.x, projected.y, projected.z).unproject(this.camera);
-                        
-                        const nudge = new THREE.Vector3().subVectors(clampedWorld, originalWorld);
-                        this.activeChat.mesh.position.add(nudge);
-                    }
-
-                    if (this.activeChat.fading) {
-                        this.activeChat.mesh.scale.multiplyScalar(0.8);
-                        if (this.activeChat.mesh.scale.x < 0.01) {
-                            this.scene.remove(this.activeChat.mesh);
-                            this.activeChat = null;
-                        }
-                    }
-                }
-
-                // --- NEW FUZZY LOGIC AI TICKER (TURN-BASED TIME STOP) ---
-                if (timeFlowing) {
-                    this.processFuzzyAI(delta);
-                }
+                // --- NEW FUZZY LOGIC AI TICKER ---
+                // Process visual tweening independently of time flow so moves can finish smoothly
+                this.processFuzzyAI(delta);
                 // --- PROJECTILE PHYSICS ---
                 for (let bi = this.boulders.length - 1; bi >= 0; bi--) {
                     const b = this.boulders[bi];
@@ -2244,18 +2176,45 @@ animate() {
                                 
                                 // Clean up the physical model (no hitStop freeze)
                                 
-                                // YOU GOT! Card Showcase Overlay
-                                // Player is no longer halted; animation plays smoothly while walking
-                                if (loot.userData.cardData) {
-                                    window.parent.postMessage({ type: 'SHOW_LOOT_UI', cardData: loot.userData.cardData }, '*');
+                            // YOU GOT! Card Showcase Overlay
+                            // Player is no longer halted; animation plays smoothly while walking
+                            if (loot.userData.cardData) {
+                                window.parent.postMessage({ type: 'SHOW_LOOT_UI', cardData: loot.userData.cardData }, '*');
+                            }
+                        }
+                        
+                        this.worldGroup.remove(loot);
+                        loot.traverse((child) => {
+                            if (child.isMesh) {
+                                if (child.geometry) child.geometry.dispose();
+                                if (child.material) {
+                                    if (Array.isArray(child.material)) {
+                                        child.material.forEach(m => m.dispose());
+                                    } else {
+                                        child.material.dispose();
+                                    }
                                 }
                             }
-                            this.worldGroup.remove(loot);
-                            if (loot.userData.baseMesh) {
-                                this.worldGroup.remove(loot.userData.baseMesh);
-                            }
-                            this.lootItems.splice(i, 1);
+                        });
+
+                        if (loot.userData.baseMesh) {
+                            this.worldGroup.remove(loot.userData.baseMesh);
+                            loot.userData.baseMesh.traverse((child) => {
+                                if (child.isMesh) {
+                                    if (child.geometry) child.geometry.dispose();
+                                    if (child.material) {
+                                        if (Array.isArray(child.material)) {
+                                            child.material.forEach(m => m.dispose());
+                                        } else {
+                                            child.material.dispose();
+                                        }
+                                    }
+                                }
+                            });
                         }
+                        
+                        this.lootItems.splice(i, 1);
+                    }
                     }
                 }
                 // --- FOG OF WAR REMOVED ---
@@ -2416,19 +2375,47 @@ animate() {
 
                 if (this.cameraMode === 'topdown' && this.topDownCamera) {
                     // ── TOP-DOWN MAIN + FPV PiP ──────────────────────────────────────
-                    // [1] Full-screen top-down
+                    // [1] Full-screen top-down (Rendered FIRST)
                     this.renderer.setViewport(0, 0, winW, winH);
                     this.renderer.setScissor(0, 0, winW, winH);
                     this.renderer.setScissorTest(true);
-                    this.scene.fog.color.setHex(0x06020f); // Spooky dark fog
-                    this.scene.fog.density = 0.04; // Deep depth of field/fog
-                    if (this.ambientLight) this.ambientLight.intensity = 0.20; // Mild Brightness per user request
+                    this.scene.fog.color.setHex(0x06020f);
+                    this.scene.fog.density = 0.04;
+                    
+                    // Boost Global Lights for Top Down
+                    if (this.ambientLight) this.ambientLight.intensity = 2.0;
+                    if (this.hemisphereLight) this.hemisphereLight.intensity = 0.8;
+                    if (this.dirLight) this.dirLight.intensity = 0.6;
+                    if (this.rimLight) this.rimLight.intensity = 0.3;
+                    
+                    if (this.headlamp) {
+                        this.headlamp.intensity = 5.0; // Fix: Bright flashlight cone in Top Down
+                        this.headlamp.distance = this.gridSize * 30;
+                    }
                     this.renderer.setClearColor(0x06020f, 1);
-                    // Lanterns STAY ON for photo-realistic spooky vibe!
-                    this.renderer.render(this.scene, this.topDownCamera);
-                    if (this.ambientLight) this.ambientLight.intensity = this.lanternLight ? 0.20 : 0.30;
+                    
+                    // Fix: Set aspect ratio for fullscreen
+                    this.topDownCamera.aspect = winW / winH;
+                    this.topDownCamera.updateProjectionMatrix();
 
-                    // [2] Small FPV view rendered via main renderer PiP
+                    // Fix: Hide the circular masks during fullscreen render so it's not clipped into a circle!
+                    if (this._pipMaskMesh) this._pipMaskMesh.visible = false;
+                    if (this._pipBgMesh) this._pipBgMesh.visible = false;
+
+                    this.renderer.render(this.scene, this.topDownCamera);
+                    
+                    // Restore Dimmed Lights for FPV
+                    if (this.ambientLight) this.ambientLight.intensity = this.lanternLight ? 0.025 : 0.05; // Darken FPV
+                    if (this.hemisphereLight) this.hemisphereLight.intensity = 0.2;
+                    if (this.dirLight) this.dirLight.intensity = 0.15;
+                    if (this.rimLight) this.rimLight.intensity = 0.09;
+                    
+                    if (this.headlamp) {
+                        this.headlamp.intensity = 0.015; // Dim headlamp in FPV
+                        this.headlamp.distance = this.gridSize * 14;
+                    }
+
+                    // [2] Small FPV view rendered via main renderer PiP (Rendered SECOND)
                     this.renderer.setViewport(safeX, winH - safeY - safeH, safeW, safeH);
                     this.renderer.setScissor(safeX, winH - safeY - safeH, safeW, safeH);
                     this.renderer.setScissorTest(true);
@@ -2443,6 +2430,9 @@ animate() {
                     const oldBg = this.scene.background;
                     this.scene.background = null;
                     
+                    // Ensure the FPV PiP has no masks attached (masks belong to topDownCamera usually)
+                    // If we ever want circular FPV PiP we'd move the masks to this camera here.
+                    
                     this.renderer.clearDepth(); // Ensure PiP draws on top
                     this.renderer.render(this.scene, this.camera);
                     
@@ -2454,19 +2444,34 @@ animate() {
                     // [1] FPV main render
                     this.renderer.setClearColor(0x06020f, 1);
                     this.scene.fog.density = 0.015;
+                    
+                    // Dimmed Lights for FPV
+                    if (this.ambientLight) this.ambientLight.intensity = this.lanternLight ? 0.025 : 0.05;
+                    if (this.hemisphereLight) this.hemisphereLight.intensity = 0.2;
+                    if (this.dirLight) this.dirLight.intensity = 0.15;
+                    if (this.rimLight) this.rimLight.intensity = 0.09;
+                    
+                    if (this.headlamp) {
+                        this.headlamp.intensity = 0.015; // Dim headlamp in FPV
+                        this.headlamp.distance = this.gridSize * 14;
+                    }
                     if (this.layoutData && this.layoutData.fpv) {
                         const fRect = this.layoutData.fpv;
                         this.renderer.setViewport(fRect.left, fRect.bottom, fRect.width, fRect.height);
                         this.renderer.setScissor(fRect.left, fRect.bottom, fRect.width, fRect.height);
                         this.renderer.setScissorTest(true);
+                        
+                        this.camera.aspect = fRect.width / fRect.height;
+                        this.camera.updateProjectionMatrix();
                     } else {
                         this.renderer.setViewport(0, 0, winW, winH);
                         this.renderer.setScissor(0, 0, winW, winH);
                         this.renderer.setScissorTest(true);
+                        
+                        this.camera.aspect = winW / winH;
+                        this.camera.updateProjectionMatrix();
                     }
-                    // -----------------------------------------------------
-                    // ANIMATE LOOT SHOWCASE 3D
-                    // -----------------------------------------------------
+
                     if (this._lootShowcase3D) {
                         this._lootShowcase3D.rotation.y += delta * 2.5;
                     }
@@ -2483,6 +2488,10 @@ animate() {
                         this.renderer.setScissor(safeX, safeY, safeW, safeH);
                         this.renderer.setScissorTest(true);
 
+                        // Show circular masks for the small PiP to clip it to a circle!
+                        if (this._pipMaskMesh) this._pipMaskMesh.visible = true;
+                        if (this._pipBgMesh) this._pipBgMesh.visible = true;
+
                         // Adjust Perspective Camera (Enforce Square Aspect Ratio)
                         const aspect = 1;
                         this.topDownCamera.aspect = aspect;
@@ -2491,8 +2500,6 @@ animate() {
 
                         // Create Circular Depth Mask & Background once
                         if (!this._pipMaskMesh) {
-                            // Fix: Use RingGeometry which natively supports perfect outer masking
-                            // inner radius 1 (which will be scaled), outer radius 100 to easily cover the 250x250 square
                             const maskGeo = new THREE.RingGeometry(1, 100, 64);
                             const maskMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.DoubleSide });
                             this._pipMaskMesh = new THREE.Mesh(maskGeo, maskMat);
@@ -2525,7 +2532,17 @@ animate() {
 
                         this.scene.fog.color.setHex(0x06020f); // Spooky dark fog
                         this.scene.fog.density = 0.00; // Zero out fog for clear PiP map
-                        if (this.ambientLight) this.ambientLight.intensity = 1.50; // High Brightness for PiP map
+                        
+                        // Boost Global Lights for Top Down
+                        if (this.ambientLight) this.ambientLight.intensity = 2.0;
+                        if (this.hemisphereLight) this.hemisphereLight.intensity = 0.8;
+                        if (this.dirLight) this.dirLight.intensity = 0.6;
+                        if (this.rimLight) this.rimLight.intensity = 0.3;
+                        
+                        if (this.headlamp) {
+                            this.headlamp.intensity = 5.0; // Bright flashlight in Top Down PiP
+                            this.headlamp.distance = this.gridSize * 30;
+                        }
                         // Lanterns STAY ON in PiP too!
 
                         const oldBg = this.scene.background;
@@ -2537,7 +2554,17 @@ animate() {
                         this.renderer.autoClearColor = true;
 
                         this.scene.background = oldBg;
-                        if (this.ambientLight) this.ambientLight.intensity = this.lanternLight ? 0.20 : 0.30;
+                        
+                        // Restore Dimmed Lights for FPV
+                        if (this.ambientLight) this.ambientLight.intensity = this.lanternLight ? 0.025 : 0.05; // Darken FPV
+                        if (this.hemisphereLight) this.hemisphereLight.intensity = 0.2;
+                        if (this.dirLight) this.dirLight.intensity = 0.15;
+                        if (this.rimLight) this.rimLight.intensity = 0.09;
+                        
+                        if (this.headlamp) {
+                            this.headlamp.intensity = 0.015; // Dim headlamp in FPV
+                            this.headlamp.distance = this.gridSize * 14;
+                        }
                         
                         this.scene.fog.color.setHex(0x556066);
                         this.scene.fog.density = 0.015;
@@ -2576,16 +2603,14 @@ animate() {
                 this.lanternLight.decay = 1.8;
                 this.lanternLight.distance = 200;
                 
-                // High-res shadow map for crisp shadow edges
-                this.lanternLight.castShadow = true;
-                this.lanternLight.shadow.mapSize.width = 1024;
-                this.lanternLight.shadow.mapSize.height = 1024;
-                this.lanternLight.shadow.camera.near = 0.5;
-                this.lanternLight.shadow.camera.far = 60;
+                // DISABLED shadow mapping on flashlight to restore 120 FPS
+                this.lanternLight.castShadow = false;
+                // this.lanternLight.shadow.mapSize.width = 1024;
+                // this.lanternLight.shadow.mapSize.height = 1024;
+                // this.lanternLight.shadow.camera.near = 0.5;
+                // this.lanternLight.shadow.camera.far = 60;
                 this.lanternLight.shadow.bias = -0.001;
-                this.lanternLight.shadow.normalBias = 0.02;
-                this.lanternLight.layers.enable(1);
-                this.lanternLight.layers.enable(2);
+                this.lanternLight.layers.set(1);
                 
                 this.lanternLight.target.position.set(0, -0.3, -10);
                 
@@ -2600,6 +2625,7 @@ animate() {
                 this.lanternFill.decay = 2.0;
                 this.lanternFill.distance = 30; // Shortened bounce
                 this.lanternFill.target.position.set(0, -0.5, -8);
+                this.lanternFill.layers.set(1);
                 this.camera.add(this.lanternFill);
                 this.camera.add(this.lanternFill.target);
 
@@ -2612,10 +2638,10 @@ animate() {
                 }
 
                 // ── VOLUMETRIC LIGHT CONE: Multi-layer photorealistic beam ──
-                const coneLength = 16;
-                const coneAngle = Math.PI / 7;
+                const coneLength = 10; // Reduced from 16 to reduce screen-space overdraw
+                const coneAngle = Math.PI / 8; // Narrower beam
                 const coneRadius = coneLength * Math.tan(coneAngle);
-                const coneGeo = new THREE.ConeGeometry(coneRadius, coneLength, 12, 1, true); // Lowered from 48 to 12 to fix FPS spasm
+                const coneGeo = new THREE.ConeGeometry(coneRadius, coneLength, 8, 1, true); // Lowered from 12 to 8 to fix FPS spasm
                 
                 const coneMat = new THREE.ShaderMaterial({
                     uniforms: {
@@ -2684,6 +2710,7 @@ animate() {
                 coneMesh.rotation.x = Math.PI / 2;
                 coneMesh.position.set(0.25, -0.15, -coneLength / 2 + 0.3);
                 coneMesh.renderOrder = 999;
+                coneMesh.layers.set(1); // Exclude from PiP camera!
                 
                 this.camera.add(coneMesh);
                 this.lanternCone = coneMesh;
@@ -2698,6 +2725,7 @@ animate() {
                 const lensMesh = new THREE.Mesh(lensGeo, lensMat);
                 lensMesh.position.set(0.25, -0.15, 0.3);
                 lensMesh.renderOrder = 1000;
+                lensMesh.layers.set(1); // Exclude from PiP camera!
                 this.camera.add(lensMesh);
                 this.lanternLens = lensMesh;
                 

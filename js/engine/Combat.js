@@ -137,31 +137,7 @@ handleHaltedAttack() {
                 if (this._haltPlayer && this.activeTarget) {
                     window.parent.postMessage({ type: 'FPV_ACTION', action: 'ATTACK' }, '*');
                     
-                    // Inline fallback haikus in case the JSON fetch fails (ERR_EMPTY_RESPONSE / CORS)
-                    const FALLBACK_HAIKUS = [
-                        "Blades flash in the dark / Steel meets the gambler's cold eye / Life fades like a breath.",
-                        "Bones rattle in the cup / Empty coins and empty stares / Blood pays all the debts.",
-                        "Folded steel bites deep / Honor bleeds away tonight / Only one survives.",
-                        "Demon shadows dance / Fate is just a rusted blade / Cutting the night wind.",
-                        "A fool's fatal bet / Goblins laughing in the dark / Gold and blood align."
-                    ];
-
-                    fetch('js/data/haikus.json')
-                        .then(r => {
-                            if (!r.ok) throw new Error('Haiku fetch failed');
-                            return r.json();
-                        })
-                        .then(data => {
-                            const hList = data.combat_haikus || FALLBACK_HAIKUS;
-                            const haiku = hList[Math.floor(Math.random() * hList.length)];
-                            const logText = `Oh you wish to attack... [${haiku.replace(/\//g, ' ')}]`;
-                            window.parent.postMessage({ type: 'LOG_EVENT', text: logText, logType: 'chat' }, '*');
-                        }).catch(e => {
-                            // Graceful degradation: use inline haiku on network failure
-                            const haiku = FALLBACK_HAIKUS[Math.floor(Math.random() * FALLBACK_HAIKUS.length)];
-                            const logText = `Oh you wish to attack... [${haiku.replace(/\//g, ' ')}]`;
-                            window.parent.postMessage({ type: 'LOG_EVENT', text: logText, logType: 'chat' }, '*');
-                        });
+                    // Removed chat dialogue as requested
                     
                     // Release the halt immediately so they can fight!
                     this._haltPlayer = false; 
@@ -172,33 +148,53 @@ handleHaltedAttack() {
 
             applyAimAssist() {
                 if (!this.worldGroup || !this.player) return;
-                let closestEnemy = null;
-                let minDist = 3.0; // Aim assist range in grid units (30 feet)
-                for (let c of this.worldGroup.children) {
-                    if (c.userData && c.userData.type === 'enemy' && !c.userData.isDead) {
-                        const ex = c.position.x / this.gridSize;
-                        const ez = c.position.z / this.gridSize;
-                        const dist = Math.hypot(this.player.x - ex, this.player.z - ez);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            closestEnemy = c;
+                
+                // If we have an active target lock, use it for perfect aim
+                let closestEnemy = this.activeTarget;
+                
+                // Otherwise, fall back to proximity aim assist
+                if (!closestEnemy || closestEnemy.userData.isDead) {
+                    let minDist = 4.5; // Extended aim assist range
+                    let closestCandidate = null;
+                    const fovCone = Math.PI / 2.5; // ~72 degrees forward cone
+                    
+                    for (let c of this.worldGroup.children) {
+                        if (c.userData && c.userData.type === 'enemy' && !c.userData.isDead) {
+                            const ex = c.position.x / this.gridSize;
+                            const ez = c.position.z / this.gridSize;
+                            const dist = Math.hypot(this.player.x - ex, this.player.z - ez);
+                            
+                            if (dist < minDist) {
+                                const dx = ex - this.player.x;
+                                const dz = ez - this.player.z;
+                                const angleToEnemy = Math.atan2(dx, dz);
+                                
+                                let diff = (this.player.rot - angleToEnemy) % (Math.PI * 2);
+                                if (diff < -Math.PI) diff += Math.PI * 2;
+                                if (diff > Math.PI) diff -= Math.PI * 2;
+                                
+                                if (Math.abs(diff) <= fovCone) {
+                                    minDist = dist;
+                                    closestCandidate = c;
+                                }
+                            }
                         }
                     }
+                    if (closestCandidate) closestEnemy = closestCandidate;
                 }
+                
                 if (closestEnemy) {
                     const ex = closestEnemy.position.x / this.gridSize;
                     const ez = closestEnemy.position.z / this.gridSize;
                     if (Math.hypot(ex - this.player.x, ez - this.player.z) > 0.01) {
                         const targetRot = Math.atan2(-(ex - this.player.x), -(ez - this.player.z));
-                        let diff = targetRot - this.player.rot;
-                        while (diff < -Math.PI) diff += Math.PI * 2;
-                        while (diff > Math.PI) diff -= Math.PI * 2;
                         
-                        // Gentle adjustment: only assist if the player is generally facing the enemy (within 90 degrees)
-                        if (Math.abs(diff) < Math.PI / 2) {
-                            // 50% smooth interpolation to lock onto the center of mass
-                            this.player.rot += diff * 0.5;
-                        }
+                        // Full lock-on for the attack
+                        this.player.rot = targetRot;
+                        this.activeTarget = closestEnemy;
+                        
+                        // Force side panel update just in case
+                        window.parent.postMessage({ type: 'SHOW_COMBAT', health: closestEnemy.userData.hp || 100 }, '*');
                     }
                 }
             },
@@ -427,17 +423,82 @@ handleHaltedAttack() {
                     }
                     const starMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.9, roughness: 0.1, emissive: 0x666666});
                     const starMesh = new THREE.Mesh(this._cachedShurikenGeo, starMat);
-                    starMesh.scale.set(0.3, 0.3, 0.3); starMesh.rotation.x = Math.PI / 2;
+                    starMesh.scale.set(0.225, 0.225, 0.225); // 25% smaller
+                    starMesh.rotation.x = Math.PI / 2;
                     projectileMesh.add(starMesh);
                     projectileMesh.userData.isShuriken = true;
                     projectileMesh.userData.spellState = 'FLYING';
-                } else if (spellData && (spellData.el === 'MISSILE' || spellData.cat === 'KATANA')) {
+                    projectileMesh.userData.customUpdate = (t) => {
+                        starMesh.rotation.z -= 0.5; // Realistic high-speed spin
+                    };
+                } else if (spellData && spellData.el === 'MISSILE') {
                     speed = 48.0;
-                    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), new THREE.MeshStandardMaterial({color: 0x5C4033})); shaft.rotation.x = Math.PI / 2;
-                    const head = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8})); head.rotation.x = Math.PI / 2; head.position.z = -0.4;
-                    projectileMesh.add(shaft, head);
+                    
+                    // Create detailed WebGL Arrow
+                    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8), new THREE.MeshStandardMaterial({color: 0x5C4033, roughness: 0.8})); 
+                    shaft.rotation.x = Math.PI / 2;
+                    
+                    const head = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.9, roughness: 0.2})); 
+                    head.rotation.x = Math.PI / 2; 
+                    head.position.z = -0.5; // Front of arrow
+                    
+                    // Fletching (Feathers)
+                    const fletchMat = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
+                    const fletch1 = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.2), fletchMat);
+                    fletch1.rotation.y = Math.PI / 2; fletch1.position.z = 0.35;
+                    const fletch2 = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.2), fletchMat);
+                    fletch2.rotation.x = Math.PI / 2; fletch2.position.z = 0.35;
+                    
+                    // Air Disturbance Trail (Whoosh)
+                    const trailGeo = new THREE.ConeGeometry(0.25, 2.0, 8, 1, true); // open ended cone
+                    const trailMat = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.3,
+                        blending: THREE.AdditiveBlending,
+                        side: THREE.BackSide,
+                        depthWrite: false
+                    });
+                    const trail = new THREE.Mesh(trailGeo, trailMat);
+                    trail.rotation.x = -Math.PI / 2; // Point cone backwards
+                    trail.position.z = 1.0; // Behind arrow
+                    
+                    projectileMesh.add(shaft, head, fletch1, fletch2, trail);
+                    projectileMesh.rotation.y = this.player.rot;
+                    
+                    projectileMesh.userData.isArrow = true;
+                    projectileMesh.userData.trailMesh = trail;
+                    projectileMesh.userData.customUpdate = (t) => {
+                        // Pulsate and stretch the trail to simulate fast air displacement
+                        const pulse = 1.0 + Math.sin(t * 30.0) * 0.2;
+                        trail.scale.set(pulse, 1.0 + (pulse * 0.5), pulse);
+                        trail.material.opacity = 0.15 + Math.random() * 0.15; // flicker
+                        projectileMesh.rotation.z += 0.3; // Realistic arrow rifling spin
+                    };
+                    
+                    projectileMesh.userData.spellState = 'FLYING';
+                } else if (spellData && spellData.el === 'KATANA') {
+                    speed = 35.0;
+                    const slashGroup = new THREE.Group();
+                    const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.05), new THREE.MeshStandardMaterial({color: 0x222222}));
+                    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.8, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.2}));
+                    blade.position.y = 0.5;
+                    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.1), new THREE.MeshStandardMaterial({color: 0xaa8800}));
+                    guard.position.y = 0.1;
+                    
+                    slashGroup.add(hilt, blade, guard);
+                    
+                    // Point forward
+                    slashGroup.rotation.x = Math.PI / 2;
+                    
+                    projectileMesh.add(slashGroup);
                     projectileMesh.rotation.y = this.player.rot;
                     projectileMesh.userData.spellState = 'FLYING';
+                    
+                    projectileMesh.userData.customUpdate = (t) => {
+                        // Spin wildly like a thrown weapon
+                        slashGroup.rotation.z += 0.5;
+                    };
                 } else {
                     projectileMesh.userData.spellState = 'FLYING'; // Fallback
                 }
@@ -608,6 +669,10 @@ spawnPotionUse(action, spellData) {
                             target.position.addScaledVector(knockDir, 0.4);
                             
                             if (target.userData.hp <= 0) window.postMessage({ type: 'AI_DEATH', id: target.userData.id }, '*');
+                            
+                            // Let the enemy retaliate/pursue
+                            if (window.CombatEngine) setTimeout(() => { window.CombatEngine.processMonsterTurn(); }, 600); 
+                            else setTimeout(() => { if (this.processMonsterTurn) this.processMonsterTurn(); }, 600);
                         } else {
                             window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${spellData.label} swings through the air!` }, '*');
                         }

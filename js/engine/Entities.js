@@ -263,255 +263,116 @@ checkCollision(gx, gz, radiusInGridUnits) {
             },
 
 processMonsterTurn() {
-                if (!this.worldGroup || !this.player) return;
-
-                const pX = Math.round(this.player.x / this.gridSize);
-                const pZ = Math.round(this.player.z / this.gridSize);
-
-                // --- [ARCHITECTURE OPTIMIZATION] ---
-                // Precompute the global occupancy map ONCE per turn rather than inside EVERY A* pathfinding request.
-                // This eliminates the O(N^2) stuttering caused by iterating 5,000 decor items for every step of every monster's pathfinding.
-                const sharedOccupancyMap = new Map();
-                for (const child of this.worldGroup.children) {
-                    if (child.userData && child.userData.id && !child.userData.type?.startsWith('loot') && !child.userData.isDead) {
-                        const eX = Math.round(child.position.x / this.gridSize);
-                        const eZ = Math.round(child.position.z / this.gridSize);
-                        sharedOccupancyMap.set(`${eX},${eZ}`, true);
-                    }
-                }
-
-                this.worldGroup.children.forEach(child => {
-                    if (!child.userData || !child.userData.ai || child.userData.isDead) return;
-
-                    const ai = child.userData.ai;
-                    const eX = Math.round(child.position.x / this.gridSize);
-                    const eZ = Math.round(child.position.z / this.gridSize);
-                    const distToPlayer = Math.hypot(pX - eX, pZ - eZ);
-
-                    // Skip action if they are already moving
-                    if (ai.targetMove) return;
-
-                    // 1. Room Learning (Forensics)
-                    let currentRoom = null;
-                    if (this.rooms) {
-                        for (let r of this.rooms) {
-                            if (eX >= r.x && eX < r.x + r.w && eZ >= r.y && eZ < r.y + r.h) {
-                                currentRoom = r;
-                                break;
-                            }
-                        }
-                        // PREVENT MOVEMENT/AI IN ROOM 0 (Intro Room) UNLESS HOSTILE
-                        if (currentRoom && this.rooms.length > 0 && currentRoom.id === this.rooms[0].id) {
-                            if (!child.userData.isHostile) {
-                                ai.state = 'IDLE';
-                                return; 
-                            }
-                        }
-                        
-                        if (currentRoom && !ai.memory.knownRooms.has(currentRoom.id)) {
-                            ai.memory.knownRooms.add(currentRoom.id);
-                            // Smart monsters announce learning
-                            if (ai.intelligence > 0.7 && distToPlayer < 8) {
-                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `[AI Forensics] ${child.userData.name} mapped the layout of Room ${currentRoom.id}.` }, '*');
-                            }
-                        }
-                    }
-
-                    // 2. Memory Updates
-                    if (distToPlayer < 10) {
-                        ai.memory.lastPlayerSeenAt = { x: pX, z: pZ };
-                    }
-
-                    // 3. FUZZY STATE EVALUATION
-                    const hpRatio = child.userData.hp / child.userData.maxHp;
+                if (this.activeTarget && !this.activeTarget.userData.isDead && this.activeTarget.userData.isHostile) {
+                    const mX = Math.round(this.activeTarget.position.x / this.gridSize);
+                    const mZ = Math.round(this.activeTarget.position.z / this.gridSize);
+                    const pX = Math.round(this.player.x);
+                    const pZ = Math.round(this.player.z);
                     
-                    if (ai.state !== 'GAMBLING') {
-                        if (hpRatio < 0.4 && ai.fear > 0.3) {
-                            ai.state = 'FLEEING';
-                        } else if (distToPlayer < 8 || child.userData.isHostile) {
-                            if (ai.greed > 0.7 && distToPlayer < 4 && child.userData.type !== 'enemy' && !child.userData.isHostile) {
-                                ai.state = 'GAMBLING';
-                            } else if (ai.aggression > 0.2 || child.userData.isHostile) {
-                                ai.state = 'CHASING';
-                            } else {
-                                ai.state = 'EVALUATING';
-                            }
-                        } else {
-                            ai.state = 'IDLE';
+                    const dx = pX - mX;
+                    const dz = pZ - mZ;
+                    
+                    // Simple pathing: move 1 tile toward player
+                    let stepX = 0;
+                    let stepZ = 0;
+                    if (Math.abs(dx) > Math.abs(dz)) {
+                        stepX = Math.sign(dx);
+                    } else if (Math.abs(dz) > 0) {
+                        stepZ = Math.sign(dz);
+                    } else if (Math.abs(dx) > 0) {
+                        stepX = Math.sign(dx); // Fallback
+                    }
+                    
+                    const nextX = mX + stepX;
+                    const nextZ = mZ + stepZ;
+                    
+                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Goblin AI: dx=${dx}, dz=${dz}, stepX=${stepX}, stepZ=${stepZ}. Validating space...` }, '*');
+
+                    // Prevent entering player's exact tile
+                    if ((nextX !== pX || nextZ !== pZ) && this.isValidGridSpace(nextX, nextZ) === true) {
+                        this.activeTarget.userData.cx = nextX;
+                        this.activeTarget.userData.cz = nextZ;
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Goblin steps to ${nextX}, ${nextZ}` }, '*');
+                    } else if (Math.abs(dx) + Math.abs(dz) === 1) {
+                        // Monster is adjacent, it attacks!
+                        this.spawnCombatText("ATTACK!", "damage");
+                        this.player.hp -= 10;
+                        if (this.syncPlayerStats) this.syncPlayerStats();
+                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: 'Goblin strikes you for 10 damage!' }, '*');
+                        
+                        if (this.activeTarget.userData.attackAction) {
+                            if (this.activeTarget.userData.idleAction) this.activeTarget.userData.idleAction.stop();
+                            if (this.activeTarget.userData.walkAction) this.activeTarget.userData.walkAction.stop();
+                            this.activeTarget.userData.attackAction.reset().setLoop(THREE.LoopOnce, 1).play();
+                            this.activeTarget.userData._animKey = 'attack';
                         }
                     }
-
-                    // 4. EXECUTE TURN ACTIONS
-                    switch(ai.state) {
-                        case 'IDLE':
-                            if (Math.random() < ai.intelligence) {
-                                const dirs = [[0,1], [0,-1], [1,0], [-1,0]];
-                                const [dx, dz] = dirs[Math.floor(Math.random() * dirs.length)];
-                                const isClear = this.isValidGridSpace(eX + dx, eZ + dz);
-                                if (isClear === true) {
-                                    ai.targetMove = { x: (eX + dx) * this.gridSize, z: (eZ + dz) * this.gridSize };
-                                    if (child.userData.walkAction && !child.userData.walkAction.isRunning()) {
-                                        child.userData.walkAction.reset().play();
-                                    }
-                                }
-                            }
-                            break;
-                            
-                        case 'CHASING':
-                            if (distToPlayer <= 1.5) {
-                                // Nethack Combat Turn: Melee Strike Sequence
-                                const tx = this.player.x * this.gridSize;
-                                const tz = this.player.z * this.gridSize;
-                                if (Math.hypot(tx - child.position.x, tz - child.position.z) > 0.01) {
-                                    child.lookAt(tx, child.position.y, tz);
-                                }
-                                
-                                // Play animation sequence: Bow -> Walk Forward -> Attack
-                                if (child.userData.mixer) {
-                                    child.userData.mixer.stopAllAction();
-                                    
-                                    let seqDelay = 0;
-                                    
-                                    if (child.userData.bowAction) {
-                                        child.userData.bowAction.reset().setLoop(THREE.LoopOnce, 1).play();
-                                        seqDelay += 600; // Bow duration
-                                    }
-                                    
-                                    // 1. Walk forward slightly
-                                    setTimeout(() => {
-                                        if (!child.parent || child.userData.isDead) return;
-                                        child.userData.mixer.stopAllAction();
-                                        if (child.userData.walkAction) child.userData.walkAction.reset().play();
-                                        
-                                        // Visually step towards player (30% of the way)
-                                        const stepX = child.position.x + (tx - child.position.x) * 0.3;
-                                        const stepZ = child.position.z + (tz - child.position.z) * 0.3;
-                                        child.position.set(stepX, child.position.y, stepZ);
-                                    }, seqDelay);
-                                    
-                                    // 2. Attack and deal damage
-                                    setTimeout(() => {
-                                        if (!child.parent || child.userData.isDead) return;
-                                        child.userData.mixer.stopAllAction();
-                                        if (child.userData.attackAction) child.userData.attackAction.reset().setLoop(THREE.LoopOnce, 1).play();
-                                        
-                                        const strikeDmg = Math.floor(5 + (ai.aggression * 10)); // Aggression boosts damage
-                                        if (window.CombatEngine) window.CombatEngine.resolveMeleeStrike(child.userData.name || 'Monster', strikeDmg);
-                                        this.player.hp = Math.max(0, this.player.hp - strikeDmg);
-                                        this.syncPlayerStats();
-                                        const weaponName = child.userData.weapon || 'Fists';
-                                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'damage', text: `${child.userData.name} aggressively strikes with their ${weaponName} for ${strikeDmg} DMG!` }, '*');
-                                        this.addCameraTrauma(0.4 * ai.aggression);
-                                        
-                                        // 3. Step back to grid center
-                                        setTimeout(() => {
-                                            if (!child.parent || child.userData.isDead) return;
-                                            child.position.set(eX * this.gridSize, child.position.y, eZ * this.gridSize);
-                                            child.userData.mixer.stopAllAction();
-                                            if (child.userData.idleAction) child.userData.idleAction.reset().play();
-                                        }, 500);
-                                        
-                                    }, seqDelay + 400); // Delay after walk
-                                }
-                            } else {
-                                // Advanced Pathfinding (Intelligence affects path quality)
-                                let targetX = pX;
-                                let targetZ = pZ;
-                                
-                                if (distToPlayer >= 10 && ai.intelligence > 0.5 && ai.memory.lastPlayerSeenAt) {
-                                    targetX = ai.memory.lastPlayerSeenAt.x;
-                                    targetZ = ai.memory.lastPlayerSeenAt.z;
-                                }
-                                
-                                const path = this.findPath(eX, eZ, targetX, targetZ, sharedOccupancyMap);
-                                if (path && path.length > 1) {
-                                    const nextNode = path[1];
-                                    const isClear = this.isValidGridSpace(nextNode.x, nextNode.z);
-                                    if (isClear === true || (typeof isClear === 'object' && isClear.userData.id === child.userData.id)) {
-                                        ai.targetMove = { x: nextNode.x * this.gridSize, z: nextNode.z * this.gridSize };
-                                        if (child.userData.walkAction && !child.userData.walkAction.isRunning()) {
-                                            child.userData.walkAction.reset().play();
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                            
-                        case 'FLEEING':
-                            const runDirs = [
-                                [Math.sign(eX - pX), 0],
-                                [0, Math.sign(eZ - pZ)]
-                            ];
-                            let ran = false;
-                            for (let d of runDirs) {
-                                if (d[0] === 0 && d[1] === 0) continue;
-                                const isClear = this.isValidGridSpace(eX + d[0], eZ + d[1]);
-                                if (isClear === true) {
-                                    ai.targetMove = { x: (eX + d[0]) * this.gridSize, z: (eZ + d[1]) * this.gridSize };
-                                    ran = true;
-                                    
-                                    if (child.userData.walkAction && !child.userData.walkAction.isRunning()) {
-                                        child.userData.walkAction.reset().play();
-                                    }
-                                    break;
-                                }
-                            }
-                            if (ran && ai.fear > 0.8 && Math.random() < 0.2) {
-                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${child.userData.name} flees in terror!` }, '*');
-                            }
-                            break;
-                            
-                        case 'GAMBLING':
-                            if (distToPlayer > 5) {
-                                ai.state = 'IDLE'; // Player left the table
-                            } else if (Math.random() < 0.2) {
-                                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `${child.userData.name} rattles some dice. "Double or nothing?"` }, '*');
-                                
-                            }
-                            break;
-                    }
-                });
-                
-                // Allow player to take their next turn after monsters finish
-                setTimeout(() => {
-                    if (this.activeTarget && !this.activeTarget.userData.isDead) {
+                    
+                    // Yield turn back
+                    setTimeout(() => {
                         this.combatState = 'player_turn';
                         window.parent.postMessage({ type: 'COMBAT_STATE_UPDATE', state: 'player_turn' }, '*');
-                    } else {
-                        this.combatState = 'idle';
-                    }
-                }, 300); // 300ms is enough time to let visual tweening finish
+                    }, 500); // 500ms to allow movement animation
+                } else {
+                    this.combatState = 'idle';
+                }
             },
 
 processFuzzyAI(delta) {
-                if (!this.worldGroup || !this.player) return;
-
-                this.worldGroup.children.forEach(child => {
-                    if (!child.userData || !child.userData.ai || child.userData.isDead) return;
-
-                    const ai = child.userData.ai;
-                    
-                    // ALL MODELS TURN TO PLAYER ALWAYS (Use World Coordinates)
-                    const tx = this.player.x;
-                    const tz = this.player.z;
-                    if (Math.hypot(tx - child.position.x, tz - child.position.z) > 0.01) {
-                        child.lookAt(tx, child.position.y, tz);
-                    }
-                    
-                    // 1. Smooth Visual Tweening (Executes every frame if moving)
-                    if (ai.targetMove) {
-                        const dx = ai.targetMove.x - child.position.x;
-                        const dz = ai.targetMove.z - child.position.z;
-                        if (Math.hypot(dx, dz) < 0.1) {
-                            child.position.x = ai.targetMove.x;
-                            child.position.z = ai.targetMove.z;
-                            ai.targetMove = null;
-                        } else {
-                            child.position.x += dx * 5 * delta;
-                            child.position.z += dz * 5 * delta;
+                if (!this.worldGroup) return;
+                for (const child of this.worldGroup.children) {
+                    if (child.userData && child.userData.id && !child.userData.type?.startsWith('loot') && !child.userData.isDead) {
+                        if (child.userData.cx !== undefined && child.userData.cz !== undefined) {
+                            const targetX = child.userData.cx * this.gridSize;
+                            const targetZ = child.userData.cz * this.gridSize;
+                            const dx = targetX - child.position.x;
+                            const dz = targetZ - child.position.z;
+                            const dist = Math.sqrt(dx*dx + dz*dz);
+                            
+                            if (dist > 0.05) {
+                                // Move towards target
+                                const speed = 4.0 * delta;
+                                child.position.x += dx * speed;
+                                child.position.z += dz * speed;
+                                
+                                // Rotate towards movement
+                                const targetRot = Math.atan2(-dx, -dz);
+                                let diff = targetRot - child.rotation.y;
+                                while (diff > Math.PI) diff -= Math.PI * 2;
+                                while (diff < -Math.PI) diff += Math.PI * 2;
+                                child.rotation.y += diff * 10 * delta;
+                                
+                                // Walk animation
+                                if (child.userData._animKey !== 'walk' && child.userData.walkAction) {
+                                    if (child.userData.idleAction) child.userData.idleAction.stop();
+                                    if (child.userData.attackAction) child.userData.attackAction.stop();
+                                    child.userData.walkAction.reset().play();
+                                    child.userData._animKey = 'walk';
+                                }
+                            } else {
+                                // Snap to target
+                                child.position.x = targetX;
+                                child.position.z = targetZ;
+                                
+                                // Face player
+                                const pDx = this.player.x * this.gridSize - child.position.x;
+                                const pDz = this.player.z * this.gridSize - child.position.z;
+                                const targetRot = Math.atan2(-pDx, -pDz);
+                                let diff = targetRot - child.rotation.y;
+                                while (diff > Math.PI) diff -= Math.PI * 2;
+                                while (diff < -Math.PI) diff += Math.PI * 2;
+                                child.rotation.y += diff * 5 * delta;
+                                
+                                // Idle animation
+                                if (child.userData._animKey !== 'idle' && child.userData._animKey !== 'attack' && child.userData.idleAction) {
+                                    if (child.userData.walkAction) child.userData.walkAction.stop();
+                                    child.userData.idleAction.reset().play();
+                                    child.userData._animKey = 'idle';
+                                }
+                            }
                         }
                     }
-                });
+                }
             },
 
 isValidGridSpace(cx, cz) {
@@ -581,6 +442,7 @@ flattenGoblin(mesh, damage) {
                 if (!mesh || mesh.userData.isDead) return;
 
                 mesh.userData.hp = Math.max(0, mesh.userData.hp - damage);
+                mesh.userData.isHostile = true; // Turn red and aggro!
                 window.parent.postMessage({
                     type: 'SHOW_COMBAT',
                     health: mesh.userData.hp,
@@ -600,12 +462,49 @@ flattenGoblin(mesh, damage) {
                 if (mesh.userData.mixer) mesh.userData.mixer.stopAllAction();
                 const lethal = mesh.userData.hp <= 0;
                 if (lethal) mesh.userData.isDead = true;
+                
+                if (lethal) {
+                    if (mesh.userData.bowAction) {
+                        if (mesh.userData.idleAction) mesh.userData.idleAction.stop();
+                        if (mesh.userData.walkAction) mesh.userData.walkAction.stop();
+                        if (mesh.userData.attackAction) mesh.userData.attackAction.stop();
+                        mesh.userData.bowAction.reset().setLoop(THREE.LoopOnce, 1).play();
+                        mesh.userData._animKey = 'bow';
+                    }
+                    
+                    window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Monster ${mesh.userData.name || 'Yakuza Goblin'} has been killed. EXP gained. -1 Karma` }, '*');
+                    const fadeStart = performance.now();
+                    const fadeDur   = 1500; // longer to see bow
+                    const initialY  = mesh.position.y;
+                    const fadeAnim  = () => {
+                        if (!mesh.parent) return;
+                        const ft = Math.min(1.0, (performance.now() - fadeStart) / fadeDur);
+                        
+                        // Wait 500ms for bow animation to play before sinking
+                        if (performance.now() - fadeStart > 500) {
+                            const sinkT = Math.min(1.0, (performance.now() - (fadeStart + 500)) / 1000);
+                            mesh.position.y = initialY - (sinkT * 1.5); // Sink down through floor
+                            
+                            const childMeshes = [];
+                            mesh.traverse(n => { if (n.isMesh) childMeshes.push(n); });
+                            childMeshes.forEach(cm => {
+                                if (cm.material && cm.material.transparent) {
+                                    cm.material.opacity = Math.max(0, 0.60 * (1.0 - sinkT));
+                                }
+                            });
+                        }
+                        if (ft < 1.0) requestAnimationFrame(fadeAnim);
+                        else window.postMessage({ type: 'AI_DEATH', id: mesh.userData.id }, '*');
+                    };
+                    requestAnimationFrame(fadeAnim);
+                    return; // Skip flattening
+                }
 
                 const childMeshes = [];
                 mesh.traverse(n => { if (n.isMesh) childMeshes.push(n); });
                 const origScale = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
                 const flatStart = performance.now();
-                const flatDur   = lethal ? 380 : 230;
+                const flatDur   = 230;
 
                 const flatAnim = () => {
                     if (!mesh.parent) return;
@@ -622,27 +521,6 @@ flattenGoblin(mesh, damage) {
                     });
                     if (t < 1.0) {
                         requestAnimationFrame(flatAnim);
-                    } else if (lethal) {
-                        // Fade out flat corpse and sink through floor, then trigger AI_DEATH cleanup
-                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `Monster ${mesh.userData.name || 'Yakuza Goblin'} has been killed. EXP gained. -1 Karma` }, '*');
-                        const fadeStart = performance.now();
-                        const fadeDur   = 1200; // slightly longer to watch it sink
-                        const initialY  = mesh.position.y;
-                        const fadeAnim  = () => {
-                            if (!mesh.parent) return;
-                            const ft = Math.min(1.0, (performance.now() - fadeStart) / fadeDur);
-                            
-                            mesh.position.y = initialY - (ft * 1.5); // Sink down through floor
-                            
-                            childMeshes.forEach(cm => {
-                                if (cm.material && cm.material.transparent) {
-                                    cm.material.opacity = Math.max(0, 0.55 * (1.0 - ft));
-                                }
-                            });
-                            if (ft < 1.0) requestAnimationFrame(fadeAnim);
-                            else window.postMessage({ type: 'AI_DEATH', id: mesh.userData.id }, '*');
-                        };
-                        requestAnimationFrame(fadeAnim);
                     } else {
                         // Survived — spring back to original scale over 350ms
                         const bnStart = performance.now();
@@ -699,12 +577,7 @@ triggerRoomAggro(hitMesh) {
                         mesh.userData.ai.aggression = Math.min(1.0, mesh.userData.ai.aggression + 0.5);
                         mesh.userData.ai.state = 'CHASING';
                     }
-                    
-                    // Turn border visually red persistently
-                    if (mesh.userData.fpvBorderMesh) {
-                        mesh.userData.fpvBorderMesh.material.color.setHex(0xff0000);
-                        mesh.userData.fpvBorderMesh.material.emissive.setHex(0x550000);
-                    }
+                    // Do not turn the border red, preserve the white border as requested.
                 });
                 
                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `The room has turned hostile!` }, '*');
@@ -748,7 +621,7 @@ checkTriggers() {
                             const eZ = child.position.z / this.gridSize;
                             
                             // Check distance instead of exact grid match since models sit at exact center
-                            const dist = Math.hypot((this.player.x / this.gridSize) - eX, (this.player.z / this.gridSize) - eZ);
+                            const dist = Math.hypot(this.player.x - eX, this.player.z - eZ);
                             
                             // True 3D FPV calculations utilizing Global vectors to prevent GC spills
                             this._ct_mPos.copy(child.position);
@@ -770,26 +643,12 @@ checkTriggers() {
                             // Once locked, it stays locked up to 12.0 tiles for retreat/recoil, but ONLY if still in view
                             const isActiveTarget = this.activeTarget && this.activeTarget.userData.id === child.userData.id;
                             
-                            if (isActiveTarget && dist <= 12.0 && dot > 0.25) {
+                            if (isActiveTarget && dist <= 14.0 && dot > 0.25) {
                                 makesCombat = true; 
-                            } else if (dist <= 4.0 && dot > 0.4) {
+                            } else if (dist <= 12.0 && dot > 0.4) {
                                 makesCombat = true; 
                             }
-                            
-                            // 20-Foot Chat Bubble Halt (2 tiles = 20 feet)
-                            if (dist <= 2.0 && dot > 0.707 && child.userData.type === 'enemy') {
-                                if (!child.userData.chatSpawned) {
-                                    child.userData.chatSpawned = true;
-                                        window.parent.postMessage({ type: 'LOG_EVENT', text: `Stop Fool!  Where do you think you're going?   Make a wager or duel - your choice.  Its a fool's wager! [止まれ、愚か者め！どこへ行くつもりだ？ 賭けをするか、決闘をするか…選べ。 愚か者の賭けだがな！]`, logType: 'chat' }, '*');
-                                    // Halt forward movement at interaction
-                                    this._haltPlayer = true;
-                                    this.keys.w = false;
-                                    this.keys.a = false;
-                                    this.keys.s = false;
-                                    this.keys.d = false;
-                                }
-                            }
-
+                            // (Chat Bubble Halt mechanic removed)
                             // Eerie Ghost Glow triggers when interacting with player (<= 2.0 tiles / 20 feet)
                             let makesGlow = false;
                             if (dist <= 2.0 && dot > 0.707) {
