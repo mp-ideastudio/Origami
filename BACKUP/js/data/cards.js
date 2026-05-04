@@ -1,0 +1,62 @@
+window.OrigamiCards = [
+    // EARTH
+    { id: 'boulder', name: 'BOULDER', type: 'EARTH', el: 'EARTH', kanji: '地', desc: 'Heavy impact.', attr: '(STUN * 2DICE)', dice: 2, dot: 0, animation: 'projectile_boulder', icon: 'fa-mountain' },
+    { id: 'fissure', name: 'FISSURE', type: 'EARTH', el: 'EARTH', kanji: '地', desc: 'Ground breaking.', attr: '(STUN * 2DICE)', dice: 2, dot: 0, animation: 'aoe_fissure', icon: 'fa-mountain' },
+    
+    // WIND
+    { id: 'gale', name: 'GALE', type: 'WIND', el: 'WIND', kanji: '風', desc: 'Forceful gust.', attr: '(PUSH * 3DICE)', dice: 3, dot: 0, animation: 'projectile_wind', icon: 'fa-wind' },
+    
+    // FIRE
+    { id: 'fireball', name: 'FIREBALL', type: 'FIRE', el: 'FIRE', kanji: '火', desc: 'Inferno star.', attr: '(DMG * 4DICE)', dice: 4, dot: 0, animation: 'projectile_fireball', icon: 'fa-fire' },
+    { id: 'pyroblast', name: 'PYROBLAST', type: 'FIRE', el: 'FIRE', kanji: '火', desc: 'Massive fire damage.', attr: '(DMG * 6DICE)', dice: 6, dot: 2, animation: 'projectile_fireball', icon: 'fa-fire' },
+    { id: 'comet', name: 'COMET', type: 'FIRE', el: 'FIRE', kanji: '火', desc: 'Rains from above.', attr: '(DMG * 8DICE)', dice: 8, dot: 0, animation: 'aoe_comet', icon: 'fa-fire' },
+    
+    // WATER
+    { id: 'tide', name: 'TIDE', type: 'WATER', el: 'WATER', kanji: '水', desc: 'Washes away foes.', attr: '(SLOW * 3DICE)', dice: 3, dot: 0, animation: 'aoe_tide', icon: 'fa-water' },
+    { id: 'surge', name: 'SURGE', type: 'WATER', el: 'WATER', kanji: '水', desc: 'Crashing wave.', attr: '(DMG * 3DICE)', dice: 3, dot: 0, animation: 'projectile_surge', icon: 'fa-water' },
+    
+    // MISSILE / RANGED
+    { id: 'shuriken', name: 'SHURIKEN', type: 'ranged', el: 'MISSILE', kanji: '投', desc: 'Ranged attack.', attr: '(DMG * 2DICE)', dice: 2, dot: 0, animation: 'projectile_shuriken', icon: 'fa-star' },
+    { id: 'short_bow', name: 'SHORT BOW', type: 'ranged', el: 'MISSILE', kanji: '弓', desc: 'Quick arrow.', attr: '(DMG * 2DICE)', dice: 2, dot: 0, animation: 'projectile_arrow', icon: 'fa-bow-arrow' },
+    { id: 'long_bow', name: 'LONG BOW', type: 'ranged', el: 'MISSILE', kanji: '長', desc: 'Piercing shot.', attr: '(DMG * 4DICE)', dice: 4, dot: 0, animation: 'projectile_arrow', icon: 'fa-bow-arrow' },
+    
+    // KATANA / MELEE
+    { id: 'slash', name: 'SLASH', type: 'melee', el: 'KATANA', kanji: '斬', desc: 'Basic slash.', attr: '(DMG * 1DICE)', dice: 1, dot: 0, animation: 'melee_slash', icon: 'fa-fire' },
+    { id: 'thrust', name: 'THRUST', type: 'melee', el: 'KATANA', kanji: '突', desc: 'Quick poke.', attr: '(DMG * 1DICE)', dice: 1, dot: 0, animation: 'melee_thrust', icon: 'fa-wind' },
+    { id: 'strong_attack', name: 'STRONG ATTACK', type: 'melee', el: 'KATANA', kanji: '強', desc: 'Heavy blow.', attr: '(DMG * 3DICE)', dice: 3, dot: 0, animation: 'melee_strong', icon: 'fa-mountain' },
+    
+    // ITEM / ARMOR
+    { id: 'heal_potion', name: 'HEAL POTION', type: 'consumable', el: 'ITEM', kanji: '具', desc: 'Consumable', attr: '(HP + 20)', dice: 0, dot: 0, animation: 'effect_heal', icon: 'fa-flask' },
+    { id: 'potion', name: 'POTION', type: 'consumable', el: 'SCROLL', kanji: '具', desc: 'Consumable', attr: '(HP + 20)', dice: 0, dot: 0, animation: 'effect_heal', icon: 'fa-flask' },
+    { id: 'scroll_identity', name: 'SCROLL OF IDENTITY', type: 'consumable', el: 'ITEM', kanji: '具', desc: 'Reveals truth.', attr: '(REVEAL)', dice: 0, dot: 0, animation: 'effect_buff', icon: 'fa-scroll' },
+    { id: 'shield', name: 'SHIELD', type: 'armor', el: 'ITEM', kanji: '盾', desc: 'Raises AC.', attr: '(AC + 5)', dice: 0, dot: 0, animation: 'effect_defend', icon: 'fa-water' },
+    { id: 'samurai_helmet', name: 'SAMURAI HELMET', type: 'armor', el: 'ARMOR', kanji: '兜', desc: '+15 DEF.', attr: '(EQUIP)', dice: 0, dot: 0, animation: 'effect_equip', icon: 'fa-hat-wizard' },
+    { id: 'magic_lantern', name: 'MAGIC LANTERN', type: 'item', el: 'ITEM', kanji: '灯', desc: 'Light your way.', attr: '(EQUIP)', dice: 0, dot: 0, animation: 'effect_equip', icon: 'fa-lightbulb' },
+    
+    // GUNS / WANDS
+    { id: 'wand_of_fireballs', name: 'WAND OF FIREBALLS', type: 'ranged', el: 'MISSILE', kanji: '爆', desc: 'Bazooka.', attr: '(DMG * 6DICE)', dice: 6, dot: 0, animation: 'projectile_fireball', icon: 'fa-rocket' },
+    { id: 'wand_of_magic_missiles', name: 'WAND OF MAGIC MISSILES', type: 'ranged', el: 'MISSILE', kanji: '銃', desc: '9mm Glock.', attr: '(DMG * 3DICE)', dice: 3, dot: 0, animation: 'projectile_arrow', icon: 'fa-gun' },
+    { id: 'tommy_gun', name: 'TOMMY GUN', type: 'ranged', el: 'MISSILE', kanji: '機', desc: 'Mobster firepower.', attr: '(DMG * 8DICE)', dice: 8, dot: 0, animation: 'projectile_arrow', icon: 'fa-gun' },
+    
+    // SYSTEM
+    { id: 'gold_coin', name: 'GOLD COIN', type: 'currency', el: 'GOLD_COIN', kanji: '金', desc: 'Wealth.', attr: '+50 GOLD', dice: 0, dot: 0, animation: 'effect_gold', icon: 'fa-coins' }
+];
+
+// Provide helper to get categories grouped by Element
+window.getOrigamiCategories = function() {
+    const cats = {};
+    window.OrigamiCards.forEach(c => {
+        if (!cats[c.el]) {
+            cats[c.el] = {
+                id: c.el,
+                kanji: c.kanji,
+                icon: c.icon,
+                desc: c.desc, // Uses the first card's desc as fallback
+                attr: c.attr,
+                cards: []
+            };
+        }
+        cats[c.el].cards.push(c.name);
+    });
+    return Object.values(cats);
+};

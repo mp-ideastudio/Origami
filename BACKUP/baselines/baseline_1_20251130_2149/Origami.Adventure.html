@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Dungeon - UI Framework</title>
+    
+    <!-- 1. Load Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. Scoped CSS -->
+    <style>
+        /* Global Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #e5e5e5; /* Fallback background */
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden; /* Prevent scrolling on body */
+        }
+
+        /* Event Modal */
+        #event-modal {
+            display: none;
+            position: fixed;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            z-index: 999999;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 50px;
+            overflow-y: auto;
+        }
+
+        /* Background Pattern for the whole page */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#a8a29e 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        /* Wrapper Container */
+        /* Wrapper Container */
+        #origami-dungeon-wrapper {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.5;
+            box-sizing: border-box;
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 100%; /* Full width as requested */
+            height: 100vh; /* Full height for standalone */
+            max-height: 800px; /* Cap height on large screens */
+            z-index: 9999;
+            background: transparent;
+            pointer-events: none; 
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @media (min-height: 800px) {
+             #origami-dungeon-wrapper {
+                bottom: 20px; /* Floating effect on tall screens */
+                height: 700px;
+                border-radius: 12px;
+                box-shadow: 0 20px 50px -12px rgba(0,0,0,0.25);
+                overflow: hidden;
+                pointer-events: auto; /* Re-enable for the container wrapper */
+                background-color: transparent;
+             }
+        }
+      
+        #origami-dungeon-wrapper > * {
+            pointer-events: auto;
+        }
+
+        #origami-dungeon-wrapper *:focus-visible {
+            outline: 2px solid #d97706;
+            outline-offset: 2px;
+            z-index: 50;
+        }
+
+        /* Fluid Typography */
+        #origami-dungeon-wrapper .fluid-heading {
+            font-size: clamp(1.4rem, 4.5vh, 2.2rem);
+            line-height: 1.2;
+            margin-top: 0.25rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-weight: 700;
+            color: #111827;
+            font-family: "Crimson Text", serif;
+        }
+
+        #origami-dungeon-wrapper .fluid-sub {
+            font-size: clamp(0.7rem, 2vh, 1rem);
+            color: #4b5563;
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-family: "Crimson Text", serif;
+        }
+
+        #origami-dungeon-wrapper .fluid-text {
+            font-size: clamp(1rem, 3vh, 1.4rem);
+            line-height: 1.6;
+            text-align: justify;
+            color: #1f2937;
+            font-family: "Crimson Text", serif;
+        }
+
+        /* Interactive Feature Text Link */
+        #origami-dungeon-wrapper .interactive-feature {
+            color: #b45309;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border-bottom: 1px dashed #b45309;
+        }
+        #origami-dungeon-wrapper .interactive-feature:hover {
+            color: #78350f;
+            border-bottom: 1px solid #78350f;
+            background-color: rgba(251, 191, 36, 0.1);
+        }
+
+        /* Guide Buttons Container - Middle Alignment */
+        #guide-buttons-container {
+            align-items: center;
+            height: 100%;
+        }
+
+        /* Card Style */
+        #event-modal .modal-content {
+            background: #fdfbf7;
+            padding: 1rem; /* Reduced padding for small screens */
+            border-radius: 8px;
+            width: 100%; /* Full width */
+            max-width: 100%; /* No cap */
+            height: auto;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.95);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            margin: 10px; /* Slight margin */
+        }
+        #origami-dungeon-wrapper .event-card {
+            border: 2px solid #e5e7eb;
+            background-color: #ffffff;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin: 0.5rem auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            width: 90%;
+            height: 25vh; /* 1/4 of viewport height */
+            max-height: 25vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Event Card Typography */
+        #origami-dungeon-wrapper .event-card .font-bold.text-lg {
+            font-size: clamp(1rem, 3vh, 1.25rem); /* Fluid title */
+            line-height: 1.2;
+        }
+        #origami-dungeon-wrapper .event-card .text-xs {
+            font-size: clamp(0.65rem, 2vh, 0.75rem); /* Fluid subtitle */
+        }
+        
+        /* Expandable Card Interaction */
+        .expandable-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .expandable-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        #origami-dungeon-wrapper .event-card-3d-container { width: 100%; height: 100px; position: relative; }
+        #origami-dungeon-wrapper .event-card-icon { font-size: 2rem; margin-bottom: 0.1rem; animation: float 3s ease-in-out infinite; }
+
+        /* Loot Circle Style */
+        #origami-dungeon-wrapper .loot-circle-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        #origami-dungeon-wrapper .loot-circle {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: 2px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        #origami-dungeon-wrapper .loot-circle:hover { transform: scale(1.1); border-color: #d97706; }
+
+        #origami-dungeon-wrapper .page-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: flex-start; 
+            padding: 2rem 4rem 3.5rem 4rem; /* Increased fluid padding */
+            cursor: pointer;
+        }
+      
+        /* New Spine Effect */
+        #origami-dungeon-wrapper .book-spine-effect {
+            background: linear-gradient(90deg, 
+                rgba(0,0,0,0) 0%, 
+                rgba(0,0,0,0.02) 20%,
+                rgba(0,0,0,0.1) 40%, 
+                rgba(0,0,0,0.25) 50%, 
+                rgba(0,0,0,0.1) 60%, 
+                rgba(0,0,0,0.02) 80%,
+                rgba(0,0,0,0) 100%
+            );
+            border-left: 1px solid rgba(255,255,255,0.3);
+            border-right: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Flashlight Highlight Animation */
+        @keyframes bloom-pulse {
+            0%, 100% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.6); transform: scale(1.05); }
+            50% { box-shadow: 0 0 30px 10px rgba(255, 255, 255, 0.9); transform: scale(1.15); }
+        }
+
+        .util-highlight {
+            background-color: #000 !important;
+            color: #fff !important;
+            border-color: #fff !important;
+            animation: bloom-pulse 2s infinite;
+            z-index: 60;
+        }
+
+        /* Animations */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0); } 100% { opacity: 1; transform: scale(1); } }
+        .pop-in-animation { animation: popIn 0.4s ease-out forwards; }
+      
+        #origami-dungeon-wrapper .perspective-1000 { perspective: 1500px; }
+        #origami-dungeon-wrapper .transform-style-3d { transform-style: preserve-3d; }
+        #origami-dungeon-wrapper .backface-hidden { backface-visibility: hidden; }
+      
+        #origami-dungeon-wrapper .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        #origami-dungeon-wrapper .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        #origami-dungeon-wrapper .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a8a29e; border-radius: 20px; border: 2px solid #f1f1f1; }
+
+        #origami-dungeon-wrapper .font-serif { font-family: "Crimson Text", serif; }
+
+        @keyframes lantern-bloom { 0% { box-shadow: 0 0 5px rgba(252, 211, 77, 0.3); transform: scale(1); } 50% { box-shadow: 0 0 25px rgba(252, 211, 77, 0.9); transform: scale(1.08); border-color: #f59e0b; } 100% { box-shadow: 0 0 5px rgba(252, 211, 77, 0.3); transform: scale(1); } }
+        .lantern-action { animation: lantern-bloom 1.5s ease-in-out 2; }
+
+        .page-turning { animation: flipPage 0.8s ease-in-out forwards; }
+        @keyframes flipPage { 0% { transform: rotateY(0deg); box-shadow: 5px 0 15px rgba(0,0,0,0.1); } 50% { box-shadow: 20px 0 50px rgba(0,0,0,0.2); background-color: #f7f5f0; } 100% { transform: rotateY(-180deg); box-shadow: -5px 0 15px rgba(0,0,0,0.1); } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .page-turning, .lantern-action, .pop-in-animation, .event-card-icon { animation: none !important; transition: none !important; transform: none !important; }
+            #book-flip-page { display: none !important; }
+        }
+      
+        @keyframes mic-pulse { 0% { color: #9ca3af; } 50% { color: #ef4444; } 100% { color: #9ca3af; } }
+        .listening-mode { animation: mic-pulse 1.5s infinite; color: #ef4444 !important; }
+        .speaking-mode { color: #3b82f6 !important; }
+
+        #origami-dungeon-wrapper .modal { display: none; position: absolute; z-index: 500; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-panel { background-color: #fdfbf7; padding: 24px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; position: relative; border: 1px solid #e5e7eb; }
+      
+        #dnd-game-inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 12px; background: rgba(0, 0, 0, 0.05); padding: 16px; border-radius: 8px; max-height: 250px; overflow-y: auto; }
+        .inventory-slot { width: 100%; aspect-ratio: 1 / 1; background-color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5em; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); cursor: pointer; }
+        
+        /* Increased bottom padding for Book View to avoid overlap with Overlay */
+        #origami-dungeon-wrapper .page-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: flex-start; 
+            padding: 10px; /* 10px buffer on all sides */
+            cursor: pointer;
+        }
+        
+        /* Font Size Controls */
+        .font-size-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+        .font-size-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .font-size-btn:hover {
+            background: #f9fafb;
+            transform: scale(1.05);
+        }
+        .font-size-btn-decrease {
+            font-size: 10px;
+            color: #6b7280;
+        }
+        .font-size-btn-increase {
+            font-size: 14px;
+            color: #374151;
+        }
+
+        /* DARK MODE SUPPORT */
+        body.dark-mode {
+            background-color: #1c1917 !important;
+        }
+        body.dark-mode::before {
+            background-image: radial-gradient(#44403c 1px, transparent 1px);
+            opacity: 0.2;
+        }
+        body.dark-mode #origami-dungeon-wrapper .fluid-heading { color: #e7e5e4; }
+        body.dark-mode #origami-dungeon-wrapper .fluid-sub { color: #a8a29e; }
+        body.dark-mode #origami-dungeon-wrapper .fluid-text { color: #d6d3d1; }
+        
+        /* Book Container Dark Mode */
+        body.dark-mode #book-container,
+        body.dark-mode #book-page-left,
+        body.dark-mode #book-page-right,
+        body.dark-mode #book-flip-page,
+        body.dark-mode .modal-panel,
+        body.dark-mode .modal-content {
+            background-color: #292524 !important; /* Stone-800 */
+            border-color: #44403c !important;
+            color: #e7e5e4 !important;
+        }
+        
+        /* Input Area Dark Mode */
+        body.dark-mode #command-input {
+            color: #e7e5e4;
+        }
+        body.dark-mode .bg-\[\#fdfbf7\] {
+            background-color: #292524 !important;
+            border-color: #44403c !important;
+        }
+        body.dark-mode .bg-\[\#f2f0eb\] {
+            background-color: #1c1917 !important;
+            border-color: #44403c !important;
+        }
+        
+        /* Buttons Dark Mode */
+        body.dark-mode .icon-btn, 
+        body.dark-mode button {
+            color: #a8a29e;
+        }
+        body.dark-mode button:hover {
+            color: #e7e5e4;
+            background-color: #44403c;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Event Modal -->
+<div id="event-modal">
+    <div class="modal-content">
+        <!-- Content injected via JS -->
+    </div>
+</div>
+
+<!-- 3. Game Container -->
+<div id="origami-dungeon-wrapper" class="bg-transparent shadow-2xl rounded-t-xl" role="region" aria-label="Origami Dungeon Game Interface">
+
+    <!-- 1. EVENT LOG / BOOK (Full Height) -->
+    <div class="h-full w-full bg-[#f2f0eb] relative z-20 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.2)] flex flex-col border-b border-white/40 rounded-t-xl">
+      
+      <!-- Book Area Wrapper -->
+      <div class="flex-1 relative w-full h-full flex items-center px-1 py-2 overflow-hidden perspective-1000">
+        
+        <!-- The Book -->
+        <div id="book-container" class="w-full h-full flex shadow-xl rounded-xl relative bg-[#fdfbf7] border border-stone-200/50 transform-style-3d mb-16">
+          
+          <!-- NEW SPINE EFFECT -->
+          <div class="book-spine-effect absolute left-1/2 top-0 bottom-0 w-16 -ml-8 z-20 pointer-events-none block"></div>
+
+          <!-- Left Panel -->
+          <div id="book-page-left" class="flex-1 bg-[#fdfbf7] p-1 md:p-4 overflow-hidden relative border-r border-gray-100 rounded-l-xl cursor-pointer hover:bg-stone-50/50 transition-colors" role="button" aria-label="Previous Page" tabindex="0">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-stone-800/5 pointer-events-none"></div>
+            <div class="relative z-10 h-full flex flex-col page-content" aria-live="polite"></div>
+          </div>
+
+          <!-- Right Panel -->
+          <div id="book-page-right" class="flex-1 bg-[#fdfbf7] p-1 md:p-4 overflow-hidden relative block rounded-r-xl cursor-pointer hover:bg-stone-50/50 transition-colors" role="button" aria-label="Next Page" tabindex="0">
+            <div class="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-stone-800/5 pointer-events-none"></div>
+            <div class="relative z-10 h-full flex flex-col page-content" aria-live="polite"></div>
+          </div>
+
+          <!-- Animated Flipping Page -->
+          <div id="book-flip-page" aria-hidden="true" class="absolute right-0 top-0 w-1/2 h-full origin-left z-30 bg-[#fdfbf7] border-l border-gray-200 shadow-md rounded-r-xl hidden" style="backface-visibility: hidden; transform-style: preserve-3d">
+            <div class="absolute inset-0 p-1 md:p-4 bg-[#fdfbf7] rounded-r-xl backface-hidden">
+              <div id="flip-content-front" class="h-full flex flex-col"></div>
+            </div>
+            <div class="absolute inset-0 p-1 md:p-4 bg-[#fdfbf7] rounded-l-xl" style="transform: rotateY(180deg)">
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-stone-800/5 pointer-events-none"></div>
+              <div id="flip-content-back" class="h-full flex flex-col"></div>
+            </div>
+          </div>
+
+          <!-- Pagination Buttons -->
+          <button id="book-prev-btn" aria-label="Go to Previous Page" class="absolute bottom-3 left-3 z-40 w-8 h-8 bg-[#f3efe7]/80 hover:bg-white rounded-full shadow-sm flex items-center justify-center text-stone-500 hover:text-stone-800 transition-all cursor-pointer border border-stone-200 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <button id="book-next-btn" aria-label="Go to Next Page" class="absolute bottom-3 right-3 z-40 w-8 h-8 bg-[#f3efe7]/80 hover:bg-white rounded-full shadow-sm flex items-center justify-center text-stone-500 hover:text-stone-800 transition-all cursor-pointer border border-stone-200 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. OVERLAY - Command Area -->
+    <div class="absolute bottom-0 left-0 w-full z-50 bg-stone-200/90 backdrop-blur-sm border-t border-stone-300/50 pb-2 flex flex-col items-center justify-end">
+        
+        <!-- Guide Buttons (Centered & Tightened) -->
+        <div class="w-full flex justify-center max-w-2xl py-2.5" role="group" aria-label="Game Actions">
+            <div id="guide-buttons-container" class="flex gap-2 px-2 max-w-full justify-center items-center" style="overflow: hidden;">
+                <!-- Static Placeholders ensuring spacing -->
+                <button class="h-[44px] px-6 flex items-center justify-center text-sm font-medium rounded-[6px] shadow-sm border-[0.25px] border-[#fdfbf7] bg-[#f3efe7] text-transparent animate-pulse">Loading...</button>
+            </div>
+        </div>
+
+        <div class="flex items-center w-full max-w-4xl gap-2 h-12 relative px-2">
+          <!-- Level (Green Ring - 3px) -->
+          <div id="level-indicator" class="flex-shrink-0 relative w-12 h-12 group cursor-pointer mb-2" aria-label="Level 1" role="status">
+            <div class="absolute inset-0 rounded-full border-[3px] border-[#16a34a] bg-white shadow-sm z-10 transition-colors duration-300"></div>
+            <div class="absolute inset-[3px] rounded-full bg-[#e8e6e1] flex flex-col items-center justify-center shadow-inner z-20">
+              <span id="level-num" class="text-sm font-bold text-black leading-none mt-0.5">01</span>
+              <span class="text-[8px] font-bold text-stone-500 uppercase tracking-wider leading-none mt-0.5">LVL</span>
+            </div>
+          </div>
+
+          <!-- Input (Beige Background #fdfbf7) -->
+          <div class="flex-grow h-10 relative shadow-sm rounded-full bg-[#fdfbf7] border-[0.5px] border-stone-400/50 transition-all duration-700 ease-out flex items-center mr-2">
+            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-stone-400">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            </div>
+            <label for="command-input" class="sr-only">Enter Action Command</label>
+            <input type="text" id="command-input" placeholder="Type or speak..." class="flex-grow h-full pl-9 pr-24 bg-transparent rounded-full border-none focus:outline-none font-medium text-stone-600 placeholder:text-stone-400 text-sm" autocomplete="off" />
+            
+            <!-- Input Icons (Mic, Speaker, Send, Theme) -->
+            <div class="absolute right-1 flex items-center gap-1 h-full">
+                 <!-- Theme Toggle -->
+                 <button id="util-theme" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-800 transition-colors" aria-label="Toggle Theme" title="Toggle Theme">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+                 </button>
+                 <!-- Mic -->
+                 <button id="mic-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-amber-600 hover:bg-amber-50 transition-colors" aria-label="Voice Command" title="Voice Command">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="23"/><line x1="8" x2="16" y1="23" y2="23"/></svg>
+                 </button>
+                 <!-- TTS -->
+                 <button id="util-tts" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" aria-label="Toggle Narrator" title="Read Aloud">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
+                 </button>
+                 <!-- Send -->
+                 <button id="send-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors" aria-label="Send Command" title="Send">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                 </button>
+            </div>
+          </div>
+
+          <!-- Utility Icons (Right Side) -->
+          <div class="flex items-center gap-2 flex-shrink-0" role="toolbar" aria-label="Game Tools">
+             <!-- Flashlight (Hidden until item found) -->
+             <button id="util-flashlight" aria-label="Toggle Flashlight" title="Flashlight" class="hidden relative w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-500 pop-in-animation bg-[#fdfbf7] text-stone-700 border-[#e8e4dc] hover:text-stone-900 hover:bg-white hover:scale-105 shadow-sm">
+               <div id="flashlight-bloom-1" class="absolute inset-0 rounded-full bg-white animate-ping opacity-75 hidden"></div>
+               <svg id="flashlight-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z" /><line x1="6" x2="18" y1="6" y2="6" /><line x1="12" x2="12" y1="12" y2="12" /></svg>
+             </button>
+             <button id="util-inventory" class="w-10 h-10 rounded-full border flex items-center justify-center bg-[#fdfbf7] text-stone-700 border-[#e8e4dc] hover:text-stone-900 hover:bg-white hover:scale-105 shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg></button>
+             <button id="util-settings" class="w-10 h-10 rounded-full border flex items-center justify-center bg-[#fdfbf7] text-stone-700 border-[#e8e4dc] hover:text-stone-900 hover:bg-white hover:scale-105 shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" /><line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" /><line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" /><line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" /></svg></button>
+          </div>
+        </div>
+    </div>
+
+    <!-- Modals (Hidden by default) -->
+    <div id="inventory-modal" class="modal" role="dialog" aria-labelledby="inv-title"><div class="modal-panel"><div class="flex justify-between items-center border-b pb-2"><h2 id="inv-title" class="text-xl font-serif font-bold">Inventory</h2><button id="inventory-close" class="text-2xl leading-none" aria-label="Close Inventory">&times;</button></div><div id="gold-counter" class="text-center font-bold text-amber-600 text-lg"></div><div id="dnd-game-inventory-grid"></div></div></div>
+    
+</div> <!-- End Wrapper -->
+
+<!-- 4. Game Logic -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    
+    // Safety check for Audio Context (Browser Policy)
+    let audioStarted = false;
+    const startAudioContext = async () => {
+        if (audioStarted) return;
+        if (typeof Tone !== 'undefined') {
+            await Tone.start();
+            sound.init();
+            audioStarted = true;
+            console.log("Audio Context Started");
+        }
+    };
+    document.body.addEventListener('click', startAudioContext);
+    document.body.addEventListener('keydown', startAudioContext);
+
+    const dictionary = { movement: ["go","move","walk","north","south","east","west","up","down"], interaction: ["inspect","examine","look","use","open","search","gamble","bet"], talk: ["talk","speak","chat"], combat: ["attack","fight","hit","cast","spell"], inventory: ["i","inventory","items"] };
+    const ENTRANCE_TITLE = "Mysterious Entrance";
+    const ENTRANCE_DESCRIPTION = "The darkness permeates the entrance as you climb down the stairs. A long hallway stretches out into the darkness before you. It is the path to your destiny. The hallway is lit by a bright lantern on the floor.";
+
+    function parseCommand(command) {
+      const lowerCmd = command.toLowerCase().trim(); const words = lowerCmd.split(" "); let intent = null; let entities = []; const verb = words[0];
+      for (const key in dictionary) { if (dictionary[key].includes(verb)) { intent = key; break; } }
+      if (["examine","look","inspect"].includes(verb)) intent = "inspect";
+      if (verb === "search") intent = "search";
+      if (["gamble","bet"].includes(verb)) intent = "gamble";
+      if (dictionary.combat.includes(verb)) intent = "attack";
+      if (dictionary.talk.includes(verb)) intent = "talk";
+      if (words.length > 1) { const target = words.slice(1).join(" "); if (intent === "movement" && ["north","south","east","west","up","down"].includes(target)) entities.push({entity:"direction",value:target}); else if (["inspect","talk","attack","gamble"].includes(intent)) entities.push({entity:"object",value:target}); }
+      if (words.length === 1 && dictionary.movement.includes(words[0])) { intent = "movement"; entities.push({entity:"direction",value:words[0]}); }
+      return { intent, entities };
+    }
+
+    // Sound System
+    const sound = { isInitialized: false, synths: {}, init() { if (this.isInitialized || typeof Tone === "undefined") return; this.synths.item = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }, volume: -12 }).toDestination(); this.synths.puzzle = new Tone.PolySynth(Tone.FMSynth, { harmonicity: 1.5, modulationIndex: 10, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.5 }, volume: -8 }).toDestination(); this.synths.damage = new Tone.NoiseSynth({ noise: { type: "brown" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }, volume: -10 }).toDestination(); this.synths.solve = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.8, release: 1 }, volume: -6 }).toDestination(); this.synths.hit = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 5, envelope: { attack: 0.001, decay: 0.2, sustain: 0 }, volume: -10 }).toDestination(); this.isInitialized = true; }, play(type, note, duration = "8n") { if (this.isInitialized && this.synths[type]) { if (type === "damage") this.synths[type].triggerAttackRelease("8n"); else this.synths[type].triggerAttackRelease(note, duration); } } };
+
+    // Game Data
+    const randomUtil = { pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }, shuffle(arr) { const copy = [...arr]; for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; } };
+    const lootTable = ["Spirit Incense", "Jade Paperweight", "Folded Shuriken", "Bamboo Flute", "Crane Feather", "Ink Stone", "Silver Bell"];
+    const events = { 
+      heal: (amount, message) => ({ type: "heal", amount, message }), 
+      damage: (amount, message) => ({ type: "damage", amount, message }), 
+      gold: (amount, message) => ({ type: "find_item", itemType: "gold", amount, message }), 
+      loot: (name, message, icon="🎁") => ({ type: "find_item", itemType: "loot", itemName: name, message, icon }), 
+      fragment: (message) => ({ type: "find_puzzle_item", message: message || "You recover a shimmering Serpent Seal Fragment!" }) 
+    };
+    
+    const roomBlueprints = [
+      { id: "warden-hall", title: "Lantern Warden Antechamber", description: "Paper banners hang in tight rows. A stern warden blocks the passage north, spear planted firmly.", features: [], monsters: [{ id: "lantern-warden", name: "Lantern Warden", hp: 24, maxHp: 24, attack: 5, evasion: 0.05, mustTalk: true, intro: "A towering origami warden stands guard.", talkText: '"State your vow to pass," the warden intones deeply.', talkEvent: events.gold(12, "He accepts your vow. +12 Gold.") }], quest: { id: "warden-oath", title: "State Your Vow", description: "Speak with the Lantern Warden to proceed.", actionLabel: "Talk to the Lantern Warden", event: events.fragment("The warden steps aside, gifting a fragment.") } },
+      { id: "crane-garden", title: "Inkleaf Conservatory", description: "Paper cranes circle above an indoor grove. The trees are folded from green parchment.", features: [{ keyword: "fountain", label: "Ink Fountain", actionLabel: "Drink from the fountain", details: "The black ink smells of pine. You drink and feel muscles relax.", event: events.heal(18, "You feel refreshed.") }], monsters: [] },
+      { id: "tide-shrine", title: "Ryujin Tide Shrine", description: "Foam-white paper waves curl around a shrine. Shell chimes sing of a lost princess.", features: [], monsters: [{ id: "tide-kappa", name: "Tide Kappa", hp: 22, maxHp: 22, attack: 5, evasion: 0.12, mustTalk: true, intro: "A kappa in lacquered armor watches.", canGamble: true, talkText: '"Honor Ryujin with light," says the kappa.', talkEvent: events.fragment("The kappa bows and slides a fragment to you.") }] },
+      { id: "bamboo-courier", title: "Moonlit Bamboo Walk", description: "Tall bamboo of folded jade arcs overhead. A fox’s lantern sways in the breeze.", features: [{ keyword: "letter", label: "Bamboo Letter", actionLabel: "Take the bamboo letter", details: "You take the tube. It rattles with a letter inside.", event: events.loot("Bamboo Letter", "Addressed to a princess.", "🎋") }], monsters: [] },
+      { id: "ridge-of-scales", title: "Ridge of Scales", description: "Paper ridges jut like dragon spines. Glyphs glow between the peaks, warning trespassers.", features: [], monsters: [{ id: "shellback-oni", name: "Shellback Oni", hp: 30, maxHp: 30, attack: 7, evasion: 0.08, mustTalk: true, intro: "An oni with a shell shield stamps the ground.", talkText: '"Show respect or break on my shell," he rumbles.', talkEvent: events.gold(18, "He respects your bow. +18 Gold.") }] },
+      { id: "riddle-stack", title: "Origami Archive", description: "Stacks of folded books line the walls, inked with riddles and origami lore.", features: [{ keyword: "book", label: "Whispering Tome", actionLabel: "Read the whispering tome", details: "The book flutters open. You find a secret pocket.", event: events.fragment("A fragment was hidden in the binding.") }], monsters: [] },
+      { id: "bridge", title: "Crimson Bridge Span", description: "A narrow bridge of red paper stretches over an ink-black void.", features: [], monsters: [{ id: "bridge-oni", name: "Bridge Oni", hp: 32, maxHp: 32, attack: 7, evasion: 0.1, mustTalk: true, intro: "A hulking oni guards the bridge center.", talkText: '"None pass without a greeting," he grunts.', talkEvent: events.gold(20, "He nods at your greeting. +20 Gold.") }] }
+    ];
+
+    class AdventureDirector {
+      constructor() { this.nextRoomId = 1; }
+      buildAdventure() { this.nextRoomId = 1; const level = this.createLevel(); return { map: level.map, startRoomId: level.startRoomId }; }
+      createLevel() { const map = new Map(); const entrance = this.createEntrance(); map.set(entrance.id, entrance); const drawnRooms = randomUtil.shuffle(roomBlueprints).slice(0, 4); drawnRooms.forEach((bp) => { const room = this.instantiateRoom(bp); map.set(room.id, room); }); const rooms = Array.from(map.values()); for (let i = 0; i < rooms.length - 1; i++) { rooms[i].exits.north = rooms[i + 1].id; rooms[i + 1].exits.south = rooms[i].id; } return { map, startRoomId: entrance.id }; }
+      createEntrance() { return { id: this.nextRoomId++, title: ENTRANCE_TITLE, description: ENTRANCE_DESCRIPTION, exits: {}, features: [{ id: "starting-lantern", keyword: "lantern", label: "Magical Glowworm Lantern", actionLabel: "Take Lantern", details: "A glowworm lantern hums softly, begging to be taken for the road ahead.", event: events.loot("Magical Glowworm Lantern", "The glowworm inside shines in the mirrors, casting a bright beam that cuts through the dungeon's darkness, revealing the path ahead.", "🔦"), consumed: false }], monsters: [], quest: null }; }
+      instantiateRoom(blueprint) { const roomId = this.nextRoomId++; const cloneFeatures = blueprint.features.map((feature, idx) => ({ ...feature, id: `${blueprint.id}-feat-${roomId}-${idx}`, consumed: false })); const cloneMonsters = (blueprint.monsters || []).map((monster, idx) => ({ ...monster, id: `${blueprint.id}-mon-${roomId}-${idx}`, hasSpoken: false })); const quest = blueprint.quest ? { ...blueprint.quest, status: "available" } : null; return { id: roomId, title: blueprint.title, description: blueprint.description, exits: {}, features: cloneFeatures, monsters: cloneMonsters, quest }; }
+    }
+
+    const director = new AdventureDirector();
+    const game = { player: { hp: 100, maxHp: 100, currentLevel: 0, currentRoomId: 1, inventory: [], attackPower: 8, gold: 0, lastDirection: null }, mapData: { levels: [] }, puzzle: { required: 4, found: 0 }, state: { inRiddle: false, selectedItem: null, inExitConfirmation: false }, ui: {}, book: { pages: [], currentPageIndex: 0, isTurning: false }, three: { scene: null, camera: null, renderer: null, cube: null, animId: null } };
+
+    function init() { 
+        cacheUI(); 
+        updatePlayerStats(); 
+        setupEventListeners(); 
+        regenerateDungeon(); 
+        
+        // --- IFRAME SYNC LOGIC ---
+        // 1. Listen for messages from parent
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'theme') {
+                applyTheme(event.data.isDark);
+            }
+        });
+
+        // 2. Check if in iframe and request initial state
+        if (window.self !== window.top) {
+            // Request initial theme
+            window.parent.postMessage({ type: 'ready' }, '*');
+        }
+    }
+    
+    function applyTheme(isDark) {
+        if (isDark) {
+            document.body.classList.add('dark-mode');
+            // Add specific dark mode overrides if needed, or rely on CSS
+            // The current CSS uses specific colors, so we might need to toggle a class that overrides variables
+            // However, the prompt didn't ask for a full dark mode implementation in Adventure, just sync.
+            // I will assume standard 'dark-mode' class usage or just basic inversion for now if no variables exist.
+            // Looking at CSS, it uses hardcoded colors like #f2efe9. 
+            // I should probably inject a style block or toggle a class that changes these.
+            // For now, I will just toggle the class on body.
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+    }
+
+    function cacheUI() { game.ui = { bookContainer: document.getElementById("book-container"), bookPageLeft: document.getElementById("book-page-left"), bookPageRight: document.getElementById("book-page-right"), bookFlipPage: document.getElementById("book-flip-page"), flipContentFront: document.getElementById("flip-content-front"), flipContentBack: document.getElementById("flip-content-back"), bookPrevBtn: document.getElementById("book-prev-btn"), bookNextBtn: document.getElementById("book-next-btn"), guideButtons: document.getElementById("guide-buttons-container"), commandInput: document.getElementById("command-input"), levelNum: document.getElementById("level-num"), flashlightBtn: document.getElementById("util-flashlight"), themeBtn: document.getElementById("util-theme"), inventoryBtn: document.getElementById("util-inventory"), settingsBtn: document.getElementById("util-settings"), inventoryModal: document.getElementById("inventory-modal"), inventoryGrid: document.getElementById("dnd-game-inventory-grid"), goldCounter: document.getElementById("gold-counter"), inventoryCloseBtn: document.getElementById("inventory-close"), characterModal: document.getElementById("character-modal"), characterCloseBtn: document.getElementById("character-close") }; }
+
+    function updateBookView() {
+      const { book } = game;
+      renderPage(game.ui.bookPageLeft, book.pages[book.currentPageIndex]);
+      const nextPage = book.pages[book.currentPageIndex + 1];
+      if (nextPage) {
+          renderPage(game.ui.bookPageRight, nextPage);
+      } else {
+          game.ui.bookPageRight.innerHTML = ""; 
+      }
+      if(game.ui.bookPrevBtn) {
+        game.ui.bookPrevBtn.style.opacity = book.currentPageIndex === 0 ? 0.5 : 1;
+      }
+      if(game.ui.bookNextBtn) {
+        game.ui.bookNextBtn.style.opacity = book.currentPageIndex >= book.pages.length - 2 ? 0.5 : 1;
+      }
+      setTimeout(initThreeJSIfPresent, 100);
+    }
+
+    function renderPage(container, pageData) {
+      if (!container) return;
+      if (!pageData) { container.innerHTML = ""; return; }
+      if (pageData.isHtml) {
+        container.innerHTML = `<div class="page-container">${pageData.content}</div>`;
+      } else {
+        let html = `<div class="page-container">`;
+        if (pageData.title) html += `<h2 class="fluid-heading">${pageData.title}</h2>`;
+        if (pageData.sub) html += `<p class="fluid-sub">${pageData.sub}</p>`;
+        if (pageData.text) html += `<div class="fluid-text">${pageData.text}</div>`;
+        html += `</div>`;
+        container.innerHTML = html;
+      }
+    }
+
+    function addPage(title, text, sub = "", isHtml = false) { 
+      if (isHtml) { game.book.pages.push({ content: text, isHtml: true }); } 
+      else { game.book.pages.push({ title, text, sub, isHtml: false }); }
+      // Auto-turn logic: Only if we are at the end
+      if (game.book.pages.length > 2) { 
+         if (game.book.currentPageIndex >= game.book.pages.length - 3) turnPage("next"); 
+      } else { updateBookView(); }
+    }
+
+    function createEventCard(title, text, icon, lootItem = null) {
+       const canvasId = `three-canvas-${Date.now()}`;
+       const pageId = `event-page-${Date.now()}`;
+       
+       let cardHtml = '';
+
+       if (lootItem) {
+           // --- SIDE-BY-SIDE LOOT LAYOUT ---
+           // Image/Label Left, Title/Description Right
+           // Optimized for 15-word max description and 125px image.
+           
+           cardHtml = `
+            <div id="${pageId}" class="h-full flex flex-col justify-center" style="padding: 1.5rem 3rem;">
+                <div class="flex flex-row items-center gap-6">
+                    
+                    <!-- Left Column: Label + Image -->
+                    <div class="flex flex-col items-center gap-2 flex-shrink-0">
+                        <!-- Rare Label -->
+                        <div class="text-[10px] sm:text-xs text-amber-600 font-bold uppercase tracking-widest whitespace-nowrap">
+                            ✦ Rare Item ✦
+                        </div>
+                        
+                        <!-- Visual (Max 100x150) -->
+                        <div class="w-[100px] h-[150px] bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg p-2 shadow-inner border border-stone-200 flex items-center justify-center">
+                             <div id="${canvasId}" class="event-card-3d-container w-full h-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Title + Description -->
+                    <div class="flex-1 flex flex-col justify-center text-left">
+                        <!-- Title -->
+                        <h2 class="fluid-heading text-left mb-2 leading-tight" style="text-align: left;">${title}</h2>
+                        
+                        <!-- Item Name (Optional, maybe redundant if Title is the item name? Usually Title is room name or 'Loot Found'?) -->
+                        <!-- If title is 'Loot Found', we need the item name. If title IS the item name, we don't. -->
+                        <!-- Based on usage: addPage("Loot Found!", ...) -->
+                        <!-- So we should show the item name here. -->
+                        
+                        <div class="mb-2">
+                            <span class="font-bold text-lg text-amber-900 font-serif">${lootItem}</span>
+                        </div>
+
+                        <!-- Description (Max 15 words) -->
+                        <div class="fluid-text text-stone-700 leading-snug text-left">
+                            ${text}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Font Size Controls -->
+                <div class="font-size-controls absolute bottom-2 right-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <button class="font-size-btn font-size-btn-increase" onclick="adjustEventFontSize('${pageId}', 0.1)" aria-label="Increase font size">
+                        <span class="text-xs">Tt</span>
+                    </button>
+                </div>
+            </div>
+           `;
+       } else {
+           // --- STANDARD VERTICAL LAYOUT (Existing) ---
+           cardHtml = `
+            <div id="${pageId}" class="h-full flex flex-col relative">
+                <!-- Card Header -->
+                <div class="text-center mb-2">
+                    <h2 class="fluid-heading font-bold tracking-tight mb-1">${title}</h2>
+                </div>
+                
+                <!-- Card Visual Content -->
+                <div class="flex items-center justify-center mb-2">
+                    <div class="event-card expandable-card bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg p-3 shadow-inner border-2 border-stone-200 w-full max-w-md flex items-center justify-center">
+                        <div class="event-card-icon text-5xl sm:text-6xl filter drop-shadow-md">${icon}</div>
+                    </div>
+                </div>
+                
+                <!-- Card Description -->
+                <div class="text-center">
+                    <div class="event-text fluid-text text-stone-700 leading-snug w-full px-1 overflow-y-auto">
+                        ${text}
+                    </div>
+                </div>
+                
+                <!-- Font Size Controls -->
+                <div class="font-size-controls absolute bottom-2 right-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <button class="font-size-btn font-size-btn-decrease" onclick="adjustEventFontSize('${pageId}', -0.1)" aria-label="Decrease font size">
+                        <span class="text-xs">Tt</span>
+                    </button>
+                    <button class="font-size-btn font-size-btn-increase" onclick="adjustEventFontSize('${pageId}', 0.1)" aria-label="Increase font size">
+                        <span class="text-base">Tt</span>
+                    </button>
+                </div>
+            </div>
+            <style>
+                @media (min-width: 640px) { #${pageId} { padding: 20px !important; } }
+            </style>
+           `;
+       }
+       
+       addPage(null, cardHtml, null, true);
+    }
+    
+    // Global font size adjustment function
+    window.adjustEventFontSize = function(pageId, delta) {
+        const page = document.getElementById(pageId);
+        if (!page) return;
+        
+        const textElements = page.querySelectorAll('.event-text');
+        textElements.forEach(el => {
+            const currentSize = window.getComputedStyle(el).fontSize;
+            const newSize = parseFloat(currentSize) + (delta * parseFloat(currentSize));
+            el.style.fontSize = `${Math.max(12, Math.min(32, newSize))}px`;
+        });
+    };
+
+    function render3DLootItem(container, itemType) {
+          if (!window.THREE || !container) return;
+          if (container.children.length > 0) return; // Prevent duplicate canvases
+
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+          const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+          renderer.setSize(container.clientWidth, container.clientHeight);
+          container.appendChild(renderer.domElement);
+          let geometry, material, mesh;
+          
+          if (itemType.includes("Glowworm")) {
+              // --- GLOWWORM LANTERN ---
+              const lanternGroup = new THREE.Group();
+              
+              // 1. Wicker Cage (Cylinder with wireframe)
+              const cageGeo = new THREE.CylinderGeometry(0.6, 0.7, 2.2, 8, 4, true);
+              const cageMat = new THREE.MeshStandardMaterial({ 
+                  color: 0x8b4513, // SaddleBrown
+                  wireframe: true,
+                  roughness: 1,
+                  metalness: 0
+              });
+              const cage = new THREE.Mesh(cageGeo, cageMat);
+              lanternGroup.add(cage);
+              
+              // 2. The Glowworm (Capsule-like)
+              const wormGeo = new THREE.CapsuleGeometry(0.15, 0.8, 4, 8);
+              const wormMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+              const worm = new THREE.Mesh(wormGeo, wormMat);
+              worm.rotation.z = Math.PI / 6; // Slight tilt
+              lanternGroup.add(worm);
+              
+              // 3. Inner Glow (Point Light)
+              const light = new THREE.PointLight(0xffffff, 2, 5);
+              lanternGroup.add(light);
+              
+              // 4. Flashlight Beam (Cone)
+              const beamGeo = new THREE.ConeGeometry(0.8, 3, 32, 1, true);
+              const beamMat = new THREE.MeshBasicMaterial({ 
+                  color: 0xffffcc, 
+                  transparent: true, 
+                  opacity: 0.15,
+                  side: THREE.DoubleSide,
+                  depthWrite: false
+              });
+              const beam = new THREE.Mesh(beamGeo, beamMat);
+              beam.position.y = 2.5; // Extending out the top
+              beam.rotation.x = 0; 
+              lanternGroup.add(beam);
+              
+              mesh = lanternGroup;
+              
+              // Add some ambient light for the cage
+              const ambientLight = new THREE.AmbientLight(0x404040);
+              scene.add(ambientLight);
+              
+          } else if (itemType.includes("Lantern") || itemType.includes("Glow")) {
+              geometry = new THREE.OctahedronGeometry(1.5, 0); material = new THREE.MeshBasicMaterial({ color: 0xffd700, wireframe: true });
+          } else if (itemType.includes("Scroll") || itemType.includes("Paper")) {
+              geometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 32); material = new THREE.MeshBasicMaterial({ color: 0xf5f5dc, wireframe: false }); mesh = new THREE.Mesh(geometry, material); mesh.rotation.z = Math.PI / 2;
+          } else if (itemType.includes("Bead") || itemType.includes("Pearl")) {
+             geometry = new THREE.IcosahedronGeometry(1.5, 1); material = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+          } else {
+             geometry = new THREE.BoxGeometry(2, 2, 2); material = new THREE.MeshNormalMaterial();
+          }
+          
+          if (!mesh) mesh = new THREE.Mesh(geometry, material);
+          scene.add(mesh);
+          camera.position.z = 5;
+          
+          // Animation Loop
+          const animate = function () {
+              if(!document.contains(container)) return;
+              requestAnimationFrame(animate);
+              
+              if (itemType.includes("Glowworm")) {
+                  // Rotate the lantern slowly
+                  mesh.rotation.y += 0.005;
+                  mesh.rotation.z = Math.sin(Date.now() * 0.001) * 0.05; // Gentle sway
+                  
+                  // Squirm the worm (access child index 1)
+                  const worm = mesh.children[1];
+                  if (worm) {
+                      worm.scale.x = 1 + Math.sin(Date.now() * 0.005) * 0.05;
+                      worm.scale.z = 1 + Math.cos(Date.now() * 0.005) * 0.05;
+                      worm.position.y = Math.sin(Date.now() * 0.002) * 0.05;
+                  }
+              } else {
+                  mesh.rotation.x += 0.01;
+                  mesh.rotation.y += 0.01;
+              }
+              
+              renderer.render(scene, camera);
+          };
+          animate();
+    }
+
+    function showVictoryPage(monsterName, exp, lootItem) {
+        let lootHtml = "";
+        if (lootItem) {
+           lootHtml = `
+             <div class="loot-circle-container">
+               <div class="loot-circle expandable-card">🎁</div>
+               <span class="text-xs font-bold text-stone-700">${lootItem}</span>
+             </div>
+           `;
+        } else {
+            lootHtml = `<div class="text-sm italic text-stone-500 mt-2">No items found.</div>`;
+        }
+        const cardHtml = `
+          <div class="h-full flex flex-col justify-center items-center text-center">
+              <h2 class="fluid-heading text-red-800 mb-2">Defeated!</h2>
+              <div class="text-xl font-bold text-stone-800 mb-4">${monsterName}</div>
+              <div class="bg-stone-100 p-4 rounded-lg border border-stone-200 w-full">
+                  <div class="flex justify-between items-center mb-2 border-b border-stone-300 pb-2">
+                      <span class="font-serif font-bold text-stone-600">EXP Gained:</span>
+                      <span class="font-mono text-green-600 font-bold">+${exp}</span>
+                  </div>
+                  <div class="text-left">
+                      <span class="font-serif font-bold text-stone-600 block mb-2">Loot Gained:</span>
+                      <div class="flex flex-wrap justify-center gap-4">
+                         ${lootHtml}
+                      </div>
+                  </div>
+              </div>
+          </div>
+        `;
+        addPage(null, cardHtml, null, true);
+    }
+
+    function initThreeJSIfPresent() {
+      const containers = document.querySelectorAll('.event-card-3d-container');
+      containers.forEach(container => {
+          if (!container.hasChildNodes()) {
+              const itemName = container.nextElementSibling ? container.nextElementSibling.innerText : "Unknown";
+              render3DLootItem(container, itemName);
+          }
+      });
+    }
+
+    function turnPage(direction) {
+      if (game.book.isTurning) return;
+      const { book } = game;
+      if (direction === "next") {
+        if (book.currentPageIndex >= book.pages.length - 2) return;
+        game.book.isTurning = true;
+        renderPage(game.ui.flipContentFront, book.pages[book.currentPageIndex + 1]); 
+        renderPage(game.ui.flipContentBack, book.pages[book.currentPageIndex + 1]);
+        const nextRight = book.pages[book.currentPageIndex + 2];
+        if (nextRight) { renderPage(game.ui.bookPageRight, nextRight); } else { game.ui.bookPageRight.innerHTML = ""; }
+        initThreeJSIfPresent();
+        game.ui.bookFlipPage.classList.remove("hidden");
+        void game.ui.bookFlipPage.offsetWidth; 
+        game.ui.bookFlipPage.classList.add("page-turning");
+        setTimeout(() => { book.currentPageIndex += 1; updateBookView(); game.ui.bookFlipPage.classList.remove("page-turning"); game.ui.bookFlipPage.classList.add("hidden"); game.book.isTurning = false; }, 800);
+      } else if (direction === "prev") {
+        if (book.currentPageIndex === 0) return;
+        book.currentPageIndex -= 1; 
+        updateBookView();
+      }
+    }
+
+    function logEvent(message, type = "normal") { const lastPage = game.book.pages[game.book.pages.length - 1]; if (lastPage && !lastPage.isHtml) { lastPage.text += `<br><br>${message}`; updateBookView(); } else { addPage("Event Log", message); } }
+
+    function regenerateDungeon() { game.mapData.levels = []; game.player.currentLevel = 0; game.player.inventory = []; game.player.gold = 0; game.player.lastDirection = null; game.puzzle.found = 0; game.puzzle.required = 4; game.book.pages = []; game.book.currentPageIndex = 0; const { map, startRoomId } = director.buildAdventure(); game.mapData.levels[0] = map; game.mapData.startRoomId = startRoomId; game.player.currentRoomId = startRoomId; 
+    addPage("Welcome to Origami Dungeon!", "Your quest is to retrieve the Golden Scroll of Destiny and save the Dragon King's Daughter. But guarding them is a powerful serpent witch named Oni-Baba.", "Chapter I"); 
+    renderCurrentRoom(); }
+
+    function renderCurrentRoom() {
+      const currentLevelMap = game.mapData.levels[game.player.currentLevel]; const currentRoom = currentLevelMap.get(game.player.currentRoomId);
+      if (!currentRoom) { logEvent("Error: You are lost in the void. Resetting..."); regenerateDungeon(); return; }
+      const isEntranceHallway = currentRoom.title === ENTRANCE_TITLE;
+      const subTitle = isEntranceHallway ? "The long dark path ahead" : "Room " + currentRoom.id;
+      let desc = currentRoom.description;
+      const featureList = (currentRoom.features || []).filter((f) => !f.consumed).map((f) => `<span class="interactive-feature" data-cmd="${f.actionLabel}">${f.label}</span>`).join(", "); 
+      if (featureList) desc += `<br><br><b>You see:</b> ${featureList}`;
+      const monsterList = (currentRoom.monsters || []).filter((m) => m.hp > 0).map((m) => m.name).join(", "); if (monsterList) desc += `<br><br><b>Enemies:</b> ${monsterList}`;
+      addPage(currentRoom.title, desc, subTitle); updateGuideButtons(currentRoom);
+    }
+
+    function updateGuideButtons(currentRoom) {
+      const container = game.ui.guideButtons; container.innerHTML = "";
+      const actions = getRoomActions(currentRoom);
+      const monsterActions = actions.filter(a => a.isMonsterAction);
+      const talkAction = actions.find(a => a.kind === 'talk');
+      const specialAction = actions.find(a => !a.isMonsterAction && ['interact', 'quest'].includes(a.kind));
+      const moveActions = actions.filter(a => a.kind === 'travel');
+      const searchAction = actions.find(a => a.kind === 'search');
+      
+      // Detect mobile viewport
+      const isMobile = window.innerWidth < 640;
+      
+      // Check if monsters are present
+      const hasMonsters = (currentRoom.monsters || []).filter(m => m.hp > 0).length > 0;
+      
+      const buttonsToShow = [];
+      
+      // Add monster-related actions
+      if (monsterActions.length > 0) { 
+          buttonsToShow.push(...monsterActions); 
+      }
+      
+      // Add talk action separately to give it green color
+      if (talkAction) {
+          buttonsToShow.push(talkAction);
+      }
+      
+      // Only add search/quest/special if NO monsters present
+      if (!hasMonsters) {
+          if (specialAction) buttonsToShow.push(specialAction);
+          if (searchAction) buttonsToShow.push(searchAction);
+      }
+      
+      // Mobile: only 1 direction button (preferably untraveled)
+      // Desktop: show primary move action
+      if (isMobile) {
+          // Find first untraveled direction, or fallback to first available
+          const untraveledMove = moveActions.find(a => a.label && !a.label.includes('Go back'));
+          const moveToAdd = untraveledMove || moveActions[0];
+          if (moveToAdd) buttonsToShow.push(moveToAdd);
+      } else {
+          const primaryMove = moveActions[0]; 
+          if (primaryMove) buttonsToShow.push(primaryMove); 
+      }
+      
+      // Mobile: max 3 buttons, Desktop: max 4 buttons for WCAG compliance
+      const maxButtons = isMobile ? 3 : 4;
+      const limitedButtons = buttonsToShow.slice(0, maxButtons);
+      
+      limitedButtons.forEach((action) => {
+        const btn = document.createElement("button");
+        // Fluid text sizing for buttons
+        btn.className = "h-[44px] px-4 sm:px-6 flex items-center justify-center font-medium rounded-[6px] shadow-sm border-[0.25px] border-[#fdfbf7] transition-colors cursor-pointer";
+        btn.style.fontSize = "clamp(0.75rem, 2vw, 0.875rem)";
+        btn.style.whiteSpace = "nowrap";
+        
+        // Color coding
+        if (action.isAttack) { 
+            btn.className += " bg-red-700 hover:bg-red-800 text-white border-red-900"; 
+        } else if (action.kind === 'talk') { 
+            btn.className += " bg-green-600 hover:bg-green-700 text-white border-green-800"; 
+        } else if (action.isGamble) { 
+            btn.className += " bg-amber-400 hover:bg-amber-500 text-black border-amber-600"; 
+        } else if (action.isLantern) { 
+            btn.className += " bg-[#333333] hover:bg-[#1a1a1a] text-white border-stone-800 lantern-action"; 
+        } else { 
+            btn.className += " bg-[#f3efe7] hover:bg-[#e8e4dc] text-stone-800 border-stone-300/60"; 
+        }
+        
+        if (action.isLantern) { btn.innerHTML = "Take Lantern"; } else { btn.textContent = action.label; }
+        btn.onclick = (e) => { 
+          e.preventDefault(); 
+          triggerLanternSequence(action, currentRoom);
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    // Unified Function for Lantern Event to be called by button or text link
+    function triggerLanternSequence(action, currentRoom) {
+        if (action.isLantern || action.label === "Take Lantern" || action === "Take Lantern") { 
+            const btn = game.ui.flashlightBtn;
+            btn.classList.remove("hidden"); 
+            btn.classList.add("pop-in-animation"); 
+            
+            // Add the highlight effect (Solid black background, white icon, bloom)
+            btn.classList.add("util-highlight");
+            
+            // Remove the highlight effect after animation (3 seconds to allow for a few pulses)
+            setTimeout(() => {
+                btn.classList.remove("util-highlight");
+            }, 3000);
+           
+            const feature = (currentRoom.features || []).find(f => f.actionLabel === "Take Lantern");
+            if (feature && !feature.consumed) {
+                    feature.consumed = true;
+                    processEvent(feature.event);
+            }
+            updateGuideButtons(currentRoom); 
+        } else {
+            handleCommand(action.command || action); 
+        }
+    }
+
+    function getRoomActions(currentRoom) {
+      const actions = []; if (game.state.inRiddle) return actions;
+      if (currentRoom.quest && currentRoom.quest.status === "available") actions.push({ label: currentRoom.quest.actionLabel || currentRoom.quest.title, command: `quest ${currentRoom.quest.id}`, kind: "quest" });
+      (currentRoom.features || []).filter((f) => !f.consumed).forEach((feature) => { actions.push({ label: feature.actionLabel || `Inspect ${feature.label}`, command: `inspect ${feature.id}`, kind: "interact", isLantern: feature.actionLabel === "Take Lantern" }); });
+      (currentRoom.monsters || []).filter((m) => m.hp > 0).forEach((monster) => { 
+          if (monster.mustTalk && !monster.hasSpoken) actions.push({ label: `Talk to ${monster.name}`, command: `talk ${monster.id}`, kind: "talk", isMonsterAction: true });
+          if (monster.canGamble) actions.push({ label: `Gamble with ${monster.name}`, command: `gamble ${monster.id}`, kind: "interact", isMonsterAction: true, isGamble: true });
+          actions.push({ label: `Attack ${monster.name}`, command: `attack ${monster.id}`, kind: "attack", disabled: monster.mustTalk && !monster.hasSpoken, isMonsterAction: true, isAttack: true }); 
+      });
+      const isEntranceHall = currentRoom.title === ENTRANCE_TITLE; actions.push({ label: isEntranceHall ? "Search Hallway" : "Search this room", command: "search", kind: "search" });
+      if (currentRoom.exits) Object.entries(currentRoom.exits).forEach(([direction]) => { actions.push({ label: `Go ${direction}`, command: `go ${direction}`, kind: "travel" }); });
+      return actions;
+    }
+
+    function handleCommand(cmd) {
+      const { intent, entities } = parseCommand(cmd); if (!intent) { logEvent("I don't understand that command."); return; }
+      const currentLevelMap = game.mapData.levels[game.player.currentLevel]; const currentRoom = currentLevelMap.get(game.player.currentRoomId);
+      if (intent === "movement") { const dir = entities.find((e) => e.entity === "direction")?.value; if (currentRoom.exits[dir]) { game.player.lastDirection = dir; game.player.currentRoomId = currentRoom.exits[dir]; sound.play("item", "C4"); renderCurrentRoom(); } else { logEvent("You can't go that way."); } }
+      else if (intent === "inspect") { const target = entities.find((e) => e.entity === "object")?.value; const feature = (currentRoom.features || []).find((f) => f.id === target || f.keyword === target || f.label.toLowerCase().includes(target)); if (feature) { 
+          const isSpecial = feature.event && (feature.event.type === 'find_item' || feature.event.type === 'find_puzzle_item');
+          if (!isSpecial) { createEventCard(`Inspecting ${feature.label}`, feature.details, "🔍", feature.label); }
+          if (feature.event && !feature.consumed) { feature.consumed = true; processEvent(feature.event); } updateGuideButtons(currentRoom); } else { logEvent("You don't see that here."); } }
+      else if (intent === "search") { const hidden = (currentRoom.features || []).find((f) => f.keyword === "hidden" && !f.consumed); if (hidden) { hidden.consumed = true; if (hidden.event) processEvent(hidden.event); updateGuideButtons(currentRoom); } else { createEventCard("Search Results", "You search the area but find nothing new.", "👀"); } }
+      else if (intent === "gamble") {
+          const target = entities.find((e) => e.entity === "object")?.value;
+          const monster = (currentRoom.monsters || []).find((m) => m.id === target || m.name.toLowerCase().includes(target));
+          if (monster && monster.canGamble) {
+              const win = Math.random() > 0.5;
+              if (win) {
+                  const prize = randomUtil.pick(lootTable);
+                  processEvent(events.loot(prize, `${monster.name} nods respectfully. "Luck favors you today."`, "🎲"));
+              } else {
+                  processEvent(events.damage(5, `${monster.name} laughs as you lose the bet. Your pride (and HP) takes a hit.`));
+              }
+          } else {
+              logEvent("They aren't interested in gambling.");
+          }
+      }
+      else if (intent === "talk") { const target = entities.find((e) => e.entity === "object")?.value; const monster = (currentRoom.monsters || []).find((m) => m.id === target || m.name.toLowerCase().includes(target)); if (monster) { createEventCard(`Talking to ${monster.name}`, monster.talkText, "💬"); if (monster.talkEvent && !monster.hasSpoken) { monster.hasSpoken = true; setTimeout(() => processEvent(monster.talkEvent), 1000); updateGuideButtons(currentRoom); } } else { logEvent("There is no one here to talk to."); } }
+      else if (intent === "attack") { const target = entities.find((e) => e.entity === "object")?.value; const monster = (currentRoom.monsters || []).find((m) => m.id === target || m.name.toLowerCase().includes(target)); if (monster) { if (monster.hp <= 0) { logEvent("It is already defeated."); return; } const damage = game.player.attackPower + Math.floor(Math.random() * 4); monster.hp -= damage; sound.play("hit", "C2"); if (monster.hp <= 0) { sound.play("solve", "G4"); const loot = randomUtil.pick(lootTable); game.player.inventory.push(loot); showVictoryPage(monster.name, 50, loot); updateGuideButtons(currentRoom); } else { const enemyDmg = Math.max(0, monster.attack - (Math.random() > 0.5 ? 1 : 0)); game.player.hp -= enemyDmg; sound.play("damage"); createEventCard("Combat!", `${monster.name} strikes back! You take ${enemyDmg} damage.`, "⚔️"); if (game.player.hp <= 0) createEventCard("Game Over", "The dungeon claims another soul.", "💀"); } } else { logEvent("There is nothing to attack here."); } }
+      else if (cmd.startsWith("quest ")) { const questId = cmd.split(" ")[1]; if (currentRoom.quest && currentRoom.quest.id === questId && currentRoom.quest.status === "available") { createEventCard("Quest Update", currentRoom.quest.description, "📜"); if (currentRoom.quest.event) setTimeout(() => processEvent(currentRoom.quest.event), 1000); currentRoom.quest.status = "completed"; updateGuideButtons(currentRoom); } }
+    }
+
+    function processEvent(evt) { 
+        if (!evt) return; 
+        if (evt.type === "heal") { 
+            game.player.hp = Math.min(game.player.maxHp, game.player.hp + evt.amount); 
+            createEventCard("Healing", evt.message, "❤️");
+            sound.play("solve", "E4"); 
+        } else if (evt.type === "damage") { 
+            game.player.hp -= evt.amount; 
+            createEventCard("Damage Taken", evt.message, "💔");
+            sound.play("damage"); 
+        } else if (evt.type === "find_item") { 
+            if (evt.itemType === "gold") { 
+                game.player.gold += evt.amount; 
+                createEventCard("Gold Found", evt.message, "💰");
+                sound.play("item", "G5"); 
+            } else if (evt.itemType === "loot") {
+                game.player.inventory.push(evt.itemName);
+                createEventCard("Loot Discovered!", evt.message, evt.icon || "🎁", evt.itemName);
+                sound.play("item", "A5"); 
+            } else { 
+                game.player.inventory.push(evt.itemName); 
+                createEventCard("Item Found", evt.message, "📦", evt.itemName);
+                sound.play("item", "A5"); 
+            } 
+        } else if (evt.type === "find_puzzle_item") { 
+            game.puzzle.found++; 
+            createEventCard("Fragment Found", evt.message, "🧩");
+            sound.play("puzzle", "C5"); 
+            if (game.puzzle.found >= game.puzzle.required) createEventCard("Quest Complete!", "You have found all the fragments! The Golden Scroll reveals itself!", "✨"); 
+        } 
+        updatePlayerStats(); 
+    }
+    
+    function updatePlayerStats() { if (game.ui.levelNum) game.ui.levelNum.textContent = (game.player.currentLevel + 1).toString().padStart(2, "0"); }
+    
+    function setupEventListeners() { 
+        game.ui.commandInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { handleCommand(game.ui.commandInput.value); game.ui.commandInput.value = ""; } }); 
+        game.ui.bookPrevBtn.onclick = (e) => { e.stopPropagation(); turnPage("prev"); }; 
+        game.ui.bookNextBtn.onclick = (e) => { e.stopPropagation(); turnPage("next"); }; 
+        game.ui.bookPageLeft.onclick = () => turnPage("prev");
+        game.ui.bookPageRight.onclick = () => turnPage("next");
+        if(document.getElementById("util-inventory")) document.getElementById("util-inventory").onclick = () => { game.ui.inventoryModal.style.display = "flex"; renderInventory(); }; 
+        if(document.getElementById("inventory-close")) document.getElementById("inventory-close").onclick = () => (game.ui.inventoryModal.style.display = "none"); 
+        if(document.getElementById("util-theme")) document.getElementById("util-theme").onclick = () => { 
+            if (window.self !== window.top) {
+                window.parent.postMessage({ type: 'toggleTheme' }, '*');
+            } else {
+                document.body.classList.toggle("dark-mode"); 
+            }
+        }; 
+        if(document.getElementById("help-close")) document.getElementById("help-close").onclick = () => (document.getElementById("help-modal").style.display = "none");
+        if(document.getElementById("help-start-btn")) document.getElementById("help-start-btn").onclick = () => (document.getElementById("help-modal").style.display = "none");
+        
+        // Add Listener for Interactive Text
+        document.getElementById("origami-dungeon-wrapper").addEventListener("click", function(e) {
+            if (e.target.classList.contains("interactive-feature")) {
+                const cmd = e.target.getAttribute("data-cmd");
+                if (cmd) {
+                    // Use the current room from state
+                    const currentLevelMap = game.mapData.levels[game.player.currentLevel]; 
+                    const currentRoom = currentLevelMap.get(game.player.currentRoomId);
+                    triggerLanternSequence(cmd, currentRoom);
+                }
+            }
+        });
+        
+        // Event Modal Listeners
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.expandable-card');
+            if (card) {
+                e.stopPropagation();
+                console.log('Card clicked:', card);
+                const modal = document.getElementById('event-modal');
+                console.log('Modal element:', modal);
+                if (!modal) {
+                    console.error('Modal element not found!');
+                    return;
+                }
+                const modalContent = modal.querySelector('.modal-content');
+                console.log('Modal content:', modalContent);
+                
+                // Clone the card content
+                modalContent.innerHTML = card.innerHTML;
+                
+                // Handle 3D Canvas re-init
+                const oldCanvasContainer = modalContent.querySelector('.event-card-3d-container');
+                if (oldCanvasContainer) {
+                    oldCanvasContainer.innerHTML = ''; // Clear the dead canvas
+                    const itemNameDiv = oldCanvasContainer.nextElementSibling;
+                    if (itemNameDiv) {
+                         render3DLootItem(oldCanvasContainer, itemNameDiv.innerText);
+                    }
+                }
+                
+                modal.style.display = 'flex';
+                console.log('Modal display set to flex');
+            }
+        });
+
+        // Close Modal on Any Click
+        const eventModal = document.getElementById('event-modal');
+        if (eventModal) {
+            eventModal.addEventListener('click', () => {
+                eventModal.style.display = 'none';
+            });
+        }
+    }
+    
+    function renderInventory() { const grid = game.ui.inventoryGrid; grid.innerHTML = ""; game.player.inventory.forEach((item) => { const slot = document.createElement("div"); slot.className = "inventory-slot"; slot.textContent = item[0]; grid.appendChild(slot); }); game.ui.goldCounter.textContent = `${game.player.gold} Gold`; }
+    
+    // Init Game
+    init();
+  });
+</script>
+</body>
+</html>

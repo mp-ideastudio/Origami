@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Dungeon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* --- Themes & Core Styles --- */
+        :root {
+            /* Fallback Light Theme */
+            --bg-main: #E0E0E0;
+            --panel-bg: rgba(240, 240, 240, 0.8);
+            --panel-bg-solid: #F0F0F0;
+            --text-color: #121212;
+            --text-secondary: #555555;
+            --radius: 16px;
+            --radius-small: 12px;
+            --gold-accent: #B8860B; 
+            --neu-shadow: 5px 5px 10px #BEBEBE, -5px -5px 10px #FFFFFF;
+            --neu-shadow-inset: inset 5px 5px 10px #BEBEBE, inset -5px -5px 10px #FFFFFF;
+            --success-green: #2E7D32;
+            --damage-red: #C62828;
+            --interactive-color: #3F51B5;
+            --puzzle-color: #FFA000;
+            --combat-color: #D32F2F;
+        }
+
+        /* Dark Obsidian Glass Neumorphic Theme */
+        body.dark-mode {
+            --bg-main: #0A0A0A;
+            --panel-bg: rgba(12, 12, 14, 0.6); /* Glass effect - made it slightly darker and more transparent */
+            --panel-bg-solid: #191919;
+            --text-color: #EAEAEA;
+            --text-secondary: #888888;
+            --gold-accent: #D4AF37; /* Elegant Gold */
+            --border-color-light: rgba(255, 255, 255, 0.18);
+
+            /* Neumorphic Shadows (Dark on Dark) */
+            --shadow-dark-1: #000000;
+            --shadow-dark-2: #141414;
+            --neu-shadow: 4px 4px 8px var(--shadow-dark-1), -4px -4px 8px var(--shadow-dark-2);
+            --neu-shadow-inset: inset 4px 4px 8px var(--shadow-dark-1), inset -4px -4px 8px var(--shadow-dark-2);
+            
+            --success-green: #4CAF50;
+            --damage-red: #F44336;
+            --interactive-color: var(--gold-accent);
+            --puzzle-color: #E0E0E0;
+            --combat-color: #ef5350;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-main);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(0,0%,100%,.04) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(0,0%,100%,.06) 0px, transparent 50%);
+            color: var(--text-color);
+            font-size: 14px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        #dnd-game-app-container {
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        #dnd-game-prompt-container {
+            display: flex; 
+            flex-direction: column;
+            gap: 12px;
+            padding: 24px;
+            border-radius: var(--radius);
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid var(--border-color-light);
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        #dnd-game-adventure-log {
+            height: calc(30vh - 150px);
+            min-height: 120px;
+            overflow-y: auto;
+            padding: 0 8px; /* Padding for scrollbar */
+            background: rgba(0,0,0,0.2);
+            border-radius: var(--radius-small);
+            box-shadow: var(--neu-shadow-inset);
+            font-size: 1.1em;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+        .log-entry { padding: 8px; }
+        .log-entry p { margin: 0 0 8px; }
+        .log-entry p:last-child { margin-bottom: 0; }
+
+        /* Dark Glass Scrollbar */
+        #dnd-game-adventure-log::-webkit-scrollbar { width: 8px; }
+        #dnd-game-adventure-log::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        #dnd-game-adventure-log::-webkit-scrollbar-thumb { background: rgba(136, 136, 136, 0.5); border-radius: 10px; }
+        #dnd-game-adventure-log::-webkit-scrollbar-thumb:hover { background: rgba(136, 136, 136, 0.7); }
+
+        #dnd-game-adventure-log hr {
+            border: none;
+            border-top: 1px dashed var(--text-secondary);
+            opacity: 0.3;
+            margin: 20px 0; 
+        }
+        .interactive-item { color: var(--gold-accent); font-weight: bold; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; }
+        .puzzle-item-text { color: var(--gold-accent); font-weight: bold; }
+        .combat-text { color: var(--combat-color); font-weight: bold; }
+
+        #dnd-game-input-bar {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 16px;
+        }
+        #dnd-game-command-ui-buttons { display: flex; flex-direction: row; gap: 8px; }
+        
+        .dnd-game-header-button {
+            background: linear-gradient(145deg, #1b1b1b, #161616);
+            color: var(--text-color);
+            border: 1px solid var(--border-color-light);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: var(--neu-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px; 
+            height: 48px;
+        }
+        .dnd-game-header-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 12px var(--shadow-dark-1), -6px -6px 12px var(--shadow-dark-2);
+        }
+        .dnd-game-header-button:active {
+            background: var(--panel-bg-solid);
+            box-shadow: var(--neu-shadow-inset);
+            transform: translateY(1px);
+        }
+        .dnd-game-header-button svg { width: 22px; height: 22px; opacity: 0.8; }
+        .dnd-game-header-button:hover svg { opacity: 1; }
+
+        #dnd-game-input-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
+        #dnd-game-prompt-icon { position: absolute; left: 16px; color: var(--text-secondary); pointer-events: none; z-index: 1; }
+        #dnd-game-command-input {
+            width: 100%; padding: 12px 40px 12px 40px; font-size: 1em; box-sizing: border-box; 
+            border-radius: 12px;
+            border: 1px solid var(--border-color-light);
+            background: transparent;
+            color: var(--text-color);
+            box-shadow: var(--neu-shadow-inset);
+            outline: none;
+            transition: box-shadow 0.2s, background-color 0.3s, color 0.3s;
+        }
+        #dnd-game-command-input:focus {
+            box-shadow: var(--neu-shadow-inset), 0 0 0 2px var(--interactive-color);
+            border-color: var(--interactive-color);
+        }
+        
+        #dnd-game-level-display {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            border: 2px solid var(--success-green);
+            box-shadow: var(--neu-shadow);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, border-color 0.5s ease;
+        }
+        #dnd-game-level-display:hover { transform: scale(1.05); }
+
+        #stats-inner { 
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease-in-out;
+            box-shadow: var(--neu-shadow-inset);
+        }
+        
+        #stats-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .level-num { font-size: 1.2em; font-weight: 700; line-height: 1; }
+        .level-label { font-size: 0.5em; letter-spacing: 1px; color: var(--text-secondary); line-height: 1.5; }
+        
+        #dnd-game-guide-buttons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+        .dnd-game-guide-btn {
+            background: linear-gradient(145deg, #1b1b1b, #161616);
+            color: var(--text-color);
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-size: 0.9em;
+            box-shadow: var(--neu-shadow);
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dnd-game-guide-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 12px var(--shadow-dark-1), -6px -6px 12px var(--shadow-dark-2);
+        }
+        .dnd-game-guide-btn:active {
+            background: var(--panel-bg-solid);
+            box-shadow: var(--neu-shadow-inset);
+            transform: translateY(1px);
+        }
+
+        .dnd-game-guide-btn.attack-btn { 
+            background: var(--combat-color); 
+            color: white; 
+            border-color: transparent;
+            font-weight: bold;
+        }
+        .riddle-answer-btn {
+            background: var(--interactive-color);
+            color: black;
+            border-color: var(--interactive-color);
+        }
+        .dnd-game-guide-btn.search-btn, .dnd-game-guide-btn.traveled-btn {
+            background: #333;
+            border-color: #555;
+        }
+        
+        @keyframes damage-flash-anim {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .damage-flash { animation: damage-flash-anim 0.5s ease-out; }
+        
+        @keyframes border-flash-anim {
+            0%, 100% { box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+            50% { box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 4px var(--flash-color); }
+        }
+        .damage-indicator {
+            --flash-color: var(--damage-red);
+            animation: border-flash-anim 0.7s ease-out;
+        }
+        .heal-indicator {
+            --flash-color: var(--success-green);
+            animation: border-flash-anim 0.7s ease-out;
+        }
+
+        /* --- Modal Styles --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100; left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-panel {
+            background-color: var(--panel-bg);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 90%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 16px;
+            position: relative;
+            border: 1px solid var(--border-color-light);
+        }
+        .modal-close-btn { color: var(--text-secondary); position: absolute; top: 10px; right: 15px; font-size: 2em; cursor: pointer; line-height: 1;}
+        #dnd-game-inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 12px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: var(--radius-small); box-shadow: var(--neu-shadow-inset); max-height: 250px; overflow-y: auto; }
+        .inventory-slot { width: 100%; aspect-ratio: 1 / 1; background-color: var(--bg-main); border-radius: 8px; box-shadow: var(--neu-shadow-inset); display: flex; align-items: center; justify-content: center; font-size: 1.5em; padding: 4px; text-align: center; color: var(--text-color); overflow: hidden; word-break: break-word; position: relative; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
+        .inventory-slot.selected { border-color: var(--gold-accent); }
+        #dnd-game-gold-counter { text-align: center; font-size: 1.2em; font-weight: bold; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
+        #dnd-game-character-panel-content { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 16px; }
+        .equipment-column { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+        .equipment-slot { width: 60px; height: 60px; font-size: 2em; }
+        .samurai-silhouette { width: 100%; height: auto; fill: var(--text-secondary); }
+    </style>
+</head>
+<body class="dark-mode">
+    <div id="dnd-game-app-container">
+        <div id="dnd-game-prompt-container">
+            <div id="dnd-game-adventure-log"></div>
+            <div id="dnd-game-command-center">
+                <div id="dnd-game-input-bar">
+                    <div id="dnd-game-level-display">
+                        <div id="stats-inner">
+                            <div id="stats-text">
+                                <div id="dnd-game-level-num" class="level-num">01</div>
+                                <div class="level-label">LEVEL</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dnd-game-input-wrapper">
+                         <span id="dnd-game-prompt-icon">▶</span>
+                         <input type="text" id="dnd-game-command-input" autocomplete="off" placeholder="Type 'help' for commands...">
+                    </div>
+                    <div id="dnd-game-command-ui-buttons">
+                        <button id="dnd-game-theme-toggle-btn" class="dnd-game-header-button" type="button" title="Toggle Theme">
+                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>
+                        </button>
+                        <button id="dnd-game-inventory-btn" class="dnd-game-header-button" type="button" title="Inventory">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.658-.463 1.243-1.119 1.243H4.5a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.744 7.5h12.512a1.125 1.125 0 0 1 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                        </button>
+                        <button id="dnd-game-redraw-map-btn" class="dnd-game-header-button" type="button" title="New Dungeon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.023 9.348-4.992 0a.75.75 0 0 1-.53-.22l-1.684-1.683a.75.75 0 0 0-1.06 0l-1.684 1.683a.75.75 0 0 1-.53-.22H2.25a.75.75 0 0 1 0-1.5h2.243a.75.75 0 0 1 .53-.22l1.684-1.683a.75.75 0 0 0 0-1.06l-1.684-1.684a.75.75 0 0 1-.22-.53V2.25a.75.75 0 0 1 1.5 0v2.243a.75.75 0 0 1-.22.53l1.684 1.683a.75.75 0 0 0 1.06 0l1.684-1.683a.75.75 0 0 1 .22-.53V2.25a.75.75 0 0 1 1.5 0v2.243a.75.75 0 0 1-.22.53l-1.684 1.683a.75.75 0 0 0 0 1.06l1.684 1.684a.75.75 0 0 1 .53.22h4.992a.75.75 0 0 1 0 1.5Zm-6.023 9.348H2.25a.75.75 0 0 1 0-1.5h7.75a.75.75 0 0 0 .53-.22l1.684-1.683a.75.75 0 0 1 1.06 0l1.684 1.683a.75.75 0 0 0 .53.22h2.243a.75.75 0 0 1 0 1.5h-2.243a.75.75 0 0 0-.53.22l-1.684 1.683a.75.75 0 0 1-1.06 0l-1.684-1.683a.75.75 0 0 0-.53-.22ZM19.5 7.5h2.25a.75.75 0 0 1 0 1.5h-2.25a.75.75 0 0 1 0-1.5Zm0 9h2.25a.75.75 0 0 1 0 1.5h-2.25a.75.75 0 0 1 0-1.5Z" /></svg>
+                        </button>
+                   </div>
+                </div>
+                <div id="dnd-game-guide-buttons"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dnd-game-inventory-modal" class="modal">
+        <div id="dnd-game-inventory-panel" class="modal-panel">
+            <span id="dnd-game-inventory-close-btn" class="modal-close-btn">&times;</span>
+            <h2 style="text-align: center; margin: 0; font-family: 'Yuji Syuku', serif;">Inventory</h2>
+            <div id="dnd-game-gold-counter"></div>
+            <div id="dnd-game-inventory-grid"></div>
+            <div class="modal-footer">
+                <button id="dnd-game-use-item-btn" class="dnd-game-guide-btn" style="display:none;">Use / Equip</button>
+                <button id="dnd-game-inventory-close-btn-bottom" class="dnd-game-guide-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="dnd-game-character-modal" class="modal">
+        <div id="dnd-game-character-panel" class="modal-panel">
+            <span id="dnd-game-character-close-btn" class="modal-close-btn">&times;</span>
+            <h2 style="text-align: center; margin: 0; font-family: 'Yuji Syuku', serif;">Character</h2>
+            <div id="dnd-game-character-panel-content">
+                <div class="equipment-column">
+                    <div id="dnd-game-ring-slot-1" class="inventory-slot equipment-slot"></div>
+                </div>
+                <div class="equipment-column">
+                    <div id="dnd-game-armor-slot" class="inventory-slot equipment-slot"></div>
+                    <svg class="samurai-silhouette" viewBox="0 0 100 100">
+                        <path d="M50 2C27.9 2 10 20.3 10 42.9c0 16.2 13.1 29.3 29.3 29.3h1.4c16.2 0 29.3-13.1 29.3-29.3C70 20.3 52.1 2 50 2zm0 8.8c11.3 0 20.5 9.2 20.5 20.5S61.3 51.8 50 51.8 29.5 42.6 29.5 31.3 38.7 10.8 50 10.8zM50 65.4c-12.8 0-23.2 10.4-23.2 23.2v7.4h46.4v-7.4c0-12.8-10.4-23.2-23.2-23.2z"/>
+                    </svg>
+                    <div id="dnd-game-shoes-slot" class="inventory-slot equipment-slot"></div>
+                </div>
+                <div class="equipment-column">
+                    <div id="dnd-game-ring-slot-2" class="inventory-slot equipment-slot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dnd-game-combat-modal" class="modal">
+        <div id="dnd-game-combat-panel" class="modal-panel">
+            <h2 id="dnd-game-monster-name" style="text-align: center; margin: 0; font-family: 'Yuji Syuku', serif;"></h2>
+            <div class="health-bar-container">
+                <div id="dnd-game-monster-health-bar" class="health-bar"></div>
+            </div>
+            <div id="dnd-game-combat-log"></div>
+            <div style="text-align:center;">Player HP: <span id="dnd-game-player-combat-hp"></span></div>
+            <div class="modal-footer">
+                <button id="dnd-game-combat-attack-btn" class="dnd-game-guide-btn attack-btn">Attack</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // --- DICTIONARY & PARSER ---
+        const dictionary = {
+            "movement": ["go", "move", "walk", "north", "south", "east", "west", "up", "down"],
+            "interaction": ["take", "examine", "look", "use", "open", "search"],
+            "combat": ["attack", "fight", "hit", "cast", "spell"],
+            "inventory": ["i", "inventory", "items"],
+        };
+
+        async function parseCommand(command) {
+            const lowerCmd = command.toLowerCase().trim();
+            const words = lowerCmd.split(' ');
+            let intent = null;
+            let entities = [];
+            const verb = words[0];
+            for (const key in dictionary) {
+                if (dictionary[key].includes(verb)) { intent = key; break; }
+            }
+            if (verb === 'examine' || verb === 'look') intent = 'examine';
+            if (verb === 'search') intent = 'search';
+            if (dictionary.combat.includes(verb)) intent = 'attack';
+
+            if (words.length > 1) {
+                const target = words.slice(1).join(' ');
+                if (intent === 'movement' && ['north', 'south', 'east', 'west', 'up', 'down'].includes(target)) {
+                    entities.push({ entity: 'direction', value: target });
+                } else if (intent === 'examine') {
+                    entities.push({ entity: 'object', value: target });
+                }
+            }
+            if (words.length === 1 && dictionary.movement.includes(words[0])) {
+                intent = 'movement';
+                entities.push({ entity: 'direction', value: words[0] });
+            }
+            return { intent, entities };
+        }
+
+        // --- SOUND MANAGER ---
+        const sound = {
+            isInitialized: false,
+            synths: {},
+            init() {
+                if (this.isInitialized || typeof Tone === 'undefined') return;
+                this.synths.item = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }, volume: -12 }).toDestination();
+                this.synths.puzzle = new Tone.PolySynth(Tone.FMSynth, { harmonicity: 1.5, modulationIndex: 10, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.5 }, volume: -8 }).toDestination();
+                this.synths.damage = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }, volume: -10 }).toDestination();
+                this.synths.solve = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.8, release: 1 }, volume: -6 }).toDestination();
+                this.synths.hit = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 5, envelope: { attack: 0.001, decay: 0.2, sustain: 0 }, volume: -10 }).toDestination();
+                this.isInitialized = true;
+            },
+            play(type, note, duration = '8n') {
+                if (this.isInitialized && this.synths[type]) {
+                    if (type === 'damage') {
+                        this.synths[type].triggerAttackRelease("8n");
+                    } else {
+                        this.synths[type].triggerAttackRelease(note, duration);
+                    }
+                }
+            }
+        };
+
+        // --- FUZZY LOGIC CORE ---
+        const fuzzyCore = {
+            keywords: {
+                tree: { name: 'Ancient Tree', possibleEvents: ['heal', 'find_item'] },
+                lantern: { name: 'Stone Lantern', possibleEvents: ['find_puzzle_item', 'find_item'] },
+                chest: { name: 'Iron Chest', possibleEvents: ['find_item', 'damage', 'spawn_monster', 'riddle'] },
+                mirror: { name: 'Silver Mirror', possibleEvents: ['damage', 'sub_quest'] },
+                crystal: { name: 'Pulsing Crystal', possibleEvents: ['find_puzzle_item', 'heal'] },
+                sarcophagus: { name: 'Ornate Sarcophagus', possibleEvents: ['spawn_monster', 'find_puzzle_item'] },
+                fountain: { name: 'Ornate Fountain', possibleEvents: ['heal', 'damage'] },
+                statue: { name: 'Carved Statue', possibleEvents: ['find_puzzle_item', 'sub_quest', 'riddle'] },
+                book: { name: 'Dusty Book', possibleEvents: ['find_item', 'sub_quest', 'riddle'] }
+            },
+            events: {
+                heal: [{ type: 'heal', amount: 10, message: 'A soothing energy washes over you.' }],
+                damage: [{ type: 'damage', amount: 5, message: 'A sharp sting! You take damage.' }],
+                find_item: [
+                    { type: 'find_item', itemType: 'gold', amount: 10, message: 'You found 10 gold coins!' },
+                    { type: 'find_item', itemType: 'key', itemName: 'Crimson Key', message: 'You found a Crimson Key!' }
+                ],
+                find_puzzle_item: [{ type: 'find_puzzle_item', message: 'You discovered a Serpent Seal Fragment!' }],
+                spawn_monster: [
+                    { type: 'spawn_monster', monsterName: 'Paper Shikigami', monsterHp: 30, monsterAttack: 3, message: 'A Paper Shikigami flutters out to attack!' },
+                    { type: 'spawn_monster', monsterName: 'Vampire Origami Bat', monsterHp: 1, monsterAttack: 1, evasion: 0.75, message: 'A Vampire Origami Bat darts out from the shadows!' }
+                ],
+                sub_quest: [{ type: 'sub_quest', questId: 'findKey', message: "A faint inscription reads: 'The one who holds the Crimson Key may pass.'" }],
+                riddle: [{
+                    type: 'riddle',
+                    message: "A voice echoes: 'I have cities, but no houses. I have mountains, but no trees. I have water, but no fish. What am I?'",
+                    answers: [
+                        { text: 'A Map', correct: true, reward: { type: 'find_puzzle_item', message: 'Correct! A secret compartment opens, revealing a Serpent Seal Fragment!' } },
+                        { text: 'A Dream', correct: false },
+                        { text: 'A Book', correct: false }
+                    ]
+                }]
+            },
+            getRandomEvent(type) {
+                const eventPool = this.events[type];
+                return {...eventPool[Math.floor(Math.random() * eventPool.length)]};
+            }
+        };
+
+        // --- ROOM FACTORY ---
+        class RoomFactory {
+            constructor() { this.nextRoomId = 1; }
+            _getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+            createRandomRoom(id) {
+                const room = { id: id, title: "Mysterious Chamber", exits: {}, items: [], monsters: [] };
+                
+                room.description = "You are in a room. " + this._getRandomElement([
+                    "The air is cold and damp.", "A strange silence fills the space.", 
+                    "Flickering torchlight casts long shadows.", "The scent of old stone and dust hangs in the air."
+                ]);
+
+                const feature = this._getRandomElement(Object.keys(fuzzyCore.keywords));
+                room.description += ` You see a ${feature}.`;
+                
+                for (const keyword in fuzzyCore.keywords) {
+                    if (room.description.toLowerCase().includes(keyword)) {
+                        const keywordData = fuzzyCore.keywords[keyword];
+                        const eventType = this._getRandomElement(keywordData.possibleEvents);
+                        const event = fuzzyCore.getRandomEvent(eventType);
+                        
+                        room.items.push({
+                            keyword: keyword,
+                            name: keywordData.name,
+                            details: `You examine the ${keyword}.`,
+                            interactionEvent: event
+                        });
+                    }
+                }
+                return room;
+            }
+        }
+        
+        const roomFactory = new RoomFactory();
+
+        // --- GAME LOGIC ---
+        const game = { 
+            player: { hp: 100, maxHp: 100, currentLevel: 0, currentRoomId: 1, inventory: [], attackPower: 8, gold: 0, lastDirection: null }, 
+            mapData: { levels: [] }, 
+            puzzle: { required: 6, found: 0 },
+            state: { inRiddle: false, selectedItem: null },
+            ui: {} 
+        };
+
+        // Mock API base URL
+        const API_BASE_URL = 'https://jsonplaceholder.typicode.com';
+
+        function init() {
+            cacheUI();
+            updatePlayerStats();
+            setupEventListeners();
+            regenerateDungeon();
+        }
+        
+        function cacheUI() {
+            const ids = ['adventureLog', 'commandInput', 'levelDisplay', 'statsInner', 'levelNum', 'guideButtons', 'themeToggleBtn', 'inventoryBtn', 'redrawMapBtn', 'inventoryModal', 'inventoryPanel', 'inventoryGrid', 'goldCounter', 'characterModal', 'inventoryCloseBtn', 'inventoryCloseBtnBottom', 'useItemBtn', 'characterCloseBtn', 'combatModal', 'monsterName', 'monsterHealthBar', 'combatLog', 'playerCombatHp', 'combatAttackBtn', 'promptContainer'];
+            ids.forEach(id => {
+                const kebabId = id.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+                game.ui[id] = document.getElementById(`dnd-game-${kebabId}`);
+            });
+        }
+
+        function logEvent(message, type = 'normal') {
+            const { adventureLog } = game.ui;
+            if (!adventureLog) return;
+            const lastEntry = adventureLog.querySelector('.log-entry:last-child');
+            if(lastEntry){
+                 const p = document.createElement('p');
+                 if (type === 'command') p.style.opacity = '0.7';
+                 p.innerHTML = message;
+                 lastEntry.appendChild(p);
+                 adventureLog.scrollTop = adventureLog.scrollHeight;
+            }
+        }
+
+        function createLogEntry(innerHTML) {
+            const { adventureLog } = game.ui;
+            if (!adventureLog) return;
+
+            const newEntry = document.createElement('div');
+            newEntry.className = 'log-entry';
+            newEntry.innerHTML = innerHTML;
+            adventureLog.appendChild(newEntry);
+
+            while (adventureLog.children.length > 2) {
+                adventureLog.removeChild(adventureLog.firstChild);
+            }
+            adventureLog.scrollTop = adventureLog.scrollHeight;
+        }
+
+
+        function regenerateDungeon() {
+            const { adventureLog } = game.ui;
+            adventureLog.innerHTML = '';
+            game.mapData.levels = [];
+            game.player.currentLevel = 0;
+            game.player.inventory = [];
+            game.player.gold = 0;
+            game.puzzle.found = 0;
+            game.puzzle.required = 6;
+            
+            generateLevel(0);
+            game.player.currentRoomId = game.mapData.levels[0].keys().next().value;
+            
+            const initialMessage = `<h1 style="text-align:center; font-family: 'Yuji Syuku', serif; font-size: 1.7em; margin-bottom: 12px;"><b>Welcome to Origami Dungeon!</b></h1><p>You must enter the underworld to retrieve the <b>Golden Scroll of Destiny</b> from the powerful <b>Origami Serpent</b> and come back out to restore balance to the realm.</p><p><i>You continue walking down a long corridor and it opens up to a room...</i></p>`;
+            createLogEntry(initialMessage);
+            renderCurrentRoom();
+        }
+
+        function generateLevel(levelIndex, entryRoomId = null) {
+            const levelSize = 10 + Math.floor(Math.random() * 6);
+            const newLevel = new Map();
+            let nextRoomId = (levelIndex * 100) + 1;
+
+            for (let i = 0; i < levelSize; i++) {
+                newLevel.set(nextRoomId, roomFactory.createRandomRoom(nextRoomId));
+                nextRoomId++;
+            }
+            
+            const rooms = Array.from(newLevel.values());
+            for (let i = 0; i < rooms.length; i++) {
+                const currentRoom = rooms[i];
+                if (i < rooms.length - 1) {
+                    const nextRoom = rooms[i+1];
+                    const directions = ['north', 'south', 'east', 'west'];
+                    const dir = roomFactory._getRandomElement(directions);
+                    const oppositeDir = {north: 'south', south: 'north', east: 'west', west: 'east'};
+                    currentRoom.exits[dir] = nextRoom.id;
+                    nextRoom.exits[oppositeDir[dir]] = currentRoom.id;
+                }
+            }
+
+            const stairsDownRoom = roomFactory._getRandomElement(rooms.slice(Math.floor(levelSize / 2)));
+            stairsDownRoom.items.push({ keyword: 'stairs', name: 'Stairs Down', details: 'A set of stairs leads deeper into the darkness.' });
+            stairsDownRoom.exits.down = ((levelIndex + 1) * 100) + 1;
+
+            if (entryRoomId) {
+                const stairsUpRoom = newLevel.get(entryRoomId);
+                stairsUpRoom.items.push({ keyword: 'stairs', name: 'Stairs Up', details: 'A set of stairs leads back the way you came.' });
+                stairsUpRoom.exits.up = game.mapData.levels[levelIndex - 1].values().next().value;
+            }
+
+            game.mapData.levels[levelIndex] = newLevel;
+        }
+
+
+        async function renderCurrentRoom() {
+            const currentLevelMap = game.mapData.levels[game.player.currentLevel];
+            const currentRoom = currentLevelMap.get(game.player.currentRoomId);
+
+            if (!currentRoom) {
+                createLogEntry("Error: You are lost in the void. Resetting...");
+                regenerateDungeon();
+                return;
+            }
+            
+            // API Call to check for monsters
+            try {
+                // Using the room ID to get a predictable "random" result from the mock API
+                const response = await fetch(`${API_BASE_URL}/todos/${currentRoom.id}`);
+                if (!response.ok) throw new Error('Network response was not ok.');
+                const data = await response.json();
+
+                // Mock logic: If the mock data's `completed` status is true, spawn a monster.
+                if (data.completed) {
+                    currentRoom.monsters = [{
+                        name: 'API Golem',
+                        hp: 40,
+                        maxHp: 40,
+                        attack: 6,
+                        evasion: 0.1
+                    }];
+                } else {
+                    currentRoom.monsters = []; // Ensure no monsters if API says so
+                }
+            } catch (error) {
+                console.error("Failed to fetch monster data:", error);
+                currentRoom.monsters = []; // Default to no monsters on API error
+            }
+
+
+            let enrichedDescription = currentRoom.description;
+            if (currentRoom.items) {
+                currentRoom.items.forEach(item => {
+                    const regex = new RegExp(`\\b(${item.keyword})\\b`, 'gi');
+                    enrichedDescription = enrichedDescription.replace(regex, `<span class="interactive-item" onclick="window.handleCommand('examine ${item.keyword}')" title="Examine ${item.keyword}">$1</span>`);
+                });
+            }
+            createLogEntry(`<hr><h3 style="text-align:center;">Room #${currentRoom.id} - ${currentRoom.title}</h3><p>${enrichedDescription}</p>`);
+            updateGuideButtons(currentRoom);
+        }
+        
+        function updateGuideButtons(currentRoom) {
+            const { guideButtons } = game.ui;
+            guideButtons.innerHTML = '';
+            const createButton = (text, command, cssClass = '') => {
+                const btn = document.createElement('button');
+                btn.className = `dnd-game-guide-btn ${cssClass}`;
+                btn.textContent = text;
+                btn.dataset.command = command;
+                btn.onclick = () => handleCommand(command);
+                guideButtons.appendChild(btn);
+            };
+
+            if (game.state.inRiddle) return;
+
+            const monsterCount = currentRoom.monsters ? currentRoom.monsters.length : 0;
+            if (monsterCount > 0) {
+                 createButton(`Attack Monsters (${monsterCount})`, 'attack', 'attack-btn');
+            }
+
+            createButton('Search this room', 'search', 'search-btn');
+
+            const oppositeDirection = {north: 'south', south: 'north', east: 'west', west: 'east', up: 'down', down: 'up'};
+            const backDirection = oppositeDirection[game.player.lastDirection];
+            
+            if (backDirection && currentRoom.exits[backDirection]) {
+                createButton(`Go back ${backDirection}`, `go ${backDirection}`, 'traveled-btn');
+            }
+
+            if (currentRoom.items) currentRoom.items.forEach(item => {
+                if (item.interactionEvent || item.keyword === 'stairs') {
+                    createButton(`Examine the ${item.name}`, `examine ${item.keyword}`);
+                }
+            });
+            if (currentRoom.exits) {
+                Object.entries(currentRoom.exits).forEach(([direction]) => {
+                    if (direction !== backDirection) {
+                        createButton(`Go ${direction}`, `go ${direction}`);
+                    }
+                });
+            }
+        }
+        
+        function checkPuzzleCompletion() {
+            if (game.puzzle.found >= game.puzzle.required) {
+                const startRoom = game.mapData.levels[0].get(game.mapData.startRoomId);
+                if (!startRoom.exits['down']) {
+                    sound.play('solve', ['C4', 'E4', 'G4'], '1n');
+                    logEvent(`<hr><b class="puzzle-item-text">The Serpent Seal Fragments resonate, shattering the barrier where your journey began! A dark passage to the Serpent's Lair has opened.</b><hr>`);
+                    startRoom.exits['down'] = 1000;
+                    
+                    const bossRoom = { 
+                        id: 1000, 
+                        title: "Origami Serpent's Lair", 
+                        description: "You descend into a cavern reeking of sulfur and malice. In the center coils the horrifying Origami Serpent, guarding the Golden Scroll of Destiny.", 
+                        monsters: [{ name: 'Origami Serpent', hp: 80, maxHp: 80, attack: 10, evasion: 0 }],
+                        exits: { 'up': game.mapData.startRoomId } 
+                    };
+                    game.mapData.levels[game.player.currentLevel].set(1000, bossRoom);
+                    
+                    if(game.player.currentRoomId === game.mapData.startRoomId) updateGuideButtons(startRoom);
+                }
+            }
+        }
+
+        function handleInteractionEvent(event, item, command) {
+            if (event && event.message) logEvent(`<i>${event.message}</i>`);
+
+            const buttonToRemove = document.querySelector(`[data-command="${command}"]`);
+            if (buttonToRemove) buttonToRemove.remove();
+            
+            const currentRoom = game.mapData.levels[game.player.currentLevel].get(game.player.currentRoomId);
+            if(!currentRoom) return;
+
+            switch (event.type) {
+                case 'find_item':
+                    if (event.itemType === 'gold') {
+                        game.player.gold += event.amount;
+                    } else {
+                        game.player.inventory.push(event.itemName);
+                    }
+                    logEvent(`<b>[${event.itemName || `${event.amount} gold`} added to inventory.]</b>`);
+                    sound.play('item', 'C5');
+                    break;
+                case 'find_puzzle_item':
+                    game.puzzle.found++;
+                    game.player.inventory.push('Serpent Seal Fragment');
+                    logEvent(`<b>[Serpent Seal Fragment found! (${game.puzzle.found}/${game.puzzle.required})]</b>`);
+                    sound.play('puzzle', 'G5', '4n');
+                    checkPuzzleCompletion();
+                    break;
+                case 'damage':
+                    game.player.hp = Math.max(0, game.player.hp - event.amount);
+                    if (game.ui.promptContainer) {
+                        game.ui.promptContainer.classList.remove('heal-indicator', 'damage-indicator');
+                        void game.ui.promptContainer.offsetWidth; 
+                        game.ui.promptContainer.classList.add('damage-indicator');
+                    }
+                    updatePlayerStats();
+                    sound.play('damage');
+                    break;
+                case 'heal':
+                    game.player.hp = Math.min(game.player.maxHp, game.player.hp + event.amount);
+                    if (game.ui.promptContainer) {
+                        game.ui.promptContainer.classList.remove('damage-indicator', 'heal-indicator');
+                        void game.ui.promptContainer.offsetWidth;
+                        game.ui.promptContainer.classList.add('heal-indicator');
+                    }
+                    updatePlayerStats();
+                    sound.play('item', 'E5');
+                    break;
+                case 'spawn_monster':
+                    currentRoom.monsters = currentRoom.monsters || [];
+                    currentRoom.monsters.push({
+                        name: event.monsterName,
+                        hp: event.monsterHp,
+                        maxHp: event.monsterHp,
+                        attack: event.monsterAttack,
+                        evasion: event.monsterEvasion || 0
+                    });
+                    logEvent(`<b class="combat-text">A wild ${event.monsterName} appears!</b>`);
+                    sound.play('damage', 'C3', '2n');
+                    updateGuideButtons(currentRoom);
+                    break;
+                case 'riddle':
+                    game.state.inRiddle = true;
+                    game.ui.guideButtons.innerHTML = '';
+                    event.answers.forEach(answer => {
+                        const btn = document.createElement('button');
+                        btn.className = 'dnd-game-guide-btn riddle-answer-btn';
+                        btn.textContent = answer.text;
+                        btn.onclick = () => handleRiddleAnswer(answer);
+                        game.ui.guideButtons.appendChild(btn);
+                    });
+                    break;
+            }
+            delete item.interactionEvent;
+        }
+
+        function handleRiddleAnswer(answer) {
+            game.state.inRiddle = false;
+            if (answer.correct) {
+                logEvent(`<i>'Correct,' the voice echoes.</i>`);
+                handleInteractionEvent(answer.reward, {});
+            } else {
+                logEvent(`<i>'Wrong,' the voice booms. A wave of force pushes you back.</i>`);
+                handleInteractionEvent({type: 'damage', amount: 3, message: 'The incorrect answer jolts you!'}, {});
+            }
+            updateGuideButtons(game.mapData.levels[game.player.currentLevel].get(game.player.currentRoomId));
+        }
+
+        async function handleSearch() {
+            const p = document.createElement('p');
+            p.innerHTML = '<i>Searching...</i>';
+        
+            const lastEntry = game.ui.adventureLog.querySelector('.log-entry:last-child');
+            if (!lastEntry) return;
+            lastEntry.appendChild(p);
+            game.ui.adventureLog.scrollTop = game.ui.adventureLog.scrollHeight;
+        
+            try {
+                const response = await fetch(`${API_BASE_URL}/posts/${game.player.currentRoomId}`);
+                if (!response.ok) throw new Error('API search failed');
+                const data = await response.json();
+        
+                // Use the title from the mock API response to generate a dynamic search result.
+                p.innerHTML = `<i>Your search reveals something interesting about a nearby object: "${data.title.substring(0, 30)}..."</i>`;
+        
+            } catch (error) {
+                console.error("Search API failed:", error);
+                p.innerHTML = "<i>Your search reveals nothing of interest.</i>";
+            } finally {
+                game.ui.adventureLog.scrollTop = game.ui.adventureLog.scrollHeight;
+            }
+        }
+
+        async function handleCommand(command) {
+            if (!command) return;
+            sound.init();
+            logEvent(`> ${command}`, 'command');
+            if(game.ui.commandInput) game.ui.commandInput.value = '';
+
+            const { intent, entities } = await parseCommand(command);
+            const currentRoom = game.mapData.levels[game.player.currentLevel].get(game.player.currentRoomId);
+            if (!currentRoom) return;
+
+            const monstersInRoom = currentRoom.monsters || [];
+            if (monstersInRoom.length > 0 && intent !== 'attack' && intent !== 'inventory') {
+                logEvent("You can't do that right now, there are monsters!");
+                return;
+            }
+
+            switch (intent) {
+                case 'movement':
+                    const direction = entities[0]?.value;
+                    if (direction && currentRoom && currentRoom.exits[direction]) {
+                        game.player.lastDirection = direction;
+                        if (direction === 'down') {
+                            game.player.currentLevel++;
+                            if (!game.mapData.levels[game.player.currentLevel]) {
+                                generateLevel(game.player.currentLevel, currentRoom.exits.down);
+                            }
+                            game.player.currentRoomId = currentRoom.exits.down;
+                        } else if (direction === 'up') {
+                            game.player.currentLevel--;
+                            game.player.currentRoomId = currentRoom.exits.up;
+                        } else {
+                            game.player.currentRoomId = currentRoom.exits[direction];
+                        }
+                        renderCurrentRoom();
+                    } else { logEvent("You can't go that way."); }
+                    break;
+                case 'examine':
+                    const objectKeyword = entities[0]?.value;
+                    const item = currentRoom?.items?.find(i => i.keyword === objectKeyword);
+                    if (item) {
+                        logEvent(item.details);
+                        if (item.interactionEvent) handleInteractionEvent(item.interactionEvent, item, command);
+                    } else { logEvent("You don't see that here."); }
+                    break;
+                case 'search': handleSearch(); break;
+                case 'inventory': toggleInventory(); break;
+                case 'attack':
+                    if (monstersInRoom.length === 0) { logEvent("There's nothing to attack."); break; }
+
+                    const targetMonster = monstersInRoom[0];
+                    const playerDamage = game.player.attackPower;
+                    targetMonster.hp = Math.max(0, targetMonster.hp - playerDamage);
+                    sound.play('hit', 'C3');
+                    logEvent(`You strike the ${targetMonster.name} for <b class="combat-text">${playerDamage}</b> damage. It has ${targetMonster.hp} HP left.`);
+                    
+                    if (targetMonster.hp <= 0) {
+                        logEvent(`You have defeated the ${targetMonster.name}!`);
+                        monstersInRoom.shift(); // Remove monster from array
+                        sound.play('solve', 'C5', '4n');
+
+                        if (targetMonster.name === 'Origami Serpent') {
+                            logEvent(`<hr><b class="puzzle-item-text">With a final, agonized scream, the serpent monster dissolves into shadow. You retrieve the Golden Scroll of Destiny! Balance is restored to the kingdom! YOU ARE VICTORIOUS!</b><hr>`);
+                            game.player.inventory.push('Golden Scroll of Destiny');
+                        } else if (monstersInRoom.length > 0) {
+                            logEvent(`There are still ${monstersInRoom.length} monsters remaining.`);
+                        }
+                        updateGuideButtons(currentRoom);
+                        break; // End combat turn here
+                    }
+                    
+                    // Monster's turn to attack
+                    const monsterDamage = targetMonster.attack;
+                    game.player.hp = Math.max(0, game.player.hp - monsterDamage);
+                    sound.play('damage');
+                    logEvent(`The ${targetMonster.name} hits you for <b class="combat-text">${monsterDamage}</b> damage.`);
+                    updatePlayerStats();
+
+                    if (game.player.hp <= 0) {
+                        logEvent("You have been defeated... Your journey ends here.");
+                        if(game.ui.guideButtons) game.ui.guideButtons.innerHTML = '';
+                    }
+                    break;
+                case 'help':
+                    logEvent("<b>Commands:</b><br><b>go [direction]</b><br><b>examine [item]</b><br><b>search</b>, <b>inventory</b> (or i), <b>attack</b>");
+                    break;
+                default: logEvent("I don't understand that command."); break;
+            }
+        }
+
+        function updatePlayerStats() {
+            const { levelNum, statsInner, levelDisplay } = game.ui;
+            if(!levelNum || !statsInner || !levelDisplay) return;
+
+            levelNum.textContent = String(game.player.currentLevel + 1).padStart(2, '0');
+            const hpPercent = (game.player.hp / game.player.maxHp);
+
+            // The conic-gradient background acts as a circular progress bar for health.
+            statsInner.style.background = `conic-gradient(var(--success-green) ${hpPercent * 100}%, var(--damage-red) ${hpPercent * 100}%)`;
+
+            // The border color also serves as a quick health/damage indicator.
+            if (hpPercent < 0.3) {
+                levelDisplay.style.borderColor = 'var(--damage-red)';
+            } else {
+                levelDisplay.style.borderColor = 'var(--success-green)';
+            }
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function toggleInventory() {
+            const { inventoryModal } = game.ui;
+            if(!inventoryModal) return;
+            const isVisible = inventoryModal.style.display === 'flex';
+            if (isVisible) {
+                inventoryModal.style.display = 'none';
+            } else {
+                renderInventory();
+                inventoryModal.style.display = 'flex';
+            }
+        }
+
+        function renderInventory() {
+            const { inventoryGrid, goldCounter } = game.ui;
+            if(!inventoryGrid || !goldCounter) return;
+
+            inventoryGrid.innerHTML = '';
+            goldCounter.innerHTML = `🪙 ${game.player.gold}`;
+            const itemEmojis = { 'Serpent Seal Fragment': '📜', 'Golden Scroll of Destiny': '✨', 'Crimson Key': '🔑' };
+            const inventorySize = 12;
+            for (let i = 0; i < inventorySize; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                if (game.player.inventory[i]) {
+                    slot.textContent = itemEmojis[game.player.inventory[i]] || game.player.inventory[i];
+                    slot.title = game.player.inventory[i];
+                }
+                inventoryGrid.appendChild(slot);
+            }
+        }
+
+        function toggleCharacterPanel() {
+            const { characterModal } = game.ui;
+            if(!characterModal) return;
+            const isVisible = characterModal.style.display === 'flex';
+            if (isVisible) {
+                characterModal.style.display = 'none';
+            } else {
+                renderCharacterPanel();
+                characterModal.style.display = 'flex';
+            }
+        }
+
+        function renderCharacterPanel() {
+             const armorSlot = document.getElementById('dnd-game-armor-slot');
+             if(armorSlot) armorSlot.textContent = '👕';
+             const ring1 = document.getElementById('dnd-game-ring-slot-1');
+             if(ring1) ring1.textContent = '';
+             const ring2 = document.getElementById('dnd-game-ring-slot-2');
+             if(ring2) ring2.textContent = '';
+             const shoes = document.getElementById('dnd-game-shoes-slot');
+             if(shoes) shoes.textContent = '';
+        }
+
+        function setupEventListeners() {
+            if (game.ui.commandInput) game.ui.commandInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCommand(e.target.value); });
+            if (game.ui.themeToggleBtn) game.ui.themeToggleBtn.addEventListener('click', toggleTheme);
+            if (game.ui.redrawMapBtn) game.ui.redrawMapBtn.addEventListener('click', regenerateDungeon);
+            if (game.ui.inventoryBtn) game.ui.inventoryBtn.addEventListener('click', toggleInventory);
+            if (game.ui.levelDisplay) game.ui.levelDisplay.addEventListener('click', toggleCharacterPanel);
+            if (game.ui.inventoryModal) game.ui.inventoryModal.addEventListener('click', (e) => { if (e.target === game.ui.inventoryModal) toggleInventory(); });
+            if (game.ui.characterModal) game.ui.characterModal.addEventListener('click', (e) => { if (e.target === game.ui.characterModal) toggleCharacterPanel(); });
+            if (game.ui.inventoryCloseBtn) game.ui.inventoryCloseBtn.addEventListener('click', toggleInventory);
+            if (game.ui.inventoryCloseBtnBottom) game.ui.inventoryCloseBtnBottom.addEventListener('click', toggleInventory);
+            if (game.ui.characterCloseBtn) game.ui.characterCloseBtn.addEventListener('click', toggleCharacterPanel);
+        }
+
+        // Make handleCommand globally accessible for inline onclick
+        window.handleCommand = handleCommand;
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
