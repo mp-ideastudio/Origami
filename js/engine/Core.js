@@ -1357,45 +1357,8 @@ animate() {
                                 if (targetMesh.userData.type === 'enemy') {
                                     if (typeof this.applyAimAssist === 'function') this.applyAimAssist();
                                     
-                                    if (!targetMesh.userData.isHostile) {
-                                        // Aggro the entire room
-                                        let currentRoom = null;
-                                        const pX = Math.round(this.player.x / this.gridSize);
-                                        const pZ = Math.round(this.player.z / this.gridSize);
-                                        if (this.rooms) {
-                                            for (let r of this.rooms) {
-                                                if (pX >= r.x && pX < r.x + r.w && pZ >= r.y && pZ < r.y + r.h) {
-                                                    currentRoom = r;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (this.worldGroup) {
-                                            const entities = this.dynamicEntities || this.worldGroup.children;
-                                            entities.forEach(child => {
-                                                if (child.userData && child.userData.ai && !child.userData.isDead) {
-                                                    const eX = Math.round(child.position.x / this.gridSize);
-                                                    const eZ = Math.round(child.position.z / this.gridSize);
-                                                    
-                                                    let inRoom = false;
-                                                    if (currentRoom) {
-                                                        if (eX >= currentRoom.x && eX < currentRoom.x + currentRoom.w && eZ >= currentRoom.y && eZ < currentRoom.y + currentRoom.h) {
-                                                            inRoom = true;
-                                                        }
-                                                    } else {
-                                                        if (Math.hypot(pX - eX, pZ - eZ) < 8) inRoom = true;
-                                                    }
-                                                    
-                                                    if (inRoom) {
-                                                        child.userData.isHostile = true;
-                                                    }
-                                                }
-                                            });
-                                        }
-                                        
-                                        targetMesh.userData.isHostile = true;
-                                    }
+                                    if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
+                                    if (this.tryCallForHelp) this.tryCallForHelp(targetMesh);
 
                                     // Trigger combat messsage
                                     const finalDamage = this.resolveMeleeStrike ? this.resolveMeleeStrike('Player', 25) : 25;
@@ -1430,6 +1393,7 @@ animate() {
                                     window.parent.postMessage({ type: 'SHOW_COMBAT', health: targetMesh.userData.hp, maxHp: targetMesh.userData.maxHp ?? 50, name: targetMesh.userData.name || 'Yakuza Goblin', entityType: targetMesh.userData.type || 'enemy' }, '*');
                                     
                                     if (targetMesh.userData.hp <= 0) {
+                                        if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
                                         window.parent.postMessage({ type: 'AI_DEATH', id: targetMesh.userData.id }, '*');
                                     }
                                     

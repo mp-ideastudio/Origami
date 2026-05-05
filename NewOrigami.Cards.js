@@ -3,13 +3,13 @@ const MasterCardDatabase = {
     'BOULDER': {
         id: 'EARTH', kanji: '地', icon: 'fa-mountain', 
         desc: 'EARTH', attr: '(STUN * 2DICE)',
-        fpvColor: 0x8B4513, fpvDmg: 20, fpvTrauma: 0.6, fpvRange: 5.0, label: '🪨 EARTH',
+        fpvColor: 0x8B4513, fpvDmg: 25, fpvTrauma: 0.6, fpvRange: 5.0, label: '🪨 EARTH',
         type: 'WIND'
     },
     'FISSURE': {
         id: 'EARTH', kanji: '地', icon: 'fa-mountain', 
         desc: 'EARTH', attr: '(STUN * 2DICE)',
-        fpvColor: 0x5C4033, fpvDmg: 35, fpvTrauma: 0.9, fpvRange: 4.0, label: '🌋 EARTH',
+        fpvColor: 0x5C4033, fpvDmg: 44, fpvTrauma: 0.9, fpvRange: 4.0, label: '🌋 EARTH',
         type: 'WIND'
     },
     
@@ -17,7 +17,7 @@ const MasterCardDatabase = {
     'GALE': {
         id: 'WIND', kanji: '風', icon: 'fa-wind', 
         desc: 'WIND', attr: '(PUSH * 3DICE)',
-        fpvColor: 0xaaaaaa, fpvDmg: 15, fpvTrauma: 0.4, fpvRange: 10.0, label: '🌪️ WIND',
+        fpvColor: 0xaaaaaa, fpvDmg: 19, fpvTrauma: 0.4, fpvRange: 10.0, label: '🌪️ WIND',
         type: 'WIND'
     },
 
@@ -25,19 +25,19 @@ const MasterCardDatabase = {
     'FIREBALL': {
         id: 'FIRE', kanji: '火', icon: 'fa-fire', 
         desc: 'FIRE', attr: '(DMG * 4DICE)',
-        fpvColor: 0xff4400, fpvDmg: 30, fpvTrauma: 0.7, fpvRange: 8.0, label: '🔥 FIRE',
+        fpvColor: 0xff4400, fpvDmg: 38, fpvTrauma: 0.7, fpvRange: 8.0, label: '🔥 FIRE',
         type: 'WIND'
     },
     'PYROBLAST': {
         id: 'FIRE', kanji: '火', icon: 'fa-fire', 
         desc: 'FIRE', attr: '(DMG * 4DICE)',
-        fpvColor: 0xff2200, fpvDmg: 50, fpvTrauma: 0.9, fpvRange: 8.0, label: '💥 FIRE',
+        fpvColor: 0xff2200, fpvDmg: 63, fpvTrauma: 0.9, fpvRange: 8.0, label: '💥 FIRE',
         type: 'WIND'
     },
     'COMET': {
         id: 'FIRE', kanji: '火', icon: 'fa-fire', 
         desc: 'FIRE', attr: '(DMG * 4DICE)',
-        fpvColor: 0xffaa00, fpvDmg: 70, fpvTrauma: 1.0, fpvRange: 12.0, label: '☄️ FIRE',
+        fpvColor: 0xffaa00, fpvDmg: 88, fpvTrauma: 1.0, fpvRange: 12.0, label: '☄️ FIRE',
         type: 'WIND'
     },
 
@@ -45,13 +45,13 @@ const MasterCardDatabase = {
     'TIDE': {
         id: 'WATER', kanji: '水', icon: 'fa-water', 
         desc: 'WATER', attr: '(SLOW * 3DICE)',
-        fpvColor: 0x0088ff, fpvDmg: 20, fpvTrauma: 0.3, fpvRange: 6.0, label: '🌊 WATER',
+        fpvColor: 0x0088ff, fpvDmg: 25, fpvTrauma: 0.3, fpvRange: 6.0, label: '🌊 WATER',
         type: 'WIND'
     },
     'SURGE': {
         id: 'WATER', kanji: '水', icon: 'fa-water', 
         desc: 'WATER', attr: '(SLOW * 3DICE)',
-        fpvColor: 0x0044ff, fpvDmg: 25, fpvTrauma: 0.5, fpvRange: 7.0, label: '💧 WATER',
+        fpvColor: 0x0044ff, fpvDmg: 31, fpvTrauma: 0.5, fpvRange: 7.0, label: '💧 WATER',
         type: 'WIND'
     },
 

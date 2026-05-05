@@ -471,40 +471,26 @@ flattenGoblin(mesh, damage) {
                 this.addCameraTrauma(0.9);
                 this.triggerHitStop(100);
                 
-                // Safe Emissive Flash that doesn't permanently overwrite colors if attacked again
-                const model = mesh.children[0];
-                if (model) {
-                    model.traverse(n => {
-                        if (n.isMesh && n.material) {
-                            const mats = Array.isArray(n.material) ? n.material : [n.material];
-                            mats.forEach(mat => {
-                                if (mat.emissive) {
-                                    if (mat.userData.origEmissiveHex === undefined) {
-                                        mat.userData.origEmissiveHex = mat.emissive.getHex();
-                                        mat.userData.origEmissiveInt = mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0;
-                                    }
-                                    // Flash white
-                                    mat.emissive.setHex(0xffffff);
-                                    mat.emissiveIntensity = 5.0;
-                                    
-                                    // Smoothly tween back to original color
-                                    setTimeout(() => {
-                                        if (mesh && !mesh.userData.isDead) {
-                                            mat.emissive.setHex(mat.userData.origEmissiveHex);
-                                            mat.emissiveIntensity = mat.userData.origEmissiveInt;
-                                        }
-                                    }, 150);
-                                }
-                            });
-                        }
-                    });
+                // Ethereal bloom around monster on hit
+                if (this.scene) {
+                    const bloomLight = new THREE.PointLight(0x44ffff, 4.0, 5.0);
+                    bloomLight.position.copy(mesh.position);
+                    bloomLight.position.y += 1.0;
+                    this.scene.add(bloomLight);
+                    let fade = 1.0;
+                    const fadeAnim = () => {
+                        fade -= 0.05;
+                        if (bloomLight.intensity !== undefined) bloomLight.intensity = 4.0 * Math.max(0, fade);
+                        if (fade > 0) requestAnimationFrame(fadeAnim);
+                        else this.scene.remove(bloomLight);
+                    };
+                    requestAnimationFrame(fadeAnim);
                 }
 
-                if (mesh.userData.ai && !mesh.userData.isHostile) {
+                if (mesh.userData.ai) {
                     this.triggerRoomAggro(mesh);
+                    if (this.tryCallForHelp) this.tryCallForHelp(mesh);
                 }
-
-                if (mesh.userData.mixer) mesh.userData.mixer.stopAllAction();
                 const lethal = mesh.userData.hp <= 0;
                 if (lethal) mesh.userData.isDead = true;
                 
@@ -592,16 +578,6 @@ flattenGoblin(mesh, damage) {
                     mesh.scale.x = origScale.x * (1.0 + e * 2.4);
                     mesh.scale.y = origScale.y * Math.max(0.04, 1.0 - e * 0.97);
                     mesh.scale.z = origScale.z * (1.0 + e * 2.4);
-                    childMeshes.forEach(cm => {
-                        if (cm.material && cm.material.emissive) {
-                            if (cm.userData.origEmissiveHex === undefined) {
-                                cm.userData.origEmissiveHex = cm.material.emissive.getHex();
-                                cm.userData.origEmissiveInt = cm.material.emissiveIntensity;
-                            }
-                            cm.material.emissive.setHex(0xdd4400);
-                            cm.material.emissiveIntensity = 4.0 * (1.0 - e);
-                        }
-                    });
                     if (t < 1.0) {
                         requestAnimationFrame(flatAnim);
                     } else {
@@ -619,19 +595,6 @@ flattenGoblin(mesh, damage) {
                                 requestAnimationFrame(bounceAnim);
                             } else {
                                 mesh.scale.set(origScale.x, origScale.y, origScale.z);
-                                childMeshes.forEach(cm => {
-                                    if (cm.material && cm.material.emissive && cm.userData.origEmissiveHex !== undefined) {
-                                        cm.material.emissive.setHex(cm.userData.origEmissiveHex);
-                                        cm.material.emissiveIntensity = cm.userData.origEmissiveInt;
-                                        delete cm.userData.origEmissiveHex;
-                                        delete cm.userData.origEmissiveInt;
-                                    }
-                                });
-                                // Resume idle animation
-                                if (mesh.userData.mixer && mesh.userData.actions && mesh.userData.actions.length > 0) {
-                                    const idle = mesh.userData.actions[0];
-                                    idle.reset(); idle.setLoop(THREE.LoopRepeat); idle.play();
-                                }
                             }
                         };
                         requestAnimationFrame(bounceAnim);
@@ -654,13 +617,26 @@ triggerRoomAggro(hitMesh) {
                     }
                 }
                 
-                // If the hit mesh isn't in a defined room, just aggro the hit mesh itself
-                const targets = currentRoom ? this.worldGroup.children.filter(child => {
+                const targets = this.worldGroup.children.filter(child => {
                     if (!child.userData || !child.userData.ai || child.userData.isDead) return false;
                     const cX = Math.round(child.position.x / this.gridSize);
                     const cZ = Math.round(child.position.z / this.gridSize);
-                    return (cX >= currentRoom.x && cX < currentRoom.x + currentRoom.w && cZ >= currentRoom.y && cZ < currentRoom.y + currentRoom.h);
-                }) : [hitMesh];
+                    
+                    // Same room
+                    if (currentRoom && cX >= currentRoom.x && cX < currentRoom.x + currentRoom.w && cZ >= currentRoom.y && cZ < currentRoom.y + currentRoom.h) {
+                        return true;
+                    }
+                    
+                    // Or nearby adjacent (radius 12.0 for +1 room)
+                    const dist = Math.hypot(cX - mX, cZ - mZ);
+                    if (dist <= 12.0) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+                
+                if (targets.length === 0) targets.push(hitMesh);
 
                 targets.forEach(mesh => {
                     mesh.userData.isHostile = true;
@@ -672,6 +648,185 @@ triggerRoomAggro(hitMesh) {
                 });
                 
                 window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: `The room has turned hostile!` }, '*');
+            },
+
+            tryCallForHelp(mesh) {
+                if (!mesh || !mesh.userData || !mesh.userData.ai || mesh.userData.isDead) return;
+                
+                // 5 minute cooldown (300,000 ms)
+                const now = Date.now();
+                if (mesh.userData.lastHelpCallTime && now - mesh.userData.lastHelpCallTime < 300000) {
+                    return;
+                }
+                mesh.userData.lastHelpCallTime = now;
+                
+                window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: 'THEY YELL HELP!' }, '*');
+                
+                // Find open floor tiles ~10 units away
+                const mX = Math.round(mesh.position.x / this.gridSize);
+                const mZ = Math.round(mesh.position.z / this.gridSize);
+                
+                let possibleSpawns = [];
+                for (let x = Math.max(0, mX - 12); x <= Math.min(this.mapWidth - 1, mX + 12); x++) {
+                    for (let z = Math.max(0, mZ - 12); z <= Math.min(this.mapHeight - 1, mZ + 12); z++) {
+                        const dist = Math.hypot(x - mX, z - mZ);
+                        if (dist > 8 && dist < 12) {
+                            const cell = this.mapData[x]?.[z];
+                            if (cell && cell.type !== 'wall') {
+                                // Check if occupied
+                                let occupied = false;
+                                if (this.worldGroup) {
+                                    for (let child of this.worldGroup.children) {
+                                        if (child.userData && child.userData.id && !child.userData.isDead) {
+                                            const cX = Math.round(child.position.x / this.gridSize);
+                                            const cZ = Math.round(child.position.z / this.gridSize);
+                                            if (cX === x && cZ === z) occupied = true;
+                                        }
+                                    }
+                                }
+                                if (!occupied && (x !== Math.round(this.player.x) || z !== Math.round(this.player.z))) {
+                                    possibleSpawns.push({x, z});
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Shuffle and pick 1-2
+                possibleSpawns.sort(() => Math.random() - 0.5);
+                const numImps = Math.floor(Math.random() * 2) + 1; // 1 or 2
+                for (let i = 0; i < Math.min(numImps, possibleSpawns.length); i++) {
+                    const spawn = possibleSpawns[i];
+                    this.spawnImp(spawn.x, spawn.z);
+                }
+            },
+
+            spawnImp(x, z) {
+                if (!this.impCache || this.impCache.length === 0) {
+                    // Load directly if cache empty
+                    const gltfLoader = new THREE.GLTFLoader();
+                    gltfLoader.load('./assets/models/yakuza.imp.animated.glb', (gltf) => {
+                        this.initImp(gltf, x, z);
+                    });
+                    return;
+                }
+                
+                const gltf = this.impCache.shift();
+                this.initImp(gltf, x, z);
+                
+                // Refill cache
+                const gltfLoader = new THREE.GLTFLoader();
+                gltfLoader.load('./assets/models/yakuza.imp.animated.glb', (newGltf) => {
+                    this.impCache.push(newGltf);
+                });
+            },
+
+            initImp(gltf, x, z) {
+                const imp = gltf.scene;
+                const entityWrapper = new THREE.Group();
+                entityWrapper.add(imp);
+                
+                if (gltf.animations && gltf.animations.length > 0) {
+                    const mixer = new THREE.AnimationMixer(imp);
+                    const actions = gltf.animations.map(a => mixer.clipAction(a));
+                    this.mixers.push(mixer);
+                    entityWrapper.userData.mixer = mixer;
+                    entityWrapper.userData.clips = gltf.animations;
+                    entityWrapper.userData.actions = actions;
+
+                    const _fc = (rx) => gltf.animations.find(a => rx.test(a.name.toLowerCase()));
+                    const idleClip  = _fc(/idle/) || gltf.animations[0];
+                    const walkClip  = _fc(/walk|run|move/) || gltf.animations[0];
+                    const slashClip = _fc(/slash|attack|strike|swing/) || gltf.animations[0];
+                    const bowClip   = _fc(/bow|death|die/) || gltf.animations[0];
+                    
+                    entityWrapper.userData.idleAction   = mixer.clipAction(idleClip);
+                    entityWrapper.userData.walkAction   = mixer.clipAction(walkClip);
+                    entityWrapper.userData.attackAction = mixer.clipAction(slashClip);
+                    entityWrapper.userData.slashAction  = mixer.clipAction(slashClip);
+                    entityWrapper.userData.bowAction    = mixer.clipAction(bowClip);
+                    entityWrapper.userData._animKey     = null;
+                    
+                    // Boot into walk loop because it will chase immediately
+                    const walkAct = entityWrapper.userData.walkAction;
+                    if (walkAct) { walkAct.reset(); walkAct.setLoop(THREE.LoopRepeat); walkAct.play(); }
+                    entityWrapper.userData._animKey = 'walk';
+                }
+                
+                // Apply Hologram Shader
+                imp.traverse((child) => {
+                    if (child.isMesh) {
+                        const nativeMat = child.material;
+                        const matName = nativeMat.name ? nativeMat.name.toLowerCase() : "";
+                        const isEye = ['eye', 'pupil', 'sclera'].some(kw => matName.includes(kw));
+                        
+                        if (!isEye) {
+                            const applyHoloLayer = (mat) => {
+                                mat.transparent = true; mat.opacity = 0.55;
+                                mat.blending = THREE.NormalBlending; mat.side = THREE.FrontSide; mat.depthWrite = false;
+                                if (mat.roughness !== undefined) mat.roughness = 1.0;
+                                if (mat.metalness !== undefined) mat.metalness = 0.0;
+                                if (mat.emissive !== undefined) {
+                                    mat.emissive.set("#00ffcc");
+                                    mat.emissiveIntensity = 0.5;
+                                }
+                            };
+                            if (Array.isArray(nativeMat)) nativeMat.forEach(applyHoloLayer);
+                            else applyHoloLayer(nativeMat);
+                            child.material = nativeMat;
+                        } else {
+                            child.material = new THREE.MeshBasicMaterial({ color: 0xffffff, skinning: true });
+                        }
+                        child.castShadow = false;
+                        child.receiveShadow = true;
+                        child.renderOrder = 10;
+                    }
+                });
+                
+                if (this.scaleModelToHeight) this.scaleModelToHeight(imp, 1.53);
+                
+                imp.updateMatrixWorld(true);
+                const bbox = new THREE.Box3().setFromObject(imp);
+                if (bbox.min.y !== 0) imp.position.y -= bbox.min.y;
+                imp.rotation.y = -Math.PI / 2;
+                
+                const id = `mon_imp_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                entityWrapper.userData = {
+                    ...entityWrapper.userData,
+                    id, 
+                    name: 'Yakuza Imp',
+                    type: 'enemy', 
+                    hp: 30, 
+                    maxHp: 30,
+                    weapon: "Serrated Dagger",
+                    isHostile: true,
+                    ai: { state: 'CHASING', aggression: 1.0, actionTimer: 0.5 }
+                };
+                
+                entityWrapper.position.set(x * this.gridSize, 0, z * this.gridSize);
+                
+                // Add flat tactical base
+                const monBase = new THREE.Group();
+                monBase.name = "monBase";
+                const fpvBaseMesh = new THREE.Mesh(new THREE.CircleGeometry(0.80, 64), new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.05, roughness: 0.9, side: THREE.DoubleSide }));
+                fpvBaseMesh.rotation.x = -Math.PI / 2;
+                fpvBaseMesh.position.y = 0.01;
+                const fpvBorderMesh = new THREE.Mesh(new THREE.RingGeometry(0.80, 0.95, 64), new THREE.MeshStandardMaterial({ color: 0xdcdcdc, metalness: 0.05, roughness: 0.9, side: THREE.DoubleSide }));
+                fpvBorderMesh.position.z = 0.001;
+                fpvBaseMesh.add(fpvBorderMesh);
+                monBase.add(fpvBaseMesh);
+                
+                entityWrapper.userData.monBaseFpvCore = fpvBaseMesh;
+                entityWrapper.userData.monBase = monBase;
+                entityWrapper.userData.fpvBorderMesh = fpvBorderMesh;
+                entityWrapper.userData.mapBorderMesh = fpvBorderMesh;
+                
+                if (this.worldGroup) {
+                    this.worldGroup.add(monBase);
+                    this.worldGroup.add(entityWrapper);
+                }
+                
+                window.parent.postMessage({ type: 'SHOW_COMBAT', health: 30, maxHp: 30, name: 'Yakuza Imp', entityType: 'enemy' }, '*');
             },
 
 checkTriggers() {
