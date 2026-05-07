@@ -399,7 +399,7 @@
         #inventory-modal {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(10, 10, 15, 0.95);
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
             z-index: 45000; display: none; flex-direction: column;
             padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow: hidden;
             color: #ffffff; opacity: 0; transition: opacity 0.3s ease;
@@ -1116,32 +1116,30 @@
 
             .pip-zoom-controls {
                 position: absolute;
-                left: -15px;
-                right: auto;
-                top: 50%;
+                right: -15px;
+                top: 25%;
                 transform: translateY(-50%);
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
                 z-index: 50;
-                opacity: 1;
-                pointer-events: auto;
-                transition: opacity 0.3s ease;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease, transform 0.3s ease;
             }
 
             .pip-perspective-controls {
                 position: absolute;
                 right: -15px;
-                left: auto;
-                top: 50%;
+                top: 75%;
                 transform: translateY(-50%);
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
                 z-index: 50;
-                opacity: 1;
-                pointer-events: auto;
-                transition: opacity 0.3s ease;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease, transform 0.3s ease;
             }
 
             .pip-drag-handle, .pip-resize-handle {
@@ -1157,9 +1155,9 @@
                 align-items: center;
                 justify-content: center;
                 z-index: 60;
-                opacity: 1;
-                pointer-events: auto;
-                transition: all 0.2s ease;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.3s ease;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.5);
             }
             
@@ -3837,9 +3835,9 @@
             }
         }, { passive: false });
 
-        // Click to toggle edit mode
+        // Click to swap modes
         pip.addEventListener("click", (e) => {
-             // If we clicked a control button, don't toggle edit mode
+             // If we clicked a control button, don't toggle cam view
              if (e.target.closest('.pip-zoom-btn') || e.target.closest('.pip-resize-handle') || e.target.closest('.pip-drag-handle')) return;
              
              // If we just finished a drag/pan, don't toggle
@@ -3848,7 +3846,7 @@
                  return;
              }
              
-             pip.classList.toggle('edit-mode');
+             post({ type: 'PIP_TOGGLE' });
         });
 
         // Hide edit mode when clicking outside
@@ -3858,11 +3856,11 @@
             }
         });
 
-        // Double-click to swap modes
+        // Double-click to toggle edit mode (maintenance setting mode)
         pip.addEventListener("dblclick", (e) => {
              e.stopPropagation();
              if (e.target.closest("#pipCanvas") || e.target === pip) {
-                 post({ type: 'PIP_TOGGLE' });
+                 pip.classList.toggle('edit-mode');
              }
         });
         
