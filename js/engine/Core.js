@@ -330,6 +330,7 @@ initWebGL() {
                 // Isometric Perspective Camera for tactical Dojo Underworld view
                 // Narrow FOV (35) gives an orthographic feel while retaining 3D depth
                 this.topDownCamera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.monsterCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
                 this.topDownCamera.layers.set(0);
                 this.topDownCamera.layers.enable(1); // Real 3D graphics on map view
                 this.topDownCamera.layers.enable(3); // CRITICAL: Expose the avatar tracking marker
@@ -763,6 +764,14 @@ initComms() {
                         this._pipRect.top = eventData.top;
                         this._pipRect.bottom = eventData.bottom;
                         return;
+                    } else if (eventData.type === 'MONSTER_CAM_SYNC_RECT') {
+                        if (!this._monsterCamRect) this._monsterCamRect = { width: 0, height: 0, left: 0, top: 0, bottom: 0 };
+                        this._monsterCamRect.width = eventData.width;
+                        this._monsterCamRect.height = eventData.height;
+                        this._monsterCamRect.left = eventData.left;
+                        this._monsterCamRect.top = eventData.top;
+                        this._monsterCamRect.bottom = eventData.bottom;
+                        return;
                     } else if (eventData.type === 'MOON_PHASE') {
                         const mpLabel = document.getElementById('moonphase-label');
                         if (mpLabel) mpLabel.textContent = eventData.phase;
@@ -772,6 +781,16 @@ initComms() {
                         if (!this._pipZoomScale) this._pipZoomScale = 0.5;
                         this._pipZoomScale += eventData.delta * 0.1;
                         this._pipZoomScale = Math.max(0.2, Math.min(2.0, this._pipZoomScale));
+                        return;
+                    } else if (eventData.type === 'PIP_PERSPECTIVE') {
+                        if (!this._pipRot) this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+                        if (this._pipRot.phi < 0.1) {
+                            this._pipRot = { theta: 0.5, phi: 0.96, radius: 35 };
+                        } else {
+                            this._pipRot = { theta: 0, phi: 0, radius: 35 };
+                            this._pipPan = { x: 0, z: 0 };
+                        }
+                        this._pipLastInteractionTime = Date.now();
                         return;
                     } else if (eventData.type === 'PIP_TOGGLE') {
                         this.cameraMode = (this.cameraMode === 'fpv') ? 'topdown' : 'fpv';
@@ -1233,24 +1252,17 @@ animate() {
                 let targetMoveDir = 0;
                 let targetStrafeDir = 0;
                 let targetTurnDir = 0;
-                
-                // TIMING AI: Lock keyboard if we are executing a heavy action (attacking, looting)
-                const isLockedByTimingAI = performance.now() < this.timingAI.lockUntil;
 
-                if (!this._haltPlayer && !isLockedByTimingAI) {
-                    // TIMING AI: Ensure we have enough AP for a micro-step (20 AP)
-                    if (this.timingAI.ap >= 20) {
-                        if (this.keys.w) targetMoveDir = 1;
-                        if (this.keys.s) targetMoveDir = -1;
-                        if (this.keys.q) targetStrafeDir = 1; // Left
-                        if (this.keys.e) targetStrafeDir = -1; // Right
-                    }
+                if (!this._haltPlayer) {
+                    if (this.keys.w) targetMoveDir = 1;
+                    if (this.keys.s) targetMoveDir = -1;
+                    if (this.keys.q) targetStrafeDir = 1; // Left
+                    if (this.keys.e) targetStrafeDir = -1; // Right
                     if (this.keys.a) targetTurnDir = 1;
                     if (this.keys.d) targetTurnDir = -1;
                 }
                 
                 // --- REAL PHYSICS: Elegant Soft Momentum ---
-                // Simulates forward momentum sliding from one tile to the next instead of unnatural instant stops
                 this.vMove = THREE.MathUtils.lerp(this.vMove || 0, targetMoveDir, delta * 8.0);
                 this.vStrafe = THREE.MathUtils.lerp(this.vStrafe || 0, targetStrafeDir, delta * 8.0);
                 this.vRot = THREE.MathUtils.lerp(this.vRot || 0, targetTurnDir, delta * 12.0);
@@ -1263,60 +1275,29 @@ animate() {
                 let strafeDir = this.vStrafe;
                 let turnDir = this.vRot;
                 
-                // --- TURN-BASED TIME-FLOW (SUPERHOT STYLE) ---
-                const nowTime = performance.now();
-                const justAttacked = this.lastAttackTime && (nowTime - this.lastAttackTime < 1200);
-                const timeFlowing = this.physMoving || moveDir !== 0 || strafeDir !== 0 || turnDir !== 0 || justAttacked || (this.timingAI && this.timingAI.ap < this.timingAI.maxAp) || this.combatState === 'monster_turn';
-                
-                // TIMING AI: Watch physical movements and deduct AP
-                const prevX = this.player.x;
-                const prevZ = this.player.z;
-                
-                // Monster mixers time-stop: only advance when player takes a turn
+                // Monster mixers run continuously in real time
                 this.mixers.forEach(mixer => {
                     if (mixer === this.playerMixer) return;
-                    if (timeFlowing) {
-                        const root = mixer.getRoot();
-                        if (!root || this.camera.position.distanceTo(root.position) < 15.0) {
-                            mixer.update(delta);
-                        }
+                    const root = mixer.getRoot();
+                    if (!root || this.camera.position.distanceTo(root.position) < 15.0) {
+                        mixer.update(delta);
                     }
                 });
                 if (this.playerMixer) this.playerMixer.update(delta);
 
-
-                // --- Autowalk Logic has been completely REMOVED as per user request.
-
                 // Rotation
                 this.camera.rotation.x = 0; // Baseline X before applying trauma
-                
-                if (this.targetAutoAimRot !== undefined) {
-                    let diff = this.targetAutoAimRot - this.player.rot;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    this.player.rot += diff * delta * 6.0; 
-                    if (Math.abs(diff) < 0.05) this.targetAutoAimRot = undefined;
-                    if (turnDir !== 0) this.targetAutoAimRot = undefined;
-                } else if (turnDir !== 0) {
-                    this.clearAutoWalk(); // Manual turn interrupts autowalk
-                    this.player.rot += turnDir * this.ROT_SPEED * delta;
-                }
-                
+                this.player.rot += turnDir * this.ROT_SPEED * delta;
                 this.camera.rotation.y = this.player.rot;
                 
                 // Movement
+                let nextX = this.player.x;
+                let nextZ = this.player.z;
+
                 if (moveDir !== 0 || strafeDir !== 0) {
-                    // Pre-declare movement targets
-                    let nextX = this.player.x;
-                    let nextZ = this.player.z;
-                    
                     const speed = this.MOVE_SPEED * delta;
                     let dx = 0;
                     let dz = 0;
-
-                    if (moveDir > 0.5) {
-                        // User requested to remove the "magnetic pull" auto-turn when walking past monsters.
-                    }
 
                     if (moveDir !== 0) {
                         dx += Math.sin(this.player.rot) * speed * moveDir;
@@ -1327,146 +1308,108 @@ animate() {
                         dz += Math.cos(this.player.rot + Math.PI/2) * speed * strafeDir;
                     }
                     
-                    let colX = null, colZ = null;
-                    
-                    // Standard wandering physics and physical collision sweeps
+                    // Physical collision sweeps
                     nextX -= dx; 
                     nextZ -= dz;
+                    
+                    const radius = 0.35; // Collision radius (world units)
+                    
+                    let colX = this.checkCollision(nextX, this.player.z, radius);
+                    if (colX && typeof colX !== 'object') nextX = this.player.x;
+                    
+                    let colZ = this.checkCollision(nextX, nextZ, radius);
+                    if (colZ && typeof colZ !== 'object') nextZ = this.player.z;
+                    
+                    // Active Combat Distance Lock: Bump to attack
+                    if (moveDir > 0.5 && (typeof colX === 'object' || typeof colZ === 'object')) {
+                        const targetMesh = typeof colX === 'object' ? colX : colZ;
+                        const now = performance.now();
                         
-                        const radius = 0.35; // Collision radius (grid units)
+                        // Prevent walking through the monster
+                        if (typeof colX === 'object') nextX = this.player.x;
+                        if (typeof colZ === 'object') nextZ = this.player.z;
                         
-                        colX = this.checkCollision(nextX, this.player.z, radius);
-                        if (colX && typeof colX !== 'object') nextX = this.player.x;
-                        
-                        colZ = this.checkCollision(nextX, nextZ, radius);
-                        if (colZ && typeof colZ !== 'object') nextZ = this.player.z;
-                        
-                        // Active Combat Distance Lock: Intercept forward movement ONLY if physically bumping the target
-                        if (moveDir > 0.5 && (typeof colX === 'object' || typeof colZ === 'object')) {
-                            const targetMesh = typeof colX === 'object' ? colX : colZ;
-                            const now = performance.now();
+                        if (targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
+                            this.lastAttackTime = now;
                             
-                            // DO NOT allow player to occupy the same tile as the monster
-                            if (typeof colX === 'object') nextX = this.player.x;
-                            if (typeof colZ === 'object') nextZ = this.player.z;
-                            
-                            // TIMING AI: Must have at least 100 AP to execute an attack
-                            if (this.timingAI.ap >= 100 && targetMesh && targetMesh.userData && targetMesh.userData.id && (!this.lastAttackTime || (now - this.lastAttackTime > 600))) {
-                                this.lastAttackTime = now;
-                                
-                                if (targetMesh.userData.type === 'enemy') {
-                                    if (typeof this.applyAimAssist === 'function') this.applyAimAssist();
-                                    
-                                    if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
-                                    if (this.tryCallForHelp) this.tryCallForHelp(targetMesh);
+                            if (targetMesh.userData.type === 'enemy') {
+                                if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
+                                if (this.tryCallForHelp) this.tryCallForHelp(targetMesh);
 
-                                    // Trigger combat messsage
-                                    const finalDamage = this.resolveMeleeStrike ? this.resolveMeleeStrike('Player', 25) : 25;
-                                    
-                                    // TIMING AI: Attack costs 100 AP (1 full tile movement)
-                                    this.timingAI.ap -= 100;
-                                    
-                                    // Enemy gets a retaliation turn if player attacks
-                                    setTimeout(() => this.processMonsterTurn(), 600);
-                                    
-                                    this.addCameraTrauma(0.4);
-                                    this.triggerHitStop(40);
-                                    
-                                    window.parent.postMessage({
-                                        type: 'COMBAT_ATTACK',
-                                        targetId: targetMesh.userData.id,
-                                        damage: finalDamage,
-                                        x: Math.round(targetMesh.position.x / this.gridSize),
-                                        z: Math.round(targetMesh.position.z / this.gridSize)
-                                    }, '*');
-                                    
-                                    targetMesh.userData.hp -= finalDamage;
-                                    
-                                    window.parent.postMessage({ type: 'PLAYER_ATTACK', targetId: targetMesh.userData.id, damage: finalDamage }, '*');
-                                    if (targetMesh.userData.monBase && targetMesh.userData.monBase.children[0]) {
-                                        const baseMesh = targetMesh.userData.monBase.children[0];
-                                        if (baseMesh && baseMesh.material && baseMesh.material.color) {
-                                            baseMesh.material.color.setHex(0xff0000);
-                                            setTimeout(() => { if (baseMesh && baseMesh.material && baseMesh.material.color) baseMesh.material.color.setHex(0x000000); }, 300);
-                                        }
+                                const finalDamage = this.resolveMeleeStrike ? this.resolveMeleeStrike('Player', 25) : 25;
+                                
+                                setTimeout(() => this.processMonsterTurn(), 600);
+                                
+                                this.addCameraTrauma(0.4);
+                                this.triggerHitStop(40);
+                                
+                                // Send GRID coordinates to the UI for Combat
+                                window.parent.postMessage({
+                                    type: 'COMBAT_ATTACK',
+                                    targetId: targetMesh.userData.id,
+                                    damage: finalDamage,
+                                    x: Math.round(targetMesh.position.x / this.gridSize),
+                                    z: Math.round(targetMesh.position.z / this.gridSize)
+                                }, '*');
+                                
+                                targetMesh.userData.hp -= finalDamage;
+                                
+                                window.parent.postMessage({ type: 'PLAYER_ATTACK', targetId: targetMesh.userData.id, damage: finalDamage }, '*');
+                                if (targetMesh.userData.monBase && targetMesh.userData.monBase.children[0]) {
+                                    const baseMesh = targetMesh.userData.monBase.children[0];
+                                    if (baseMesh && baseMesh.material && baseMesh.material.color) {
+                                        baseMesh.material.color.setHex(0xff0000);
+                                        setTimeout(() => { if (baseMesh && baseMesh.material && baseMesh.material.color) baseMesh.material.color.setHex(0x000000); }, 300);
                                     }
-                                    window.parent.postMessage({ type: 'SHOW_COMBAT', health: targetMesh.userData.hp, maxHp: targetMesh.userData.maxHp ?? 50, name: targetMesh.userData.name || 'Yakuza Goblin', entityType: targetMesh.userData.type || 'enemy' }, '*');
-                                    
-                                    if (targetMesh.userData.hp <= 0) {
-                                        if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
-                                        window.parent.postMessage({ type: 'AI_DEATH', id: targetMesh.userData.id }, '*');
-                                    }
-                                    
-                                    // Trigger AI Retaliation instantly
-                                    if (targetMesh.userData.ai) {
-                                        targetMesh.userData.isHostile = true;
-                                        targetMesh.userData.ai.aggression = Math.min(1.0, targetMesh.userData.ai.aggression + 0.5); // Player attack enrages monster!
-                                        targetMesh.userData.ai.state = 'CHASING';
-                                        targetMesh.userData.ai.actionTimer = 0.5; // Force quick counter-attack
-                                    }
-                                    
-                                    // Trigger monster retaliation turn
-                                    setTimeout(() => { if (this.processMonsterTurn) this.processMonsterTurn(); }, 600);
+                                }
+                                this.currentMonsterCamTarget = targetMesh;
+                                window.parent.postMessage({ type: 'SHOW_COMBAT', health: targetMesh.userData.hp, maxHp: targetMesh.userData.maxHp ?? 50, name: targetMesh.userData.name || 'Yakuza Goblin', entityType: targetMesh.userData.type || 'enemy' }, '*');
+                                
+                                if (targetMesh.userData.hp <= 0) {
+                                    if (this.triggerRoomAggro) this.triggerRoomAggro(targetMesh);
+                                    window.parent.postMessage({ type: 'AI_DEATH', id: targetMesh.userData.id }, '*');
                                 }
                                 
-                                // Violent spatial recoil removed to prevent Auto-Turn collision snapping.
-                                // The player will simply stand adjacent to trade blows.
-                                nextX = this.player.x;
-                                nextZ = this.player.z;
+                                if (targetMesh.userData.ai) {
+                                    targetMesh.userData.isHostile = true;
+                                    targetMesh.userData.ai.aggression = Math.min(1.0, targetMesh.userData.ai.aggression + 0.5); 
+                                    targetMesh.userData.ai.state = 'CHASING';
+                                    targetMesh.userData.ai.actionTimer = 0.5;
+                                }
+                                setTimeout(() => { if (this.processMonsterTurn) this.processMonsterTurn(); }, 600);
                             }
                         }
-
-                        // Auto-Turn Feature has been completely REMOVED as per user request.
+                    }
+                    
                     // --- Shop Debt Logic ---
                     const pGridNextX = Math.round(nextX / this.gridSize);
                     const pGridNextZ = Math.round(nextZ / this.gridSize);
                     
                     if (this.mapData[pGridNextX] && this.mapData[pGridNextX][pGridNextZ] && this.mapData[pGridNextX][pGridNextZ].isShopDoor) {
                         if (this.player.shopDebt > 0) {
-                            let shopkeeperMesh = this.worldGroup.children.find(m => m.userData && m.userData.id === 'npc-shopkeeper');
-                            
                             if (this.player.gold >= this.player.shopDebt) {
-                                // Auto Pay
                                 this.player.gold -= this.player.shopDebt;
                                 window.parent.postMessage({ type: 'LOG_EVENT', text: `You paid the Shopkeeper ${this.player.shopDebt} Gold.`, logType: 'system' }, '*');
                                 this.syncPlayerStats();
                                 this.player.shopDebt = 0;
                             } else {
-                                // Block exit
                                 nextX = this.player.x;
                                 nextZ = this.player.z;
                                 this.triggerHitStop(50);
                             }
                         }
                     }
-                    const currentGridX = Math.round(this.player.x / this.gridSize);
-                    const currentGridZ = Math.round(this.player.z / this.gridSize);
-                    
-                    this.player.x = nextX;
-                    this.player.z = nextZ;
-                    
-                    // TIMING AI: Accumulate distance traveled and deduct AP accurately
-                    const dxDist = this.player.x - prevX;
-                    const dzDist = this.player.z - prevZ;
-                    const distMoved = Math.sqrt(dxDist*dxDist + dzDist*dzDist);
-                    
-                    if (distMoved > 0) {
-                        this.timingAI.distAccum += distMoved;
-                        
-                        // 1 Tile = 2.0 Physical Units = 100 AP.
-                        // So 5 Micro-Steps = 0.4 Units each = 20 AP per step.
-                        while (this.timingAI.distAccum >= 0.4) {
-                            this.timingAI.distAccum -= 0.4;
-                            this.timingAI.ap -= 20;
-                            if (this.timingAI.ap <= 0) {
-                                this.timingAI.ap = 0;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    const newGridX = Math.round(this.player.x / this.gridSize);
-                    const newGridZ = Math.round(this.player.z / this.gridSize);
+                } // End if (moveDir !== 0 || strafeDir !== 0)
+                
+                const currentGridX = Math.round(this.player.x);
+                const currentGridZ = Math.round(this.player.z);
+                
+                // CRUCIAL FIX 1: Set player physical coordinates
+                this.player.x = nextX;
+                this.player.z = nextZ;
+                
+                const newGridX = Math.round(this.player.x);
+                const newGridZ = Math.round(this.player.z);
                     
                     if (newGridX !== currentGridX || newGridZ !== currentGridZ) {
                         this.turnCount++;
@@ -1507,7 +1450,6 @@ animate() {
                         // TIMING AI: Player has spent 100 AP traversing a full tile, monsters take a turn
                         this.processMonsterTurn();
                     }
-                }
                 
                 // --- TURN-BASED TIME-FLOW (SUPERHOT STYLE) ---
                 // (Moved up to prevent ReferenceError)
@@ -2688,6 +2630,42 @@ animate() {
                         
                         this.scene.fog.color.setHex(0x0a0b10);
                         this.scene.fog.density = 0.025;
+                    }
+                    
+                    // --- 3rd Render Pass: Monster POV Cam ---
+                    if (this._monsterCamRect && this._monsterCamRect.width > 0 && this.currentMonsterCamTarget && !this.currentMonsterCamTarget.userData.isDead && this.combatState !== 'idle') {
+                        const winH = window.innerHeight;
+                        const safeX = this._monsterCamRect.left;
+                        const safeY = winH - this._monsterCamRect.bottom;
+                        const safeW = this._monsterCamRect.width;
+                        const safeH = this._monsterCamRect.height;
+
+                        // Update monster camera position (behind the monster, looking at player)
+                        const mMesh = this.currentMonsterCamTarget;
+                        const mPos = mMesh.position;
+                        // Monster faces the player, so its back is opposite to its rotation.y
+                        const offsetZ = Math.cos(mMesh.rotation.y) * 2.5;
+                        const offsetX = Math.sin(mMesh.rotation.y) * 2.5;
+                        
+                        this.monsterCamera.position.set(mPos.x - offsetX, mPos.y + 1.2, mPos.z - offsetZ);
+                        this.monsterCamera.lookAt(this.player.x, mPos.y + 0.5, this.player.z);
+                        this.monsterCamera.aspect = safeW / safeH;
+                        this.monsterCamera.updateProjectionMatrix();
+
+                        this.renderer.setViewport(safeX, safeY, safeW, safeH);
+                        this.renderer.setScissor(safeX, safeY, safeW, safeH);
+                        this.renderer.setScissorTest(true);
+                        
+                        // Increase light specifically for the cute cam if needed, but keeping current lights is fine
+                        const oldBg = this.scene.background;
+                        this.scene.background = null;
+                        
+                        this.renderer.autoClearColor = false;
+                        this.renderer.clearDepth();
+                        this.renderer.render(this.scene, this.monsterCamera);
+                        this.renderer.autoClearColor = true;
+                        
+                        this.scene.background = oldBg;
                     }
                 }
 
