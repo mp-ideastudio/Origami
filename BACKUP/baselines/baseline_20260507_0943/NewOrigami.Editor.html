@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Catalog Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="NewOrigami.Cards.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d0d12;
+            --surface-color: #1a1a24;
+            --text-main: #ffffff;
+            --text-dim: #8888aa;
+            --accent: #00ffcc;
+            --card-w: 160px;
+            --card-h: 240px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* Sidebar Editor */
+        #editor-pane {
+            width: 350px; background: var(--surface-color);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column;
+            padding: 20px; box-sizing: border-box;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        
+        .editor-header { font-size: 24px; font-weight: 900; letter-spacing: 1px; margin-bottom: 20px; color: var(--accent); }
+        .editor-hint { font-size: 13px; color: var(--text-dim); margin-bottom: 30px; font-style: italic; line-height: 1.4; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 14px;
+            box-sizing: border-box; transition: border-color 0.2s;
+        }
+        .form-group input:focus { border-color: var(--accent); outline: none; }
+        .readonly-input { color: #666 !important; }
+        
+        #save-btn {
+            background: var(--accent); color: #000; border: none; padding: 15px; border-radius: 8px;
+            font-weight: 900; text-transform: uppercase; cursor: pointer; transition: transform 0.2s;
+            margin-top: auto;
+        }
+        #save-btn:hover { transform: translateY(-2px); }
+
+        /* Grid View */
+        #grid-pane {
+            flex: 1; padding: 40px; overflow-y: auto;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
+            gap: 30px; align-content: flex-start;
+        }
+
+        /* The Card Design (Ported from Panels) */
+        .guide-card {
+            width: var(--card-w); height: var(--card-h);
+            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
+            justify-content: flex-start; text-align: center; color: var(--text-main); 
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.0) 100%);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            padding: 0; box-sizing: border-box; cursor: pointer;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .guide-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.8); }
+        .guide-card.active-edit { border: 2px solid var(--accent); box-shadow: 0 0 20px rgba(0,255,204,0.4); transform: scale(1.05); }
+
+        /* Dynamic Theme Injection */
+        .guide-card.theme-earth { border: 0.5px solid #5C4033; background-color: rgba(78, 52, 46, 0.4); }
+        .guide-card.theme-wind { border: 0.5px solid #b0bec5; background-color: rgba(38, 50, 56, 0.4); }
+        .guide-card.theme-fire { border: 0.5px solid #ef5350; background-color: rgba(183, 28, 28, 0.4); }
+        .guide-card.theme-water { border: 0.5px solid #0d6efd; background-color: rgba(13, 71, 161, 0.4); }
+        .guide-card.theme-item { border: 0.5px solid #69f0ae; background-color: rgba(15, 61, 43, 0.4); }
+        .guide-card.theme-combat { border: 0.5px solid #ffffff; background-color: rgba(30, 30, 30, 0.8); }
+
+        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; }
+        .theme-earth .card-kanji { color: #5C4033; }
+        .theme-wind .card-kanji { color: #b0bec5; }
+        .theme-fire .card-kanji { color: #ef5350; }
+        .theme-water .card-kanji { color: #0d6efd; }
+        .theme-item .card-kanji { color: #69f0ae; }
+        .theme-combat .card-kanji { color: #ffffff; }
+
+        .card-type-pill { color: #ffffff; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); }
+        .theme-earth .card-type-pill { background: #5C4033; }
+        .theme-wind .card-type-pill { background: #b0bec5; }
+        .theme-fire .card-type-pill { background: #ef5350; }
+        .theme-water .card-type-pill { background: #0d6efd; }
+        .theme-item .card-type-pill { background: #ffffff; color: #000000; border-color: #ffffff; }
+        .theme-combat .card-type-pill { background: #ffffff; color: #000000; }
+
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; margin: 0; text-transform: uppercase; margin-top: 5px; }
+        .card-desc { font-style: italic; font-weight: 800; font-size: 8px; height: 12px; display: flex; align-items: center; color: var(--text-dim); margin-bottom: 10px; }
+        
+        .card-icon { width: 60px; height: 60px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 15px; border: 2px solid rgba(255,255,255,0.1); box-shadow: inset 0 5px 15px rgba(0,0,0,0.9); }
+        .card-attr-fused { font-size: 9px; font-weight: 800; color: #fff; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+
+    </style>
+</head>
+<body>
+
+    <div id="editor-pane">
+        <div class="editor-header">CARD EDITOR</div>
+        <div class="editor-hint">
+            Select a card from the grid to inspect its Master Database properties.<br><br>
+            <i>Note: To permanently save changes to the local file, instruct Antigravity with your desired changes.</i>
+        </div>
+        
+        <div class="form-group">
+            <label for="edit-name">Card Name (ID)</label>
+            <input type="text" id="edit-name" title="Card Name" placeholder="Card Name" readonly class="readonly-input">
+        </div>
+        <div class="form-group">
+            <label for="edit-cat">Category (Element)</label>
+            <input type="text" id="edit-cat" title="Category" placeholder="Category">
+        </div>
+        <div class="form-group">
+            <label for="edit-kanji">Kanji</label>
+            <input type="text" id="edit-kanji" title="Kanji" placeholder="Kanji">
+        </div>
+        <div class="form-group">
+            <label for="edit-desc">Description</label>
+            <input type="text" id="edit-desc" title="Description" placeholder="Description">
+        </div>
+        <div class="form-group">
+            <label for="edit-attr">Attributes</label>
+            <input type="text" id="edit-attr" title="Attributes" placeholder="Attributes">
+        </div>
+        <div class="form-group">
+            <label for="edit-fpvdmg">FPV Damage</label>
+            <input type="number" id="edit-fpvdmg" title="FPV Damage" placeholder="FPV Damage">
+        </div>
+
+        <button id="save-btn" onclick="alert('Visual update applied! Tell Antigravity to write this to the file to make it permanent.')">Apply Visuals</button>
+    </div>
+
+    <div id="grid-pane"></div>
+
+    <script>
+        const grid = document.getElementById('grid-pane');
+        
+        function getThemeClass(cat) {
+            if (['KATANA', 'MISSILE', 'SHIELD'].includes(cat)) return 'theme-combat';
+            return 'theme-' + cat.toLowerCase();
+        }
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            for (const [name, data] of Object.entries(MasterCardDatabase)) {
+                const card = document.createElement('div');
+                card.className = `guide-card ${getThemeClass(data.id)}`;
+                card.onclick = () => selectCard(name, card);
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-kanji">${data.kanji}</span>
+                        <span class="card-type-pill">${data.id}</span>
+                    </div>
+                    <div class="card-title">${name}</div>
+                    <div class="card-desc">${data.desc}</div>
+                    <div class="card-icon"><i class="fa-solid ${data.icon}"></i></div>
+                    <div class="card-attr-fused">${data.attr}</div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function selectCard(name, element) {
+            document.querySelectorAll('.guide-card').forEach(c => c.classList.remove('active-edit'));
+            element.classList.add('active-edit');
+            
+            const data = MasterCardDatabase[name];
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-cat').value = data.id;
+            document.getElementById('edit-kanji').value = data.kanji;
+            document.getElementById('edit-desc').value = data.desc;
+            document.getElementById('edit-attr').value = data.attr;
+            document.getElementById('edit-fpvdmg').value = data.fpvDmg || 0;
+        }
+
+        renderGrid();
+    </script>
+</body>
+</html>

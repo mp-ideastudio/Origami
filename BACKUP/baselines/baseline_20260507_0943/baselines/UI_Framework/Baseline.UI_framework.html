@@ -1,0 +1,1018 @@
+<!-- 
+  PROJECT MANIFESTO / AI INSTRUCTIONS (DO NOT REMOVE)
+  ===================================================
+  1. GOLDEN RATIO MANDATE (!important):
+     - All layout proportions must adhere to the Golden Ratio (approx 1.618 or 0.618).
+     - Current Horizontal Split: 61.8% (Primary) / 38.2% (Secondary).
+     - Vertical Split: Bottom panel approximates 1/3 visual weight or golden section relative to viewport.
+     - PiP Windows: Width = 38.2% of viewport; Aspect Ratio = Golden Ratio.
+
+  2. WCAG 2.2 AAA COMPLIANCE (MANDATED):
+     - Contrast ratios must meet AAA standards (7:1 for normal text).
+     - No illogical shrinking of text or touch targets on resize.
+     - All interactive elements must have aria-labels.
+     - Focus states must be clearly visible.
+
+  3. TEXT ADVENTURE EQUIVALENCE:
+     - Every graphical element must have a semantic text equivalent.
+     - The UI is a "Minimalist Power User" mode, but the underlying structure functions as a text-based interface for accessibility.
+
+  4. FLUIDITY & COLOR PSYCHOLOGY:
+     - UI must remain fluid; use percentages/vh/vw over fixed pixels where possible.
+     - Colors should evoke calm control (Beige/Gray/White) or Focus (Dark Mode).
+
+  5. *** IMMUTABLE FRAMEWORK WARNING *** (CRITICAL):
+     - FUTURE AI: DO NOT CHANGE THE LAYOUT, DESIGN FRAMEWORK, OR ARCHITECTURE OF THIS SHELL.
+     - IT IS A VIOLATION OF TRUST TO ALTER THE UI OUTER SHELL UNLESS EXPLICITLY DIRECTED.
+     - CONTENT UPDATES INSIDE THE CONTAINERS (GAME CONTENT) ARE PERMITTED.
+     - THIS FRAMEWORK MUST REMAIN 100% WIDTH/HEIGHT RESPONSIVE FOR WORDPRESS CONTAINERS.
+-->
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fluid Absolute Layout - Themed</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Load Material Icons for UI elements -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <style>
+      /* --- CSS VARIABLES FOR THEMING --- */
+      :root {
+        /* LIGHT MODE - TRUE BEIGE/LINEN VARIANT (AAA COMPLIANT) */
+        --bg-body: #f2efe9;       /* Warm linen/beige backdrop */
+        --bg-panel: #fffefc;      /* Ivory/Off-white Container */
+        --bg-header: rgba(248, 246, 241, 0.95); /* Soft beige header + Transparency */
+        --bg-content: #fffefc;    /* Match container */
+        --border-color: #e6e2d6;  /* Warm taupe border */
+        --text-primary: #1c1917;  /* Stone-900 (Black-ish) - Contrast 16:1 */
+        --text-secondary: #44403c;
+        --splitter-bg: #f2efe9;   
+        --splitter-hover: #3b82f6;
+        --handle-grad-1: #fffefc;
+        --handle-grad-2: #e6e2d6;
+        --handle-border: #a8a29e; 
+        --shadow-pip: 0 10px 25px -5px rgba(28, 25, 23, 0.1), 0 8px 10px -6px rgba(28, 25, 23, 0.1);
+        --shadow-panel: 0 -4px 20px -5px rgba(28, 25, 23, 0.05);
+        --btn-hover-bg: #e6e2d6;
+        --btn-hover-text: #1c1917;
+        
+        /* Focus Outline for Accessibility (WCAG Focus Visible) */
+        --focus-ring: 3px solid #3b82f6;
+        --focus-offset: 2px;
+      }
+
+      /* DARK MODE OVERRIDES (AAA COMPLIANT) */
+      body.dark-mode {
+        --bg-body: #0f172a;       /* Slate-900 */
+        --bg-panel: #1e293b;      /* Slate-800 */
+        --bg-header: rgba(2, 6, 23, 0.9); /* Slate-950 + Transparency */
+        --bg-content: #020617;    /* Slate-950 */
+        --border-color: #334155;  /* Slate-700 */
+        --text-primary: #f8fafc;  /* Slate-50 - Contrast 15:1 */
+        --text-secondary: #cbd5e1;
+        --splitter-bg: #0f172a;
+        --splitter-hover: #3b82f6;
+        --handle-grad-1: #334155;
+        --handle-grad-2: #0f172a;
+        --handle-border: #475569;
+        --shadow-pip: 0 20px 25px -5px rgba(0, 0, 0, 0.9), 0 8px 10px -6px rgba(0, 0, 0, 0.9);
+        --shadow-panel: 0 -4px 20px -5px rgba(0, 0, 0, 0.7);
+        --btn-hover-bg: #334155;
+        --btn-hover-text: #ffffff;
+      }
+
+      /* --- GLOBAL STYLES --- */
+      html, body {
+        height: 100%; /* Ensure full height of container */
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        overflow: hidden;
+        background-color: var(--bg-body);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      
+      /* Accessibility Focus Management */
+      button:focus-visible {
+        outline: var(--focus-ring);
+        outline-offset: var(--focus-offset);
+        border-radius: 4px;
+      }
+
+      /* --- HEADER STYLES (OVERLAY) --- */
+      .panel-header {
+        position: absolute; /* HUD Style Overlay */
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50; /* Above Content */
+        background-color: var(--bg-header);
+        backdrop-filter: blur(8px); /* Frosted glass effect */
+        border-bottom: 1px solid var(--border-color);
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        user-select: none;
+        transition: background-color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+      }
+      
+      /* Only show header border when visible/hovered if desired, but keeping structure */
+      
+      .panel-header.draggable {
+        cursor: move;
+      }
+
+      .header-title {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: color 0.3s ease;
+      }
+
+      /* MINIMALIST SYMBOL HIDING (DEFAULT) */
+      .header-title .header-icon {
+        opacity: 0;
+        transform: translateX(-5px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+      }
+      /* Reveal Logic */
+      .panel-base:hover .header-title .header-icon,
+      .pip-window:hover .header-title .header-icon,
+      .panel-base:focus-within .header-title .header-icon,
+      .pip-window:focus-within .header-title .header-icon {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        opacity: 0;
+        transform: translateX(5px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .panel-base:hover .header-controls,
+      .pip-window:hover .header-controls,
+      .header-controls:focus-within {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        background: transparent;
+      }
+      .icon-btn:hover {
+        background-color: var(--btn-hover-bg);
+        color: var(--btn-hover-text);
+      }
+      .icon-btn.close:hover {
+        background-color: #fee2e2;
+        color: #ef4444;
+      }
+      body.dark-mode .icon-btn.close:hover {
+        background-color: #7f1d1d;
+        color: #fca5a5;
+      }
+
+      .restore-btn {
+        font-size: 0.8rem;
+        font-weight: 500;
+        background-color: var(--btn-hover-bg);
+        color: var(--text-secondary);
+        padding: 6px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px dashed var(--border-color);
+        transition: all 0.2s;
+      }
+      .restore-btn:hover {
+        background-color: var(--border-color);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+      }
+
+      /* --- PANEL BASE STYLES --- */
+      .panel-base {
+        position: relative;
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .panel-content {
+        flex-grow: 1;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        /* Padding top could be added if content shouldn't be obscured, 
+           but prompt asked for overlay "not to push content around". 
+           Content is 100% height of parent. */
+        position: relative;
+        overflow: auto;
+        background-color: var(--bg-content);
+        transition: background-color 0.3s ease;
+      }
+
+      /* --- TOP ROW CONFIG --- */
+      #top-row {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* --- ABSOLUTE BOTTOM PANEL CONFIG --- */
+      #adventure-panel {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 33.33%; /* Percent of container, NOT vh, for WordPress embed safety */
+        min-height: 44px;
+        max-height: 90%;
+        z-index: 30;
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+        box-shadow: var(--shadow-panel);
+        border-bottom: none; 
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+      }
+      #adventure-panel .panel-header {
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+      }
+
+      /* --- SPLITTERS & HANDLES --- */
+      .v-splitter {
+        width: 8px;
+        background-color: var(--splitter-bg);
+        cursor: col-resize;
+        z-index: 20;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+      }
+      .v-splitter:hover {
+        background-color: var(--splitter-hover);
+      }
+
+      /* Adventure View 3D Handle */
+      .resize-handle-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 16px; /* Larger target for touch */
+        cursor: row-resize;
+        z-index: 40;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin-top: -8px;
+      }
+      .resize-handle-top::after {
+        content: "";
+        width: 60px;
+        height: 6px;
+        background: linear-gradient(180deg, var(--handle-grad-1) 0%, var(--handle-grad-2) 100%);
+        border: 1px solid var(--handle-border);
+        border-radius: 10px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        margin-top: 4px;
+        transition: all 0.2s;
+      }
+      .resize-handle-top:hover::after {
+        background: var(--splitter-hover);
+        border-color: #60a5fa;
+        width: 80px;
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      }
+
+      /* --- PIP WINDOW --- */
+      .pip-window {
+        position: fixed;
+        background-color: var(--bg-panel);
+        border-radius: 0.75rem;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-pip);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        /* IMPORTANT: Remove resize:both to rely on custom handles */
+        overflow: hidden;
+        min-width: 200px;
+        min-height: 150px;
+        transition: transform 0.1s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .pip-window:active { transform: scale(0.995); }
+      .pip-window .panel-header {
+        cursor: move;
+        border-radius: 0;
+        background-color: var(--bg-header);
+      }
+
+      /* Custom Resize Grips for PiP */
+      .resize-grip {
+        position: absolute;
+        bottom: 0;
+        width: 24px;
+        height: 24px;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        opacity: 0; /* Hidden by default */
+        transition: opacity 0.2s ease, color 0.2s ease;
+        background: rgba(0,0,0,0.05); /* Subtle hit area hint */
+        border-radius: 4px;
+      }
+      
+      .pip-window:hover .resize-grip {
+        opacity: 1; /* Show on Hover */
+      }
+      
+      .resize-grip:hover {
+        background-color: var(--btn-hover-bg);
+        color: var(--text-primary);
+      }
+
+      .resize-grip.se {
+        right: 0;
+        cursor: nwse-resize;
+        border-top-left-radius: 8px;
+      }
+      .resize-grip.sw {
+        left: 0;
+        cursor: nesw-resize;
+        border-top-right-radius: 8px;
+      }
+
+      /* --- THEME TOGGLE BUTTON --- */
+      .theme-toggle-btn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-pip);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 999;
+        color: var(--text-primary);
+        transition: transform 0.2s ease;
+      }
+      .theme-toggle-btn:hover {
+        transform: scale(1.1);
+      }
+
+      .panel-hidden { display: none !important; }
+      .panel-is-pip { display: none !important; }
+    </style>
+  </head>
+  <!-- ontouchstart="" ensures iOS Safari treats tap as hover -->
+  <body ontouchstart="">
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Dark or Light Mode">
+      <span class="material-icons-round">dark_mode</span>
+    </button>
+
+    <!-- Main Application Wrapper -->
+    <!-- h-full is critical here for WordPress iframe compatibility -->
+    <div id="main-container" class="relative w-full h-full">
+      
+      <!-- Top Row (Left & Right Panels) -->
+      <div id="top-row">
+        
+        <!-- FPV PANEL -->
+        <div id="fpv-panel" class="panel-base" style="flex: 0 0 61.8%">
+          <div class="panel-header">
+            <div class="header-title">
+              <!-- FPV Symbol: Camera -->
+              <span class="material-icons-round header-icon" aria-hidden="true">videocam</span>
+              FPV View
+              <div id="fpv-restorer-area" class="flex gap-2 ml-4"></div>
+            </div>
+            <div class="header-controls">
+              <button class="icon-btn" title="Pop Out" aria-label="Pop Out FPV View" onclick="app.togglePiP('fpv')">
+                <span class="material-icons-round">open_in_new</span>
+              </button>
+              <button class="icon-btn close" title="Close View" aria-label="Close FPV View" onclick="app.closePanel('fpv')">
+                <span class="material-icons-round">close</span>
+              </button>
+            </div>
+          </div>
+          <!-- EMPTY CONTENT -->
+          <div id="fpv-content-wrapper" class="panel-content" data-panel-id="fpv" role="region" aria-label="FPV View Content"></div>
+        </div>
+
+        <!-- Vertical Splitter -->
+        <div id="v-splitter" class="v-splitter" role="separator" aria-label="Vertical Splitter"></div>
+
+        <!-- MAP PANEL -->
+        <div id="map-panel" class="panel-base" style="flex: 0 0 38.2%">
+           <div class="panel-header">
+            <div class="header-title">
+              <!-- Map Symbol: Map -->
+              <span class="material-icons-round header-icon" aria-hidden="true">map</span>
+              Map View
+              <div id="map-restorer-area" class="flex gap-2 ml-4"></div>
+            </div>
+            <div class="header-controls">
+              <button class="icon-btn" title="Pop Out" aria-label="Pop Out Map View" onclick="app.togglePiP('map')">
+                <span class="material-icons-round">open_in_new</span>
+              </button>
+              <button class="icon-btn close" title="Close View" aria-label="Close Map View" onclick="app.closePanel('map')">
+                <span class="material-icons-round">close</span>
+              </button>
+            </div>
+          </div>
+          <!-- EMPTY CONTENT -->
+          <div id="map-content-wrapper" class="panel-content" data-panel-id="map" role="region" aria-label="Map View Content"></div>
+        </div>
+      </div>
+
+      <!-- ADVENTURE PANEL (Bottom) -->
+      <div id="adventure-panel" class="panel-base">
+        <!-- 3D Look Resize Handle -->
+        <div id="bottom-resize-handle" class="resize-handle-top" role="separator" aria-label="Horizontal Resize Handle"></div>
+        
+        <div class="panel-header">
+           <div class="header-title">
+              <!-- Adventure Symbol: Stairs -->
+              <span class="material-icons-round header-icon" aria-hidden="true">stairs</span>
+              Adventure View
+              <div id="adventure-restorer-area" class="flex gap-2 ml-4"></div>
+            </div>
+            <div class="header-controls">
+              <button class="icon-btn" title="Pop Out" aria-label="Pop Out Adventure View" onclick="app.togglePiP('adventure')">
+                <span class="material-icons-round">open_in_new</span>
+              </button>
+              <button class="icon-btn close" title="Close View" aria-label="Close Adventure View" onclick="app.closePanel('adventure')">
+                <span class="material-icons-round">close</span>
+              </button>
+            </div>
+        </div>
+        <!-- EMPTY CONTENT -->
+        <div id="adventure-content-wrapper" class="panel-content" data-panel-id="adventure" role="region" aria-label="Adventure View Content"></div>
+      </div>
+
+    </div>
+
+    <script>
+      const app = {};
+
+      document.addEventListener("DOMContentLoaded", () => {
+        let globalZIndex = 100;
+        const LAYOUT_STORAGE_KEY = 'dashboard_layout_v4';
+        const THEME_STORAGE_KEY = 'dashboard_theme_v1';
+
+        // --- 0. THEME LOGIC ---
+        const themeBtn = document.getElementById('theme-toggle');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function setTheme(isDark) {
+          if (isDark) {
+            document.body.classList.add('dark-mode');
+            themeIcon.textContent = 'light_mode';
+          } else {
+            document.body.classList.remove('dark-mode');
+            themeIcon.textContent = 'dark_mode';
+          }
+          localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+        }
+
+        // Init Theme
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        if (savedTheme === 'dark') {
+          setTheme(true);
+        } else {
+          setTheme(false);
+        }
+
+        themeBtn.addEventListener('click', () => {
+          const isDark = document.body.classList.contains('dark-mode');
+          setTheme(!isDark);
+        });
+
+
+        // --- STATE & CONFIG ---
+        const state = {
+          fpv: { visible: true, pip: false },
+          map: { visible: true, pip: false },
+          adventure: { visible: true, pip: false }
+        };
+
+        const panelConfigs = {
+          fpv: {
+            title: "FPV View",
+            icon: "videocam",
+            panel: document.getElementById("fpv-panel"),
+            contentWrapper: document.getElementById("fpv-content-wrapper"),
+            headerRestorer: document.getElementById("fpv-restorer-area"),
+            siblingId: "map",
+            splitter: document.getElementById("v-splitter"),
+            type: "flex",
+            defaultFlex: "0 0 61.8%"
+          },
+          map: {
+            title: "Map View",
+            icon: "map",
+            panel: document.getElementById("map-panel"),
+            contentWrapper: document.getElementById("map-content-wrapper"),
+            headerRestorer: document.getElementById("map-restorer-area"),
+            siblingId: "fpv",
+            splitter: document.getElementById("v-splitter"),
+            type: "flex",
+            defaultFlex: "0 0 38.2%"
+          },
+          adventure: {
+            title: "Adventure View",
+            icon: "stairs", 
+            panel: document.getElementById("adventure-panel"),
+            contentWrapper: document.getElementById("adventure-content-wrapper"),
+            headerRestorer: document.getElementById("adventure-restorer-area"),
+            splitter: null, 
+            siblingId: null,
+            type: "absolute",
+            defaultHeight: "33.33%" // Percent based for container safety
+          },
+        };
+
+        // --- 1. VISIBILITY & LAYOUT LOGIC ---
+        
+        app.closePanel = (id) => {
+          state[id].visible = false;
+          // If PiP, force dock internally to clean up window
+          if (state[id].pip) {
+            app.togglePiP(id, true); // this will reset pip state to false
+          }
+          state[id].visible = false; 
+
+          renderVisibility();
+          saveLayoutState();
+        };
+
+        app.restorePanel = (id) => {
+          state[id].visible = true;
+          renderVisibility();
+          saveLayoutState();
+        };
+
+        function renderVisibility() {
+          const splitter = document.getElementById("v-splitter");
+          const fpvEl = panelConfigs.fpv.panel;
+          const mapEl = panelConfigs.map.panel;
+
+          const fpvDocked = state.fpv.visible && !state.fpv.pip;
+          const mapDocked = state.map.visible && !state.map.pip;
+
+          if (fpvDocked && mapDocked) {
+            fpvEl.classList.remove("panel-hidden");
+            mapEl.classList.remove("panel-hidden");
+            splitter.classList.remove("panel-hidden");
+            
+            if(!fpvEl.style.flex || fpvEl.style.flex === "1 1 100%") fpvEl.style.flex = panelConfigs.fpv.defaultFlex;
+            if(!mapEl.style.flex || mapEl.style.flex === "1 1 100%") mapEl.style.flex = panelConfigs.map.defaultFlex;
+
+          } else if (fpvDocked && !mapDocked) {
+            fpvEl.classList.remove("panel-hidden");
+            mapEl.classList.add("panel-hidden");
+            splitter.classList.add("panel-hidden");
+            fpvEl.style.flex = "1 1 100%";
+
+          } else if (!fpvDocked && mapDocked) {
+            fpvEl.classList.add("panel-hidden");
+            mapEl.classList.remove("panel-hidden");
+            splitter.classList.add("panel-hidden");
+            mapEl.style.flex = "1 1 100%";
+
+          } else {
+            fpvEl.classList.add("panel-hidden");
+            mapEl.classList.add("panel-hidden");
+            splitter.classList.add("panel-hidden");
+          }
+
+          const advEl = panelConfigs.adventure.panel;
+          if (state.adventure.visible && !state.adventure.pip) {
+            advEl.classList.remove("panel-hidden");
+          } else {
+            advEl.classList.add("panel-hidden");
+          }
+
+          updateRestorerButtons();
+        }
+
+        function updateRestorerButtons() {
+          const hiddenIds = Object.keys(state).filter(k => !state[k].visible);
+          const visibleIds = Object.keys(state).filter(k => state[k].visible);
+
+          Object.values(panelConfigs).forEach(cfg => {
+             if(cfg.headerRestorer) cfg.headerRestorer.innerHTML = '';
+             const pipWin = document.getElementById(`${Object.keys(panelConfigs).find(key => panelConfigs[key] === cfg)}-pip-window`);
+             if(pipWin) {
+               const pipRestorer = pipWin.querySelector('.pip-restorer-area');
+               if(pipRestorer) pipRestorer.innerHTML = '';
+             }
+          });
+
+          visibleIds.forEach(visId => {
+             hiddenIds.forEach(hiddenId => {
+                const hiddenCfg = panelConfigs[hiddenId];
+                const btn = document.createElement('button');
+                btn.className = 'restore-btn';
+                btn.innerHTML = `<span class="material-icons-round text-xs" aria-hidden="true">add</span> ${hiddenCfg.title}`;
+                btn.setAttribute("aria-label", `Restore ${hiddenCfg.title}`);
+                btn.onclick = (e) => { e.stopPropagation(); app.restorePanel(hiddenId); };
+
+                if (panelConfigs[visId].headerRestorer) {
+                  panelConfigs[visId].headerRestorer.appendChild(btn.cloneNode(true));
+                }
+                
+                const pipWin = document.getElementById(`${visId}-pip-window`);
+                if (pipWin) {
+                   const pipRestorer = pipWin.querySelector('.pip-restorer-area');
+                   if (pipRestorer) {
+                     const pipBtn = btn.cloneNode(true);
+                     pipBtn.onclick = (e) => { e.stopPropagation(); app.restorePanel(hiddenId); };
+                     pipRestorer.appendChild(pipBtn);
+                   }
+                }
+             });
+          });
+        }
+
+        // --- 2. RESIZING & DRAGGING ---
+        function initVerticalSplitter() {
+          const splitter = document.getElementById("v-splitter");
+          const container = document.getElementById("top-row");
+          let isDragging = false;
+
+          splitter.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            e.preventDefault();
+            document.body.style.cursor = "col-resize";
+            container.style.pointerEvents = "none"; 
+          });
+
+          window.addEventListener("mouseup", () => {
+            if (isDragging) {
+              isDragging = false;
+              document.body.style.cursor = "default";
+              container.style.pointerEvents = "auto";
+            }
+          });
+
+          window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            if (state.fpv.pip || !state.fpv.visible) return;
+            if (state.map.pip || !state.map.visible) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const newLeftWidth = e.clientX - containerRect.left;
+            let leftPercent = (newLeftWidth / containerRect.width) * 100;
+            if (leftPercent < 10) leftPercent = 10;
+            if (leftPercent > 90) leftPercent = 90;
+
+            const fpvPanel = panelConfigs.fpv.panel;
+            const mapPanel = panelConfigs.map.panel;
+            
+            fpvPanel.style.flex = `0 0 ${leftPercent}%`;
+            mapPanel.style.flex = `0 0 ${100 - leftPercent}%`;
+            fpvPanel.dataset.flex = fpvPanel.style.flex;
+            mapPanel.dataset.flex = mapPanel.style.flex;
+          });
+        }
+
+        function initBottomResizer() {
+          const handle = document.getElementById("bottom-resize-handle");
+          const panel = document.getElementById("adventure-panel");
+          let isDragging = false;
+
+          handle.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            e.preventDefault();
+            document.body.style.cursor = "row-resize";
+            document.body.style.userSelect = "none";
+          });
+
+          window.addEventListener("mouseup", () => {
+            isDragging = false;
+            document.body.style.cursor = "default";
+            document.body.style.userSelect = "auto";
+          });
+
+          window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            if (!state.adventure.visible || state.adventure.pip) return;
+
+            // Updated for Custom Container Embedding Compatibility
+            const containerRect = document.getElementById('main-container').getBoundingClientRect();
+            // MouseY relative to the container
+            const relativeY = e.clientY - containerRect.top;
+            
+            const newHeight = containerRect.height - relativeY;
+            const maxH = containerRect.height - 50;
+            const minH = 36;
+            
+            let finalH = Math.max(minH, Math.min(newHeight, maxH));
+
+            panel.style.height = `${finalH}px`;
+            panel.dataset.height = `${finalH}px`;
+          });
+        }
+
+        // --- 3. PIP MANAGEMENT ---
+        function createPiPWindow(panelId) {
+          const config = panelConfigs[panelId];
+          const pipWindow = document.createElement("div");
+          pipWindow.id = `${panelId}-pip-window`;
+          pipWindow.className = "pip-window";
+
+          const grWidth = window.innerWidth * 0.382;
+          const grHeight = grWidth * 0.618; 
+          pipWindow.style.width = `${grWidth}px`;
+          pipWindow.style.height = `${grHeight}px`;
+          pipWindow.style.top = "24px"; 
+          pipWindow.style.right = "24px";
+          pipWindow.style.zIndex = ++globalZIndex;
+
+          // Header
+          const header = document.createElement("div");
+          header.className = "panel-header draggable";
+          
+          const titleDiv = document.createElement("div");
+          titleDiv.className = "header-title";
+          titleDiv.innerHTML = `<span class="material-icons-round header-icon" aria-hidden="true">${config.icon}</span> ${config.title}`;
+          
+          const restorerDiv = document.createElement("div");
+          restorerDiv.className = "flex gap-2 ml-4 pip-restorer-area";
+          titleDiv.appendChild(restorerDiv);
+          
+          const controlsDiv = document.createElement("div");
+          controlsDiv.className = "header-controls";
+          
+          const dockBtn = document.createElement("button");
+          dockBtn.className = "icon-btn";
+          dockBtn.title = "Dock View";
+          dockBtn.setAttribute("aria-label", "Dock View");
+          dockBtn.innerHTML = '<span class="material-icons-round">close_fullscreen</span>';
+          dockBtn.onclick = (e) => { e.stopPropagation(); app.togglePiP(panelId); };
+          
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "icon-btn close";
+          closeBtn.title = "Close View";
+          closeBtn.setAttribute("aria-label", "Close View");
+          closeBtn.innerHTML = '<span class="material-icons-round">close</span>';
+          closeBtn.onclick = (e) => { e.stopPropagation(); app.closePanel(panelId); };
+
+          controlsDiv.appendChild(dockBtn);
+          controlsDiv.appendChild(closeBtn);
+          header.appendChild(titleDiv);
+          header.appendChild(controlsDiv);
+
+          header.addEventListener("dblclick", (e) => {
+             e.stopPropagation();
+             handleSwap(panelId);
+          });
+
+          // Resize Grips
+          const resizeSE = document.createElement("div");
+          resizeSE.className = "resize-grip se";
+          resizeSE.innerHTML = '<span class="material-icons-round text-sm">north_west</span>'; // Rotated arrow or similar visual
+          
+          const resizeSW = document.createElement("div");
+          resizeSW.className = "resize-grip sw";
+          resizeSW.innerHTML = '<span class="material-icons-round text-sm">north_east</span>';
+
+          // Resize Logic
+          makeResizable(pipWindow, resizeSE, 'se');
+          makeResizable(pipWindow, resizeSW, 'sw');
+
+          // Content Wrapper
+          const contentWrapper = document.createElement("div");
+          contentWrapper.className = "pip-content-wrapper";
+          
+          pipWindow.appendChild(header);
+          pipWindow.appendChild(contentWrapper);
+          pipWindow.appendChild(resizeSE);
+          pipWindow.appendChild(resizeSW);
+          
+          document.body.appendChild(pipWindow);
+          makeDraggable(pipWindow, header);
+          return pipWindow;
+        }
+
+        function makeResizable(element, grip, direction) {
+          grip.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+            const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+            const startLeft = parseInt(document.defaultView.getComputedStyle(element).left, 10);
+
+            function doDrag(e) {
+              if (direction === 'se') {
+                element.style.width = (startWidth + e.clientX - startX) + 'px';
+                element.style.height = (startHeight + e.clientY - startY) + 'px';
+              } else if (direction === 'sw') {
+                const newWidth = startWidth - (e.clientX - startX);
+                // Min width constraint
+                if (newWidth > 150) {
+                  element.style.width = newWidth + 'px';
+                  element.style.left = (startLeft + (e.clientX - startX)) + 'px';
+                  element.style.height = (startHeight + e.clientY - startY) + 'px';
+                }
+              }
+            }
+
+            function stopDrag() {
+              document.documentElement.removeEventListener('mousemove', doDrag, false);
+              document.documentElement.removeEventListener('mouseup', stopDrag, false);
+            }
+
+            document.documentElement.addEventListener('mousemove', doDrag, false);
+            document.documentElement.addEventListener('mouseup', stopDrag, false);
+          }, false);
+        }
+
+        app.togglePiP = (panelId, skipSave = false) => {
+          const config = panelConfigs[panelId];
+          const pipWindowId = `${panelId}-pip-window`;
+          const existingPiP = document.getElementById(pipWindowId);
+
+          if (existingPiP) {
+            // DOCK
+            const pipContentInner = existingPiP.querySelector(".pip-content-wrapper").firstElementChild;
+            if (pipContentInner) config.panel.appendChild(pipContentInner);
+            existingPiP.remove();
+            
+            config.panel.classList.remove("panel-is-pip"); 
+            state[panelId].pip = false;
+
+            if (config.type === "flex") {
+                config.panel.style.flex = config.panel.dataset.flex || config.defaultFlex;
+            } else {
+                config.panel.style.height = config.panel.dataset.height || config.defaultHeight;
+            }
+          } else {
+            // UNDOCK (PiP)
+            const newPiP = createPiPWindow(panelId);
+            const pipWrapper = newPiP.querySelector(".pip-content-wrapper");
+            pipWrapper.appendChild(config.contentWrapper);
+
+            if (config.type === "flex") {
+                config.panel.dataset.flex = config.panel.style.flex;
+            } else {
+                config.panel.dataset.height = config.panel.style.height;
+            }
+            
+            config.panel.classList.add("panel-is-pip");
+            state[panelId].pip = true;
+          }
+          
+          renderVisibility();
+          if(!skipSave) saveLayoutState();
+        };
+
+        function handleSwap(targetId) {
+            if (targetId === 'adventure') return;
+            const pairs = { 'fpv': 'map', 'map': 'fpv' };
+            const otherId = pairs[targetId];
+
+            if (state[targetId].pip && !state[otherId].pip) {
+                app.togglePiP(targetId, true);
+                app.togglePiP(otherId, true);
+                saveLayoutState();
+            } else if (!state[targetId].pip && state[otherId].pip) {
+                app.togglePiP(otherId, true);
+                app.togglePiP(targetId, true);
+                saveLayoutState();
+            }
+        }
+
+        function makeDraggable(pipWindow, header) {
+          let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+          pipWindow.onmousedown = () => { pipWindow.style.zIndex = ++globalZIndex; };
+          header.onmousedown = dragMouseDown;
+
+          function dragMouseDown(e) {
+            if (e.detail === 2) return; 
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+          }
+
+          function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            pipWindow.style.top = (pipWindow.offsetTop - pos2) + "px";
+            pipWindow.style.left = (pipWindow.offsetLeft - pos1) + "px";
+            pipWindow.style.right = 'auto'; 
+          }
+          function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+          }
+        }
+
+        function saveLayoutState() {
+          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function restoreLayoutState() {
+          const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+          if (!raw) {
+            app.togglePiP('map', true); // Default
+            saveLayoutState();
+            return;
+          }
+          try {
+            const savedState = JSON.parse(raw);
+            Object.keys(savedState).forEach(key => {
+               if(!savedState[key].visible) app.closePanel(key);
+            });
+            Object.keys(savedState).forEach(key => {
+               if(savedState[key].pip && !state[key].pip) app.togglePiP(key, true);
+            });
+            renderVisibility();
+          } catch (e) {
+            console.error("Layout Restore Error", e);
+            app.togglePiP('map', true);
+          }
+        }
+
+        initVerticalSplitter();
+        initBottomResizer();
+        
+        Object.keys(panelConfigs).forEach(id => {
+           panelConfigs[id].contentWrapper.addEventListener("dblclick", () => handleSwap(id));
+        });
+
+        setTimeout(restoreLayoutState, 50);
+      });
+    </script>
+  </body>
+</html>
