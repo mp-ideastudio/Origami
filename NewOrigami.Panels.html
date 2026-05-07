@@ -77,7 +77,7 @@
         body.is-moving .side-panel { transition: none; }
 
         /* --- SIDE PANELS (Bloom Removed) --- */
-        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(calc(-50% + 100px)); display: flex; justify-content: space-between; align-items: stretch; padding: 0; box-sizing: border-box; pointer-events: none; }
+        #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: stretch; padding: 0; box-sizing: border-box; pointer-events: none; z-index: 100; }
         .side-panel { 
             position: relative; width: 130px; height: auto; 
             background: var(--bg-glass);   
@@ -106,18 +106,6 @@
         .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
         .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 8px; width: 100%; text-align: center; line-height: 1.2; }
         
-        #monster-cam-rect {
-            width: 100%;
-            height: 110px;
-            margin-bottom: 12px;
-            border-radius: 12px;
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-            pointer-events: none;
-            box-sizing: border-box;
-        }
-
         /* HP Bar with numeric label */
         .sp-bar-wrap { width: 90%; margin-bottom: 12px; }
         .sp-bar-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; font-size: 9px; font-weight: 900; }
@@ -260,7 +248,7 @@
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
         #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: calc(var(--card-w) * 6 + 70px); height: auto; align-self: end; }
-        #guides-container { display: flex; width: calc(100% + 100px); padding: 100px 50px 50px 50px; margin: -90px -50px -40px -50px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
+        #guides-container { display: flex; width: calc(100% + 100px); padding: 50px; margin: -40px -50px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
         #guides-container::-webkit-scrollbar { height: 6px; }
         #guides-container::-webkit-scrollbar-track { background: transparent; }
         #guides-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.0); border-radius: 4px; transition: background 0.3s; }
@@ -292,7 +280,7 @@
         .roll-btn i { margin-right: 10px; font-size: 20px; }
 
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
-        .card-column.focused { z-index: 30; transform: translateY(-10px); }
+        .card-column.focused { z-index: 30; }
         .card-column.focused .guide-card[data-depth="0"] { box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 20px var(--theme-clr); border-color: var(--theme-clr); }
 
         @media (max-width: 1100px) {
@@ -303,13 +291,21 @@
         }
         @media (max-width: 750px) { 
             .card-column:nth-child(n+4) { display: none !important; }
-            #left-panel { transform: scale(0.85); transform-origin: left center; }
-            #right-panel { transform: scale(0.85); transform-origin: right center; }
+            #lower-ui-row { display: flex; justify-content: center; position: relative; }
+            #bottom-panel { transform: scale(0.85); transform-origin: bottom center; margin: 0; }
+            #left-panel { position: absolute; left: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.85); transform-origin: left bottom; }
+            #right-panel { position: absolute; right: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.85); transform-origin: right bottom; }
+            #left-panel .u-btn { display: none !important; }
+            #moondial-wrapper { top: 35px !important; left: 35px !important; transform: scale(0.8); transform-origin: top left; }
         }
         @media (max-width: 500px) { 
             .card-column:nth-child(n+4) { display: none !important; }
-            #left-panel { transform: scale(0.75); transform-origin: left center; }
-            #right-panel { transform: scale(0.75); transform-origin: right center; }
+            #lower-ui-row { display: flex; justify-content: center; position: relative; }
+            #bottom-panel { transform: scale(0.75); transform-origin: bottom center; margin: 0; }
+            #left-panel { position: absolute; left: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.75); transform-origin: left bottom; }
+            #right-panel { position: absolute; right: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.75); transform-origin: right bottom; }
+            #left-panel .u-btn { display: none !important; }
+            #moondial-wrapper { top: 35px !important; left: 35px !important; transform: scale(0.75); transform-origin: top left; }
         }
 
         .guide-card {
@@ -330,8 +326,7 @@
                 0 0 0 1px var(--theme-clr) !important;
             transform-origin: bottom center;
         }
-
-
+        
         .guide-card::before {
             content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px; 
             border-radius: inherit; pointer-events: none; z-index: 0;
@@ -370,11 +365,10 @@
         .guide-card.selected-card {
             animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
             border: none !important;
-            transform: translateY(-6px) scale(1) !important;
             z-index: 40 !important;
         }
         .superimposed-card {
-            transform: translateY(-30px) scale(1.3) !important;
+            animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
             z-index: 100 !important;
             box-shadow: 0 10px 25px rgba(0,0,0,0.9), 0 0 0 2px var(--theme-clr) !important;
         }
@@ -405,26 +399,58 @@
         #inventory-modal {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(10, 10, 15, 0.95);
-             
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             z-index: 45000; display: none; flex-direction: column;
-            padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow-y: auto;
+            padding: 40px clamp(20px, 5vw, 100px); box-sizing: border-box; overflow: hidden;
             color: #ffffff; opacity: 0; transition: opacity 0.3s ease;
         }
         #inventory-modal.active { display: flex; opacity: 1; }
-        #inventory-modal::-webkit-scrollbar { width: 8px; }
-        #inventory-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
         
         .inv-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; flex-shrink: 0;
         }
         .inv-title { font-size: 28px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; font-family: 'Nunito', sans-serif; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        .inv-close { background: none; border: none; color: #fff; font-size: 36px; cursor: pointer; transition: color 0.2s, transform 0.2s; padding: 0 10px; }
+        .inv-close { background: none; border: none; color: #fff; font-size: 36px; cursor: pointer; transition: color 0.2s, transform 0.2s; padding: 0 10px; line-height: 1; }
         .inv-close:hover { color: #ff3333; transform: scale(1.1); }
-        .inv-category { margin-bottom: 40px; }
-        .inv-category-title { font-size: 16px; font-weight: 800; color: #888; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        
+        /* 2-Column Layout */
+        .inv-layout {
+            display: flex; gap: 40px; flex-grow: 1; overflow: hidden;
+        }
+        
+        /* Left: Spells */
+        .inv-spells-pane {
+            flex: 2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px;
+        }
+        .inv-spells-pane::-webkit-scrollbar { width: 6px; }
+        .inv-spells-pane::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        
+        /* Right: Gear */
+        .inv-gear-pane {
+            flex: 1; min-width: 300px; display: flex; flex-direction: column; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;
+        }
+        .inv-category-title { font-size: 16px; font-weight: 800; color: #888; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .inv-category-title::after { content: ''; flex-grow: 1; height: 1px; background: rgba(255,255,255,0.1); }
+        
+        /* Spells Grid */
         .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; justify-content: start; justify-items: center; }
+        
+        /* Gear Slots */
+        .gear-slot { display: flex; flex-direction: column; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .gear-slot-name { font-size: 10px; text-transform: uppercase; color: #888; margin-bottom: 5px; font-weight: bold; }
+        .gear-item-name { font-size: 14px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; }
+        .gear-item-stat { font-size: 12px; color: #00e5ff; font-weight: bold; margin-top: 4px; }
+        
+        /* Weight Bar */
+        .inv-weight-bar-container {
+            margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+        }
+        .inv-weight-labels { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; font-weight: bold; text-transform: uppercase; }
+        .inv-weight-track { height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .inv-weight-fill { height: 100%; background: linear-gradient(90deg, #00bcd4, #ffeb3b, #f44336); width: 0%; transition: width 0.3s ease; }
         
         /* Reset card styles strictly for the inventory layout */
         .inv-grid .playing-card {
@@ -466,19 +492,19 @@
         .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--card-kanji-clr, var(--theme-clr)); }
         .card-type-pill { background: var(--theme-clr); color: var(--pill-text, #ffffff); font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); font-style: normal !important; }
         
-        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; }
-        .card-desc { font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; color: var(--card-text-dim, var(--color-text-dim)); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; }
+        .card-title { font-weight: 900; font-size: 11px; height: 18px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; }
+        .card-desc { font-weight: 800; font-size: 6px; height: 12px; display: flex; align-items: center; justify-content: center; color: var(--card-text-dim, var(--color-text-dim)); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         .card-icon-3d { 
             width: 45px; height: 45px; border-radius: 50%; 
             margin: 0 auto 5px auto; overflow: hidden; position: relative; flex-shrink: 0; 
             background: #e0e5ec;
-            box-shadow: inset 4px 4px 10px rgba(0,0,0,0.15), inset -4px -4px 10px rgba(255,255,255,1), 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: inset 4px 4px 8px rgba(163,177,198,0.8), inset -4px -4px 8px rgba(255,255,255,0.8);
         }
         .dark-mode .card-icon-3d { 
             background: #0d0d12; 
             border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: inset 6px 6px 16px rgba(0,0,0,0.9), inset -4px -4px 12px rgba(255,255,255,0.08), 0 4px 8px rgba(0,0,0,0.5);
+            box-shadow: inset 5px 5px 15px rgba(0,0,0,1), inset -3px -3px 8px rgba(255,255,255,0.1), 0 2px 5px rgba(255,255,255,0.05);
         }
         .card-icon-3d canvas { 
             display: block; width: 100% !important; height: 100% !important; 
@@ -487,9 +513,12 @@
         .card-icon-3d::after {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             border-radius: 50%; pointer-events: none; z-index: 10;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 15%, rgba(0,0,0,0) 50%);
-            box-shadow: inset -4px -4px 10px rgba(0,0,0,0.6), inset 3px 3px 10px rgba(255,255,255,0.6);
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, rgba(0,0,0,0) 60%);
+            box-shadow: inset -5px -5px 12px rgba(0,0,0,0.8), inset 2px 2px 8px rgba(255,255,255,0.4);
         }
+        
+        
+        
         .card-attr-fused { 
             width: 100%; 
             height: 25px; 
@@ -507,6 +536,7 @@
             align-items: center; 
             justify-content: center; 
             flex-shrink: 0; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center; 
             line-height: 1.1; 
             box-sizing: border-box; 
@@ -689,21 +719,9 @@
         .theme-green { --theme-clr: #4caf50; }
         .theme-red { --theme-clr: #f44336; }
         .viewport-text { 
-            position: absolute; 
-            bottom: 0; 
-            left: 50%; 
-            transform: translate(-50%, 50%); 
-            color: #8b949e; 
-            font-size: 9px; 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            white-space: nowrap; 
-            letter-spacing: 1px; 
-            z-index: 10;
-            background: var(--bg-glass);
-            padding: 2px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
+            color: #8b949e; font-size: 9px; font-weight: 700; margin-left: auto; 
+            padding-left: 15px; text-transform: uppercase; white-space: nowrap; 
+            letter-spacing: 1px; position: relative; z-index: 1;
         }
 
 
@@ -719,6 +737,14 @@
         /* Status formatting */
         .sp-gold-status { color: #FFD700; font-weight: bold; letter-spacing: 0.1rem; text-shadow: 0 0 5px rgba(255,215,0,0.5); }
         #player-hp-fill { width: 100%; }
+        @keyframes cardLootAnim3D { 
+            0% { opacity:0; transform:translate(-50%, -40%) scale(1.5); } 
+            15% { opacity:1; transform:translate(-50%, -50%) scale(3.3); } 
+            30% { transform:translate(-50%, -50%) scale(3.0); } 
+            80% { opacity:1; transform:translate(-50%, -50%) scale(3.0); } 
+            100% { opacity:0; transform:translate(-50%, -50%) scale(3.15); } 
+        }
+        .yg-anim-trigger-3d { animation: cardLootAnim3D 1.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
     </style>
 </head>
 <body class="dark-mode focus-active">
@@ -739,7 +765,6 @@
                     </div>
                     <div class="sp-bar"><div class="sp-fill" id="monster-hp-fill"></div></div>
                 </div>
-                <div id="monster-cam-rect"></div>
                 <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
                     <span>Wager</span>
@@ -778,7 +803,7 @@
                     </div>
                 </div>
                 <div class="sp-sub sp-xp-status">XP: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
-                <button class="sp-btn btn-attack" onclick="emitAction('ATTACK')">
+                <button class="sp-btn btn-attack" onclick="window.switchDeck(1)">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
                     <span>Attack</span>
                 </button>
@@ -901,9 +926,13 @@
                     -3px -3px 8px rgba(255,255,255,0.06),
                     inset 3px 3px 8px rgba(0,0,0,0.95),
                     inset -2px -2px 5px rgba(255,255,255,0.06);
-                pointer-events: none;
-                z-index: 20;
+                pointer-events: auto;
+                cursor: grab;
             }
+            .compass-bg-ring:active {
+                cursor: grabbing;
+            }
+            .compass-bg-ring { z-index: 20; }
 
             .compass-outer-ring {
                 position: absolute;
@@ -1087,8 +1116,9 @@
 
             .pip-zoom-controls {
                 position: absolute;
-                right: -15px;
-                top: 25%;
+                left: -15px;
+                right: auto;
+                top: 50%;
                 transform: translateY(-50%);
                 display: flex;
                 flex-direction: column;
@@ -1102,7 +1132,8 @@
             .pip-perspective-controls {
                 position: absolute;
                 right: -15px;
-                top: 75%;
+                left: auto;
+                top: 50%;
                 transform: translateY(-50%);
                 display: flex;
                 flex-direction: column;
@@ -1112,6 +1143,57 @@
                 pointer-events: auto;
                 transition: opacity 0.3s ease;
             }
+
+            .pip-drag-handle, .pip-resize-handle {
+                position: absolute;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.6) 100%);
+                border: 1px solid rgba(255,255,255,0.3);
+                color: #fff;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 60;
+                opacity: 1;
+                pointer-events: auto;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            }
+            
+            .pip-drag-handle {
+                top: 14.6%;
+                left: 14.6%;
+                transform: translate(-50%, -50%);
+                cursor: grab;
+            }
+            .pip-drag-handle:active { cursor: grabbing; }
+
+            .pip-resize-handle {
+                bottom: 14.6%;
+                right: 14.6%;
+                transform: translate(50%, 50%);
+                cursor: se-resize;
+            }
+            .pip-resize-handle:active {
+                transform: scale(0.95);
+            }
+
+            #moondial-wrapper.edit-mode .pip-zoom-controls,
+            #moondial-wrapper.edit-mode .pip-perspective-controls,
+            #moondial-wrapper.edit-mode .pip-drag-handle,
+            #moondial-wrapper.edit-mode .pip-resize-handle {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            #moondial-wrapper.edit-mode .compass-bg-ring {
+                border-color: rgba(255,255,255,0.2);
+                box-shadow: 0 0 15px rgba(255,255,255,0.1), inset 0 0 15px rgba(255,255,255,0.1);
+            }
+
 
             .pip-zoom-btn {
                 width: 28px;
@@ -1195,6 +1277,45 @@
                     ring.style.transform = `rotate(${rotation}deg)`;
                 }
             });
+
+            // PIP Dragging Logic via Moondial Compass
+            document.addEventListener("DOMContentLoaded", () => {
+                const pip = document.getElementById('moondial-wrapper');
+                const dragHandle = pip.querySelector('.compass-bg-ring');
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+
+                dragHandle.addEventListener('pointerdown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const style = window.getComputedStyle(pip);
+                    initialX = parseInt(style.left, 10) || 10;
+                    initialY = parseInt(style.top, 10) || 10;
+                    
+                    pip.classList.add('dragging');
+                    dragHandle.setPointerCapture(e.pointerId);
+                    e.preventDefault();
+                });
+
+                dragHandle.addEventListener('pointermove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    pip.style.left = (initialX + dx) + 'px';
+                    pip.style.top = (initialY + dy) + 'px';
+                });
+
+                const endDrag = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    pip.classList.remove('dragging');
+                    dragHandle.releasePointerCapture(e.pointerId);
+                };
+
+                dragHandle.addEventListener('pointerup', endDrag);
+                dragHandle.addEventListener('pointercancel', endDrag);
+            });
         </script>
         
         <!-- Moondial UI -->
@@ -1220,14 +1341,19 @@
                 <div class="moon-icon phase-7" title="Waning Crescent"><span>🌘</span></div>
             </div>
             <div class="pip-vignette"></div>
+            <div class="pip-drag-handle" title="Drag to Move"><i class="fa-solid fa-up-down-left-right"></i></div>
+            <div class="pip-resize-handle" title="Drag to Resize"><i class="fa-solid fa-arrows-left-right-to-line fa-rotate-45"></i></div>
             <div class="pip-zoom-controls">
                 <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: -1 }, '*')">+</button>
                 <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: 1 }, '*')">−</button>
             </div>
             <div class="pip-perspective-controls">
-                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_PERSPECTIVE' }, '*')"><i class="fa-solid fa-cube"></i></button>
+                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_PERSPECTIVE' }, '*')" title="Change Perspective">◿</button>
             </div>
         </div>
+        
+        <!-- Big Combat Announcement Text Overlay -->
+        <div id="big-combat-text"></div>
         
         <div id="lower-ui-row">
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
@@ -1284,8 +1410,8 @@
                         <div class="chat-pill">
                             <input type="text" class="chat-input" placeholder="Type here..." autocomplete="off">
                             <span class="enter-symbol" title="Submit Action"><i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i></span>
+                            <div id="viewport-readout" class="viewport-text">VIEWPORT</div>
                         </div>
-                        <div id="viewport-readout" class="viewport-text">VIEWPORT</div>
                     </div>
                 </div>
             </div>
@@ -1348,8 +1474,33 @@
                 <div class="inv-title">Loot Inventory</div>
                 <button class="inv-close" onclick="closeInventory()">&times;</button>
             </div>
-            <div id="inv-content">
-                <!-- Populated via JS -->
+            <div class="inv-layout">
+                <!-- Left Pane: Spells & Items -->
+                <div class="inv-spells-pane">
+                    <div class="inv-category-title">Spell Cards</div>
+                    <div class="inv-grid" id="inv-spells-grid">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+                
+                <!-- Right Pane: Equipped Gear -->
+                <div class="inv-gear-pane">
+                    <div class="inv-category-title">Equipped Gear</div>
+                    <div id="inv-gear-list">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom: Weight Status -->
+            <div class="inv-weight-bar-container">
+                <div class="inv-weight-labels">
+                    <span>Encumbrance</span>
+                    <span id="inv-weight-text">0 / 100 lbs</span>
+                </div>
+                <div class="inv-weight-track">
+                    <div class="inv-weight-fill" id="inv-weight-fill"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1371,7 +1522,8 @@
             const modal = document.getElementById('inventory-modal');
             if(modal) {
                 modal.classList.add('active');
-                window.renderInventory();
+                // Request the latest inventory state from Core.js to populate the UI
+                window.parent.postMessage({ type: 'REQUEST_INVENTORY_SYNC' }, '*');
             }
         };
 
@@ -1380,189 +1532,41 @@
             if(modal) modal.classList.remove('active');
         };
 
-        window.renderInventory = function() {
-            const content = document.getElementById('inv-content');
-            if(!content) return;
-            content.innerHTML = '';
-            
-            // Re-use logic from deck building to render cards statically
-            // Group by Nethack Rules: Weapons, Armor, Spells, Items
-            
-            const nethackGroups = {
-                'Weapons': [],
-                'Armor': [],
-                'Spells': [],
-                'Items': []
-            };
 
-            // Analyze player's collected cards (window.cardInventoryCounts)
-            const inventory = window.cardInventoryCounts || {};
-            
-            // Map known categories to Nethack types
-            const weaponTypes = ['KATANA', 'MISSILE', 'SLASH', 'THRUST'];
-            const armorTypes = ['SHIELD', 'ARMOR'];
-            const spellTypes = ['FIRE', 'WATER', 'EARTH', 'WIND', 'SPELL'];
-            const itemTypes = ['ITEM', 'HEAL POTION', 'WAND'];
-
-            // We need a helper to find the card info from default/combat categories
-            const allDefs = [...defaultCategories, ...combatCategories];
-            const getCardDef = (cardName) => {
-                for (let cat of allDefs) {
-                    if (cat.cards && cat.cards.includes(cardName)) return cat;
-                }
-                return { id: 'MISC', kanji: '？', desc: 'Unknown', attr: 'N/A' };
-            };
-
-            for (let [cardName, count] of Object.entries(inventory)) {
-                const def = getCardDef(cardName);
-                
-                let targetGroup = 'Items';
-                if (weaponTypes.includes(def.id) || weaponTypes.includes(cardName)) targetGroup = 'Weapons';
-                else if (armorTypes.includes(def.id) || armorTypes.includes(cardName)) targetGroup = 'Armor';
-                else if (spellTypes.includes(def.id) || spellTypes.includes(cardName)) targetGroup = 'Spells';
-
-                nethackGroups[targetGroup].push({ cardName, count, def });
-            }
-
-            // Create HTML structures
-            for (let [groupName, cards] of Object.entries(nethackGroups)) {
-                if (cards.length === 0) continue;
-                
-                const section = document.createElement('div');
-                section.className = 'inv-category';
-                section.innerHTML = `<div class="inv-category-title">${groupName}</div><div class="inv-grid"></div>`;
-                const grid = section.querySelector('.inv-grid');
-                
-                cards.forEach(c => {
-                    // Create the static card element based on createCardElement logic
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'guide-card playing-card';
-                    cardEl.style.cssText = 'position:relative; filter:none; opacity:1; transform:none; margin:0;';
-                    cardEl.setAttribute('draggable', 'true');
-                    
-                    const badgeHtml = c.count > 1 ? `<div class="card-badge">${c.count}</div>` : '';
-                    let themeClr = '#66BB6A';
-                    let textClr = '#ffffff';
-                    let a = c.cardName;
-                    let modelKey = c.def.id;
-                    if (c.def.id === 'SPELL' || c.def.id === 'WIND') themeClr = '#90a4ae';
-                    else if (a === 'SHURIKEN') modelKey = 'MISSILE';
-                    else if (a === 'SHORT BOW') modelKey = 'BOW_SHORT';
-                    else if (a === 'LONG BOW') modelKey = 'BOW_LONG';
-                    else if (c.def.id === 'EARTH') themeClr = '#00bcd4';
-                    else if (c.def.id === 'WATER') themeClr = '#0d6efd';
-                    else if (c.def.id === 'FIRE') themeClr = '#f44336';
-                    else if (['MISSILE', 'WEAPON', 'KATANA', 'SLASH', 'THRUST', 'ARMOR', 'SHIELD', 'DEFEND'].includes(c.def.id)) {
-                        themeClr = '#ffffff';
-                        textClr = '#000000';
-                    } else themeClr = '#e91e63'; 
-                    cardEl.style.setProperty('--pill-text', textClr);
-                    cardEl.style.setProperty('--theme-clr', themeClr);
-
-                    cardEl.innerHTML = `
-                        <div class="equip-badge">E</div>
-                        ${badgeHtml}
-                        <div class="card-header">
-                            <div class="card-kanji" style="color: ${themeClr}">${c.def.kanji}</div>
-                            <span class="card-type-pill" style="background: ${themeClr}">${c.def.id}</span>
-                        </div>
-                        <div class="card-title">${c.cardName}</div>
-                        <div class="card-desc">${c.def.desc}</div>
-                        <div class="card-icon-3d" data-element="${modelKey}"><div class="canvas-mount"></div></div>
-                        <div class="card-attr">${c.def.attr}</div>
-                    `;
-                    
-                    // Click to equip
-                    cardEl.addEventListener('click', () => {
-                        cardEl.classList.toggle('equipped-card');
-                    });
-
-                    // Drag and Drop functionality
-                    cardEl.addEventListener('dragstart', (e) => {
-                        cardEl.classList.add('dragging');
-                        e.dataTransfer.effectAllowed = 'move';
-                        // Need a slight delay to allow the drag image to form before we modify the DOM element
-                        setTimeout(() => cardEl.style.opacity = '0.4', 0);
-                    });
-                    cardEl.addEventListener('dragend', () => {
-                        cardEl.classList.remove('dragging');
-                        cardEl.style.opacity = '';
-                    });
-                    cardEl.addEventListener('dragover', (e) => {
-                        e.preventDefault(); // Necessary to allow dropping
-                        cardEl.classList.add('drag-over');
-                    });
-                    cardEl.addEventListener('dragleave', () => {
-                        cardEl.classList.remove('drag-over');
-                    });
-                    cardEl.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        cardEl.classList.remove('drag-over');
-                        const draggingEl = grid.querySelector('.dragging');
-                        if (draggingEl && draggingEl !== cardEl) {
-                            const rect = cardEl.getBoundingClientRect();
-                            const midX = rect.left + rect.width / 2;
-                            if (e.clientX < midX) {
-                                grid.insertBefore(draggingEl, cardEl);
-                            } else {
-                                grid.insertBefore(draggingEl, cardEl.nextSibling);
-                            }
-                        }
-                    });
-
-                    // We can reuse the 3D icons by spawning them in the canvas-mount
-                    grid.appendChild(cardEl);
-                    
-                    // Delay icon generation slightly to let DOM mount
-                    setTimeout(() => {
-                        const mount = cardEl.querySelector('.canvas-mount');
-                        if (mount && scenes[c.def.id]) {
-                            const cvs = document.createElement('canvas');
-                            mount.appendChild(cvs);
-                            const ctx = cvs.getContext('2d');
-                            cvs.width = 180; cvs.height = 180;
-                            cvs.style.width = "45px"; cvs.style.height = "45px";
-                            cvs.style.position = 'absolute'; cvs.style.top = '0'; cvs.style.left = '0';
-                            
-                            // Render static frame
-                            const cached = scenes[c.def.id];
-                            avatarRenderer.setRenderTarget(cached.rt);
-                            avatarRenderer.render(cached.scene, avatarCamera);
-                            ctx.drawImage(avatarRenderer.domElement, 0, 0, 180, 180);
-                            avatarRenderer.setRenderTarget(null);
-                        }
-                    }, 50);
-                });
-                
-                content.appendChild(section);
-            }
-            
-            if(content.innerHTML === '') {
-                content.innerHTML = '<div style="color:#666; font-style:italic;">Your inventory is empty.</div>';
-            }
-        };
-
-        const defaultCategories = [
+        const spellCategories = [
             { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Spell Scroll', attr: '(STUN * 2DICE)', cards: ['BOULDER', 'FISSURE'] },
             { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Spell Scroll', attr: '(PUSH * 3DICE)', cards: ['GALE'] },
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Magic Wand', attr: '(DMG * 4DICE)', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
-            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] },
-            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
-            { id: 'ITEM', kanji: '具', icon: 'fa-scroll', desc: 'Consumable', attr: '(HEAL HP * 1DICE)', cards: ['HEAL POTION', 'SCROLL OF IDENTITY'] }
+            { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '(SLOW * 3DICE)', cards: ['TIDE', 'SURGE'] }
         ];
 
         const combatCategories = [
             { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
             { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
-            { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Melee Weapon', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
-            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
-            { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
-            { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
-            { id: 'ITEM', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['SHIELD'] },
-            { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['HEAL POTION'] }
+            { id: 'KATANA_HEAVY', kanji: '強', icon: 'fa-mountain', desc: 'Melee Weapon', attr: '(DMG * 3DICE)', cards: ['HEAVY ATTACK'] },
+            { id: 'DEFEND', kanji: '盾', icon: 'fa-shield', desc: 'Tactical', attr: '(DEFEND * 75%)', cards: ['DEFEND'] }
         ];
 
-        let categories = defaultCategories;
+        const rangeCategories = [
+            { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
+            { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
+            { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 }
+        ];
+
+        const itemCategories = [
+            { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['HEAL POTION'] },
+            { id: 'ITEM', kanji: '巻', icon: 'fa-scroll', desc: 'Consumable', attr: '(IDENTIFY)', cards: ['SCROLL OF IDENTITY'] }
+        ];
+
+        const decks = [spellCategories, combatCategories, rangeCategories, itemCategories];
+        let currentDeckIndex = 0;
+        let categories = decks[currentDeckIndex];
+
+        window.switchDeck = function(index) {
+            currentDeckIndex = index % decks.length;
+            categories = decks[currentDeckIndex];
+            loadDeck(categories);
+        };
 
         const UXAI = {
             stats: (() => { try { return JSON.parse(localStorage.getItem('Origami_UX_Stats') || '{}'); } catch(e) { return {}; } })(),
@@ -1643,6 +1647,10 @@
                 });
                 
                 let group = new THREE.Group(), update;
+                
+                // Removed the Glass Bubble Enclosure to fix the inner gray circle bug on playing cards
+                // (Loot cards in FPV will still have their own plastic blister)
+                
                 if (el === 'EARTH') {
                     // BOULDER - rounder chunky rock
                     const rockMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8, flatShading: true });
@@ -1826,7 +1834,7 @@
                         }
                         pos.needsUpdate = true;
                     };
-                } else if (el === 'KATANA') {
+                } else if (el === 'KATANA' || el === 'KATANA_HEAVY') {
                     const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x333333 }));
                     hilt.position.y = -1.0;
 
@@ -1858,25 +1866,68 @@
                     glowPlane.position.z = -0.2;
                     swordContainer.add(glowPlane);
 
-                    const sword1 = swordContainer.clone();
-                    sword1.position.set(-1.2, 0, 1.5);
-                    sword1.rotation.z = Math.PI / 4;
+                    if (el === 'KATANA_HEAVY') {
+                        const sword1 = swordContainer.clone();
+                        sword1.position.set(-1.2, 0, 1.5);
+                        sword1.rotation.z = Math.PI / 4;
 
-                    const sword2 = swordContainer.clone();
-                    sword2.position.set(1.2, 0, 1.5);
-                    sword2.rotation.z = Math.PI / 4;
+                        const sword2 = swordContainer.clone();
+                        sword2.position.set(1.2, 0, 1.5);
+                        sword2.rotation.z = -Math.PI / 4; // Flipped to cross
 
-                    group.add(sword1, sword2);
+                        group.add(sword1, sword2);
+                        update = (t) => { 
+                            sword1.rotation.y = t * 1.5; sword2.rotation.y = t * 1.5;
+                            sword1.position.y = Math.sin(t * 2) * 0.1;
+                            sword2.position.y = Math.cos(t * 2) * 0.1;
+                        };
+                    } else {
+                        // SINGLE KATANA
+                        const sword1 = swordContainer;
+                        sword1.position.set(0, 0, 1.5);
+                        sword1.rotation.z = Math.PI / 4;
+                        group.add(sword1);
+                        update = (t) => { 
+                            sword1.rotation.y = t * 1.5; 
+                            sword1.position.y = Math.sin(t * 2) * 0.1;
+                        };
+                    }
+                } else if (el === 'DEFEND') {
+                    // V-Shape Shield
+                    const shieldShape = new THREE.Shape();
+                    shieldShape.moveTo(0, -1.8);
+                    shieldShape.lineTo(1.5, 0.5);
+                    shieldShape.lineTo(1.5, 1.5);
+                    shieldShape.lineTo(0, 1.0);
+                    shieldShape.lineTo(-1.5, 1.5);
+                    shieldShape.lineTo(-1.5, 0.5);
+                    shieldShape.lineTo(0, -1.8);
+
+                    const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 });
+                    shieldGeo.center();
+                    
+                    const shieldMat = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.6, roughness: 0.3, emissive: 0x222222, side: THREE.DoubleSide});
+                    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                    
+                    // Inner glowing core to make it look tactical
+                    const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.12, bevelEnabled: false });
+                    innerGeo.center();
+                    const innerMat = new THREE.MeshStandardMaterial({color: 0x00ffcc, metalness: 0.1, roughness: 0.2, emissive: 0x00ffcc, emissiveIntensity: 0.5});
+                    const innerShield = new THREE.Mesh(innerGeo, innerMat);
+                    innerShield.scale.set(0.6, 0.6, 1.0);
+                    shield.add(innerShield);
+                    
+                    shield.scale.set(1.0, 1.0, 0.1); // flatten z depth
+                    shield.position.z = 1.0; // move slightly forward
+                    group.add(shield);
+                    update = (t) => { 
+                        shield.rotation.y = t * 1.5;
+                    };
                     
                     // Extra point light for weapon shininess
                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
                     pointLight.position.set(0, 0, 3);
                     group.add(pointLight);
-
-                    update = (t) => { 
-                        sword1.position.y = Math.sin(t * 2) * 0.1; 
-                        sword2.position.y = Math.cos(t * 2) * 0.1;
-                    };
                 } else if (el === 'MISSILE') {
                     const starShape = new THREE.Shape();
                     const outerRadius = 1.6;
@@ -2201,13 +2252,13 @@
             const scenesToWarm = Object.values(scenes);
             let warmStarted = false;
             
-            if (renderer.compileAsync) {
-                Promise.all(scenesToWarm.map(s => renderer.compileAsync(s.scene, iconCamera)))
-                    .then(() => { warmStarted = true; })
-                    .catch(() => { warmStarted = true; }); // fallback
-            } else {
-                setTimeout(() => { warmStarted = true; }, 1000);
-            }
+            // Pre-compile all shaders outside the hot path to prevent 1261ms requestAnimationFrame violation
+            setTimeout(() => {
+                if (renderer.compile) {
+                    scenesToWarm.forEach(s => renderer.compile(s.scene, iconCamera));
+                }
+                warmStarted = true;
+            }, 100);
             
             function renderLoop(time) {
                 requestAnimationFrame(renderLoop);
@@ -2230,17 +2281,47 @@
                     avatarMixer.update(delta);
                 }
                 
+                // ==========================================
+                // PASS 1: STRICT DOM READS (No modifications)
+                // ==========================================
+                let avatarW = 0, avatarH = 0;
+                let avatarContainer = null;
                 if (avatarRenderer && avatarScene && avatarCamera) {
-                    const container = document.getElementById('player-avatar-container');
-                    if (container && container.clientWidth > 0 && container.clientHeight > 0) {
-                        const w = container.clientWidth;
-                        const h = container.clientHeight;
-                        const canvas = avatarRenderer.domElement;
-                        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-                            avatarRenderer.setSize(w, h, false);
-                            avatarCamera.aspect = w / h;
-                            avatarCamera.updateProjectionMatrix();
+                    avatarContainer = document.getElementById('player-avatar-container');
+                    if (avatarContainer) {
+                        avatarW = avatarContainer.clientWidth;
+                        avatarH = avatarContainer.clientHeight;
+                    }
+                }
+
+                // Regenerate canvas cache every 500ms to avoid DOM polling spikes
+                if (time - canvasCache.lastScan > 500 || !canvasCache.lastScan) {
+                    canvasCache.lastScan = time;
+                    canvasCache.elements = document.querySelectorAll(
+                        '.guide-card[data-depth="0"] .card-icon-3d, .wager-card .card-icon-3d, .kp-center-btn[data-element="DICE_CENTER"], .kp-center-btn[data-icon="DICE_CENTER"], #floating-loot-layer .card-icon-3d, .yg-anim-trigger-3d .card-icon-3d'
+                    );
+                }
+
+                if (warmStarted && canvasCache.elements) {
+                    // Batch measure ALL elements to prevent synchronous layout thrashing (fixes 1200ms violation)
+                    canvasCache.elements.forEach(container => {
+                        const cvs = container.querySelector('canvas') || (container.firstChild && container.firstChild.nodeName === 'CANVAS' ? container.firstChild : null);
+                        if (cvs && (!cvs.dataset.cw || cvs.dataset.cw === "0")) {
+                            cvs.dataset.cw = cvs.clientWidth;
+                            cvs.dataset.ch = cvs.clientHeight;
                         }
+                    });
+                }
+
+                // ==========================================
+                // PASS 2: STRICT DOM WRITES & RENDERING
+                // ==========================================
+                if (avatarRenderer && avatarScene && avatarCamera && avatarW > 0 && avatarH > 0) {
+                    const canvas = avatarRenderer.domElement;
+                    if (canvas.width !== avatarW * dpr || canvas.height !== avatarH * dpr) {
+                        avatarRenderer.setSize(avatarW, avatarH, false);
+                        avatarCamera.aspect = avatarW / avatarH;
+                        avatarCamera.updateProjectionMatrix();
                     }
                     avatarRenderer.render(avatarScene, avatarCamera);
                 }
@@ -2248,15 +2329,8 @@
                 // Update rotational logic for all 3D components
                 elements.forEach(el => scenes[el].update(t));
 
-                // Regenerate canvas cache every 500ms to avoid DOM polling spikes
-                if (time - canvasCache.lastScan > 500 || !canvasCache.lastScan) {
-                    canvasCache.lastScan = time;
-                    canvasCache.elements = document.querySelectorAll(
-                        '.card-icon-3d, .kp-center-btn[data-element="DICE_CENTER"], .kp-center-btn[data-icon="DICE_CENTER"]'
-                    );
-                }
-
                 if (warmStarted && canvasCache.elements) {
+                    // Draw and modify canvas dimensions
                     canvasCache.elements.forEach(container => {
                         const el = container.dataset.element || container.dataset.icon;
                         if (!el || !scenes[el]) return;
@@ -2264,8 +2338,8 @@
                         const cvs = container.querySelector('canvas') || (container.firstChild && container.firstChild.nodeName === 'CANVAS' ? container.firstChild : null);
                         if (!cvs) return;
 
-                        // Cache the clientWidth/clientHeight to prevent 4000ms layout reflow violations
-                        if (!cvs.dataset.cw) {
+                        // Fallback read if somehow missed or 0
+                        if (!cvs.dataset.cw || cvs.dataset.cw === "0") {
                             cvs.dataset.cw = cvs.clientWidth;
                             cvs.dataset.ch = cvs.clientHeight;
                         }
@@ -2274,12 +2348,19 @@
                         
                         if (cw === 0 || ch === 0) return; 
                         const w = Math.round(cw * dpr), h = Math.round(ch * dpr);
-                        if (cvs.width !== w || cvs.height !== h) { cvs.width = w; cvs.height = h; }
+                        
+                        if (cvs.width !== w || cvs.height !== h) { 
+                            cvs.width = w; 
+                            cvs.height = h; 
+                        }
                         
                         renderer.render(scenes[el].scene, iconCamera);
                         
-                        const ctx = cvs.getContext('2d'); 
-                        if (ctx) { ctx.clearRect(0, 0, w, h); ctx.drawImage(renderer.domElement, 0, 0, w, h); }
+                        const ctx = cvs.getContext('2d', { alpha: true, desynchronized: true }); 
+                        if (ctx) { 
+                            ctx.clearRect(0, 0, w, h); 
+                            ctx.drawImage(renderer.domElement, 0, 0, w, h); 
+                        }
                     });
                 }
             }
@@ -2570,11 +2651,20 @@
             if(modal) modal.style.display = 'none';
         };
 
+        window.currentMonsterGridDistance = Infinity;
+
         window.emitAction = (a, explicitBtn = null) => { 
             if (a === 'SET') {
                 window.openSettings();
                 return;
             }
+            
+            const isMelee = (a === 'SLASH' || a === 'THRUST' || a === 'HEAVY ATTACK');
+            if (isMelee && window.currentMonsterGridDistance > 2.0) {
+                window.logEvent('Target is too far for a melee attack! Move closer.', 'damage');
+                return;
+            }
+            
             window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
             let btn = explicitBtn;
             if (!btn && window.event && window.event.currentTarget) {
@@ -2980,14 +3070,22 @@
             }
             if (e.key === 'Tab') return;
             
-            // Spacebar toggles keyboard selector and cycles columns
+            // Spacebar toggles keyboard selector and cycles the entire deck (Taxonomy of same cards)
             if (e.key === ' ' && !document.activeElement.classList.contains('chat-input')) {
                 e.preventDefault();
-                if (!window.isKeyboardSelectorActive) toggleKeyboardSelector();
+                if (!window.isKeyboardSelectorActive) {
+                    toggleKeyboardSelector();
+                    return;
+                }
                 document.querySelectorAll('.superimposed-card').forEach(c => c.classList.remove('superimposed-card'));
-                focusedColIndex = (focusedColIndex + 1) % categories.length;
-                setFocus(focusedColIndex);
                 document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                
+                window.switchDeck(currentDeckIndex + 1);
+                
+                // Keep the first column focused after switching decks
+                focusedColIndex = 0;
+                setFocus(focusedColIndex);
+                
                 const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
                 if(topCard) {
                     topCard.classList.add('superimposed-card');
@@ -3114,9 +3212,85 @@
         }
 
         // Listen for combat state changes from main relay
-        window.addEventListener('message', (e) => {
+        // Add the `showBigCombatText` function globally
+        window.showBigCombatText = function(subtitle, value, isHit) {
+            const el = document.getElementById('big-combat-text');
+            if (!el) return;
+            
+            el.innerHTML = `<span class="subtitle">${subtitle}</span><span class="${isHit ? 'dmg-val' : 'miss-val'}">${value}</span>`;
+            el.classList.remove('fade-out');
+            el.classList.add('show');
+            
+            // Reset animation logic
+            if (el.timeoutId) clearTimeout(el.timeoutId);
+            el.timeoutId = setTimeout(() => {
+                el.classList.remove('show');
+                el.classList.add('fade-out');
+            }, 1200); // Wait 1.2s then fade out
+        };
 
-            if (e.data && e.data.type === 'SHOW_COMBAT') {
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'TOGGLE_INVENTORY') {
+                const invModal = document.getElementById('inventory-modal');
+                if (invModal.classList.contains('active')) {
+                    window.closeInventory();
+                } else {
+                    window.openInventory();
+                }
+            } else if (e.data && e.data.type === 'SYNC_INVENTORY') {
+                const spellsGrid = document.getElementById('inv-spells-grid');
+                const gearList = document.getElementById('inv-gear-list');
+                const weightText = document.getElementById('inv-weight-text');
+                const weightFill = document.getElementById('inv-weight-fill');
+                
+                if (spellsGrid && e.data.inventory.spells) {
+                    spellsGrid.innerHTML = '';
+                    const spells = [...new Set(e.data.inventory.spells)]; // Unique
+                    spells.forEach(spell => {
+                        const count = e.data.inventory.spells.filter(s => s === spell).length;
+                        const qtyHtml = count > 1 ? `<div style="position:absolute; top:-10px; right:-10px; background:#f00; color:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; border:2px solid #000;">${count}</div>` : '';
+                        spellsGrid.innerHTML += `
+                            <div class="playing-card" style="width:100px; height:140px; padding:10px; background:rgba(20,20,25,0.9);">
+                                ${qtyHtml}
+                                <div style="font-size:12px; font-weight:bold; text-align:center; margin-top:20px; color:#00e5ff;">${spell}</div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                if (gearList && e.data.equipment) {
+                    gearList.innerHTML = '';
+                    const slots = ['head', 'necklace', 'chest', 'legs', 'gloves', 'rings', 'boots', 'weapon'];
+                    slots.forEach(slot => {
+                        const item = e.data.equipment[slot];
+                        const name = item ? item.name : 'Empty';
+                        const stat = item ? (item.defense ? `+${item.defense} AC` : (item.minDmg ? `${item.minDmg}-${item.maxDmg} DMG` : '')) : '';
+                        
+                        gearList.innerHTML += `
+                            <div class="gear-slot">
+                                <span class="gear-slot-name">${slot}</span>
+                                <span class="gear-item-name" style="color: ${item ? '#fff' : '#444'}">${name}</span>
+                                <span class="gear-item-stat">${stat}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                if (weightText && weightFill && e.data.inventory) {
+                    const weight = Math.round(e.data.inventory.weight * 10) / 10;
+                    const maxWeight = e.data.inventory.maxWeight || 100;
+                    weightText.textContent = `${weight} / ${maxWeight} lbs`;
+                    weightFill.style.width = Math.min(100, (weight / maxWeight) * 100) + '%';
+                    
+                    if (weight >= maxWeight) {
+                        weightFill.style.background = 'linear-gradient(90deg, #f44336, #b71c1c)';
+                        weightText.style.color = '#f44336';
+                    } else {
+                        weightFill.style.background = 'linear-gradient(90deg, #00bcd4, #ffeb3b, #f44336)';
+                        weightText.style.color = '#aaa';
+                    }
+                }
+            } else if (e.data && e.data.type === 'SHOW_COMBAT') {
                 const ez = document.getElementById('encounter-zone');
                 if (!ez.classList.contains('active')) {
                     window.logEvent('You encounter a Yakuza Goblin!', 'system');
@@ -3161,6 +3335,7 @@
                     let distFeet = Math.max(0, (e.data.distance * 10) - 10).toFixed(0);
                     distTexts.forEach(el => el.textContent = `${distFeet} ft`);
                     window.currentMonsterDistanceFeet = parseInt(distFeet);
+                    window.currentMonsterGridDistance = e.data.distance;
                 }
             } else if (e.data && e.data.type === 'COMBAT_STATE_UPDATE') {
                 const indicator = document.getElementById('turn-indicator');
@@ -3214,23 +3389,6 @@
                 ygTitle.textContent = 'YOU GOT!';
                 ygTitle.style.cssText = "position:absolute; top:-40px; left:50%; transform:translateX(-50%) scale(0.33); text-align:center; color:#00ffcc; font-size:52px; text-shadow:0 0 30px rgba(0,255,200,0.8); margin:0; font-weight:900; letter-spacing:3px; font-family:'Impact',sans-serif; width:300px;";
                 cardEl.appendChild(ygTitle);
-                
-                if (!document.getElementById('yg-anim-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'yg-anim-style';
-                    // We scale the 84x126 card by 3x (to 252x378) which exactly matches the old 256x384 "YOU GOT" wrapper size!
-                    style.innerHTML = `
-                        @keyframes cardLootAnim3D { 
-                            0% { opacity:0; transform:translate(-50%, -40%) scale(1.5); } 
-                            15% { opacity:1; transform:translate(-50%, -50%) scale(3.3); } 
-                            30% { transform:translate(-50%, -50%) scale(3.0); } 
-                            80% { opacity:1; transform:translate(-50%, -50%) scale(3.0); } 
-                            100% { opacity:0; transform:translate(-50%, -50%) scale(3.15); } 
-                        }
-                        .yg-anim-trigger-3d { animation: cardLootAnim3D 1.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-                    `;
-                    document.head.appendChild(style);
-                }
                 
                 cardEl.classList.add('yg-anim-trigger-3d');
                 document.body.appendChild(cardEl);
@@ -3330,6 +3488,7 @@
                     if (c.dataset.alive === "0") c.remove();
                 });
             } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
+                window.currentMonsterGridDistance = Infinity;
                 document.getElementById('encounter-zone').classList.remove('active');
                 if (document.activeElement !== document.querySelector('.chat-input')) {
                     document.getElementById('event-log-container').classList.remove('active');
@@ -3361,6 +3520,23 @@
                         }
                     }, Math.max(1000, (slash.getClip().duration * 1000) - 200));
                 }
+                
+                if (e.data.damage > 0) {
+                    if (typeof logEvent === 'function') logEvent(`You hit for ${e.data.damage} damage!`, 'system');
+                    showBigCombatText("YOU ATTACKED", e.data.damage + " DMG", true);
+                } else {
+                    if (typeof logEvent === 'function') logEvent(`You swing and MISS!`, 'system');
+                    showBigCombatText("YOU ATTACKED", "MISS", false);
+                }
+            } else if (e.data && e.data.type === 'MONSTER_ATTACK') {
+                if (e.data.damage > 0) {
+                    if (typeof logEvent === 'function') logEvent(`Monster hits you for ${e.data.damage} damage!`, 'system');
+                    showBigCombatText("ENEMY ATTACK", e.data.damage + " DMG", true);
+                } else {
+                    if (typeof logEvent === 'function') logEvent(`Monster attacks and MISSES!`, 'system');
+                    showBigCombatText("ENEMY ATTACK", "MISS", false);
+                }
+
             } else if (e.data && e.data.type === 'SYNC_STATS') {
                 const php = document.getElementById('player-hp-val');
                 const pgold = document.getElementById('player-gold-val');
@@ -3630,7 +3806,7 @@
         pip.style.display = 'block';
 
         const MIN_W = 200, MIN_H = 200;
-        let dragging = false, mapRotating = false, mapPanning = false;
+        let isPiPDragging = false, mapRotating = false, mapPanning = false;
         let dragStart = { x: 0, y: 0, left: 0, top: 0 };
         let rotStart = { x: 0, y: 0 };
         let panStart = { x: 0, y: 0 };
@@ -3643,12 +3819,6 @@
             if (wrapper) {
                 const r = wrapper.getBoundingClientRect();
                 post({ type: 'PIP_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
-            }
-            
-            const monsterCamRect = document.getElementById('monster-cam-rect');
-            if (monsterCamRect) {
-                const r = monsterCamRect.getBoundingClientRect();
-                post({ type: 'MONSTER_CAM_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
             }
         }
         window.syncRect = syncRect;
@@ -3667,10 +3837,9 @@
             }
         }, { passive: false });
 
-        let pipSizeState = 0; // 0: Small, 1: Large, 2: Full
-        // Click to swap modes
+        // Click to toggle edit mode
         pip.addEventListener("click", (e) => {
-             // If we clicked a control button, don't toggle cam view
+             // If we clicked a control button, don't toggle edit mode
              if (e.target.closest('.pip-zoom-btn') || e.target.closest('.pip-resize-handle') || e.target.closest('.pip-drag-handle')) return;
              
              // If we just finished a drag/pan, don't toggle
@@ -3679,38 +3848,26 @@
                  return;
              }
              
-             post({ type: 'PIP_TOGGLE' });
+             pip.classList.toggle('edit-mode');
         });
 
-        // Double-click to cycle size modes
+        // Hide edit mode when clicking outside
+        document.addEventListener("mousedown", (e) => {
+            if (!pip.contains(e.target) && pip.classList.contains('edit-mode')) {
+                pip.classList.remove('edit-mode');
+            }
+        });
+
+        // Double-click to swap modes
         pip.addEventListener("dblclick", (e) => {
              e.stopPropagation();
              if (e.target.closest("#pipCanvas") || e.target === pip) {
-                 pipSizeState = (pipSizeState + 1) % 3;
-                 if (pipSizeState === 0) {
-                     pip.style.width = '250px';
-                     pip.style.height = '250px';
-                     pip.style.top = '10px';
-                     pip.style.left = '10px';
-                     pip.style.right = 'auto';
-                     pip.style.bottom = 'auto';
-                 } else if (pipSizeState === 1) {
-                     pip.style.width = '500px';
-                     pip.style.height = '500px';
-                     pip.style.top = '10px';
-                     pip.style.left = '10px';
-                     pip.style.right = 'auto';
-                     pip.style.bottom = 'auto';
-                 } else if (pipSizeState === 2) {
-                     pip.style.width = 'calc(100vw - 20px)';
-                     pip.style.height = 'calc(100vh - 20px)';
-                     pip.style.top = '10px';
-                     pip.style.left = '10px';
-                     pip.style.right = 'auto';
-                     pip.style.bottom = 'auto';
-                 }
+                 post({ type: 'PIP_TOGGLE' });
              }
         });
+        
+        let isPiPResizing = false;
+        let resizeStart = { x: 0, y: 0, w: 0, h: 0 };
 
         pip.addEventListener("mousedown", (e) => {
             e.stopPropagation();
@@ -3724,6 +3881,43 @@
                  window.addEventListener("blur", onRotEnd, { once: true });
                  return;
             }
+            
+            // Custom Resize Handle
+            if (e.target.closest('.pip-resize-handle') && e.button === 0) {
+                e.preventDefault();
+                const rect = pip.getBoundingClientRect();
+                isPiPResizing = true;
+                pip.style.transition = "none";
+                resizeStart.x = e.clientX;
+                resizeStart.y = e.clientY;
+                resizeStart.w = rect.width;
+                resizeStart.h = rect.height;
+                document.addEventListener("mousemove", onResizeMove);
+                document.addEventListener("mouseup", onResizeEnd, { once: true });
+                document.addEventListener("mouseleave", onResizeEnd, { once: true });
+                window.addEventListener("blur", onResizeEnd, { once: true });
+                return;
+            }
+            
+            // Custom Drag Handle
+            if (e.target.closest('.pip-drag-handle') && e.button === 0) {
+                e.preventDefault();
+                const rect = pip.getBoundingClientRect();
+                isPiPDragging = true;
+                pip.style.willChange = "left, top";
+                pip.style.transition = "none";
+                pip.classList.add("dragging");
+                dragStart.x = e.clientX; 
+                dragStart.y = e.clientY;
+                dragStart.left = rect.left;
+                dragStart.top = rect.top;
+                document.addEventListener("mousemove", onDragMove);
+                document.addEventListener("mouseup", onDragEnd, { once: true });
+                document.addEventListener("mouseleave", onDragEnd, { once: true });
+                window.addEventListener("blur", onDragEnd, { once: true });
+                return;
+            }
+
             if (e.target.closest("#pipCanvas")) {
                 if (e.button === 0 || e.button === 1) { 
                      e.preventDefault();
@@ -3733,23 +3927,6 @@
                      document.addEventListener("mouseleave", onPanEnd, { once: true });
                      window.addEventListener("blur", onPanEnd, { once: true });
                      return;
-                }
-            } else if (e.target === pip) {
-                if (e.button === 0) {
-                    const rect = pip.getBoundingClientRect();
-                    dragging = true;
-                    pip.style.willChange = "left, top";
-                    pip.style.transition = "none";
-                    pip.classList.add("dragging");
-                    dragStart.x = e.clientX; 
-                    dragStart.y = e.clientY;
-                    dragStart.left = rect.left;
-                    dragStart.top = rect.top;
-                    document.addEventListener("mousemove", onDragMove);
-                    document.addEventListener("mouseup", onDragEnd, { once: true });
-                    document.addEventListener("mouseleave", onDragEnd, { once: true });
-                    window.addEventListener("blur", onDragEnd, { once: true });
-                    return;
                 }
             }
         });
@@ -3785,6 +3962,26 @@
         }
         
         window.loadPiPState = loadPiPState;
+
+        const onResizeMove = (e) => {
+            if (!isPiPResizing) return;
+            const dx = e.clientX - resizeStart.x;
+            const dy = e.clientY - resizeStart.y;
+            let newW = Math.max(MIN_W, resizeStart.w + dx);
+            let newH = Math.max(MIN_H, resizeStart.h + dy);
+            pip.style.width = newW + "px";
+            pip.style.height = newH + "px";
+            syncRect();
+        };
+
+        const onResizeEnd = (e) => {
+            if (!isPiPResizing) return;
+            isPiPResizing = false;
+            pip.style.transition = "var(--tr-fast)";
+            document.removeEventListener("mousemove", onResizeMove);
+            clampPiPIntoViewport(true);
+            savePiPState();
+        };
 
         function clampPiPIntoViewport(evaluateAnchors = false) {
             const rect = pip.getBoundingClientRect();
@@ -3823,23 +4020,27 @@
         }
 
         const onDragMove = (e) => {
-            if (!dragging) return;
-            pip.style.left = (dragStart.left + (e.clientX - dragStart.x)) + "px";
-            pip.style.top = (dragStart.top + (e.clientY - dragStart.y)) + "px";
+            if (!isPiPDragging) return;
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                pip.setAttribute('data-was-dragged', 'true');
+            }
+            pip.style.left = (dragStart.left + dx) + "px";
+            pip.style.top = (dragStart.top + dy) + "px";
             pip.style.right = "auto";
             pip.style.bottom = "auto";
             syncRect();
         };
-        
-        const onDragEnd = () => { 
-            dragging = false; 
-            pip.style.willChange = "auto"; 
-            pip.classList.remove("dragging"); 
+
+        const onDragEnd = (e) => {
+            if (!isPiPDragging) return;
+            isPiPDragging = false;
+            pip.style.willChange = "auto";
+            pip.classList.remove("dragging");
+            document.removeEventListener("mousemove", onDragMove);
             clampPiPIntoViewport(true);
             savePiPState();
-            document.removeEventListener("mousemove", onDragMove); 
-            document.removeEventListener("mouseleave", onDragEnd); 
-            window.removeEventListener("blur", onDragEnd); 
         };
         
         const onRotMove = (e) => {
@@ -3873,55 +4074,7 @@
             }
         };
 
-        // Resizing logic
-        let resizing = false, currentHandle = "";
-        let rStart = { x: 0, y: 0, w: 0, h: 0, l: 0, t: 0 };
-        
-        pip.querySelectorAll(".resize-handle").forEach((handle) => {
-            handle.addEventListener("mousedown", (e) => {
-                if (e.button !== 0) return;
-                e.stopPropagation();
-                resizing = true;
-                currentHandle = handle.className.split(" ")[1];
-                const rect = pip.getBoundingClientRect();
-                rStart = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height, l: rect.left, t: rect.top };
-                pip.classList.add("resizing");
-                pip.style.transition = "none";
-                pip.style.right = "auto";
-                pip.style.left = rect.left + "px"; pip.style.top = rect.top + "px";
-                document.addEventListener("mousemove", onResizeMove);
-                document.addEventListener("mouseup", onResizeEnd, { once: true });
-                document.addEventListener("mouseleave", onResizeEnd, { once: true });
-                window.addEventListener("blur", onResizeEnd, { once: true });
-            });
-        });
-        
-        const onResizeMove = (e) => {
-            if (!resizing) return;
-            const dx = e.clientX - rStart.x, dy = e.clientY - rStart.y;
-            let nw = rStart.w, nh = rStart.h, nl = rStart.l, nt = rStart.t;
-            if (currentHandle.includes("e")) nw += dx;
-            if (currentHandle.includes("s")) nh += dy;
-            if (currentHandle.includes("w")) { nw -= dx; nl += dx; }
-            if (currentHandle.includes("n")) { nh -= dy; nt += dy; }
-            
-            if (nw < MIN_W) { nl -= (MIN_W - nw) * (currentHandle.includes("w") ? 1 : 0); nw = MIN_W; }
-            if (nh < MIN_H) { nt -= (MIN_H - nh) * (currentHandle.includes("n") ? 1 : 0); nh = MIN_H; }
-            
-            pip.style.width = nw + "px"; pip.style.height = nh + "px";
-            pip.style.left = nl + "px"; pip.style.top = nt + "px";
-            
-            // Sync new dimensions for WebGL resolution matching
-            syncRect();
-        };
-        const onResizeEnd = () => { 
-            resizing = false; pip.classList.remove("resizing"); 
-            clampPiPIntoViewport(); savePiPState(); syncRect(); 
-            document.removeEventListener("mousemove", onResizeMove); 
-            document.removeEventListener("mouseleave", onResizeEnd); 
-            window.removeEventListener("blur", onResizeEnd); 
-        };
-        
+
         // Initialize
         loadPiPState();
         clampPiPIntoViewport(true);
@@ -4040,7 +4193,6 @@
             renderer.render(scene, camera);
         }
         requestAnimationFrame(animate);
-
     };
 </script>
 </body>
