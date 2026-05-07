@@ -803,7 +803,7 @@
                     </div>
                 </div>
                 <div class="sp-sub sp-xp-status">XP: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
-                <button class="sp-btn btn-attack" onclick="window.switchDeck(1)">
+                <button class="sp-btn btn-attack" onclick="window.handleSidePanelAttack(this)">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
                     <span>Attack</span>
                 </button>
@@ -2651,10 +2651,27 @@
 
         window.currentMonsterGridDistance = Infinity;
 
+        window.lastCombatAttack = null;
+
+        window.handleSidePanelAttack = function(btnElement) {
+            if (window.lastCombatAttack) {
+                // If the player has fired a combat action, repeat it.
+                emitAction(window.lastCombatAttack, btnElement);
+            } else {
+                // Otherwise, open the Combat Playing Cards deck.
+                window.switchDeck(1);
+            }
+        };
+
         window.emitAction = (a, explicitBtn = null) => { 
             if (a === 'SET') {
                 window.openSettings();
                 return;
+            }
+            
+            const isUIAction = ['SET', 'WAGER', 'PARLEY', 'HIDE', 'RETREAT', 'OBSERVE', 'BET_EVEN', 'BET_ODD', 'REST', 'HEAL', 'VIEW', 'LOG'].includes(a);
+            if (!isUIAction && a) {
+                window.lastCombatAttack = a;
             }
             
             const isMelee = (a === 'SLASH' || a === 'THRUST' || a === 'HEAVY ATTACK');
