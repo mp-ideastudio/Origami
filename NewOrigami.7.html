@@ -154,6 +154,11 @@
                      notifyEngine('ai', evData); // Forward attack triggers to AI brain
                      break;
 
+                  case 'PARLEY':
+                  case 'SPARE':
+                     notifyEngine('ai', evData); // Forward non-violent actions to AI brain
+                     break;
+
                   case 'COMBAT_ATTACK':
                   case 'SYNC_ENTITIES': 
                      if (evData.type === 'COMBAT_ATTACK') {
