@@ -88,8 +88,8 @@ class OniBabaEngine {
         window.postMessage(msg, '*');
     }
 
-    logToPlayer(message, type = 'combat') {
-        this.post({ type: 'LOG_EVENT', message, logType: type });
+    logToPlayer(text, type = 'combat') {
+        this.post({ type: 'LOG_EVENT', text, logType: type });
     }
 
     seedDungeon(mapData) {
