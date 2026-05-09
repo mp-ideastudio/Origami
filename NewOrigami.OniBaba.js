@@ -100,8 +100,14 @@ class OniBabaEngine {
 
     processCombatTurn(data) {
         // The player has taken a turn (attacked a monster)
+        // Validate incoming combat data
+        if (!data || !data.targetId) {
+            console.warn('[OniBaba] Received invalid PLAYER_ATTACK - missing targetId');
+            return;
+        }
+
         const targetId = data.targetId;
-        const damage = data.damage || 1;
+        const damage = Math.max(1, data.damage || 1); // Ensure positive damage
         const attackType = data.attackType || 'melee';
         
         if (!this.monsters[targetId]) {
