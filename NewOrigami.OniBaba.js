@@ -194,6 +194,12 @@ class OniBabaEngine {
         if (!this.monsters[targetId]) return;
         const monster = this.monsters[targetId];
         
+        // Guard: Spare only works on pleading monsters
+        if (!monster.isPleading) {
+            this.logToPlayer("The monster is not surrendering. This action has no effect.", 'karma');
+            return;
+        }
+        
         if (monster.isPleading) {
             this.karmaScore += 20; // Ultimate Rightness
             this.logToPlayer("Oni-Baba smiles upon your mercy. Your spirit grows.", 'karma');
