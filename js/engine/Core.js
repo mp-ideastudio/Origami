@@ -1005,9 +1005,17 @@ initComms() {
                             // Stop any walking/idle animations and REMOVE from update loop to prevent memory leak!
                             if (deadMesh.userData.mixer) {
                                 deadMesh.userData.mixer.stopAllAction();
+                                deadMesh.userData.mixer.uncacheRoot(deadMesh); // Clear animation cache
                                 const mIdx = this.mixers.indexOf(deadMesh.userData.mixer);
                                 if (mIdx > -1) this.mixers.splice(mIdx, 1);
                             }
+                            
+                            // Clear animation clips and actions from userData
+                            deadMesh.userData.clips = null;
+                            deadMesh.userData.actions = null;
+                            deadMesh.userData.idleAction = null;
+                            deadMesh.userData.walkAction = null;
+                            deadMesh.userData.attackAction = null;
                             
                             // Selection circle is already in worldGroup, just detach it logically
                             const monBase = deadMesh.userData.monBase;
