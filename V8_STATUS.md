@@ -10,12 +10,12 @@
 
 | | Count |
 |---|---:|
-| Total tasks | 26 |
+| Total tasks | 29 |
 | Done | 1 |
 | In progress | 0 |
-| Pending | 25 |
+| Pending | 28 |
 | Blocked | 0 |
-| **Slice progress** | **~4%** |
+| **Slice progress** | **~3%** |
 
 **Current task:** _none — T0.1 (Engine8.html Module Extraction) is next_
 **Last commit:** _T0.0 — chore(v8): bootstrap validation harness for constructor protocol (see `git log` for SHA)_
@@ -51,6 +51,9 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 | T0.3 | Save/Load | 🔲 | T0.1 | — |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
 | T0.5 | Collision Substepping | 🔲 | T0.1 | — |
+| T0.6 | Monster Smart-Chase Pathfinding | 🔲 | T0.0 | — |
+| T0.7 | Keyboard Card Cycling + Class Separator | 🔲 | T0.0 | — |
+| T0.8 | Event Log Visibility Rules | 🔲 | T0.0 | — |
 
 ### Phase 1 — Mushroom Garden
 

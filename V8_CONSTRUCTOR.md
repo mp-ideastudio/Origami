@@ -299,6 +299,89 @@ cannot make it pass, do NOT commit — report the failure and stop.
 
 ---
 
+### T0.6 — Monster Smart-Chase Pathfinding
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 2h
+**Inserted:** 2026-05-13 — pre-extraction polish, user-reported playtest issue
+
+**Goal:** Hostile monsters chase the player around walls, not into them.
+
+**Touch:** [NewOrigami.Engine8.html](NewOrigami.Engine8.html) (hostile-state region near line 4338, plus a new `_monAStar` helper near line 4209).
+
+**Spec:**
+- Implement grid-based A* (4-directional, Manhattan heuristic, node-budget cap 200).
+- Cache per-monster path in `ud.aiPath` + `ud.aiPathIdx` + `ud.aiPathStamp`.
+- Recompute when: no path, path > 0.6s old, player tile changed by ≥2 cells, or current step is blocked.
+- Per-frame: take next path tile as immediate target, move toward its center; on arrival, advance index.
+- Wall-slide fallback for the first frame before A* yields a path: try axis-only movement.
+
+**Gates:**
+- [ ] G-STATIC: `grep "_monAStar" js/v8/` matches (or in Engine8.html pre-extraction) ≥ 1
+- [ ] G-SMOKE: passes (no uncaught exceptions during 30s observation)
+- [ ] G-PLAY-33 (chase-around-corner): position monster around a corner from the player, alert it → monster reaches the player without getting stuck
+- [ ] G-PERF: ≥ 60fps with 10+ hostile monsters chasing
+
+**Commit:** `fix(v8): monsters chase the player with A* pathfinding`
+
+---
+
+### T0.7 — Keyboard Card Cycling + Class Separator
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 3h
+**Inserted:** 2026-05-13 — pre-extraction polish, user-reported UX gap
+
+**Goal:** Cards are fully keyboard-navigable. Two classes (SPELLS default, COMBAT = melee + ranged with a separator bar). Scrollbar reveals only on keyboard mode or hover.
+
+**Touch:** [NewOrigami.Panels.html](NewOrigami.Panels.html) — keyboard handlers, card rendering, CSS for highlight + scrollbar reveal.
+
+**Spec:**
+- New global state: `window._kbdCard = { active, classId, cardIdx }`.
+- **Space** (or ATTACK sidebar button): if inactive → enter mode + highlight first card in current class. If active → cycle class (`SPELLS ↔ COMBAT`).
+- **ArrowLeft/ArrowRight** (or Tab/Shift-Tab): cycle highlighted card within class.
+- **Enter**: fire highlighted card via `emitAction(cardName)`; selection persists.
+- **Escape**: exit keyboard mode.
+- **COMBAT class layout:** render melee cards, then `<div class="combat-separator"></div>`, then ranged cards. Both groups treated as one cycling sequence.
+- **Scrollbar visibility:** `.card-deck-row::-webkit-scrollbar { display: none }` by default. Reveal under `body.kbd-card-active .card-deck-row::-webkit-scrollbar` and `.card-deck-row:hover::-webkit-scrollbar`.
+- Highlight: `.kbd-highlighted` class with cyan outline + slight scale-up.
+
+**Gates:**
+- [ ] G-STATIC: `grep -E "kbd-highlighted|combat-separator|_kbdCard" NewOrigami.Panels.html` ≥ 3 matches
+- [ ] G-SMOKE: passes
+- [ ] G-PLAY-34 (keyboard fire): press Space, see highlight; press Enter, card fires; highlight persists
+- [ ] G-PLAY-35 (class cycle): press Space again, class flips to COMBAT, separator bar visible between melee + ranged
+- [ ] G-PLAY-36 (scrollbar hidden): no keyboard mode, no hover → scrollbar invisible
+
+**Commit:** `feat(v8): keyboard card cycling, COMBAT separator, lazy scrollbar`
+
+---
+
+### T0.8 — Event Log Visibility Rules
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 1.5h
+**Inserted:** 2026-05-13 — pre-extraction polish, user-reported UX rule
+
+**Goal:** Event log shows on every event for 3 seconds, then fades. While any sidebar is open, the log stays visible regardless.
+
+**Touch:** [NewOrigami.Panels.html](NewOrigami.Panels.html) — `logEvent()` timer, sidebar-state tracker.
+
+**Spec:**
+- New module-level state: `_evtLogFadeTimer`, `_sidebarsOpen` (Set of sidebar IDs currently open).
+- `logEvent(text, type)`:
+  - Adds log entry, sets `#event-log-container.active`.
+  - Clears any existing fade timer.
+  - Schedules `_evtLogFadeTimer = setTimeout(() => maybeFade(), 3000)`.
+- `maybeFade()`: if `_sidebarsOpen.size === 0`, remove `.active`. Otherwise no-op (stays visible).
+- Sidebar open/close hooks: call `_sidebarOpen(id)` / `_sidebarClose(id)` from existing toggle functions. `_sidebarOpen` clears the fade timer. `_sidebarClose` re-runs the fade-after-3s logic if no sidebars remain.
+- "Sidebar" = inventory modal, settings modal, encounter zone, exit modal (anything currently using `.active` or `display:block` to indicate an open panel).
+
+**Gates:**
+- [ ] G-STATIC: `grep -E "_evtLogFadeTimer|_sidebarsOpen|maybeFade" NewOrigami.Panels.html` ≥ 3 matches
+- [ ] G-SMOKE: passes
+- [ ] G-PLAY-37 (3s fade): trigger an event, wait 3s with no sidebar open → log fades
+- [ ] G-PLAY-38 (sidebar holds): open inventory, trigger an event, wait 5s → log stays visible
+- [ ] G-PLAY-39 (close releases): close inventory after event → log fades 3s later
+
+**Commit:** `feat(v8): event log fades after 3s, persists while sidebar open`
+
+---
+
 ### T1.1 — Floor 1 Hand-Authored Layout
 **Phase:** 1 Mushroom Garden · **Deps:** T0.1, T0.3 · **Effort:** 4h
 
