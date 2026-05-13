@@ -1,6 +1,21 @@
 {
+  "name": "new-origami",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "claude:test": "node scripts/claude_test.js",
+    "claude:sdk-test": "node scripts/claude_sdk_test.js",
+    "smoke": "node scripts/smoke.js",
+    "smoke:audio": "node scripts/smoke-audio.js",
+    "smoke:visual": "node scripts/smoke-visual.js",
+    "smoke:save": "node scripts/smoke-save.js",
+    "lint:imports": "node scripts/lint-imports.js"
+  },
   "dependencies": {
-    "acorn": "^8.16.0",
-    "puppeteer": "^24.42.0"
+    "@anthropic-ai/sdk": "^0.95.2",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
   }
 }
