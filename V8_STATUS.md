@@ -11,13 +11,13 @@
 | | Count |
 |---|---:|
 | Total tasks | 33 |
-| Done | 3 |
+| Done | 8 |
 | In progress | 0 |
-| Pending | 30 |
+| Pending | 25 |
 | Blocked | 0 |
-| **Slice progress** | **~9%** |
+| **Slice progress** | **~24%** |
 
-**Current task:** _none — T0.1 (Engine8.html Module Extraction) is next_
+**Current task:** _T0.1 (Engine8.html Module Extraction) — launching subagent_
 **Last commit:** _T0.0 — chore(v8): bootstrap validation harness for constructor protocol (see `git log` for SHA)_
 **Last validated:** _T0.0 — 2026-05-13 — G-STATIC ✅, G-MODULE ✅, G-SMOKE ✅_
 
@@ -51,12 +51,12 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 | T0.3 | Save/Load | 🔲 | T0.1 | — |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
 | T0.5 | Collision Substepping | 🔲 | T0.1 | — |
-| T0.6 | Monster Smart-Chase Pathfinding | 🔲 | T0.0 | — |
-| T0.7 | Keyboard Card Cycling + Class Separator | 🔲 | T0.0 | — |
-| T0.8 | Event Log Visibility Rules | 🔲 | T0.0 | — |
-| T0.9 | PIP Cinematic Independence + Auto-Zoom | 🔲 | T0.0 | — |
-| T0.10 | Monster Death Sequence (bow→fall→sink-fade) | 🔲 | T0.0 | — |
-| T0.11 | Hostile Monster Indicator (red disc) | 🔲 | T0.0 | — |
+| T0.6 | Monster Smart-Chase Pathfinding | ✅ | T0.0 | _git log_ |
+| T0.7 | Keyboard Card Cycling + Class Separator | ✅ | T0.0 | _git log_ |
+| T0.8 | Event Log Visibility Rules | ✅ | T0.0 | _git log_ |
+| T0.9 | PIP Cinematic Independence + Auto-Zoom | ✅ | T0.0 | _git log_ |
+| T0.10 | Monster Death Sequence (bow→fall→sink-fade) | ✅ | T0.0 | _git log_ |
+| T0.11 | Hostile Monster Indicator (red disc) | ✅ | T0.0 | _git log_ |
 | T0.12 | FPS Regression Investigation | ✅ | T0.0 | _git log_ |
 
 ### Phase 1 — Mushroom Garden
