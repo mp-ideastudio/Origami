@@ -5424,12 +5424,20 @@ function _applyMonsterDamage(w, dmg, el){
         // Notify OniBaba — standard -1; extra -1 for killing a fleeing monster
         window.parent.postMessage({type:'MONSTER_DEATH', id:ud.id},'*');
         if(wasFleeing) window.parent.postMessage({type:'MONSTER_DEATH', id:ud.id, extra:true},'*');
-        // Play death animation
+        // T0.10 — Cinematic death: bow (0.8s) → fall (0.6s) → sink-fade (1.4s)
+        // Play the death animation throughout; we layer a wrapper-rotation tilt on top
+        // for explicit bow + face-plant motion regardless of what the GLB clips look like.
         _monSetAnim(ud, 'death');
-        // Lie phase lasts the full death clip duration (min 1.5s, max 4s), then sinks
-        const lieTime = Math.min(4.0, Math.max(1.5, ud.deathClipDur ?? 2.0));
         const circle = ud.pedestalCircle || (ud.monBase && ud.monBase.children.find(c=>c.isMesh && c.geometry?.type==='PlaneGeometry'));
-        _dyingMonsters.push({ w, ud, circle, phase:'lie', timer: lieTime, lieTime });
+        _dyingMonsters.push({
+            w, ud, circle,
+            phase: 'bow',
+            timer: 0.8,
+            bowDur: 0.8,
+            fallDur: 0.6,
+            sinkDur: 1.4,
+            startRotX: w.rotation.x || 0,
+        });
     } else {
         // At <50% HP: transition to flee, cry for help (once), alert 5-tile peers
         const halfHp = maxHp * 0.5;
@@ -5474,22 +5482,37 @@ function _tickDyingMonsters(dt){
         const d = _dyingMonsters[i];
         d.timer -= dt;
 
-        if(d.phase === 'lie'){
-            // Fade circle during lie phase
-            if(d.circle){
-                const alpha = Math.max(0, d.timer / (d.lieTime || 2.0)) * 0.45; // starts at 0.45 opacity
-                if(d.circle.material) d.circle.material.opacity = alpha;
+        // T0.10 — Three-phase death: bow → fall → sink.
+        if(d.phase === 'bow'){
+            // Bow: lean forward 30° over 0.8s. No fade, no sink. Pedestal disc dims slightly.
+            const t = 1 - Math.max(0, d.timer / d.bowDur); // 0 → 1
+            d.w.rotation.x = d.startRotX + (-0.5 * t); // 0 → -0.5 rad (~28°)
+            if(d.circle && d.circle.material){
+                d.circle.material.opacity = 0.45 * (1 - t * 0.4); // 0.45 → 0.27
             }
             if(d.timer <= 0){
-                // Begin sink phase: 1.2 seconds
+                d.phase = 'fall';
+                d.timer = d.fallDur;
+            }
+        } else if(d.phase === 'fall'){
+            // Fall: rotate from -0.5 → -π/2 (face-plant) over 0.6s. Still no sink.
+            const t = 1 - Math.max(0, d.timer / d.fallDur); // 0 → 1
+            // Ease-in (quadratic) so the fall accelerates like gravity
+            const easedT = t * t;
+            d.w.rotation.x = -0.5 + ((-Math.PI / 2) - (-0.5)) * easedT;
+            if(d.circle && d.circle.material){
+                d.circle.material.opacity = 0.27 * (1 - t); // 0.27 → 0
+            }
+            if(d.timer <= 0){
                 d.phase = 'sink';
-                d.timer = 1.2;
-                // Remove circle now
+                d.timer = d.sinkDur;
+                d.w.rotation.x = -Math.PI / 2;
+                // Remove the pedestal disc completely (body is face-down now)
                 if(d.circle){
                     if(d.circle.parent) d.circle.parent.remove(d.circle);
                     d.circle = null;
                 }
-                // Make all body meshes transparent for fade
+                // Make all body meshes transparent for the fade phase
                 d.w.traverse(c=>{
                     if(c.isMesh && c.material){
                         c.material = c.material.clone();
@@ -5499,16 +5522,16 @@ function _tickDyingMonsters(dt){
                 });
             }
         } else if(d.phase === 'sink'){
-            const t = d.timer / 1.2; // 1→0
-            const fade = t;           // opacity goes 1→0
-            const sink = (1.0 - t) * -1.5; // sinks 1.5 units below floor
+            // Sink-fade: body translates from y=0 → y=-1.5 over 1.4s while fading 1 → 0.
+            const t = d.timer / d.sinkDur; // 1 → 0
+            const fade = t;
+            const sink = (1.0 - t) * -1.5;
             if(d.ud.monBase) d.ud.monBase.position.y = sink;
             d.w.position.y = sink;
             d.w.traverse(c=>{
                 if(c.isMesh && c.material) c.material.opacity = Math.max(0, fade);
             });
             if(d.timer <= 0){
-                // Fully gone
                 scene.remove(d.w);
                 if(d.ud.monBase) scene.remove(d.ud.monBase);
                 _pipInvalidateWallCache();
