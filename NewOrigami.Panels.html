@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="js/data/cards.js"></script>
+    <script src="js/data/i18n.js"></script>
 
     <script type="importmap">
     {
@@ -182,13 +183,14 @@
 
         /* --- DOCK & WINGS --- */
         .u-panel { pointer-events: auto; outline: none; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 200; }
-        .u-wing { position: relative; flex: 1; min-width: 220px; height: var(--wing-height); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .u-wing { position: relative; flex: 1; min-width: 148px; height: var(--wing-height); display: flex; align-items: center; justify-content: center; z-index: 100; }
         /* Panel borders removed to prevent vertical lines near input */
         .u-btn, .kp-center-btn, .avatar-circle { background: var(--bg-glass);   border: var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); aspect-ratio: 1/1; }
         .u-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; transform: translate(-50%, -50%) translate(var(--tx, 0px), var(--ty, 0px)); z-index: 10; top: 50%; left: 50%; box-shadow: 3px 3px 10px var(--nm-shadow-dark); color: var(--color-text); font-size: 16px; }
         .kp-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); font-size: 20px; color: var(--color-text); }
-        .level-badge { position: absolute; top: calc(50% + 12px); left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #000; border: 1.5px solid #fff; border-radius: 50%; color: #fff; font-weight: 900; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
-        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); }
+        .level-badge { position: absolute; top: calc(50% + 21px); left: 50%; transform: translateX(-50%); width: 28px; height: 16px; background: #000; border: 1.5px solid #fff; border-radius: 8px; color: #fff; font-weight: 900; font-size: 9px; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
+        .avatar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; z-index: 50; overflow: hidden; box-shadow: 0 0 15px rgba(0,0,0,0.3); border: var(--glass-border); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .avatar-circle.punch-anim { animation: btnPunch 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .avatar-circle::after { display: none; } /* HP ring removed */
 
         .avatar-circle canvas, .kp-center-btn canvas { display: block; width: 100% !important; height: 100% !important; outline: none; border-radius: 50%; -webkit-clip-path: circle(50% at 50% 50%); clip-path: circle(50% at 50% 50%); }
@@ -281,7 +283,9 @@
 
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
         .card-column.focused { z-index: 30; }
-        .card-column.focused .guide-card[data-depth="0"] { box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 20px var(--theme-clr); border-color: var(--theme-clr); }
+        .card-column.focused .guide-card[data-depth="0"] { box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 14px var(--theme-clr); }
+        /* Keyboard cursor overrides depth transform so animation wins */
+        .guide-card.superimposed-card { will-change: transform, box-shadow; transform: none; }
 
         @media (max-width: 1100px) {
             .card-column:nth-child(n+6) { display: none !important; }
@@ -366,12 +370,26 @@
             animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
             border: none !important;
             z-index: 40 !important;
+            transform: translateY(-4px) scale(1.04) !important;
+        }
+        /* Keyboard cursor — lift card, soft glow only, no hard borders or labels */
+        @keyframes kb-cursor-pulse {
+            0%   { box-shadow: 0 0 14px 4px rgba(255,220,60,0.35), 0 0 36px 10px rgba(255,200,30,0.12); }
+            50%  { box-shadow: 0 0 26px 8px rgba(255,220,60,0.60), 0 0 60px 18px rgba(255,200,30,0.28); }
+            100% { box-shadow: 0 0 14px 4px rgba(255,220,60,0.35), 0 0 36px 10px rgba(255,200,30,0.12); }
         }
         .superimposed-card {
-            animation: card-bloom-pulse 1.4s ease-in-out infinite !important;
+            animation: kb-cursor-pulse 1.1s ease-in-out infinite !important;
+            transform: translateY(-10px) scale(1.1) !important;
             z-index: 100 !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.9), 0 0 0 2px var(--theme-clr) !important;
+            outline: none !important;
+            transition: none !important;
         }
+        /* No SELECT/FIRE text labels */
+        .superimposed-card::before { content: none !important; }
+        .superimposed-card.selected-card::before { content: none !important; }
+        /* Bottom panel: no amber box when kb selector active */
+        #bottom-panel.kb-active { box-shadow: none !important; }
         
         .guide-card.selected-card::after {
             content: '';
@@ -386,6 +404,37 @@
         .guide-card.launching {
             animation: card-launch 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
             pointer-events: none;
+        }
+        /* Melee collision bloom — sharp red/white burst on bump-attack card */
+        @keyframes melee-bloom-burst {
+            0%   { box-shadow: 0 0 0px 0px rgba(255,80,40,0); transform: translateY(-4px) scale(1.04); }
+            18%  { box-shadow: 0 0 32px 10px rgba(255,120,40,0.95), 0 0 70px 22px rgba(255,40,0,0.55); transform: translateY(-12px) scale(1.14); filter: brightness(1.8); }
+            55%  { box-shadow: 0 0 22px 6px rgba(255,80,30,0.75), 0 0 50px 14px rgba(255,30,0,0.35); transform: translateY(-8px) scale(1.09); filter: brightness(1.3); }
+            100% { box-shadow: 0 0 10px 2px rgba(255,60,20,0.35), 0 0 24px 6px rgba(255,20,0,0.12); transform: translateY(-4px) scale(1.04); filter: brightness(1.0); }
+        }
+        .guide-card.melee-bloom {
+            animation: melee-bloom-burst 0.72s cubic-bezier(0.18, 0.89, 0.32, 1.1) forwards !important;
+            z-index: 50 !important;
+        }
+        .guide-card.melee-bloom::after {
+            content: '';
+            position: absolute;
+            inset: -14px;
+            border-radius: 18px;
+            background: radial-gradient(ellipse at center, rgba(255,100,30,0.40) 0%, rgba(255,40,0,0.18) 45%, transparent 72%);
+            animation: card-bloom-halo 0.72s ease-out forwards;
+            pointer-events: none;
+            z-index: -1;
+        }
+        @keyframes card-enter-flash {
+            0%   { box-shadow: 0 0 0px 0px rgba(255,255,255,0);  filter: brightness(1.0);  transform: scale(1.0); }
+            20%  { box-shadow: 0 0 50px 18px rgba(255,220,80,1), 0 0 100px 35px rgba(255,255,255,0.7); filter: brightness(2.8);  transform: scale(1.18); }
+            55%  { box-shadow: 0 0 28px 8px rgba(255,200,50,0.7), 0 0 55px 18px rgba(255,255,255,0.3); filter: brightness(1.5);  transform: scale(1.1); }
+            100% { box-shadow: 0 0 0px 0px rgba(255,255,255,0);  filter: brightness(1.0);  transform: scale(1.0); }
+        }
+        .guide-card.enter-flash {
+            animation: card-enter-flash 0.38s cubic-bezier(0.15, 0, 0.75, 1) forwards !important;
+            z-index: 200 !important;
         }
 
         
@@ -736,6 +785,37 @@
             .sp-sub { font-size: 11px; }
         }
 
+        /* ── Language Toggle Button ───────────────────────────────────────── */
+        #lang-toggle-btn {
+            position: absolute;
+            /* sits just below the action ring centre, aligned with act-sw */
+            bottom: -50px; left: 50%; transform: translateX(-50%);
+            width: 42px; height: 42px; border-radius: 50%;
+            background: rgba(20,20,30,0.82);
+            border: 2px solid rgba(255,255,255,0.18);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.55);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 200;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+        }
+        #lang-toggle-btn:hover {
+            transform: translateX(-50%) scale(1.12);
+            box-shadow: 0 5px 18px rgba(255,200,80,0.35);
+        }
+        #lang-toggle-btn:active { transform: translateX(-50%) scale(0.94); }
+        #lang-flag {
+            font-size: 24px; line-height: 1;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+            user-select: none;
+        }
+        #lang-flag.flip {
+            transform: rotateY(90deg); opacity: 0;
+        }
+        /* Japanese mode: tint UI with subtle warm paper tone */
+        body.lang-ja { --color-text: #f5e6c8; }
+        body.lang-ja .card-title, body.lang-ja .card-desc { font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; }
+
         /* Status formatting */
         .sp-gold-status { color: #FFD700; font-weight: bold; letter-spacing: 0.1rem; text-shadow: 0 0 5px rgba(255,215,0,0.5); }
         #player-hp-fill { width: 100%; }
@@ -759,7 +839,7 @@
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
                 <div class="sp-title" id="monster-name">Yakuza Goblin</div>
-                <div class="sp-sub" id="monster-type-label">ENEMY * <span class="dist-text">40 ft</span></div>
+                <div class="sp-sub" id="monster-type-label"><span data-i18n="enemy-label">ENEMY</span> * <span class="dist-text">40 <span data-i18n="dist-unit">ft</span></span></div>
                 <div class="sp-bar-wrap">
                     <div class="sp-bar-label">
                         <span class="hp-num" id="monster-hp-num">50</span>
@@ -769,21 +849,21 @@
                 </div>
                 <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
-                    <span>Wager</span>
+                    <span data-i18n="btn-wager">Wager</span>
                 </button>
                 <button class="sp-btn card-item" onclick="emitAction('PARLEY')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-comments"></i></div>
-                    <span>Parley</span>
+                    <span data-i18n="btn-parley">Came to Play</span>
                 </button>
                 <button class="sp-btn card-wind" onclick="emitAction('HIDE')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-ghost"></i></div>
-                    <span>Hide</span>
+                    <span data-i18n="btn-hide">Hide</span>
                 </button>
             </div>
             <!-- ACTION RAIL (Red Accent) -->
             <div id="action-rail" class="side-panel">
-                <div class="sp-title">PLAYER</div>
-                <div class="sp-sub sp-gold-status">GOLD: <span id="player-gold-val">0</span></div>
+                <div class="sp-title" data-i18n="player-label">PLAYER</div>
+                <div class="sp-sub sp-gold-status"><span data-i18n="gold-label">GOLD</span>: <span id="player-gold-val">0</span></div>
                 <div class="sp-bar-wrap">
                     <div class="sp-bar-label">
                         <span class="hp-num" id="player-hp-val">100</span>
@@ -804,18 +884,18 @@
                         <div class="attr-row"><span>CHA</span> <span id="attr-cha">12</span></div>
                     </div>
                 </div>
-                <div class="sp-sub sp-xp-status">XP: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
+                <div class="sp-sub sp-xp-status"><span data-i18n="xp-label">XP</span>: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
                 <button class="sp-btn btn-attack" onclick="window.handleSidePanelAttack(this)">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
-                    <span>Attack</span>
+                    <span data-i18n="btn-attack">Attack</span>
                 </button>
                 <button class="sp-btn card-wind" onclick="emitAction('RETREAT')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-person-running"></i></div>
-                    <span>Retreat</span>
+                    <span data-i18n="btn-retreat">Retreat</span>
                 </button>
                 <button class="sp-btn card-earth" onclick="emitAction('OBSERVE')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-eye"></i></div>
-                    <span>Observe</span>
+                    <span data-i18n="btn-observe">Observe</span>
                 </button>
             </div>
         </div>
@@ -882,10 +962,10 @@
             /* Moondial UI */
             #moondial-wrapper {
                 position: absolute;
-                top: 10px;
-                left: 10px;
-                width: 250px;
-                height: 250px;
+                top: 20px;
+                left: 20px;
+                width: 160px;
+                height: 160px;
                 background: transparent; 
                 z-index: 10000;
                 transition: transform 0.3s ease;
@@ -992,14 +1072,48 @@
             }
             .radar-blip {
                 position: absolute;
-                width: 6px;
-                height: 6px;
-                background: #ff1a1a;
                 border-radius: 50%;
-                box-shadow: 0 0 8px #ff1a1a, inset 1px 1px 2px rgba(255,255,255,0.8);
                 top: 50%; left: 50%;
+                transition: transform 0.18s ease-out, opacity 0.3s ease;
+                pointer-events: none;
+            }
+            .radar-blip.enemy {
+                width: 7px; height: 7px;
+                margin-top: -3.5px; margin-left: -3.5px;
+                background: #ff2222;
+                box-shadow: 0 0 10px 2px rgba(255,30,30,0.9), 0 0 4px #fff inset;
+                animation: blip-enemy-pulse 1.1s ease-in-out infinite;
+            }
+            .radar-blip.loot {
+                width: 6px; height: 6px;
                 margin-top: -3px; margin-left: -3px;
-                transition: transform 0.2s ease-out;
+                background: #ffcc00;
+                box-shadow: 0 0 8px 2px rgba(255,200,0,0.8);
+                animation: blip-loot-pulse 1.8s ease-in-out infinite;
+            }
+            .radar-blip.stairs {
+                width: 8px; height: 8px;
+                margin-top: -4px; margin-left: -4px;
+                background: #00ffcc;
+                border-radius: 2px;
+                box-shadow: 0 0 10px 3px rgba(0,255,200,0.8);
+                animation: blip-stairs-pulse 2.2s ease-in-out infinite;
+            }
+            @keyframes blip-enemy-pulse {
+                0%,100% { transform: translate(var(--bx),var(--bz)) scale(1);   opacity: 1; }
+                50%      { transform: translate(var(--bx),var(--bz)) scale(1.6); opacity: 0.7; }
+            }
+            @keyframes blip-loot-pulse {
+                0%,100% { transform: translate(var(--bx),var(--bz)) scale(1);   opacity: 0.9; }
+                50%      { transform: translate(var(--bx),var(--bz)) scale(1.4); opacity: 0.55; }
+            }
+            @keyframes blip-stairs-pulse {
+                0%,100% { transform: translate(var(--bx),var(--bz)) scale(1);   opacity: 1; }
+                50%      { transform: translate(var(--bx),var(--bz)) scale(1.3); opacity: 0.6; }
+            }
+            /* Radar ring glows faintly when any blip is present */
+            #radar-overlay.has-blips ~ .compass-outer-ring {
+                filter: drop-shadow(0 0 4px rgba(255,50,50,0.35));
             }
 
             .season-outer-ring {
@@ -1118,32 +1232,81 @@
                 pointer-events: none;
             }
 
-            .pip-zoom-controls {
-                position: absolute;
-                right: -15px;
-                top: 25%;
-                transform: translateY(-50%);
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                z-index: 50;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.3s ease, transform 0.3s ease;
-            }
-
+            /* ── PIP overlay controls: shared fade-in on hover ── */
+            .pip-zoom-controls,
             .pip-perspective-controls {
                 position: absolute;
-                right: -15px;
-                top: 75%;
-                transform: translateY(-50%);
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                z-index: 50;
-                opacity: 0;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
                 pointer-events: none;
-                transition: opacity 0.3s ease, transform 0.3s ease;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: 50;
+            }
+            #moondial-wrapper:hover .pip-zoom-controls,
+            #moondial-wrapper:hover .pip-perspective-controls {
+                opacity: 1;
+            }
+
+            /* Zoom buttons: left side, close together vertically, r=28% from center */
+            .pip-zoom-controls button {
+                position: absolute;
+                pointer-events: auto;
+                transform: translate(-50%, -50%);
+            }
+            .pip-zoom-controls button:first-child { left: 20%; top: 44%; }
+            .pip-zoom-controls button:last-child  { left: 20%; top: 56%; }
+
+            /* Perspective buttons: right arc inside glass, r=32% from center */
+            /* 325°: cos=0.819 sin=-0.574 → left=76% top=32% */
+            /* 355°: cos=0.996 sin=-0.087 → left=82% top=47% */
+            /*  15°: cos=0.966 sin=0.259  → left=81% top=58% */
+            /*  45°: cos=0.707 sin=0.707  → left=73% top=73% */
+            .pip-perspective-controls .pip-persp-btn {
+                position: absolute;
+                pointer-events: auto;
+                transform: translate(-50%, -50%);
+            }
+            .pip-persp-btn[data-preset="iso"]  { left: 76%; top: 27%; }
+            .pip-persp-btn[data-preset="flat"] { left: 82%; top: 44%; }
+            .pip-persp-btn[data-preset="high"] { left: 82%; top: 58%; }
+            .pip-persp-btn[data-preset="low"]  { left: 73%; top: 73%; }
+
+            /* ── PIP buttons: full neumorphic match ── */
+            .pip-persp-btn,
+            .pip-zoom-btn {
+                position: absolute;
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: var(--bg-glass);
+                border: var(--glass-border);
+                color: var(--color-text);
+                font-size: 14px;
+                font-weight: 900;
+                line-height: 1;
+                cursor: pointer;
+                box-shadow: 3px 3px 8px var(--nm-shadow-dark), -1px -1px 4px rgba(255,255,255,0.04);
+                transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transform: translate(-50%, -50%);
+            }
+            .pip-persp-btn:hover,
+            .pip-zoom-btn:hover {
+                box-shadow: 4px 4px 10px var(--nm-shadow-dark);
+                transform: translate(-50%, -50%) scale(1.15);
+            }
+            .pip-persp-btn:active,
+            .pip-zoom-btn:active {
+                box-shadow: inset 2px 2px 5px var(--nm-shadow-dark);
+                transform: translate(-50%, -50%) scale(0.92);
+            }
+            .pip-persp-btn.active {
+                box-shadow: inset 2px 2px 5px var(--nm-shadow-dark);
+                color: #fff;
             }
 
             .pip-drag-handle, .pip-resize-handle {
@@ -1151,9 +1314,9 @@
                 width: 32px;
                 height: 32px;
                 border-radius: 50%;
-                background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.6) 100%);
-                border: 1px solid rgba(255,255,255,0.3);
-                color: #fff;
+                background: var(--bg-glass);
+                border: var(--glass-border);
+                color: var(--color-text);
                 font-size: 16px;
                 display: flex;
                 align-items: center;
@@ -1197,35 +1360,6 @@
             }
 
 
-            .pip-zoom-btn {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.5) 100%);
-                border: 1px solid rgba(255,255,255,0.2);
-                color: #fff;
-                font-size: 18px;
-                font-weight: bold;
-                line-height: 1;
-                cursor: pointer;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.2);
-                transition: all 0.2s;
-                padding: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .pip-zoom-btn:hover {
-                background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.4) 100%);
-                border-color: rgba(255,255,255,0.4);
-                transform: scale(1.1);
-            }
-
-            .pip-zoom-btn:active {
-                transform: scale(0.95);
-                box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8);
-            }
 
             #pipCanvas {
                 display: block;
@@ -1241,6 +1375,20 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const pipCanvas = document.getElementById('pipCanvas');
                 if (pipCanvas) {
+                    // Set backing pixel dimensions to CSS display size × DPR for crisp rendering
+                    const _resizePip = () => {
+                        const dpr = window.devicePixelRatio || 1;
+                        const rect = pipCanvas.getBoundingClientRect();
+                        const w = Math.round((rect.width  || 160) * dpr);
+                        const h = Math.round((rect.height || 160) * dpr);
+                        if (pipCanvas.width !== w || pipCanvas.height !== h) {
+                            pipCanvas.width  = w;
+                            pipCanvas.height = h;
+                        }
+                    };
+                    _resizePip();
+                    window.addEventListener('resize', _resizePip);
+
                     pipCanvas.addEventListener('click', () => {
                         window.parent.postMessage({ type: 'PIP_TOGGLE' }, '*');
                     });
@@ -1280,7 +1428,7 @@
                 }
             });
 
-            // PIP Dragging Logic via Moondial Compass
+            // PIP Dragging Logic via Moondial Compass (compass-bg-ring = full drag zone)
             document.addEventListener("DOMContentLoaded", () => {
                 const pip = document.getElementById('moondial-wrapper');
                 const dragHandle = pip.querySelector('.compass-bg-ring');
@@ -1292,9 +1440,10 @@
                     startX = e.clientX;
                     startY = e.clientY;
                     const style = window.getComputedStyle(pip);
-                    initialX = parseInt(style.left, 10) || 10;
-                    initialY = parseInt(style.top, 10) || 10;
-                    
+                    initialX = parseInt(style.left, 10) || 20;
+                    initialY = parseInt(style.top, 10) || 20;
+                    pip.style.right = 'auto';
+                    pip.style.bottom = 'auto';
                     pip.classList.add('dragging');
                     dragHandle.setPointerCapture(e.pointerId);
                     e.preventDefault();
@@ -1313,6 +1462,19 @@
                     isDragging = false;
                     pip.classList.remove('dragging');
                     dragHandle.releasePointerCapture(e.pointerId);
+                    // Clamp into viewport
+                    const rect = pip.getBoundingClientRect();
+                    const vw = window.innerWidth, vh = window.innerHeight;
+                    const clampedLeft = Math.max(0, Math.min(rect.left, vw - rect.width));
+                    const clampedTop = Math.max(0, Math.min(rect.top, vh - rect.height));
+                    pip.style.left = clampedLeft + 'px';
+                    pip.style.top = clampedTop + 'px';
+                    // Save + sync (dock mode only — functions may not exist in standalone)
+                    if (typeof window.loadPiPState === 'undefined') {
+                        const state = { left: pip.style.left, top: pip.style.top, width: pip.style.width, height: pip.style.height };
+                        try { localStorage.setItem('origami_pip_state', JSON.stringify(state)); } catch(_) {}
+                    }
+                    if (typeof window.syncRect === 'function') window.syncRect();
                 };
 
                 dragHandle.addEventListener('pointerup', endDrag);
@@ -1320,39 +1482,6 @@
             });
         </script>
         
-        <!-- Moondial UI -->
-        <div id="moondial-wrapper" class="primary-view">
-            <canvas id="pipCanvas"></canvas>
-            <div class="compass-bg-ring"></div>
-            <div class="moon-selector"></div>
-            <div class="compass-outer-ring">
-                <span class="compass-marker north">N</span>
-                <span class="compass-marker south">S</span>
-                <span class="compass-marker east">E</span>
-                <span class="compass-marker west">W</span>
-            </div>
-            <div id="radar-overlay"></div>
-            <div class="season-outer-ring">
-                <div class="moon-icon phase-0" title="New Moon"><span>🌑</span></div>
-                <div class="moon-icon phase-1" title="Waxing Crescent"><span>🌒</span></div>
-                <div class="moon-icon phase-2" title="First Quarter"><span>🌓</span></div>
-                <div class="moon-icon phase-3" title="Waxing Gibbous"><span>🌔</span></div>
-                <div class="moon-icon phase-4" title="Full Moon"><span>🌕</span></div>
-                <div class="moon-icon phase-5" title="Waning Gibbous"><span>🌖</span></div>
-                <div class="moon-icon phase-6" title="Last Quarter"><span>🌗</span></div>
-                <div class="moon-icon phase-7" title="Waning Crescent"><span>🌘</span></div>
-            </div>
-            <div class="pip-vignette"></div>
-            <div class="pip-drag-handle" title="Drag to Move"><i class="fa-solid fa-up-down-left-right"></i></div>
-            <div class="pip-resize-handle" title="Drag to Resize"><i class="fa-solid fa-arrows-left-right-to-line fa-rotate-45"></i></div>
-            <div class="pip-zoom-controls">
-                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: -1 }, '*')">+</button>
-                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: 1 }, '*')">−</button>
-            </div>
-            <div class="pip-perspective-controls">
-                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_PERSPECTIVE' }, '*')" title="Change Perspective">◿</button>
-            </div>
-        </div>
         
         <!-- Big Combat Announcement Text Overlay -->
         <div id="big-combat-text"></div>
@@ -1361,7 +1490,7 @@
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
                 <div class="u-btn pos-n" data-key="ArrowUp"><i class="fa-solid fa-caret-up"></i></div>
                 <div class="u-btn pos-w" data-key="ArrowLeft"><i class="fa-solid fa-caret-left"></i></div>
-                <div class="kp-center-btn">
+                <div class="kp-center-btn" title="Karma Thumb · Drag for direction (up=forward, down=back, left/right=turn). Color = your karma." aria-label="Karma directional thumb">
                     <div class="yin-yang-thumb">
                         <div class="yin-yang-dot-black"></div>
                         <div class="yin-yang-dot-white"></div>
@@ -1383,57 +1512,98 @@
                         </div>
                     </div>
                     <div id="exit-modal">
-                        <div class="exit-title">EXIT DUNGEON?</div>
+                        <div class="exit-title" data-i18n="exit-title">EXIT DUNGEON?</div>
                         <div class="exit-controls">
                             <button class="exit-btn no" title="No" onclick="hideExitModal()"><i class="fa-solid fa-xmark"></i></button>
                             <button class="exit-btn yes" title="Yes" onclick="confirmExit()"><i class="fa-solid fa-check"></i></button>
                         </div>
                     </div>
-                    <div id="turn-indicator">PLAYER TURN</div>
+                    <div id="turn-indicator" data-i18n="turn-player">PLAYER TURN</div>
                     <div id="guides-container"></div>
                     <div id="dice-container">
                         <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
                            <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
-                           <div class="card-title wager-title-text">BET EVEN</div>
-                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-title wager-title-text" data-i18n="wager-bet-even">BET EVEN</div>
+                           <div class="card-desc wager-desc-text" data-i18n="wager-desc">Double your coins.</div>
                            <div class="card-icon-3d wager-icon-container" data-element="DICE_EVEN"><canvas></canvas></div>
-                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
+                           <div class="card-attr-fused wager-attr-text" data-i18n="wager-pays">(PAYS 1:1)</div>
                         </div>
                         <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_ODD', this)">
                            <div class="card-header"><span class="card-type-pill wager-pill">WAGER</span></div>
-                           <div class="card-title wager-title-text">BET ODD</div>
-                           <div class="card-desc wager-desc-text">Double your coins.</div>
+                           <div class="card-title wager-title-text" data-i18n="wager-bet-odd">BET ODD</div>
+                           <div class="card-desc wager-desc-text" data-i18n="wager-desc">Double your coins.</div>
                            <div class="card-icon-3d wager-icon-container" data-element="DICE_ODD"><canvas></canvas></div>
-                           <div class="card-attr-fused wager-attr-text">(PAYS 1:1)</div>
+                           <div class="card-attr-fused wager-attr-text" data-i18n="wager-pays">(PAYS 1:1)</div>
                         </div>
                     </div>
                     <div id="input-container">
                         <div id="event-log-container"></div>
                         <div class="chat-pill">
-                            <input type="text" class="chat-input" placeholder="Type here..." autocomplete="off">
+                            <input type="text" class="chat-input" data-i18n-placeholder="chat-placeholder" placeholder="Type here..." autocomplete="off">
                             <span class="enter-symbol" title="Submit Action"><i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i></span>
-                            <div id="viewport-readout" class="viewport-text">VIEWPORT</div>
+                            <div id="viewport-readout" class="viewport-text" data-i18n="viewport-label">VIEWPORT</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="right-panel" class="u-wing u-panel" tabindex="3">
-                <div id="action-zone" class="outer-active">
-                    <div class="level-badge" id="player-level-badge">1</div>
+                <div id="action-zone">
                     <div class="avatar-circle" id="player-avatar-container" onclick="toggleRing()"></div>
-                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text">Mode</span></div>
-                    <div class="u-btn btn-action act-ne" onclick="openInventory()"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text">Bag</span></div>
-                    <div class="u-btn btn-action act-e" onclick="post({type: 'PIP_TOGGLE'})"><i class="fa-solid fa-map"></i><span class="ac-text">Map</span></div>
-                    <div class="u-btn btn-action act-se" onclick="emitAction('SET')"><i class="fa-solid fa-gear"></i><span class="ac-text">Set</span></div>
-                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text">Rest</span></div>
-                    <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text">Heal</span></div>
-                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><i class="fa-solid fa-eye"></i><span class="ac-text">View</span></div>
-                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><i class="fa-solid fa-scroll"></i><span class="ac-text">Log</span></div>
+                    <div class="level-badge">LVL 1</div>
+                    <div class="u-btn btn-action act-n" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i><span class="ac-text" data-i18n="act-mode">Mode</span></div>
+                    <div class="u-btn btn-action act-ne" onclick="emitAction('BAG')"><i class="fa-solid fa-sack-xmark"></i><span class="ac-text" data-i18n="act-bag">Bag</span></div>
+                    <div class="u-btn btn-action act-e" onclick="emitAction('MAP')"><i class="fa-solid fa-map"></i><span class="ac-text" data-i18n="act-map">Map</span></div>
+                    <div class="u-btn btn-action act-se" onclick="toggleSettings()"><i class="fa-solid fa-gear"></i><span class="ac-text" data-i18n="act-settings">Settings</span></div>
+                    <!-- Language Toggle Popup (Hidden by default) -->
+                    <div id="lang-toggle-btn" onclick="switchLanguage()">
+                        <div id="lang-flag"></div>
+                    </div>
+                    <div class="u-btn btn-action act-s" onclick="emitAction('REST')"><i class="fa-solid fa-campground"></i><span class="ac-text" data-i18n="act-rest">Rest</span></div>
+                    <div class="u-btn btn-action act-sw" onclick="emitAction('HEAL')"><i class="fa-solid fa-heart-pulse"></i><span class="ac-text" data-i18n="act-heal">Heal</span></div>
+                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><i class="fa-solid fa-eye"></i><span class="ac-text" data-i18n="act-view">View</span></div>
+                    <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><i class="fa-solid fa-scroll"></i><span class="ac-text" data-i18n="act-log">Log</span></div>
                 </div>
             </div>
         </div>
         
+        <!-- Moondial UI — body-level so position:absolute references the viewport directly -->
+        <div id="moondial-wrapper" class="primary-view">
+            <canvas id="pipCanvas"></canvas>
+            <div class="compass-bg-ring"></div>
+            <div class="moon-selector"></div>
+            <div class="compass-outer-ring">
+                <span class="compass-marker north" data-i18n="compass-n">N</span>
+                <span class="compass-marker south" data-i18n="compass-s">S</span>
+                <span class="compass-marker east" data-i18n="compass-e">E</span>
+                <span class="compass-marker west" data-i18n="compass-w">W</span>
+            </div>
+            <div id="radar-overlay"></div>
+            <div class="season-outer-ring">
+                <div class="moon-icon phase-0" title="New Moon"><span>🌑</span></div>
+                <div class="moon-icon phase-1" title="Waxing Crescent"><span>🌒</span></div>
+                <div class="moon-icon phase-2" title="First Quarter"><span>🌓</span></div>
+                <div class="moon-icon phase-3" title="Waxing Gibbous"><span>🌔</span></div>
+                <div class="moon-icon phase-4" title="Full Moon"><span>🌕</span></div>
+                <div class="moon-icon phase-5" title="Waning Gibbous"><span>🌖</span></div>
+                <div class="moon-icon phase-6" title="Last Quarter"><span>🌗</span></div>
+                <div class="moon-icon phase-7" title="Waning Crescent"><span>🌘</span></div>
+            </div>
+            <div class="pip-vignette"></div>
+            <div class="pip-drag-handle" title="Drag to Move"><i class="fa-solid fa-up-down-left-right"></i></div>
+            <div class="pip-resize-handle" title="Drag to Resize"><i class="fa-solid fa-arrows-left-right-to-line fa-rotate-45"></i></div>
+            <div class="pip-zoom-controls">
+                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: -1 }, '*')">+</button>
+                <button class="pip-zoom-btn" onclick="window.parent.postMessage({ type: 'PIP_ZOOM', delta: 1 }, '*')">−</button>
+            </div>
+            <div class="pip-perspective-controls">
+                <button class="pip-persp-btn active" data-preset="iso"  title="Isometric">⬡</button>
+                <button class="pip-persp-btn"         data-preset="flat" title="Top-down">⊙</button>
+                <button class="pip-persp-btn"         data-preset="high" title="High angle">▲</button>
+                <button class="pip-persp-btn"         data-preset="low"  title="Low angle">▽</button>
+            </div>
+        </div>
+
         <!-- FPV Floating Loot Cards layer (receives absolute positioned items from FPV engine) -->
         <div id="floating-loot-layer"></div>
         
@@ -1467,6 +1637,39 @@
                 #autopickup-toggle:checked + .slider { background-color: #00bcd4; }
                 #autopickup-toggle:checked + .slider:before { transform: translateX(26px); }
                 .settings-switch .slider:before { position:absolute; content:''; height:16px; width:16px; left:4px; bottom:4px; background-color:white; transition:.4s; border-radius:50%; }
+
+                /* ── T0.7 — COMBAT class separator bar (between melee + ranged columns) */
+                .combat-separator {
+                    flex: 0 0 auto;
+                    width: 2px;
+                    align-self: stretch;
+                    margin: 0 12px;
+                    background: linear-gradient(180deg,
+                        rgba(255, 200, 80, 0) 0%,
+                        rgba(255, 200, 80, 0.55) 20%,
+                        rgba(255, 200, 80, 0.55) 80%,
+                        rgba(255, 200, 80, 0) 100%);
+                    box-shadow: 0 0 8px rgba(255, 200, 80, 0.35);
+                    pointer-events: none;
+                }
+
+                /* ── T0.7 — Lazy scrollbar on the card deck row.
+                   Hidden by default; appears on hover OR while keyboard card mode is active. */
+                #guides-container::-webkit-scrollbar {
+                    height: 0px;
+                    transition: height 0.2s ease;
+                }
+                #guides-container:hover::-webkit-scrollbar,
+                body.kbd-card-active #guides-container::-webkit-scrollbar {
+                    height: 8px;
+                }
+                #guides-container::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.15);
+                    border-radius: 4px;
+                }
+                #guides-container::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255,255,255,0.35);
+                }
             </style>
         </div>
 
@@ -1563,6 +1766,27 @@
         const decks = [spellCategories, combatCategories, rangeCategories, itemCategories];
         let currentDeckIndex = 0;
         let categories = decks[currentDeckIndex];
+
+        // ── T0.7 card class system ──────────────────────────────────────────────
+        // Two top-level classes: SPELLS (default) and COMBAT (melee + ranged
+        // merged via a separator marker). Cycled by Space (in kbd mode) or the
+        // ATTACK sidebar button. The legacy `decks` array remains for back-compat
+        // with other code paths that call switchDeck() directly.
+        const combatMergedCategories = [
+            ...combatCategories,
+            { separator: true, id: '__SEP__' },
+            ...rangeCategories,
+        ];
+        window.cardClass = 'SPELLS';
+        window._lastSelectedCardName = null;
+        window.cycleCardClass = function(forceTo) {
+            window.cardClass = forceTo || (window.cardClass === 'SPELLS' ? 'COMBAT' : 'SPELLS');
+            loadDeck(window.cardClass === 'SPELLS' ? spellCategories : combatMergedCategories);
+            focusedColIndex = 0;
+            setFocus(focusedColIndex);
+            const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+            if (topCard) topCard.classList.add('superimposed-card');
+        };
 
         window.switchDeck = function(index) {
             currentDeckIndex = index % decks.length;
@@ -2260,6 +2484,22 @@
                     scenesToWarm.forEach(s => renderer.compile(s.scene, iconCamera));
                 }
                 warmStarted = true;
+
+                // Pre-warm the YOU GOT loot card render path so first pickup has zero stall.
+                // Inject a hidden card covering every element type so all canvas paths are hit during init.
+                const _warmElements = ['KATANA', 'MISSILE', 'ITEM', 'EARTH', 'FIRE', 'WIND', 'WATER'];
+                _warmElements.forEach(elId => {
+                    const _warmCard = document.createElement('div');
+                    _warmCard.className = 'guide-card yg-anim-trigger-3d';
+                    _warmCard.dataset.depth = '0';
+                    _warmCard.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:84px;height:126px;opacity:0;pointer-events:none;z-index:-1;';
+                    _warmCard.innerHTML = `<div class="card-icon-3d" data-element="${elId}"><canvas></canvas></div>`;
+                    document.body.appendChild(_warmCard);
+                    // Force cache rescan to include this element immediately
+                    if (window.canvasCache) window.canvasCache.lastScan = 0;
+                    // Remove after 2 frames worth of renders (ensures GPU path is compiled)
+                    setTimeout(() => _warmCard.remove(), 2000);
+                });
             }, 100);
             
             function renderLoop(time) {
@@ -2321,7 +2561,8 @@
                 if (avatarRenderer && avatarScene && avatarCamera && avatarW > 0 && avatarH > 0) {
                     const canvas = avatarRenderer.domElement;
                     if (canvas.width !== avatarW * dpr || canvas.height !== avatarH * dpr) {
-                        avatarRenderer.setSize(avatarW, avatarH, false);
+                        avatarRenderer.setPixelRatio(dpr);
+                        avatarRenderer.setSize(avatarW, avatarH, true);
                         avatarCamera.aspect = avatarW / avatarH;
                         avatarCamera.updateProjectionMatrix();
                     }
@@ -2376,65 +2617,47 @@
             const w = container.clientWidth || 58;
             const h = container.clientHeight || 58;
             
-            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: false });
-            avatarRenderer.setClearColor(0x000000, 0); // Crucial fix for black square bounds
-            avatarRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            avatarRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            avatarRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
             avatarRenderer.setSize(w, h);
             container.appendChild(avatarRenderer.domElement);
             
             avatarScene = new THREE.Scene();
             avatarCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-            avatarCamera.position.set(0, 1.2, 4.8);
-            avatarCamera.lookAt(0, 0.85, 0); // Look lower so the avatar moves UP (+1px) and its legs aren't covered
+            avatarCamera.position.set(0, 1.2, 4.5);
+            avatarCamera.lookAt(0, 1.0, 0);
             
-            const ambLight = new THREE.AmbientLight(0xffffff, 1.5); // Brighter ambient light
+            const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
             avatarScene.add(ambLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 2.0); // Brighter directional
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
             dirLight.position.set(5, 5, 5);
             avatarScene.add(dirLight);
             
             try {
                 const loader = new GLTFLoader();
-                // Adding multiple paths fallback logic like FPV does if possible, but trying relative first
-                const isLocalFile = window.location.protocol === 'file:';
                 const modelUrls = [
                     './assets/models/Player.A.Walking.glb',
                     '../assets/models/Player.A.Walking.glb',
-                    'assets/Player.A.Walking.glb',
-                    'https://www.markpeterson.info/Origami/assets/Player.A.Walking.glb',
-                    'https://markpeterson.info/Origami/assets/Player.A.Walking.glb'
+                    'https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/Player.A.Walking.glb'
                 ];
                 
                 function tryLoadModel(urlIndex) {
                     if (urlIndex >= modelUrls.length) {
-                        if (isLocalFile) {
-                            console.log("Avatar 3D load skipped: Browsers block 'file://' CORS fetch requests. Using 2D portrait fallback.");
-                        } else {
-                            console.warn("Avatar failed to load natively after all attempts. Falling back to 2D portrait.");
-                        }
-                        container.style.backgroundImage = 'url("assets/models/Player.A.png")';
-                        container.style.backgroundPosition = 'center';
-                        container.style.backgroundSize = '60%';
-                        container.style.backgroundRepeat = 'no-repeat';
-                        container.style.backgroundBlendMode = 'multiply';
+                        console.warn("UI Avatar failed to load natively after all attempts.");
+                        container.innerHTML = '<i class="fa-solid fa-user-astronaut" style="color:var(--color-text); font-size:24px;"></i>';
                         return;
                     }
                     
                     loader.load(modelUrls[urlIndex], (gltf) => {
                         const model = gltf.scene;
                         
-                        model.position.set(0, -0.1, 0); // Moved up to add +25px bottom buffer
-                        // Rotate to face slightly right layout (isometric feel)
+                        model.position.set(0, -0.1, 0);
                         model.rotation.y = Math.PI / 8;
-                        // Scale 
                         model.scale.set(1.25, 1.25, 1.25);
                         
-                        // Prevent material from blowing out to pure white under lighting
                         model.traverse((child) => {
-                            if (child.isMesh) {
-                                child.material = new THREE.MeshLambertMaterial({ 
-                                    color: 0xcccccc
-                                });
+                            if (child.isMesh && child.material) {
+                                child.material.needsUpdate = true;
                             }
                         });
                         
@@ -2576,7 +2799,7 @@
         }
 
         function launchModal(card) {
-            pendingAction = card.querySelector('.card-title').textContent;
+            pendingAction = card.dataset.cardAction || card.querySelector('.card-title').textContent;
             const content = document.getElementById('modal-content');
             content.innerHTML = card.innerHTML;
             content.className = `modal-card-hd ${card.className}`;
@@ -2658,13 +2881,8 @@
         window.lastCombatAttack = null;
 
         window.handleSidePanelAttack = function(btnElement) {
-            if (window.lastCombatAttack) {
-                // If the player has fired a combat action, repeat it.
-                emitAction(window.lastCombatAttack, btnElement);
-            } else {
-                // Otherwise, open the Combat Playing Cards deck.
-                window.switchDeck(1);
-            }
+            const action = window.lastCombatAttack || 'SLASH';
+            emitAction(action, btnElement);
         };
 
         window.emitAction = (a, explicitBtn = null) => { 
@@ -2757,36 +2975,15 @@
                 return;
             }
 
-            // Deck Swapping
+            // T0.7 — ATTACK sidebar button cycles SPELLS ↔ COMBAT and ensures
+            // keyboard select mode is active so the player can see the highlighted card.
             if (a === 'ATTACK') {
                 playAvatarAnim('slash');
-                
-                let firstMissileCat = null;
-                let firstMissileCard = null;
-                combatCategories.forEach(cat => {
-                    if (!firstMissileCat && cat.id === 'MISSILE' && cat.cards && cat.cards.length > 0) {
-                        if (cat.qty === undefined || cat.qty > 0) {
-                            firstMissileCat = cat;
-                            firstMissileCard = cat.cards[0];
-                        }
-                    }
-                });
-                
-                if (window.currentMonsterDistanceFeet > 5) {
-                    if (firstMissileCard) {
-                        // Launch the missile automatically!
-                        window.parent.postMessage({ type: 'FPV_ACTION', action: firstMissileCard }, '*');
-                        
-                        // Deduct qty internally so it reflects when loadDeck happens
-                        if (firstMissileCat.qty !== undefined && firstMissileCat.qty > 0) {
-                            firstMissileCat.qty--;
-                        }
-                    } else {
-                        window.parent.postMessage({ type: 'LOG_EVENT', logType: 'system', text: 'No Missile Playing Cards Found' }, '*');
-                    }
+                if (!window.isKeyboardSelectorActive) {
+                    window.toggleKeyboardSelector();
+                    document.body.classList.add('kbd-card-active');
                 }
-                
-                loadDeck(combatCategories);
+                window.cycleCardClass();
             } else if (a === 'RETREAT' || a === 'HIDE') {
                 loadDeck(defaultCategories);
             }
@@ -2798,6 +2995,14 @@
             container.innerHTML = '';
             
             categories.forEach((cat, idx) => {
+                // T0.7 — separator marker between melee + ranged in COMBAT class
+                if (cat.separator) {
+                    const sep = document.createElement('div');
+                    sep.className = 'combat-separator';
+                    sep.dataset.skipCycle = '1';
+                    container.appendChild(sep);
+                    return;
+                }
                 UXAI.sortCategory(cat);
                 const col = document.createElement('div'); col.className = 'card-column'; col.id = `col-${idx}`;
                 col.draggable = false;
@@ -2829,7 +3034,7 @@
                         holdTimer = setTimeout(() => {
                             if (!dragMoved && holdTarget) {
                                 holdTarget.classList.add('selected-card');
-                                const actionName = holdTarget.querySelector('.card-title').textContent;
+                                const actionName = holdTarget.dataset.cardAction || holdTarget.querySelector('.card-title').textContent;
                                 holdInterval = setInterval(() => {
                                     holdTarget.classList.remove('launching');
                                     requestAnimationFrame(() => {
@@ -2904,7 +3109,7 @@
                             if (clickedCard && clickedCard.dataset.depth === "0" && clickedCard.parentElement === col && clickedCard.classList.contains('superimposed-card')) {
                                 firedViaSuperimposed = true;
                                 clickedCard.classList.add('launching');
-                                const actionName = clickedCard.querySelector('.card-title').textContent;
+                                const actionName = clickedCard.dataset.cardAction || clickedCard.querySelector('.card-title').textContent;
                                 emitAction(actionName, clickedCard);
                                 setTimeout(() => { 
                                     clickedCard.classList.remove('launching'); 
@@ -2922,7 +3127,7 @@
                                 // SINGLE CLICK - FIRE IMMEDIATELY
                                 document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
                                 clickedCard.classList.add('launching');
-                                const actionName = clickedCard.querySelector('.card-title').textContent;
+                                const actionName = clickedCard.dataset.cardAction || clickedCard.querySelector('.card-title').textContent;
                                 emitAction(actionName, clickedCard);
                                 setTimeout(() => { 
                                     clickedCard.classList.remove('launching'); 
@@ -2938,21 +3143,27 @@
                     const masterCard = (window.OrigamiCards || []).find(c => c.name === name);
                     const kanji = masterCard ? masterCard.kanji : (cat.kanji || '');
                     const typePill = masterCard ? masterCard.type.toUpperCase() : cat.id;
-                    const desc = masterCard ? masterCard.desc : cat.desc;
                     let elId = masterCard ? masterCard.el : cat.id;
                     if (name === 'SHORT BOW') elId = 'BOW_SHORT';
                     if (name === 'LONG BOW') elId = 'BOW_LONG';
-                    const attr = masterCard ? masterCard.attr : (cat.attr || '');
-                    
+
+                    // i18n: use localized strings if available, else fall back to master card data
+                    const loc = masterCard ? (window.tCard && window.tCard(masterCard.id)) : null;
+                    const displayName = loc ? loc.name : name;
+                    const desc       = loc ? loc.desc : (masterCard ? masterCard.desc : cat.desc);
+                    const attr       = loc ? loc.attr : (masterCard ? masterCard.attr : (cat.attr || ''));
+
                     const card = document.createElement('div');
                     card.className = `guide-card card-${elId.toLowerCase()}`;
                     card.dataset.depth = i;
+                    card.dataset.cardAction = name; // always the EN action name for emitAction
+                    if (masterCard) card.dataset.cardId = masterCard.id; // for live re-translation
                     if (cat.qty !== undefined) card.dataset.qty = cat.qty;
-                    
+
                     const badgeHtml = cat.qty !== undefined ? `<div class="card-badge">${cat.qty}</div>` : '';
                     card.innerHTML = `
                         <div class="card-header"><span class="card-kanji">${kanji}</span><span class="card-type-pill">${typePill}</span></div>
-                        <div class="card-title">${name}</div><div class="card-desc">${desc}</div>
+                        <div class="card-title">${displayName}</div><div class="card-desc">${desc}</div>
                         <div class="card-icon-3d" data-element="${elId}"><canvas></canvas></div>
                         <div class="card-attr-fused">${attr}</div>
                         <div class="card-click-overlay"></div>
@@ -3015,7 +3226,8 @@
             _chatInput.addEventListener('blur', () => {
                 setTimeout(() => {
                     if (document.activeElement !== _chatInput) {
-                        _evtLog.classList.remove('active');
+                        const ez = document.getElementById('encounter-zone');
+                        if (!ez || !ez.classList.contains('active')) _evtLog.classList.remove('active');
                     }
                 }, 100);
             });
@@ -3024,8 +3236,8 @@
 
 
         // INIT AND EVENTS PANEL LOGIC ---
-        window.showLcdEvent = function(text) {
-            window.logEvent(text, 'system');
+        window.showLcdEvent = function(text, context) {
+            if (context) window.logEvent(`<span style="color:#a0a8b8;font-style:italic">${context}</span>`, 'system');
         };
         
         const activeDPadPointers = new Map();
@@ -3075,11 +3287,14 @@
 
         window.isKeyboardSelectorActive = false;
         
-        window.toggleKeyboardSelector = function() {
+        window.toggleKeyboardSelector = function(forceOff) {
+            if (forceOff === true) window.isKeyboardSelectorActive = true; // will be flipped below
             window.isKeyboardSelectorActive = !window.isKeyboardSelectorActive;
             const bottomPanel = document.getElementById('bottom-panel');
             document.querySelectorAll('.superimposed-card').forEach(c => c.classList.remove('superimposed-card'));
-            
+            document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
+            bottomPanel.classList.toggle('kb-active', window.isKeyboardSelectorActive);
+
             if (window.isKeyboardSelectorActive) {
                 bottomPanel.focus();
                 const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
@@ -3098,50 +3313,74 @@
             }
             if (e.key === 'Tab') return;
             
-            // Spacebar toggles keyboard selector and cycles the entire deck (Taxonomy of same cards)
-            if (e.key === ' ' && !document.activeElement.classList.contains('chat-input')) {
+            // T0.7 — Spacebar enters keyboard mode, or cycles class while in mode.
+            // SPELLS ↔ COMBAT. Body gets .kbd-card-active for scrollbar reveal.
+            if (e.key === ' ' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
                 if (!window.isKeyboardSelectorActive) {
                     toggleKeyboardSelector();
+                    document.body.classList.add('kbd-card-active');
                     return;
                 }
                 document.querySelectorAll('.superimposed-card').forEach(c => c.classList.remove('superimposed-card'));
                 document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
-                
-                window.switchDeck(currentDeckIndex + 1);
-                
-                // Keep the first column focused after switching decks
-                focusedColIndex = 0;
-                setFocus(focusedColIndex);
-                
-                const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
-                if(topCard) {
-                    topCard.classList.add('superimposed-card');
-                    const tt = topCard.querySelector('.card-tooltip');
+
+                window.cycleCardClass();
+
+                const topCard2 = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
+                if(topCard2) {
+                    const tt = topCard2.querySelector('.card-tooltip');
                     if(tt) tt.classList.add('show');
                 }
                 return;
             }
             
             // Intercept Deck Navigation
-            if (e.key === 'Enter' && !document.activeElement.classList.contains('chat-input')) {
+            if (e.key === 'Enter' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
+                const _flashAndFire = (card) => {
+                    card.classList.remove('selected-card', 'superimposed-card');
+                    card.classList.add('enter-flash');
+                    const name = card.dataset.cardAction || card.querySelector('.card-title').textContent;
+                    window._lastSelectedCardName = name; // T0.7 — persist for Enter-twice re-fire
+                    setTimeout(() => {
+                        card.classList.remove('enter-flash');
+                        card.classList.add('launching');
+                        emitAction(name, card);
+                        setTimeout(() => {
+                            card.classList.remove('launching');
+                        }, 450);
+                    }, 160); // flash leads the launch by 160ms
+                    // T0.7 — Enter fires AND exits keyboard mode so player can move immediately
+                    if (window.isKeyboardSelectorActive) {
+                        window.toggleKeyboardSelector();
+                        document.body.classList.remove('kbd-card-active');
+                    }
+                };
+                // If any card is already selected (click/long-press), fire it immediately
+                const alreadySelected = document.querySelector('.guide-card.selected-card');
+                if (alreadySelected) {
+                    _flashAndFire(alreadySelected);
+                    return;
+                }
+                // T0.7 — Out of mode + previously fired card → re-fire it (Enter-twice pattern).
+                if (!window.isKeyboardSelectorActive && window._lastSelectedCardName) {
+                    emitAction(window._lastSelectedCardName, null);
+                    return;
+                }
                 if (!window.isKeyboardSelectorActive) {
                     toggleKeyboardSelector();
+                    document.body.classList.add('kbd-card-active');
                     return;
                 }
                 
                 const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
-                if(topCard) {
+                if (topCard) {
                     if (topCard.classList.contains('selected-card')) {
-                        // Fire it! Rapid fire!
-                        topCard.classList.remove('selected-card', 'superimposed-card');
-                        topCard.classList.add('launching');
-                        const name = topCard.querySelector('.card-title').textContent;
-                        emitAction(name, topCard);
-                        setTimeout(() => topCard.classList.remove('launching'), 450);
+                        // Second Enter = FIRE
+                        _flashAndFire(topCard);
                     } else {
-                        // Select it!
+                        // First Enter = bloom-select (label switches to ↵ FIRE !)
                         document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
                         topCard.classList.add('selected-card');
                     }
@@ -3151,33 +3390,52 @@
 
             if (window.isKeyboardSelectorActive) {
                 if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                    e.preventDefault();
-                    document.querySelectorAll('.superimposed-card').forEach(c => c.classList.remove('superimposed-card'));
-                    focusedColIndex = e.key === 'ArrowLeft' ? Math.max(0, focusedColIndex - 1) : Math.min(categories.length - 1, focusedColIndex + 1);
-                    setFocus(focusedColIndex);
+                    // Clear any bloom from previous Enter press when moving columns
+                    document.querySelectorAll('.superimposed-card, .guide-card.selected-card').forEach(c => {
+                        c.classList.remove('superimposed-card', 'selected-card');
+                    });
                     document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
+                    const prevIdx = focusedColIndex;
+                    focusedColIndex = e.key === 'ArrowLeft'
+                        ? Math.max(0, focusedColIndex - 1)
+                        : Math.min(categories.length - 1, focusedColIndex + 1);
+                    setFocus(focusedColIndex);
                     const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
-                    if(topCard) {
+                    if (topCard) {
                         topCard.classList.add('superimposed-card');
+                        // Brief column-change tick: card flicks slightly in direction of travel
+                        const dir = e.key === 'ArrowRight' ? 1 : -1;
+                        topCard.style.transition = 'transform 0.12s ease-out';
+                        topCard.style.transform = `translateY(-10px) scale(1.1) translateX(${dir * 4}px)`;
+                        setTimeout(() => { topCard.style.transform = ''; topCard.style.transition = ''; }, 130);
                         const tt = topCard.querySelector('.card-tooltip');
-                        if(tt) tt.classList.add('show');
+                        if (tt) tt.classList.add('show');
                     }
-                    return; // Prevent FPV movement
+                    // fall through — let arrow also move player (turn left/right)
                 } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
-                    e.preventDefault();
-                    document.querySelectorAll('.superimposed-card').forEach(c => c.classList.remove('superimposed-card'));
+                    // Cycle card within column while selector is open
+                    document.querySelectorAll('.superimposed-card, .guide-card.selected-card').forEach(c => {
+                        c.classList.remove('superimposed-card', 'selected-card');
+                    });
                     document.querySelectorAll('.card-tooltip').forEach(t => t.classList.remove('show'));
                     cycle(focusedColIndex, e.key === 'ArrowDown');
                     const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
-                    if(topCard) topCard.classList.add('superimposed-card');
-                    return; // Prevent FPV movement
+                    if (topCard) topCard.classList.add('superimposed-card');
+                    // fall through — let arrow also move player (forward/back)
                 }
             }
             
-            if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key) && !document.activeElement.classList.contains('chat-input') && document.activeElement.id !== 'bottom-panel') {
+            if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key) && document.activeElement.tagName !== 'INPUT') {
                 playAvatarAnim('walk');
             }
-            if (!document.activeElement.classList.contains('chat-input')) {
+            // T0.7 — When in keyboard card-select mode, lock player movement.
+            // Arrow + WASD keys are swallowed (used for card cycling instead).
+            const isMovementKey = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key);
+            if (window.isKeyboardSelectorActive && isMovementKey) {
+                return; // do not forward — engine sees no movement
+            }
+            // Always forward movement + global keys to engine; only block when typing in chat
+            if (document.activeElement.tagName !== 'INPUT') {
                 window.parent.postMessage({ type: 'KEY_DOWN', key: e.key, code: e.code }, '*');
             }
         });
@@ -3257,7 +3515,30 @@
             }, 1200); // Wait 1.2s then fade out
         };
 
+        // One-time setup: get pip canvas 2D context for engine frame blitting
+        const _pipEl = document.getElementById('pipCanvas');
+        const _pipCtx2d = _pipEl ? _pipEl.getContext('2d') : null;
+
         window.addEventListener('message', (e) => {
+            // ── PIP_FRAME: engine composited pip image → draw onto #pipCanvas ──
+            if (e.data && e.data.type === 'PIP_FRAME') {
+                if (!_pipCtx2d || !_pipEl) return;
+                const W = _pipEl.width  || _pipEl.clientWidth  || 160;
+                const H = _pipEl.height || _pipEl.clientHeight || 160;
+                if (_pipEl.width !== W) _pipEl.width = W;
+                if (_pipEl.height !== H) _pipEl.height = H;
+                const mw = document.getElementById('moondial-wrapper');
+                if (mw) mw.classList.toggle('cam-mode', !!e.data.isCam);
+                if (e.data.bitmap) {
+                    _pipCtx2d.drawImage(e.data.bitmap, 0, 0, W, H);
+                    e.data.bitmap.close && e.data.bitmap.close();
+                } else if (e.data.dataURL) {
+                    const img = new Image();
+                    img.onload = () => _pipCtx2d.drawImage(img, 0, 0, W, H);
+                    img.src = e.data.dataURL;
+                }
+                return;
+            }
             if (e.data && e.data.type === 'TOGGLE_INVENTORY') {
                 const invModal = document.getElementById('inventory-modal');
                 if (invModal.classList.contains('active')) {
@@ -3519,12 +3800,57 @@
                 window.currentMonsterGridDistance = Infinity;
                 document.getElementById('encounter-zone').classList.remove('active');
                 if (document.activeElement !== document.querySelector('.chat-input')) {
-                    document.getElementById('event-log-container').classList.remove('active');
+                    resetLogHideTimer();
                 }
                 loadDeck(defaultCategories); // Reset deck after combat
+                // Reclaim focus so keyboard events (movement, Enter, Space) resume immediately
+                if (document.activeElement && document.activeElement.tagName !== 'INPUT') {
+                    window.focus();
+                }
             } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
-                window.diceAttackSpin = 40.0; // Overdrive the dice icon spin!
-                // Player uses Empty Hand (bump attack) - Deck must be organically looted!
+                window.diceAttackSpin = 40.0;
+                // Auto-melee bump: switch to Combat deck, focus column, bloom the fired card
+                if (e.data.autoMelee) {
+                    const firedAction = (e.data.action || 'SLASH').toUpperCase();
+                    window.lastCombatAttack = firedAction;
+
+                    // Switch to combat deck (index 1) synchronously
+                    if (typeof window.switchDeck === 'function') window.switchDeck(1);
+
+                    // After the deck re-renders (one rAF), find+focus the right column and bloom it
+                    requestAnimationFrame(() => {
+                        // Find which col-N contains the fired action
+                        let targetCard = null, targetColIdx = -1;
+                        document.querySelectorAll('.card-column').forEach((col, ci) => {
+                            col.querySelectorAll('.guide-card').forEach(card => {
+                                const title = (card.querySelector('.card-title')?.textContent || '').toUpperCase();
+                                const cid   = (card.dataset.cardId || '').toUpperCase();
+                                if (title.includes(firedAction) || cid.includes(firedAction.replace(' ','_'))) {
+                                    if (!targetCard) { targetCard = card; targetColIdx = ci; }
+                                }
+                            });
+                        });
+
+                        // Focus the column so the column border lights up
+                        if (targetColIdx >= 0) setFocus(targetColIdx, false);
+
+                        if (targetCard) {
+                            // Full animation pipeline: flash → launch arc → melee bloom glow
+                            targetCard.classList.remove('melee-bloom', 'launching', 'enter-flash');
+                            void targetCard.offsetWidth; // force reflow to restart animation
+                            targetCard.classList.add('enter-flash');
+                            setTimeout(() => {
+                                targetCard.classList.remove('enter-flash');
+                                targetCard.classList.add('launching');
+                                setTimeout(() => {
+                                    targetCard.classList.remove('launching');
+                                    targetCard.classList.add('melee-bloom');
+                                    setTimeout(() => targetCard.classList.remove('melee-bloom'), 750);
+                                }, 200);
+                            }, 120);
+                        }
+                    });
+                }
                 if (avatarActions && avatarActions.slash) {
                     const slash = avatarActions.slash;
                     slash.reset();
@@ -3629,37 +3955,129 @@
             } else if (e.data && e.data.type === 'LOOT_CARDS') {
                 window.logEvent('LOOT AQUIRED: Tactical Katana Deck', 'system');
                 loadDeck(combatCategories);
+            } else if (e.data && e.data.type === 'AMMO_PICKUP') {
+                // Player walked over a recovered projectile — increment ammo badge by 1
+                const ammoName = e.data.card; // e.g. "SHURIKEN" or "SHORT BOW"
+                const _setAmmoBadge = (baseName, qty) => {
+                    document.querySelectorAll('.guide-card').forEach(card => {
+                        const titleEl = card.querySelector('.card-title');
+                        if (titleEl && (titleEl.textContent === baseName || titleEl.textContent.startsWith(baseName + ' x'))) {
+                            let badge = card.querySelector('.card-badge');
+                            if (!badge) { badge = document.createElement('div'); badge.className = 'card-badge'; card.appendChild(badge); }
+                            const prev = parseInt(card.dataset.qty) || 0;
+                            const next = prev + qty;
+                            badge.textContent = next;
+                            card.dataset.qty = next;
+                            // Quick amber flash on badge to confirm pickup
+                            badge.style.background = '#ffaa00';
+                            setTimeout(() => badge.style.background = '', 400);
+                        }
+                    });
+                };
+                _setAmmoBadge(ammoName, 1);
+                if (window.logEvent) window.logEvent(`+1 ${ammoName} recovered`, 'loot');
             } else if (e.data && e.data.type === 'ADD_CARD') {
                 const cardName = e.data.card;
                 if (!window.cardInventoryCounts) window.cardInventoryCounts = {};
-                window.cardInventoryCounts[cardName] = (window.cardInventoryCounts[cardName] || 1) + 1;
-                
-                const count = window.cardInventoryCounts[cardName];
-                if (count >= 2) {
-                    // Update all visual representations of this card
+
+                // --- Card Classification ---
+                // Ammo cards: badge tracks ammunition qty, never spawn a second card
+                const AMMO_CARDS = ['SHURIKEN', 'SHORT BOW', 'LONG BOW', 'CROSSBOW', 'DAGGER'];
+                // Skill cards: first pickup adds the card; duplicates grant +1 to linked stat
+                const SKILL_STAT_MAP = {
+                    'SLASH':        'str',
+                    'THRUST':       'str',
+                    'HEAVY ATTACK': 'str',
+                    'DEFEND':       'con',
+                    'SHIELD':       'con',
+                    'BOULDER':      'str',
+                    'FISSURE':      'str',
+                    'GALE':         'dex',
+                    'FIREBALL':     'int',
+                    'PYROBLAST':    'int',
+                    'COMET':        'int',
+                    'SURGE':        'wis',
+                    'TIDE':         'wis',
+                    'POTION':       'con',
+                    'HEAL POTION':  'con',
+                    'HELMET':       'con',
+                    'CHEST ARMOR':  'con',
+                };
+
+                // Parse qty suffix e.g. "SHURIKEN x5" → base="SHURIKEN", qty=5
+                const qtyMatch = cardName.match(/^(.+?)\s*x(\d+)$/i);
+                const baseName = qtyMatch ? qtyMatch[1].trim() : cardName;
+                const cardQty  = qtyMatch ? parseInt(qtyMatch[2]) : 1;
+                const baseUpper = baseName.toUpperCase();
+
+                const isAmmoCard  = AMMO_CARDS.some(n => baseUpper === n || baseUpper.includes(n));
+                const linkedStat  = SKILL_STAT_MAP[baseName] || null;
+                const isSkillCard = !!linkedStat;
+
+                // --- Helper: update badge on every visible card matching this name ---
+                const _applyBadge = (matchName, delta, absolute) => {
                     document.querySelectorAll('.guide-card').forEach(card => {
                         const titleEl = card.querySelector('.card-title');
-                        if (titleEl && titleEl.textContent === cardName) {
+                        if (!titleEl) return;
+                        const t = titleEl.textContent;
+                        if (t === matchName || t === baseName || t.startsWith(baseName + ' x')) {
                             let badge = card.querySelector('.card-badge');
                             if (!badge) {
                                 badge = document.createElement('div');
                                 badge.className = 'card-badge';
                                 card.appendChild(badge);
                             }
-                            badge.textContent = count;
-                            card.dataset.qty = count;
+                            const prev = parseInt(card.dataset.qty) || 0;
+                            const next = absolute !== undefined ? absolute : prev + delta;
+                            badge.textContent = next;
+                            card.dataset.qty = next;
+                            // Amber flash to confirm
+                            badge.style.background = '#ffaa00';
+                            setTimeout(() => { badge.style.background = ''; }, 400);
                         }
                     });
+                };
+
+                // --- Also update rangeCategories.qty so loadDeck rebuilds with correct count ---
+                const _syncCategoryQty = (matchName, delta) => {
+                    [spellCategories, combatCategories, rangeCategories, itemCategories].forEach(deck => {
+                        deck.forEach(cat => {
+                            if (cat.cards && cat.cards.some(c => c === matchName || c === baseName)) {
+                                cat.qty = (cat.qty || 0) + delta;
+                            }
+                        });
+                    });
+                };
+
+                const prevCount = window.cardInventoryCounts[baseName] || 0;
+                window.cardInventoryCounts[baseName] = prevCount + cardQty;
+
+                if (isAmmoCard) {
+                    // ── AMMO CARD: always just add to badge qty, never a new card ──
+                    _applyBadge(baseName, cardQty);
+                    _syncCategoryQty(baseName, cardQty);
+                    if (window.logEvent) window.logEvent(`+${cardQty} ${baseName} ammo`, 'loot');
+
+                } else if (isSkillCard && prevCount >= 1) {
+                    // ── SKILL CARD DUPLICATE: +1 stat, no new card ──
+                    window.parent.postMessage({ type: 'SKILL_UP', stat: linkedStat, amount: 1 }, '*');
+                    if (window.logEvent) window.logEvent(`${baseName} mastery: +1 ${linkedStat.toUpperCase()}`, 'loot');
+
+                } else {
+                    // ── NEW CARD (first pickup of any kind) ──
+                    // Nothing extra — the engine's spawnLootCard already placed the 3D loot;
+                    // Panels will show it via SHOW_LOOT_UI. Badge starts at cardQty if >1.
+                    if (cardQty > 1) _applyBadge(baseName, 0, cardQty);
+                    _syncCategoryQty(baseName, cardQty);
                 }
-                
+
                 // If inventory is open, refresh it
                 const invModal = document.getElementById('inventory-modal');
                 if (invModal && invModal.classList.contains('active')) {
                     window.renderInventory();
                 }
             } else if (e.data && e.data.type === 'LCD_EVENT') {
-                if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
-                window.logEvent(e.data.text || "SYS_ERR", 'system');
+                if (window.showLcdEvent) window.showLcdEvent(e.data.text, e.data.context);
             } else if (e.data && e.data.type === 'LOG_EVENT') {
                 window.logEvent(e.data.text || e.data.message, e.data.logType || 'system');
             } else if (e.data && e.data.type === 'PLAYER_MOVE') {
@@ -3670,42 +4088,62 @@
             } else if (e.data && e.data.type === 'RADAR_UPDATE') {
                 if (e.data.rot !== undefined) updateCompass(e.data.rot);
                 const radarOverlay = document.getElementById('radar-overlay');
-                if (radarOverlay && e.data.enemies) {
-                    // Reuse DOM elements instead of trashing layout 20x a second
-                    const existingBlips = radarOverlay.children;
-                    const maxDist = 15.0;
-                    
-                    for (let i = 0; i < e.data.enemies.length; i++) {
-                        const en = e.data.enemies[i];
-                        const cosR = Math.cos(e.data.rot);
-                        const sinR = Math.sin(e.data.rot);
-                        
-                        const localX = en.dx * cosR - en.dz * sinR;
-                        const localZ = en.dx * sinR + en.dz * cosR;
-                        
-                        const pctX = (localX / maxDist) * 50;
-                        const pctY = (localZ / maxDist) * 50;
-                        
-                        let blip = existingBlips[i];
+                // Support both old {enemies:[]} and new {blips:[]} payloads
+                const blips = e.data.blips || (e.data.enemies || []).map(en => ({ ...en, kind: 'enemy' }));
+                if (radarOverlay) {
+                    const rot = e.data.rot || 0;
+                    const cosR = Math.cos(rot);
+                    const sinR = Math.sin(rot);
+                    // Max display ranges per kind (tiles → pixels mapping within 150px radius)
+                    const RANGE = { enemy: 15, loot: 10, stairs: 20 };
+                    const RADIUS = 62; // px from center to edge of usable radar area
+
+                    // Reuse DOM blips keyed by index — no layout thrash
+                    const existing = radarOverlay.children;
+
+                    let shown = 0;
+                    for (let i = 0; i < blips.length; i++) {
+                        const b = blips[i];
+                        const maxDist = RANGE[b.kind] || 15;
+
+                        // Rotate dx/dz into player-facing space so forward = up on compass
+                        const localX =  b.dx * cosR - b.dz * sinR;
+                        const localZ =  b.dx * sinR + b.dz * cosR;
+
+                        // Clamp to radar circle edge
+                        const dist = Math.hypot(localX, localZ);
+                        const scale = Math.min(1.0, dist / maxDist);
+                        const angle = Math.atan2(localX, localZ); // note: X→right, Z→up
+                        const pxX = Math.sin(angle) * scale * RADIUS;
+                        const pxZ = Math.cos(angle) * scale * RADIUS;
+
+                        let blip = existing[shown];
                         if (!blip) {
                             blip = document.createElement('div');
                             blip.className = 'radar-blip';
                             radarOverlay.appendChild(blip);
                         }
-                        
-                        // Use CSS transform for hardware acceleration!
-                        // FIXED: Replaced radarOverlay.offsetWidth with hardcoded half-width (150px) to prevent 
-                        // synchronous DOM Layout Thrashing that was killing the FPS down to 10!
-                        const pxX = (pctX / 50) * 150;
-                        const pxY = (pctY / 50) * 150;
-                        blip.style.transform = `translate(${pxX}px, ${pxY}px)`;
+
+                        // Update kind class only when it changes
+                        if (!blip.classList.contains(b.kind)) {
+                            blip.className = `radar-blip ${b.kind}`;
+                        }
+
+                        // CSS vars drive the keyframe animations so they stay centred on the translated position
+                        blip.style.setProperty('--bx', `${pxX}px`);
+                        blip.style.setProperty('--bz', `${pxZ}px`);
+                        blip.style.transform = `translate(${pxX}px, ${pxZ}px)`;
                         blip.style.display = 'block';
+                        shown++;
                     }
-                    
-                    // Hide any extra blips
-                    for (let i = e.data.enemies.length; i < existingBlips.length; i++) {
-                        existingBlips[i].style.display = 'none';
+
+                    // Hide any extra blips from previous frame
+                    for (let i = shown; i < existing.length; i++) {
+                        existing[i].style.display = 'none';
                     }
+
+                    // Toggle indicator class for ring glow
+                    radarOverlay.classList.toggle('has-blips', shown > 0);
                 }
             } else if (e.data && e.data.type === 'PLAYER_MOVE_STATE') {
                 if (e.data.isMoving) {
@@ -3716,9 +4154,11 @@
                     resetLogHideTimer(); 
 
                     const walk = avatarActions ? avatarActions.walk : null;
-                    if (walk && avatarCurrentAction !== walk) {
+                    if (walk) {
                         walk.setEffectiveTimeScale(1.0);
-                        if (avatarCurrentAction) walk.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                        if (avatarCurrentAction && avatarCurrentAction !== walk) {
+                            walk.crossFadeFrom(avatarCurrentAction, 0.25, true);
+                        }
                         walk.play();
                         avatarCurrentAction = walk;
                     }
@@ -3728,10 +4168,12 @@
                     // Entering idle starts the hide timer
                     resetLogHideTimer();
 
-                    if (avatarIdleAction && avatarCurrentAction !== avatarIdleAction) {
+                    if (avatarIdleAction) {
                         const isWalkCycle = (avatarActions && avatarIdleAction === avatarActions.walk);
-                        avatarIdleAction.setEffectiveTimeScale(isWalkCycle ? 0.05 : 1.0);
-                        if (avatarCurrentAction) avatarIdleAction.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                        avatarIdleAction.setEffectiveTimeScale(isWalkCycle ? 0 : 1.0);
+                        if (avatarCurrentAction && avatarCurrentAction !== avatarIdleAction) {
+                            avatarIdleAction.crossFadeFrom(avatarCurrentAction, 0.3, true);
+                        }
                         avatarIdleAction.play();
                         avatarCurrentAction = avatarIdleAction;
                     } else if (!avatarIdleAction && avatarCurrentAction) {
@@ -3740,6 +4182,32 @@
                         setTimeout(() => { if (avatarCurrentAction && avatarCurrentAction.getEffectiveWeight() === 0) avatarCurrentAction.stop(); avatarCurrentAction = null; }, 300);
                     }
                 }
+            } else if (e.data && e.data.type === 'MISSILE_RECOVERED') {
+                // Engine tells us a missile (arrow/shuriken) survived — give +1 ammo back
+                const rName = (e.data.cardName || '').toUpperCase();
+                document.querySelectorAll('.guide-card').forEach(card => {
+                    const titleEl = card.querySelector('.card-title');
+                    if (!titleEl) return;
+                    const t = titleEl.textContent.toUpperCase();
+                    // Match by card name substring (e.g. "LONG BOW", "SHURIKEN x3")
+                    const base = rName.replace(/\s*X\d+$/, '').trim();
+                    if (!t.includes(base)) return;
+                    let badge = card.querySelector('.card-badge');
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = 'card-badge';
+                        card.appendChild(badge);
+                    }
+                    const prev = parseInt(card.dataset.qty) || 0;
+                    const next = prev + 1;
+                    badge.textContent = next;
+                    card.dataset.qty = next;
+                    card.style.pointerEvents = '';
+                    card.style.opacity = '';
+                    // Green flash to signal recovery
+                    badge.style.background = '#00cc55';
+                    setTimeout(() => { badge.style.background = ''; }, 600);
+                });
             } else if (e.data && e.data.type === 'SHOW_EXIT') {
                 showExitModal();
             } else if (e.data && e.data.type === 'HIDE_EXIT') {
@@ -3768,7 +4236,8 @@
             if (logHideTimeout) clearTimeout(logHideTimeout);
             logHideTimeout = setTimeout(() => {
                 const logCont = document.getElementById('event-log-container');
-                if (logCont && !isHoveringLog) logCont.classList.remove('active');
+                const ez = document.getElementById('encounter-zone');
+                if (logCont && !isHoveringLog && (!ez || !ez.classList.contains('active'))) logCont.classList.remove('active');
             }, 3000);
         }
 
@@ -3783,24 +4252,38 @@
         window.logEvent = function(text, type = 'system') {
             const container = document.getElementById('event-log-container');
             if (!container) return;
-            
+            if (text == null || text === '') return;
+
             // Auto open panel for any system or combat dialogue
             if (type === 'chat' || type === 'system' || type === 'damage' || type === 'room') {
                 container.classList.add('active');
-                // Any new event prevents auto-hide for another 3s
                 resetLogHideTimer();
             }
-            
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            
+
             let formattedText = text;
             if (type === 'chat' && !formattedText.includes('"')) {
                 formattedText = `"${formattedText}"`;
             }
+
+            // Dedup: if the most recent entry matches text + type, don't add a
+            // duplicate row. Instead increment a small ×N counter on it.
+            const last = container.lastElementChild;
+            if (last && last.dataset && last.dataset.logKey === `${type}:${formattedText}`) {
+                const prevCount = parseInt(last.dataset.logCount || '1', 10);
+                const nextCount = prevCount + 1;
+                last.dataset.logCount = String(nextCount);
+                // Re-render with count badge
+                last.innerHTML = `${formattedText} <span style="opacity:0.5;font-size:0.85em;font-weight:600;">\u00d7${nextCount}</span>`;
+                resetLogHideTimer();
+                return;
+            }
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.dataset.logKey = `${type}:${formattedText}`;
+            entry.dataset.logCount = '1';
             entry.innerHTML = formattedText;
             container.appendChild(entry);
-            // Cap history
             while (container.childNodes.length > 50) container.removeChild(container.firstChild);
             container.scrollTop = container.scrollHeight;
         };
@@ -3842,6 +4325,12 @@
         if (!pip) return;
         pip.style.display = 'block';
 
+        // Clear stale pip position saves from before DOM refactor (one-time migration)
+        if (!localStorage.getItem('origami_pip_v3')) {
+            localStorage.removeItem('origami_pip_state');
+            localStorage.setItem('origami_pip_v3', '1');
+        }
+
         const MIN_W = 200, MIN_H = 200;
         let isPiPDragging = false, mapRotating = false, mapPanning = false;
         let dragStart = { x: 0, y: 0, left: 0, top: 0 };
@@ -3851,15 +4340,27 @@
         // Post to master router
         function post(msg) { window.parent.postMessage(msg, '*'); }
 
+        // Debounced syncRect — only send when something actually changed.
+        // No polling interval: ResizeObserver + explicit drag/resize events drive this.
+        let _syncRectPending = false;
+        let _lastRect = null;
         function syncRect() {
-            const wrapper = document.getElementById('pipCanvas');
-            if (wrapper) {
+            if (_syncRectPending) return;
+            _syncRectPending = true;
+            requestAnimationFrame(() => {
+                _syncRectPending = false;
+                const wrapper = document.getElementById('pipCanvas');
+                if (!wrapper) return;
                 const r = wrapper.getBoundingClientRect();
-                post({ type: 'PIP_SYNC_RECT', width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom });
-            }
+                // Skip if nothing moved (avoids redundant postMessage+style mutations)
+                if (_lastRect &&
+                    r.width === _lastRect.width && r.height === _lastRect.height &&
+                    r.left  === _lastRect.left  && r.top    === _lastRect.top) return;
+                _lastRect = { width: r.width, height: r.height, left: r.left, top: r.top, bottom: r.bottom };
+                post({ type: 'PIP_SYNC_RECT', ..._lastRect });
+            });
         }
         window.syncRect = syncRect;
-        setInterval(syncRect, 50);
 
         // Prevent context menu
         pip.addEventListener("contextmenu", e => { 
@@ -3987,15 +4488,27 @@
                 const saved = localStorage.getItem('origami_pip_state');
                 if (saved) {
                     const state = JSON.parse(saved);
-                    if (state.left) pip.style.left = state.left;
-                    if (state.right) pip.style.right = state.right;
-                    if (state.top) pip.style.top = state.top;
-                    if (state.bottom) pip.style.bottom = state.bottom;
+                    const vw = window.innerWidth, vh = window.innerHeight;
+                    const pipW = parseInt(state.width) || 250;
+                    const pipH = parseInt(state.height) || 250;
+                    const savedLeft = parseInt(state.left);
+                    const savedTop = parseInt(state.top);
+                    // Clamp: if saved position would push pip off-screen, reset to flush top-left
+                    const maxTop = vh * 0.5; // Keep PIP in top half — away from the bottom action dock
+                    const safeLeft = (!isNaN(savedLeft) && savedLeft >= 0 && savedLeft + pipW <= vw) ? savedLeft : 20;
+                    const safeTop = (!isNaN(savedTop) && savedTop >= 0 && savedTop <= maxTop) ? savedTop : 20;
+                    pip.style.left = safeLeft + 'px';
+                    pip.style.top = safeTop + 'px';
+                    pip.style.right = 'auto';
+                    pip.style.bottom = 'auto';
                     if (state.width) pip.style.width = state.width;
                     if (state.height) pip.style.height = state.height;
+                } else {
+                    pip.style.left = '20px';
+                    pip.style.top = '20px';
                 }
             } catch (e) { console.error('Failed to load PiP state', e); }
-            setTimeout(syncRect, 50);
+            syncRect(); // single debounced call after state apply
         }
         
         window.loadPiPState = loadPiPState;
@@ -4048,10 +4561,11 @@
             let safeRight = vw - (safeLeft + rect.width);
             let safeBottom = vh - (safeTop + rect.height);
             
-            pip.style.left = isAnchorRight ? "auto" : safeLeft + "px";
-            pip.style.right = isAnchorRight ? safeRight + "px" : "auto";
-            pip.style.top = isAnchorBottom ? "auto" : safeTop + "px";
-            pip.style.bottom = isAnchorBottom ? safeBottom + "px" : "auto";
+            // Always anchor to left/top — switching to right/bottom causes the snap-to-center jerk
+            pip.style.left = safeLeft + "px";
+            pip.style.right = "auto";
+            pip.style.top = safeTop + "px";
+            pip.style.bottom = "auto";
             
             syncRect();
         }
@@ -4112,18 +4626,29 @@
         };
 
 
+        // Perspective preset buttons
+        pip.querySelectorAll('.pip-persp-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const preset = btn.dataset.preset;
+                pip.querySelectorAll('.pip-persp-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                // Pop animation
+                btn.style.transform = 'scale(1.25)';
+                setTimeout(() => { btn.style.transform = ''; }, 180);
+                post({ type: 'PIP_PERSPECTIVE', preset });
+            });
+        });
+
         // Initialize
         loadPiPState();
-        clampPiPIntoViewport(true);
         // Give layout a tick before measuring rect
         setTimeout(syncRect, 100);
         
         // Use ResizeObserver for perfect sync during ANY layout shifts, flex reflows, or browser resizes
         const ro = new ResizeObserver(() => {
-            clampPiPIntoViewport();
             syncRect();
         });
-        ro.observe(document.body);
         if (pip) ro.observe(pip);
         
     })();
@@ -4231,6 +4756,75 @@
         }
         requestAnimationFrame(animate);
     };
+
+    // ── i18n Runtime ─────────────────────────────────────────────────────────
+    // Applies the current locale to all data-i18n elements and live cards.
+    // Zero impact on engine/rendering — purely DOM text replacement.
+
+    window.currentLang = localStorage.getItem('origami_lang') || 'en';
+
+    function applyLocale(lang) {
+        window.currentLang = lang;
+        document.documentElement.lang = lang;
+        document.body.classList.toggle('lang-ja', lang === 'ja');
+        localStorage.setItem('origami_lang', lang);
+
+        // 1. Static UI strings via [data-i18n]
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            const val = window.t && window.t(key, lang);
+            if (val && val !== key) el.textContent = val;
+        });
+
+        // 2. Placeholder strings via [data-i18n-placeholder]
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.dataset.i18nPlaceholder;
+            const val = window.t && window.t(key, lang);
+            if (val && val !== key) el.placeholder = val;
+        });
+
+        // 3. Live cards in the deck — re-translate title/desc/attr in place
+        document.querySelectorAll('.guide-card[data-card-id]').forEach(card => {
+            const loc = window.tCard && window.tCard(card.dataset.cardId, lang);
+            if (!loc) return;
+            const titleEl = card.querySelector('.card-title');
+            const descEl  = card.querySelector('.card-desc');
+            const attrEl  = card.querySelector('.card-attr-fused');
+            if (titleEl) titleEl.textContent = loc.name;
+            if (descEl)  descEl.textContent  = loc.desc;
+            if (attrEl)  attrEl.textContent  = loc.attr;
+        });
+
+        // 4. Update flag button to show NEXT language
+        const flagEl = document.getElementById('lang-flag');
+        if (flagEl) flagEl.textContent = lang === 'en' ? '🇯🇵' : '🇺🇸';
+
+        // 5. Keep SLASH highlight search working across locales
+        window._slashCardName = window.t('slash-display', lang) || 'SLASH';
+    }
+
+    window.switchLanguage = function() {
+        const next = window.currentLang === 'en' ? 'ja' : 'en';
+        const flagEl = document.getElementById('lang-flag');
+
+        // Animate flag flip out → apply locale → flip back in
+        if (flagEl) {
+            flagEl.classList.add('flip');
+            setTimeout(() => {
+                applyLocale(next);
+                flagEl.classList.remove('flip');
+            }, 250);
+        } else {
+            applyLocale(next);
+        }
+
+        // Log change
+        const msg = next === 'ja' ? '🇯🇵 日本語モードに切り替えました。' : '🇺🇸 Switched to English.';
+        if (typeof window.logEvent === 'function') window.logEvent(msg, 'system');
+    };
+
+    // Apply on load (restores from localStorage or defaults to EN)
+    applyLocale(window.currentLang);
 </script>
 </body>
 </html>
