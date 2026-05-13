@@ -17,9 +17,9 @@
 | Blocked | 0 |
 | **Slice progress** | **~24%** |
 
-**Current task:** _T0.1 (Engine8.html Module Extraction) — launching subagent_
-**Last commit:** _T0.0 — chore(v8): bootstrap validation harness for constructor protocol (see `git log` for SHA)_
-**Last validated:** _T0.0 — 2026-05-13 — G-STATIC ✅, G-MODULE ✅, G-SMOKE ✅_
+**Current task:** _T0.1 (Engine8.html Module Extraction) — partial complete; < 600 line target requires GameState.js (see Decision Log)_
+**Last commit:** _T0.1.E — refactor(v8): T0.1.E — extract LootCardBuilder.js (see `git log` for SHA)_
+**Last validated:** _T0.1.E — 2026-05-13 — G-SMOKE ✅, lint:imports ✅ (6 modules, 0 cycles)_
 
 ---
 
@@ -46,7 +46,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 | ID | Task | Status | Deps | Commit |
 |---|---|:---:|---|---|
 | T0.0 | Validation Harness Bootstrap | ✅ | — | _git log_ |
-| T0.1 | Engine8.html Module Extraction | 🔲 | T0.0 | — |
+| T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | _see git log (T0.1.A–E)_ |
 | T0.2 | RAF tick try/catch | 🔲 | T0.1 | — |
 | T0.3 | Save/Load | 🔲 | T0.1 | — |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
@@ -108,6 +108,14 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 
 Every validated gate goes here with timestamp + result. Newest first.
 
+### 2026-05-13 — T0.1 Module Extraction (steps A–E, partial)
+- **G-MODULE**: ✅ — `npm run lint:imports` → `OK — 6 module(s) scanned, no cycles` (after step E)
+- **G-SMOKE**: ✅ — engine ready in 975ms, 0 uncaught errors over 30s observation window (after step E)
+- **Steps completed:** T0.1.A (PathFinder.js), T0.1.B (MapGen.js), T0.1.C (ProceduralTextures.js), T0.1.D (CardExecutor.js), T0.1.E (LootCardBuilder.js)
+- **Line reduction:** 6,283 → 5,007 (−1,276 lines, −20.3%)
+- **Modules created:** `js/v8/entities/PathFinder.js`, `js/v8/map/MapGen.js`, `js/v8/map/ProceduralTextures.js`, `js/v8/combat/CardExecutor.js`, `js/v8/entities/LootCardBuilder.js`
+- **Status:** Partial — see Decision Log 2026-05-13 "T0.1 < 600 line target requires GameState.js"
+
 ### 2026-05-13 — T0.0 Validation Harness Bootstrap
 - **G-STATIC**: ✅ — all 5 npm scripts present in [package.json](package.json), all 5 script files in [scripts/](scripts/) created.
 - **G-MODULE**: ✅ — `npm run lint:imports` → `OK — 1 module(s) scanned, no cycles`.
@@ -127,6 +135,13 @@ _None._
 ## Decision Log
 
 Significant choices made during execution (model substitutions, scope changes, gate replacements). Newest first.
+
+### 2026-05-13 — T0.1 < 600 line target requires GameState.js
+The spec requires Engine8.html < 600 lines. After extracting 5 pure-function modules (PathFinder, MapGen, ProceduralTextures, CardExecutor, LootCardBuilder), the file is at 5,007 lines. The remaining ~4,400 lines are all real-time simulation engine code that closes over shared mutable state: `scene`, `camera`, `px`, `pz`, `rot`, `map`, `monsterWrappers`, `mixers`, `DUNGEON_LEVEL`, etc. Every function in the remaining body reads from multiple module-level variables that change each RAF frame.
+
+True < 600 line extraction requires `js/v8/core/GameState.js` — a single mutable state object exported from a new module and passed by reference to each extracted system. Estimated refactoring scope: ~4 hours to create GameState, ~12 hours to thread it through 8 subsystems (Renderer, PlayerController, Clock, MapRenderer3D, PiPCamera, EntityManager, ProjectileSystem, MeleeSystem). This is a separate work session.
+
+**Decision:** Mark T0.1 as 🟡 in-progress (partial), not blocked. The extracted modules are working and tested. The < 600 target is noted as requiring GameState.js in the next session. All subsequent tasks (T0.2+) can proceed using the current Engine8.html — they reference specific functions/sections, not the overall line count.
 
 ### 2026-05-13 — Oni-Baba narrates the constructor (in-scope expansion of T0.0)
 The user instructed: "let Onibaba know what you are doing so she handles what she can." Added a `CONSTRUCTOR_EVENT` message type in [NewOrigami.8.html](NewOrigami.8.html) and a handler `_onConstructorEvent()` plus 5 new dialogue keys (`constructor_announce`, `constructor_validate`, `constructor_pass`, `constructor_fail`, `constructor_commit`) in [js/v8/OniBaba8.js](js/v8/OniBaba8.js). The smoke harness emits stage-tagged events so Oni-Baba narrates the build itself — visible both in the in-game LOG_EVENT panel and on the smoke test stdout. Bypasses her 4s `_speak()` throttle for diagnostic visibility. Scope was small and thematically fitting; recorded here as a decision rather than escalated to a new task.
@@ -149,12 +164,16 @@ Chromium under file:// gives each iframe an opaque origin, breaking the parent �
 
 ## Notes for the next AI session
 
-- The harness in [V8_CONSTRUCTOR.md §5](V8_CONSTRUCTOR.md) is **not built yet** — T0.0 must come first.
-- Engine8.html currently sets `ENGINE8_READY` via postMessage. T0.0 also adds `window.__engineReady = true` for the headless smoke test.
+- T0.1 is **partially complete** (5 modules extracted, Engine8.html at 5,007 lines). The < 600 line target needs `GameState.js`. See Decision Log 2026-05-13.
+- T0.2 (RAF try/catch) **can start now** — it targets the game loop at Engine8.html line ~4502 (`function _tick()` or the RAF entry point). T0.1 partial is sufficient as a dep.
+- T0.3 (Save/Load) can also start. It needs `js/v8/core/SaveSystem.js` (new file) and wiring into the stair-descent handler.
+- Engine8.html module import block is now at lines 470–499. Add new imports there.
+- Six js/v8 modules exist: OniBaba8.js, entities/PathFinder.js, entities/LootCardBuilder.js, map/MapGen.js, map/ProceduralTextures.js, combat/CardExecutor.js. No cycles.
 - Playwright is already in [node_modules/](node_modules/) — verify with `ls node_modules/playwright` before installing.
 - All work happens on branch `v8-session-20260511` (current branch). Do **not** branch off main.
-- Tag pattern for rollback checkpoints: `pre-T0.0`, `pre-T0.1`, …
+- Tag pattern for rollback checkpoints: `pre-T0.1`, `pre-T0.2`, …
 - Tag for ship: `v8.0-slice` (only at T4.6).
+- T0.6–T0.12 behaviors preserved: A* at Engine8.html ~3309, PIP cinematic at ~2617, hostile materials at ~3013, death phases in `_tickDyingMonsters` at ~4283, PIP_RT_SIZE=192, `.toNonIndexed()` before merges.
 
 ---
 
