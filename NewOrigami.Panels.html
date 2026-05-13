@@ -4232,12 +4232,30 @@
         let logHideTimeout = null;
         let isHoveringLog = false;
         
+        // T0.8 — Sidebar registry. While any sidebar is open the event log
+        // must stay visible (no fade). When all sidebars close, the timer
+        // resumes and fades the log after 3s of no new events.
+        function _isAnySidebarOpen() {
+            const ids = ['inventory-modal', 'settings-modal', 'exit-modal'];
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                if (el.classList.contains('active')) return true;
+                if (el.style && el.style.display === 'block') return true;
+            }
+            return false;
+        }
+
         function resetLogHideTimer() {
             if (logHideTimeout) clearTimeout(logHideTimeout);
             logHideTimeout = setTimeout(() => {
                 const logCont = document.getElementById('event-log-container');
                 const ez = document.getElementById('encounter-zone');
-                if (logCont && !isHoveringLog && (!ez || !ez.classList.contains('active'))) logCont.classList.remove('active');
+                if (!logCont) return;
+                if (isHoveringLog) return;
+                if (ez && ez.classList.contains('active')) return;
+                if (_isAnySidebarOpen()) return; // T0.8 — sidebar holds the log open
+                logCont.classList.remove('active');
             }, 3000);
         }
 
@@ -4247,6 +4265,35 @@
             logContEl.addEventListener('mouseenter', () => { isHoveringLog = true; clearTimeout(logHideTimeout); });
             logContEl.addEventListener('mouseleave', () => { isHoveringLog = false; resetLogHideTimer(); });
         }
+
+        // T0.8 — Wrap each known sidebar open/close so the log visibility rule fires.
+        // Sidebar OPEN  → force-show log + clear fade timer.
+        // Sidebar CLOSE → restart fade timer (will hide 3s later if no new events).
+        function _wrapSidebarToggle(openName, closeName) {
+            const origOpen  = window[openName];
+            const origClose = window[closeName];
+            if (typeof origOpen === 'function') {
+                window[openName] = function(...args) {
+                    const r = origOpen.apply(this, args);
+                    const lc = document.getElementById('event-log-container');
+                    if (lc) {
+                        lc.classList.add('active');
+                        clearTimeout(logHideTimeout);
+                    }
+                    return r;
+                };
+            }
+            if (typeof origClose === 'function') {
+                window[closeName] = function(...args) {
+                    const r = origClose.apply(this, args);
+                    resetLogHideTimer();
+                    return r;
+                };
+            }
+        }
+        _wrapSidebarToggle('openInventory', 'closeInventory');
+        _wrapSidebarToggle('openSettings',  'closeSettings');
+        _wrapSidebarToggle('showExitModal', 'hideExitModal');
 
         // Log System & Chat Input bindings
         window.logEvent = function(text, type = 'system') {
