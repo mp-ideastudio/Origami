@@ -4055,6 +4055,14 @@ let _lastCombatVisible = false;
 // Alert radius: all live monsters within ALERT_TILES grid-tiles of the HIT monster.
 const ALERT_TILES = 5;
 
+// T0.11 — Shared hostile-state materials (one allocation per scene, not per monster)
+// Materials are MeshBasicMaterial so we use color only — older code tried to set
+// .emissive on them which is undefined for Basic materials, silently failing.
+const _PED_CORE_MAT_HOSTILE   = new THREE.MeshBasicMaterial({ color: 0x8a0000 }); // dark red base
+const _PED_CAP_MAT_HOSTILE    = new THREE.MeshBasicMaterial({ color: 0xff2222 }); // bright red disc
+const _PED_BORDER_MAT_HOSTILE = new THREE.MeshBasicMaterial({ color: 0xff5555 }); // glow-red ring
+const _PED_ARROW_MAT_HOSTILE  = new THREE.MeshBasicMaterial({ color: 0xffe0e0, side: THREE.DoubleSide });
+
 function _setMonsterHostile(w){
     if(w.userData.isDead || w.userData.aiState === 'hostile') return;
     w.userData.aiState = 'hostile';
@@ -4062,38 +4070,16 @@ function _setMonsterHostile(w){
     // Cancel any in-progress bow greeting
     w.userData._bowTimer = 0;
     w.userData._bowPartnerPos = null;
-    // Japanese flag aesthetic: white outer ring (border) stays, inner disc → white,
-    // inner raised cap → red circle. Hostile reads instantly as rising-sun symbol.
+    // T0.11 — Swap disc materials to shared hostile set. Bright red rings instantly
+    // read as "this monster is now a threat". Reuses cached materials (no allocs).
     if(w.userData.monBase){
         w.userData.monBase.traverse(c=>{
             if(!c.isMesh) return;
             const geo = c.geometry?.type;
-            // Outer torus border → keep white but add emissive red glow
-            if(geo === 'TorusGeometry'){
-                c.material = c.material.clone();
-                c.material.color.set(0xffffff);
-                c.material.emissive.set(0xff2222);
-                c.material.emissiveIntensity = 0.8;
-            }
-            // Inner disc (CylinderGeometry baseCore) → white
-            if(geo === 'CylinderGeometry' && c.material.color?.getHex() === 0x09070f){
-                c.material = c.material.clone();
-                c.material.color.set(0xffffff);
-                c.material.emissive.set(0xffffff);
-                c.material.emissiveIntensity = 0.15;
-            }
-            // Inner raised cap (CylinderGeometry discCap) → red
-            if(geo === 'CylinderGeometry' && c.material.color?.getHex() === 0x1a0d2e){
-                c.material = c.material.clone();
-                c.material.color.set(0xdd0000);
-                c.material.emissive.set(0xff0000);
-                c.material.emissiveIntensity = 0.9;
-            }
-            // Arrow → red
-            if(geo === 'ShapeGeometry'){
-                c.material = c.material.clone();
-                c.material.color.set(0xcc0000);
-            }
+            if(geo === 'TorusGeometry')                                                  c.material = _PED_BORDER_MAT_HOSTILE;
+            else if(geo === 'CylinderGeometry' && c.material.color?.getHex() === 0x09070f) c.material = _PED_CORE_MAT_HOSTILE;
+            else if(geo === 'CylinderGeometry' && c.material.color?.getHex() === 0x1a0d2e) c.material = _PED_CAP_MAT_HOSTILE;
+            else if(geo === 'ShapeGeometry')                                              c.material = _PED_ARROW_MAT_HOSTILE;
         });
     }
 }
