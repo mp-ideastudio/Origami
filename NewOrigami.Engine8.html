@@ -460,12 +460,19 @@
     <div class="hud-row"><span class="hud-label">Budget</span><span><span class="hud-val" id="hud-pct">--</span><span class="hud-unit">%</span></span></div>
     <div class="bar-track"><div class="bar-fill" id="hud-bar" style="width:0%"></div></div>
   </div>
-<script>
+<script type="module">
 // ═══════════════════════════════════════════════════════════════════════════════
 // NewOrigami Engine v8 — Full Legacy Port
 // Ported from: js/engine/Core.js, WorldGen.js, Entities.js, Combat.js
 //              NewOrigami.FPV.2.html
 // ═══════════════════════════════════════════════════════════════════════════════
+
+// ── T0.1 Module Imports ────────────────────────────────────────────────────────
+// Three.js is loaded from CDN as a global script. Bind to module scope here so
+// existing THREE.X references continue to work without any changes downstream.
+const THREE = window.THREE;
+
+import { createPathFinder } from './js/v8/entities/PathFinder.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAP_W = 128, MAP_H = 128, GRID = 2;
@@ -681,6 +688,11 @@ function generateDungeonMap(level = 1) {
 function generateCastleMap(){ return generateDungeonMap(1); }
 
 const {map,rooms,spawnX,spawnZ,mobSpawns} = generateCastleMap();
+
+// ── T0.1: Wire up PathFinder module ──────────────────────────────────────────
+// createPathFinder closes over map+dimensions and returns monAStar.
+// Assigned to _monAStar so the tickMonsterAI call site (line ~4502) is unchanged.
+const { monAStar: _monAStar } = createPathFinder(map, MAP_W, MAP_H);
 
 // ── Room Descriptions — built from procedural room data ──────────────────────
 // getRoomDesc(roomId) returns {name, kanji, desc} for the event log.
@@ -4304,68 +4316,10 @@ function _pickWanderTarget(monBase, roomId){
 }
 
 // ── A* chase pathfinding ─────────────────────────────────────────────────────
-// Grid-based, 4-directional, Manhattan heuristic, capped at MAX_NODES
-// expansions. Cached per-monster in ud.aiPath; recomputed when stale or
-// blocked. Returns array of [gx,gz] tuples from start to goal, or null.
-const _MON_A_STAR_MAX = 200;
-function _monAStar(sx, sz, gx, gz){
-    if(sx === gx && sz === gz) return [[sx,sz]];
-    // Bail fast if goal is in a wall
-    const goalCell = map[gx]?.[gz];
-    if(!goalCell || goalCell.type === 'wall') return null;
-
-    const open = [{gx:sx, gz:sz, f: Math.abs(sx-gx)+Math.abs(sz-gz)}];
-    const gScore = new Map();
-    const cameFrom = new Map();
-    const sk = sx + ',' + sz;
-    gScore.set(sk, 0);
-    const closed = new Set();
-    let expanded = 0;
-
-    while(open.length && expanded < _MON_A_STAR_MAX){
-        // O(n) min — n stays small for short chase paths
-        let bestIdx = 0;
-        for(let i=1; i<open.length; i++) if(open[i].f < open[bestIdx].f) bestIdx = i;
-        const cur = open.splice(bestIdx, 1)[0];
-        const ck = cur.gx + ',' + cur.gz;
-        if(cur.gx === gx && cur.gz === gz){
-            // reconstruct
-            const path = [[cur.gx, cur.gz]];
-            let k = ck;
-            while(cameFrom.has(k)){
-                k = cameFrom.get(k);
-                const [px2,pz2] = k.split(',').map(Number);
-                path.unshift([px2, pz2]);
-            }
-            return path;
-        }
-        closed.add(ck);
-        expanded++;
-        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-        for(let d=0; d<4; d++){
-            const nx = cur.gx + dirs[d][0];
-            const nz = cur.gz + dirs[d][1];
-            if(nx<0||nx>=MAP_W||nz<0||nz>=MAP_H) continue;
-            const cell = map[nx]?.[nz];
-            if(!cell || cell.type === 'wall') continue;
-            const nk = nx + ',' + nz;
-            if(closed.has(nk)) continue;
-            const tg = (gScore.get(ck) ?? Infinity) + 1;
-            if(tg < (gScore.get(nk) ?? Infinity)){
-                cameFrom.set(nk, ck);
-                gScore.set(nk, tg);
-                const f = tg + Math.abs(nx-gx) + Math.abs(nz-gz);
-                // Replace or push
-                let foundOpen = false;
-                for(let i=0; i<open.length; i++){
-                    if(open[i].gx===nx && open[i].gz===nz){ open[i].f = f; foundOpen = true; break; }
-                }
-                if(!foundOpen) open.push({gx:nx, gz:nz, f});
-            }
-        }
-    }
-    return null;
-}
+// Extracted to js/v8/entities/PathFinder.js (T0.1.A).
+// _monAStar is wired up at map-creation time (see T0.1 wire-up near line 690).
+// The const declaration below is a fallback no-op guard — in normal flow the
+// import at the top of this module provides _monAStar via createPathFinder().
 
 const _atkVec3 = new THREE.Vector3(); // reused in hostile attack — no per-frame alloc
 function tickMonsterAI(dt){
