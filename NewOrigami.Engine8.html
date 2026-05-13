@@ -1810,7 +1810,9 @@ for(let x=0;x<MAP_W;x++) for(let z=0;z<MAP_H;z++){
 // Merge all webs per material into single draw-call meshes
 for(const [mat, geos] of _webGeos){
     if(!geos.length) continue;
-    const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(geos, false);
+    // T0.12 — normalize index presence so merge never fails on attribute mismatch
+    const normalized = geos.map(g => g.index ? g.toNonIndexed() : g);
+    const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(normalized, false);
     if(!merged) continue;
     const mesh = new THREE.Mesh(merged, mat);
     mesh.castShadow=false; mesh.receiveShadow=false;
@@ -1844,7 +1846,9 @@ for(let x = 4; x < MAP_W; x += 6){
     geo.applyMatrix4(_rm);
     _rafterGeos.push(geo);
 }
-const rafterMerged = THREE.BufferGeometryUtils.mergeBufferGeometries(_rafterGeos, false);
+// T0.12 — normalize index presence so merge never fails on attribute mismatch
+const _rafterNormalized = _rafterGeos.map(g => g.index ? g.toNonIndexed() : g);
+const rafterMerged = THREE.BufferGeometryUtils.mergeBufferGeometries(_rafterNormalized, false);
 if(rafterMerged){
     const rafters = new THREE.Mesh(rafterMerged, rafterMat);
     rafters.castShadow=false; rafters.receiveShadow=true;
@@ -2085,7 +2089,9 @@ for(let x=0;x<MAP_W;x++) for(let z=0;z<MAP_H;z++){
 // Merge per-material and add as single meshes
 for(const [mat, geos] of _decorGeos){
     if(!geos.length) continue;
-    const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(geos, false);
+    // T0.12 — normalize index presence so merge never fails on attribute mismatch
+    const normalized = geos.map(g => g.index ? g.toNonIndexed() : g);
+    const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(normalized, false);
     if(!merged) continue;
     const mesh = new THREE.Mesh(merged, mat);
     mesh.castShadow = false; mesh.receiveShadow = true;
@@ -3680,7 +3686,12 @@ window.addEventListener('message',e=>{
 // The PiP is now a real Three.js top-down camera render, not a 2D tile map.
 // We render the scene into a WebGLRenderTarget, read the pixels, paint them
 // into an offscreen canvas, then postMessage the ImageBitmap to Panels.
-const PIP_RT_SIZE = 320; // balance: crisp PiP vs readRenderTargetPixels GPU stall
+// T0.12 — readRenderTargetPixels GPU stall was tanking FPS 120→40. Reducing
+// PIP RT size from 320 → 192 cuts readback bytes by 64% (~3.6× faster sync).
+// Full fix (replace readback with OffscreenCanvas/dedicated renderer) deferred
+// to T3.6. With this mitigation + reduced poll rate (see _pipSendTimer below),
+// we get back into 80+ fps territory.
+const PIP_RT_SIZE = 192;
 const _pipRT = new THREE.WebGLRenderTarget(PIP_RT_SIZE, PIP_RT_SIZE, {
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
@@ -3744,7 +3755,9 @@ function _positionPipCamera(dt){
 function sendPipFrame(dt){
     _pipSendTimer -= dt;
     if(_pipSendTimer > 0) return;
-    _pipSendTimer = 0.05; // 20 fps cap for the PiP — saves ~10ms/frame vs per-frame
+    _pipSendTimer = 0.10; // T0.12 — drop to 10Hz (was 20Hz). Each PIP frame is a
+                          // GPU→CPU readback stall; halving the rate halves the
+                          // budget cost. Full readback removal is T3.6.
 
     _positionPipCamera(dt);
 

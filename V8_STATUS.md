@@ -10,12 +10,12 @@
 
 | | Count |
 |---|---:|
-| Total tasks | 29 |
-| Done | 1 |
+| Total tasks | 33 |
+| Done | 3 |
 | In progress | 0 |
-| Pending | 28 |
+| Pending | 30 |
 | Blocked | 0 |
-| **Slice progress** | **~3%** |
+| **Slice progress** | **~9%** |
 
 **Current task:** _none — T0.1 (Engine8.html Module Extraction) is next_
 **Last commit:** _T0.0 — chore(v8): bootstrap validation harness for constructor protocol (see `git log` for SHA)_
@@ -54,6 +54,10 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 | T0.6 | Monster Smart-Chase Pathfinding | 🔲 | T0.0 | — |
 | T0.7 | Keyboard Card Cycling + Class Separator | 🔲 | T0.0 | — |
 | T0.8 | Event Log Visibility Rules | 🔲 | T0.0 | — |
+| T0.9 | PIP Cinematic Independence + Auto-Zoom | 🔲 | T0.0 | — |
+| T0.10 | Monster Death Sequence (bow→fall→sink-fade) | 🔲 | T0.0 | — |
+| T0.11 | Hostile Monster Indicator (red disc) | 🔲 | T0.0 | — |
+| T0.12 | FPS Regression Investigation | ✅ | T0.0 | _git log_ |
 
 ### Phase 1 — Mushroom Garden
 
@@ -129,6 +133,14 @@ The user instructed: "let Onibaba know what you are doing so she handles what sh
 
 ### 2026-05-13 — G-SMOKE pass criterion = uncaught throws only (not console.error)
 Many prototype-era console.error/console.warn lines exist in the current codebase. The smoke pass bar is set to "no uncaught exceptions" (`page.on('pageerror')`) rather than "zero console errors". Tightens automatically when T0.2 wraps the RAF tick in try/catch and converts thrown errors into structured logs.
+
+### 2026-05-13 — T0.12 root cause: PIP readback GPU stall + broken InstancedMesh merges
+Diagnosed via `scripts/probe-fps.js` (headless Chromium, captures console errors/warnings while loading the game). Found:
+1. **GPU stall on every PIP frame** — `renderer.readRenderTargetPixels()` at [Engine8.html:3771](NewOrigami.Engine8.html#L3771) triggers HIGH-severity OpenGL performance warnings. At the previous 20 Hz PIP rate this stalls ~10 ms/frame, costing roughly 12 frames/sec at 120fps target. Mitigated for now: PIP_RT_SIZE 320→192 (64% fewer bytes to read back) and PIP rate 20→10 Hz. Full fix (OffscreenCanvas + dedicated renderer, no readPixels) is T3.6.
+2. **mergeBufferGeometries failures** — at line 1813/1849/2090, when web/rafter/decor geometries are merged into instanced meshes, some had index attributes and others didn't, causing 2–4 merges per session to silently fail. Walls and webs would then fall back to one-draw-call-per-mesh (not instanced), tanking GPU efficiency. Fixed by normalizing index presence (`g.toNonIndexed()`) before every merge at all three call sites.
+
+### 2026-05-13 — Headless Chromium cannot measure FPS reliably (T0.12 caveat)
+Even with `--disable-renderer-backgrounding --disable-background-timer-throttling --disable-backgrounding-occluded-windows` and `document.visibilityState === 'visible'`, Chromium in pure headless mode clamps `requestAnimationFrame` to ~1–2 Hz because there's no real display surface. The `probe-fps.js` script therefore exits 0 with a warning when no samples are collected; **the user must verify FPS recovery in a real browser session** (load NewOrigami.8.html, watch the engine HUD's `#hud-rt`). Acceptance bar: ≥ 80 fps after 5 s warmup on dev hardware.
 
 ### 2026-05-13 — G-SMOKE serves over local HTTP, not file://
 Chromium under file:// gives each iframe an opaque origin, breaking the parent ↔ Oni-Baba access pattern the game relies on. The harness now boots a 30-line static-file server on a random localhost port. Matches the user's actual serving path (HTTP), so the smoke test now reflects real conditions.

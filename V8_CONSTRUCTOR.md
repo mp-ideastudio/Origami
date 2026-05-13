@@ -382,6 +382,107 @@ cannot make it pass, do NOT commit — report the failure and stop.
 
 ---
 
+### T0.9 — PIP Cinematic Independence + Auto-Zoom
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 4h
+**Inserted:** 2026-05-13 — user playtest: PIP controls still bleed into main canvas
+
+**Goal:**
+- PIP buttons (zoom, rotate, pan, perspective) affect ONLY the PIP view; main canvas remains untouched.
+- PIP-side state persists across the session.
+- When the player avatar is occluded behind a wall, the PIP swings cinematically to find an unblocked angle.
+- When a monster is in an adjacent tile, PIP auto-zooms so both tiles are fully framed.
+
+**Touch:** [NewOrigami.Engine8.html](NewOrigami.Engine8.html) — PIP camera section (line 3680+), `PIP_*` postMessage handlers (line 95 region in launcher already routes them).
+
+**Spec:**
+- PIP camera state is its own object (`pipCam = { x, y, z, fov, persistKey }`); main camera (`camera`) is never mutated by PIP messages.
+- Add `pipCinematic.swingForOcclusion()` — raycast camera→player; if blocked, orbit the PIP camera around the player by 30° increments until unblocked.
+- Add `pipCinematic.autoZoom()` — every 0.5s, find nearest hostile monster; if within 2 tiles, set PIP fov/distance so both player + monster tiles are framed with ~10% margin.
+- Persist PIP state in localStorage key `origami.v8.pip` (read on engine ready).
+
+**Gates:**
+- [ ] G-STATIC: `grep "pipCam" NewOrigami.Engine8.html` ≥ 5 matches; no `PIP_ZOOM` handler mutates `camera.*` outside `pipCam`
+- [ ] G-SMOKE: passes
+- [ ] G-PLAY-40 (isolation): press PIP zoom button → only PIP changes
+- [ ] G-PLAY-41 (occlusion swing): position player behind a corner → PIP camera swings to clear angle
+- [ ] G-PLAY-42 (auto-zoom): monster moves into adjacent tile → PIP zooms to frame both
+
+**Commit:** `feat(v8): PIP cinematic camera — isolated from main, auto-zoom + occlusion swing`
+
+---
+
+### T0.10 — Monster Death Sequence
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 2h
+**Inserted:** 2026-05-13 — user playtest: death feels abrupt
+
+**Goal:** Monster death plays bow → fall → sink-fade through the floor.
+
+**Touch:** [NewOrigami.Engine8.html](NewOrigami.Engine8.html) — death handling (currently in `_handleMonsterHit` / `MONSTER_DEATH` region near line 5341).
+
+**Spec:**
+- New 3-phase death state machine on `ud.deathPhase`:
+  1. `bow` (0.8s) — play bow animation clip, no movement, no AI.
+  2. `fall` (0.6s) — root forward fall (lerp rotation.x → −π/2), translation Y stays.
+  3. `sink` (1.4s) — translate Y from 0 → −1.5, opacity 1 → 0 via material.transparent + opacity.
+- Total ~2.8s. After `sink` complete, dispose mesh.
+- During death, AI loop early-returns on `ud.isDead`. Already the case — just route to new phases.
+
+**Gates:**
+- [ ] G-STATIC: `grep "deathPhase" NewOrigami.Engine8.html` ≥ 4 matches
+- [ ] G-SMOKE: passes
+- [ ] G-PLAY-43 (death sequence): kill a monster → see bow, then fall, then sink-fade
+- [ ] G-PERF: 5 simultaneous deaths → ≥ 60fps
+
+**Commit:** `feat(v8): monster death plays bow → fall → sink-fade`
+
+---
+
+### T0.11 — Hostile Monster Indicator (Red Circle)
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 1h
+**Inserted:** 2026-05-13 — user playtest: no visual cue for hostile state
+
+**Goal:** Monster base disc turns red when hostile. Room-wide: any monster attack alerts all monsters in the room, all turn red.
+
+**Touch:** [NewOrigami.Engine8.html](NewOrigami.Engine8.html) — `_alertRoom` (line 4090) and base disc material assignment.
+
+**Spec:**
+- Cache `_DISC_MAT_NEUTRAL` and `_DISC_MAT_HOSTILE` (red emissive). Both reused across all monsters — no per-monster material allocation.
+- On `aiState` transition to `'hostile'`: swap base disc material to hostile.
+- On transition back to `'idle'` (rare; tamed): swap to neutral.
+- `_alertRoom` already iterates all monsters in the room — just call the material swap inside that loop.
+
+**Gates:**
+- [ ] G-STATIC: `grep "DISC_MAT_HOSTILE" NewOrigami.Engine8.html` ≥ 3 matches
+- [ ] G-SMOKE: passes
+- [ ] G-PLAY-44 (hostile color): hit one monster in a room of 3 → all 3 disc circles turn red within 1 frame
+
+**Commit:** `feat(v8): monster base disc turns red when hostile (room-wide alert)`
+
+---
+
+### T0.12 — FPS Regression Investigation
+**Phase:** 0 Foundation · **Deps:** T0.0 · **Effort:** 2h
+**Inserted:** 2026-05-13 — user playtest: 120 → 40 fps regression
+
+**Goal:** Identify the cost source and bring main view ≥ 60fps. Root-cause, not symptom-patch.
+
+**Touch:** [NewOrigami.Engine8.html](NewOrigami.Engine8.html) — wherever the hot path is.
+
+**Spec:**
+- Add `scripts/probe-fps.js` (Playwright harness) that reads `#hud-rt` after a 5s warmup and reports realtime + projected fps + budget %.
+- If realtime < 80 fps on the smoke test machine, drill into the engine: profile via Chrome DevTools Performance tab. Most likely suspects: PIP readback GPU stall, monster animation mixers, per-frame allocations.
+- Once root cause identified, document in V8_STATUS.md Decision Log, fix, re-probe.
+
+**Gates:**
+- [ ] G-STATIC: `scripts/probe-fps.js` exists, exits 0 when realtime ≥ 80 fps
+- [ ] G-PERF: realtime ≥ 80 fps after 5s warmup in smoke harness
+- [ ] G-SMOKE: still passes
+- [ ] Root cause documented in Decision Log
+
+**Commit:** `perf(v8): fix FPS regression (root cause documented in V8_STATUS)`
+
+---
+
 ### T1.1 — Floor 1 Hand-Authored Layout
 **Phase:** 1 Mushroom Garden · **Deps:** T0.1, T0.3 · **Effort:** 4h
 
