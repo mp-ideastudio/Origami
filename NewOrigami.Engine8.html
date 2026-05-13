@@ -480,6 +480,13 @@ import {
     createSpiderwebVariantD, createSpiderwebVariantE, createSpiderwebVariantF,
     createDungeonTopTexture, createShojiTexture, createShojiDoorTexture, makePaperTexture
 } from './js/v8/map/ProceduralTextures.js';
+import {
+    MISSILE_TABLE, CARD_TYPES, EL_COLORS,
+    cardElement as _cardElement, cardCategory as _cardCategory,
+    getMissileTable as _getMissileTable,
+    isMissileCard as _isMissileCard, isShurikenCard as _isShuriken,
+    createCombatCalc
+} from './js/v8/combat/CardExecutor.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAP_W = 128, MAP_H = 128, GRID = 2;
@@ -3927,97 +3934,16 @@ function tickMonsterAI(dt){
 }
 
 // ── Combat System ─────────────────────────────────────────────────────────────
+// MISSILE_TABLE, CARD_TYPES, EL_COLORS, _cardElement, _cardCategory,
+// _getMissileTable, _isMissileCard, _isShuriken → js/v8/combat/CardExecutor.js
 // DUNGEON_LEVEL is declared as `let` at the top of the generator — it mutates on descent.
 const playerStats = { level:1, skill:5 }; // bumped by SYNC_STATS
 
-// Missile damage tables: [min, max, critChance, critMult]
-const MISSILE_TABLE = {
-    SHURIKEN:  { min:10, max:30, crit:0.20, critMult:2.0 },
-    SHORT_BOW: { min:30, max:60, crit:0.15, critMult:1.8 },
-    LONG_BOW:  { min:40, max:100,crit:0.12, critMult:2.2 },
-    DEFAULT:   { min:10, max:25, crit:0.10, critMult:1.5 }
-};
-
-// Non-missile card types (melee / items)
-const CARD_TYPES = {
-    SPELL:    { baseDmg:10, scaling:1.0 }, // overridden by calcSpellDamage
-    COMBAT:   { baseDmg:14, scaling:1.1 },
-    ITEM:     { baseDmg:6,  scaling:0.8 },
-    SLASH:    { baseDmg:16, scaling:1.2 },
-    DEFAULT:  { baseDmg:10, scaling:1.0 }
-};
-
-// Elemental colour palette for projectile VFX
-const EL_COLORS = {
-    FIRE:   { beam:0xff5500, spark:0xffaa00, hit:0xff2200 },
-    WATER:  { beam:0x00aaff, spark:0x88ddff, hit:0x0066ff },
-    EARTH:  { beam:0x885522, spark:0xccaa55, hit:0x553300 },
-    WIND:   { beam:0x88ffcc, spark:0xccffee, hit:0x44ddaa },
-    VOID:   { beam:0xaa00ff, spark:0xff88ff, hit:0x6600cc },
-    DEFAULT:{ beam:0xffffff, spark:0xddffff, hit:0xaaaaff }
-};
-
-function _cardElement(name){
-    const n = (name||'').toUpperCase();
-    if(/FIRE|FLAME|INFERNO|PYRO/.test(n)) return 'FIRE';
-    if(/WATER|WAVE|AQUA|TIDE|FLOOD/.test(n)) return 'WATER';
-    if(/EARTH|ROCK|STONE|BOULDER|QUAKE/.test(n)) return 'EARTH';
-    if(/WIND|AIR|STORM|GALE|CYCLONE/.test(n)) return 'WIND';
-    if(/VOID|SHADOW|DARK|DEATH/.test(n)) return 'VOID';
-    return 'DEFAULT';
-}
-
-function _cardCategory(name){
-    const n = (name||'').toUpperCase();
-    if(/FIREBALL|LIGHTNING|SPELL|ARCANE|BOLT|BLAST|NOVA/.test(n)) return 'SPELL';
-    if(/SLASH|STRIKE|THRUST|HEAVY|SWORD|KATANA|BLADE/.test(n)) return 'COMBAT';
-    if(/POTION|SCROLL|LANTERN|ITEM|RING/.test(n)) return 'ITEM';
-    if(/BOW|SHURIKEN|DAGGER|ARROW|CROSSBOW|MISSILE/.test(n)) return 'MISSILE';
-    return 'DEFAULT';
-}
-
-function _getMissileTable(cardName){
-    const n = (cardName||'').toUpperCase();
-    if(/SHURIKEN|THROWING STAR/.test(n)) return { ...MISSILE_TABLE.SHURIKEN, isCrit: false };
-    if(/LONG BOW|LONGBOW/.test(n))        return { ...MISSILE_TABLE.LONG_BOW,  isCrit: false };
-    if(/SHORT BOW|SHORTBOW/.test(n))      return { ...MISSILE_TABLE.SHORT_BOW, isCrit: false };
-    if(/CROSS ?BOW/.test(n))              return { ...MISSILE_TABLE.SHORT_BOW, isCrit: false };
-    return { ...MISSILE_TABLE.DEFAULT, isCrit: false };
-}
-
-function calcMissileDamage(cardName){
-    const tbl = _getMissileTable(cardName);
-    // dungeon level scales the max range up by 10% per level, keeps level 1 easy
-    const dungScale = 1 + (DUNGEON_LEVEL - 1) * 0.10;
-    const lo = tbl.min;
-    const hi = Math.round(tbl.max * dungScale);
-    let dmg = lo + Math.floor(Math.random() * (hi - lo + 1));
-    const isCrit = Math.random() < tbl.crit;
-    if(isCrit) dmg = Math.round(dmg * tbl.critMult);
-    return { dmg, isCrit };
-}
-
-function calcSpellDamage(cardName){
-    // Base × level × floor, then roll a random 2×–6× power multiplier per cast.
-    // Level 1 goblins (50hp): expect 20–120 per spell — spells feel magical & dangerous.
-    const base = 10 * playerStats.level * DUNGEON_LEVEL;
-    const roll = 0.75 + Math.random() * 0.5;
-    const powerMult = 2 + Math.random() * 4; // 2× to 6× variance — wild spell power
-    return Math.round(base * roll * powerMult);
-}
-
-function calcDamage(cardName){
-    // Missiles are handled separately via calcMissileDamage
-    if(_isMissileCard(cardName)) return calcMissileDamage(cardName).dmg;
-    const cat = _cardCategory(cardName);
-    if(cat === 'SPELL') return calcSpellDamage(cardName);
-    const { baseDmg, scaling } = CARD_TYPES[cat] || CARD_TYPES.DEFAULT;
-    const lvlBonus  = 1 + (playerStats.level - 1) * 0.12;
-    const dungMult  = 1 + (DUNGEON_LEVEL - 1) * 0.10;
-    const raw = baseDmg * scaling * lvlBonus * dungMult;
-    const roll = 0.80 + Math.random() * 0.40;
-    return Math.round(raw * roll);
-}
+// Wire-up: bind damage calc functions to live DUNGEON_LEVEL / playerStats refs
+const { calcDamage, calcMissileDamage, calcSpellDamage } = createCombatCalc(
+    () => DUNGEON_LEVEL,
+    () => playerStats
+);
 
 // ── Active boulder list (for physics tick) ───────────────────────────────────
 const activeBoulders = [];
@@ -4231,14 +4157,7 @@ function _obAutoTarget(cardName, dmg){
     return best;
 }
 
-function _isMissileCard(name){
-    const n = (name||'').toUpperCase();
-    return /LONG BOW|LONGBOW|SHORT BOW|SHORTBOW|BOW|SHURIKEN|CROSSBOW|BOLT|DAGGER|THROWING/.test(n);
-}
-
-function _isShuriken(name){
-    return /SHURIKEN|THROWING STAR|STAR/.test((name||'').toUpperCase());
-}
+// _isMissileCard, _isShuriken → imported from js/v8/combat/CardExecutor.js
 
 function launchMissile(cardName, recoveryCallback){
     const isShuriken = _isShuriken(cardName);
