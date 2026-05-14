@@ -88,6 +88,18 @@
         case 'REALITY_SHIFT': case 'KARMA_UPDATE':
           to(fpv, ev); to(panels, ev); break;
 
+        // T0.26 — Oni-Baba's combat brain → Engine
+        case 'SYNC_COMBAT_PARAMS':
+          to(fpv, ev); break;
+
+        // T0.26 — Engine → Oni-Baba (already listens via window message)
+        // No forwarding needed — these stay in the parent window where
+        // oniBaba8 listens directly.
+        case 'COMBAT_RECORD':
+        case 'MONSTER_AI_STATE':
+        case 'PLAYER_POS':
+          break;
+
         // Panels → Engine
         case 'FPV_ACTION': case 'KEY_DOWN': case 'KEY_UP': case 'EQUIP_CARD':
         case 'WAGER': case 'ATTACK': case 'RETREAT': case 'PARLEY': case 'SPARE':

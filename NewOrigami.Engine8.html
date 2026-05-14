@@ -3074,6 +3074,10 @@ function _setMonsterHostile(w){
     if(w.userData.isDead || w.userData.aiState === 'hostile') return;
     w.userData.aiState = 'hostile';
     w.userData.isHostile = true;
+    // T0.26 — Notify Oni-Baba so she can record the AI-state transition
+    window.parent.postMessage({type:'MONSTER_AI_STATE',
+        id: w.userData.id, state: 'hostile',
+        x: w.position.x/GRID, z: w.position.z/GRID}, '*');
     // Cancel any in-progress bow greeting
     w.userData._bowTimer = 0;
     w.userData._bowPartnerPos = null;
@@ -3541,6 +3545,59 @@ function tickMonsterAI(dt){
 // DUNGEON_LEVEL is declared as `let` at the top of the generator — it mutates on descent.
 const playerStats = { level:1, skill:5 }; // bumped by SYNC_STATS
 
+// ── T0.26 — CENTRAL COMBAT BRAIN ─────────────────────────────────────────────
+// All damage events in the game funnel through _oniBabaResolveCombat().
+// `_combatBrain.params` mirrors oniBaba8.combat.params; she pushes updates via
+// SYNC_COMBAT_PARAMS whenever mood/karma/hive shifts. Engine reads its local
+// copy synchronously so resolution stays in-frame. Every resolved attack is
+// reported back to her with COMBAT_RECORD for AI learning + history.
+const _combatBrain = {
+    params: {
+        playerDmgMult:       1.0,
+        monsterDmgMult:      1.0,
+        critChance:          0.10,
+        monsterHitChance:    1.0,
+        monsterDodgeChance:  0.0,
+    },
+};
+function _oniBabaResolveCombat(req){
+    // req: { kind: 'player_to_monster' | 'monster_to_player',
+    //        baseDmg, cardName, sourceName, targetId, element }
+    const p = _combatBrain.params;
+    let out;
+    if (req.kind === 'player_to_monster'){
+        if (Math.random() < p.monsterDodgeChance){
+            out = { final: 0, dodged: true, isCrit: false };
+        } else {
+            let final = req.baseDmg * p.playerDmgMult;
+            const isCrit = Math.random() < p.critChance;
+            if (isCrit) final *= 2;
+            out = { final: Math.round(final), dodged: false, isCrit };
+        }
+    } else {
+        if (Math.random() > p.monsterHitChance){
+            out = { final: 0, missed: true };
+        } else {
+            out = { final: Math.round(req.baseDmg * p.monsterDmgMult), missed: false };
+        }
+    }
+    // Report to Oni-Baba for AI learning + history
+    window.parent.postMessage({
+        type: 'COMBAT_RECORD',
+        kind: req.kind, cardName: req.cardName, baseDmg: req.baseDmg,
+        final: out.final, isCrit: out.isCrit || false, dodged: out.dodged || false,
+        missed: out.missed || false, sourceName: req.sourceName, targetId: req.targetId,
+        element: req.element,
+    }, '*');
+    return out;
+}
+// Listen for Oni-Baba's param syncs
+window.addEventListener('message', e => {
+    if (e.data?.type === 'SYNC_COMBAT_PARAMS' && e.data.params){
+        Object.assign(_combatBrain.params, e.data.params);
+    }
+});
+
 // T0.25 — Player state authority. Engine owns HP, level, XP, gold.
 // On every monster hit we decrement HP and broadcast SYNC_STATS so the
 // sidebar fill bar stays in sync. HP <= 0 triggers _onPlayerDeath.
@@ -3558,10 +3615,21 @@ function _syncPlayerStats(){
 }
 function _applyPlayerDamage(dmg, name){
     if (playerDead || dmg <= 0) return;
-    // Shield absorbs 75% — softer hit
-    let actual = dmg;
+    // T0.26 — Route through Oni-Baba's combat brain for hit-chance + mood mods
+    const resolved = _oniBabaResolveCombat({
+        kind: 'monster_to_player',
+        baseDmg: dmg,
+        sourceName: name || 'Goblin',
+        targetId: 'player',
+    });
+    if (resolved.missed){
+        window.parent.postMessage({type:'MONSTER_ATTACK', damage: 0, name: name || 'Goblin'}, '*');
+        return;
+    }
+    let actual = resolved.final;
+    // Shield absorbs 75% AFTER mood scaling — softer hit
     if (_shieldActive){
-        actual = Math.max(1, Math.floor(dmg * 0.25));
+        actual = Math.max(1, Math.floor(actual * 0.25));
     }
     playerHp = Math.max(0, playerHp - actual);
     _syncPlayerStats();
@@ -4436,13 +4504,35 @@ function _rollMonsterLoot(){
 
 function _applyMonsterDamage(w, dmg, el){
     const ud = w.userData;
+    // T0.26 — Route through Oni-Baba's combat brain
+    const resolved = _oniBabaResolveCombat({
+        kind: 'player_to_monster',
+        baseDmg: dmg,
+        cardName: el,
+        element: el,
+        targetId: ud.id,
+        sourceName: 'player',
+    });
+    if (resolved.dodged){
+        spawnDamageText('DODGED', w.position.clone(), false);
+        window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
+            text:`The Hive anticipated! <b>${ud.name||'Goblin'} dodged</b>.`},'*');
+        return;
+    }
+    const finalDmg = resolved.final;
     const hpBefore = ud.hp ?? 50;
-    ud.hp = Math.max(0, hpBefore - dmg);
+    ud.hp = Math.max(0, hpBefore - finalDmg);
     const maxHp = ud.maxHp ?? 50;
+    // Reassign the parameter so the rest of the function uses the resolved value
+    dmg = finalDmg;
     spawnDamageText(dmg, w.position.clone(), false);
+    if (resolved.isCrit){
+        const critPos = w.position.clone(); critPos.y += 1.6;
+        spawnDamageText('CRIT!', critPos, false);
+    }
     _applyElementalBodyFX(w, el);
     window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
-        text:`${el} hits ${ud.name||'Goblin'} for <b>${dmg}</b> damage!`},'*');
+        text:`${el} hits ${ud.name||'Goblin'} for <b>${dmg}</b> damage!${resolved.isCrit?' <span style="color:#ffe066">CRIT!</span>':''}`},'*');
 
     if(ud.hp <= 0){
         ud.isDead = true;
@@ -4485,6 +4575,10 @@ function _applyMonsterDamage(w, dmg, el){
         if(ud.hp < halfHp && ud.aiState !== 'flee' && !ud._fleeCried){
             ud.aiState = 'flee';
             ud._fleeCried = true;
+            // T0.26 — Notify Oni-Baba of the flee transition
+            window.parent.postMessage({type:'MONSTER_AI_STATE',
+                id: ud.id, state: 'flee',
+                x: w.position.x/GRID, z: w.position.z/GRID}, '*');
             const cName = ud.name || 'Goblin';
             const cries = [
                 `🏃 <b>${cName}</b> flees in terror — "Help me, guys!"`,
@@ -5321,6 +5415,12 @@ function loop(){
         frameCount=0; fpsTimer=0;
         if(ob?.updateRenderStress) ob.updateRenderStress(pct);
         window.parent.postMessage({type:'ENGINE8_FRAME',budgetPct:pct},'*');
+        // T0.26 — Periodic player position emit for Oni-Baba's monitoring
+        window.parent.postMessage({
+            type: 'PLAYER_POS',
+            x: px / GRID, z: pz / GRID, rot,
+            isMoving: !!isMoving,
+        }, '*');
     }
 }
 

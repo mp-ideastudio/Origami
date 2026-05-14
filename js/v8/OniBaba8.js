@@ -89,7 +89,44 @@ class OniBaba8 {
         // ── Message bus ───────────────────────────────────────────────────────
         window.addEventListener('message', e => this._onMessage(e));
 
+        // ── T0.26 — CENTRAL COMBAT BRAIN ──────────────────────────────────────
+        // Every attack in the game (player→monster AND monster→player) resolves
+        // through this. The engine mirrors `params` and uses the same formulas
+        // in a local _oniBabaResolveCombat() so resolution stays synchronous.
+        // When params change here (mood transition, karma swing, hive
+        // adaptation), we push SYNC_COMBAT_PARAMS to the engine. History keeps
+        // the last 200 events for future AI analysis.
+        this.combat = {
+            params: {
+                playerDmgMult:       1.0,   // applied to all player attacks
+                monsterDmgMult:      1.0,   // applied to all monster attacks
+                critChance:          0.10,  // probability of a 2× player crit
+                monsterHitChance:    1.0,   // probability a monster attack lands
+                monsterDodgeChance:  0.0,   // probability a player attack is dodged (hive adaptation)
+            },
+            history: [],
+        };
+        this._refreshCombatParams();
         console.log('🐉 Oni-Baba v8 awakens. All pipelines are HERS.');
+    }
+
+    // T0.26 — Recompute combat params from current mood / karma / hive state.
+    // Push to engine via SYNC_COMBAT_PARAMS so its local mirror stays current.
+    _refreshCombatParams() {
+        const p = this.combat.params;
+        const moodAngry = this.mood === 'enraged';
+        const moodKind  = this.mood === 'benevolent' || this.mood === 'transcendent';
+        // Mood scales: angry → monsters hit harder + player softer; kind → reverse.
+        p.monsterDmgMult = moodAngry ? 1.30 : moodKind ? 0.75 : 1.00;
+        p.playerDmgMult  = moodAngry ? 0.85 : moodKind ? 1.15 : 1.00;
+        // Karma > 30 blesses crits, karma < -30 dries them up.
+        p.critChance = this.karma > 30 ? 0.18 : this.karma < -30 ? 0.05 : 0.10;
+        // Hive adaptation: max 40% dodge against a player who spams the same card.
+        p.monsterDodgeChance = Math.min(0.4, (this.hive?.adaptationLevel || 0) / 250);
+        // Monster hit chance: enraged Oni-Baba steers their swings home.
+        p.monsterHitChance = moodAngry ? 1.0 : moodKind ? 0.85 : 0.95;
+        // Push to engine
+        this._post({ type: 'SYNC_COMBAT_PARAMS', params: { ...p } });
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -230,6 +267,9 @@ class OniBaba8 {
         if (this.tickCount % 60 === 0) {
             this._post({ type: 'ONIBABA_STATE', sensors: {...s}, outputs: {...o},
                 karma: this.karma, mood: this.mood });
+            // T0.26 — Periodic combat-param refresh so karma/hive drift keeps
+            // engine modifiers current even when mood doesn't transition.
+            this._refreshCombatParams();
         }
     }
 
@@ -276,6 +316,29 @@ class OniBaba8 {
             // ── Constructor protocol — she narrates the build itself ─────────
             case 'CONSTRUCTOR_EVENT':
                 this._onConstructorEvent(d);
+                break;
+
+            // ── T0.26 — Central combat brain hooks ───────────────────────────
+            case 'COMBAT_RECORD':
+                // Engine reports every resolved attack here. Used for AI
+                // learning + future analysis. Kept to 200 entries.
+                this.combat.history.push({ t: performance.now(), ...d });
+                if (this.combat.history.length > 200) this.combat.history.shift();
+                this.sensors.tension = Math.min(1, this.sensors.tension + 0.12);
+                if (d.kind === 'monster_to_player' && d.final > 0){
+                    this.sensors.desperation = Math.min(1, this.sensors.desperation + 0.06);
+                }
+                break;
+            case 'MONSTER_AI_STATE':
+                // Engine emits this on monster state transitions (idle→hostile,
+                // hostile→flee, etc.). Drives hive-mind awareness.
+                if (d.state === 'hostile') this.sensors.hiveMindStr = Math.min(1, this.sensors.hiveMindStr + 0.03);
+                if (d.state === 'flee')    this.sensors.cruelty     = Math.min(1, this.sensors.cruelty + 0.04);
+                break;
+            case 'PLAYER_POS':
+                // Engine emits this periodically with player tile + facing.
+                this.player.x = d.x; this.player.z = d.z;
+                this.player.isMoving = !!d.isMoving;
                 break;
         }
     }
@@ -486,6 +549,7 @@ class OniBaba8 {
         if (this.mood !== next) {
             const prev = this.mood;
             this.mood = next;
+            this._refreshCombatParams(); // T0.26 — mood change → new combat modifiers
             this._post({ type: 'REALITY_SHIFT', mood: this.mood });
             this._post({ type: 'LOG_EVENT', logType: 'karma',
                 text: `The Underworld trembles. Oni-Baba is now ${this.mood}...` });
