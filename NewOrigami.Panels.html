@@ -4893,6 +4893,107 @@
 
     // Apply on load (restores from localStorage or defaults to EN)
     applyLocale(window.currentLang);
+
+    // ── T0.25 — Defeat flow: blink overlay + defeat modal + high-score table ──
+    (function setupDefeatFlow(){
+        const HISCORE_KEY = 'origami.v8.scores';
+
+        // Build the overlay + modal DOM once (hidden by default).
+        const blink = document.createElement('div');
+        blink.id = 'defeat-blink-overlay';
+        blink.style.cssText =
+            'position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;' +
+            'z-index:99000;transition:opacity 0.45s ease-in-out;';
+        document.body.appendChild(blink);
+
+        const modal = document.createElement('div');
+        modal.id = 'defeat-modal';
+        modal.style.cssText =
+            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.94);' +
+            'width:min(440px,92vw);background:linear-gradient(180deg,#1a0606 0%,#0a0202 100%);' +
+            'border:2px solid #8a0000;border-radius:18px;padding:28px 30px;color:#fff;' +
+            'box-shadow:0 30px 80px rgba(140,0,0,0.55), 0 0 0 1px rgba(255,80,80,0.15);' +
+            'font-family:Inter,sans-serif;z-index:99100;opacity:0;pointer-events:none;' +
+            'transition:opacity 0.4s ease, transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);';
+        modal.innerHTML =
+            '<div style="text-align:center;font-family:Orbitron,sans-serif;font-size:32px;font-weight:900;' +
+                  'color:#ff5252;letter-spacing:4px;text-shadow:0 0 20px rgba(255,82,82,0.5);margin-bottom:6px;">DEFEATED</div>' +
+            '<div style="text-align:center;font-size:18px;color:#a8a8a8;font-style:italic;margin-bottom:18px;">死</div>' +
+            '<div id="defeat-summary" style="font-size:15px;line-height:1.7;color:#e6edf3;text-align:center;margin-bottom:14px;"></div>' +
+            '<div style="border-top:1px solid rgba(255,80,80,0.2);padding-top:14px;">' +
+              '<div style="font-family:Orbitron,sans-serif;font-size:11px;color:#ff8080;letter-spacing:2px;text-align:center;margin-bottom:8px;">HIGH SCORES</div>' +
+              '<table id="defeat-hiscore" style="width:100%;font-size:13px;color:#d0d0d0;border-collapse:collapse;"></table>' +
+            '</div>' +
+            '<button id="defeat-restart" style="margin-top:18px;width:100%;padding:12px;font-family:Orbitron,sans-serif;' +
+                    'font-size:13px;letter-spacing:2px;color:#fff;background:linear-gradient(180deg,#8a0000,#3a0000);' +
+                    'border:1px solid #c00000;border-radius:8px;cursor:pointer;font-weight:700;">PLAY AGAIN</button>';
+        document.body.appendChild(modal);
+
+        modal.querySelector('#defeat-restart').onclick = () => {
+            window.parent.location.reload();
+        };
+
+        function loadScores(){
+            try { return JSON.parse(localStorage.getItem(HISCORE_KEY) || '[]'); }
+            catch(_){ return []; }
+        }
+        function saveScore(entry){
+            const list = loadScores();
+            list.push(entry);
+            list.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+            const trimmed = list.slice(0, 10);
+            try { localStorage.setItem(HISCORE_KEY, JSON.stringify(trimmed)); } catch(_){}
+            return trimmed;
+        }
+        function renderScoreTable(scores, currentEntry){
+            const tbl = document.getElementById('defeat-hiscore');
+            if (!tbl) return;
+            const head = '<tr style="color:#888;font-size:10px;letter-spacing:1px;">' +
+                          '<th style="text-align:left;padding:3px 4px;">RANK</th>' +
+                          '<th style="text-align:center;padding:3px 4px;">FLOOR</th>' +
+                          '<th style="text-align:center;padding:3px 4px;">LVL</th>' +
+                          '<th style="text-align:right;padding:3px 4px;">XP</th></tr>';
+            const rows = scores.slice(0, 5).map((s, i) => {
+                const isCurrent = currentEntry && s.t === currentEntry.t;
+                const style = isCurrent ? 'color:#ffe066;font-weight:700;text-shadow:0 0 8px rgba(255,224,102,0.4);' : '';
+                return `<tr style="${style}">` +
+                       `<td style="padding:3px 4px;">#${i+1}</td>` +
+                       `<td style="text-align:center;padding:3px 4px;">${s.dungeonLevel || 1}</td>` +
+                       `<td style="text-align:center;padding:3px 4px;">${s.playerLevel || 1}</td>` +
+                       `<td style="text-align:right;padding:3px 4px;">${s.xp || 0}</td></tr>`;
+            }).join('');
+            tbl.innerHTML = head + rows;
+        }
+
+        window.addEventListener('message', (e) => {
+            if (!e.data || e.data.type !== 'DEFEAT_BLINK') return;
+            const d = e.data;
+            // Persist this run to the high-score table
+            const entry = {
+                t: Date.now(),
+                dungeonLevel: d.dungeonLevel || 1,
+                playerLevel: d.playerLevel || 1,
+                xp: d.xp || 0,
+            };
+            const scores = saveScore(entry);
+
+            // Blink animation — dark → brief eye open → dark again → modal
+            blink.style.opacity = '1';
+            setTimeout(() => { blink.style.opacity = '0.0'; }, 450);   // eye opens
+            setTimeout(() => { blink.style.opacity = '1'; }, 950);     // closes again
+            setTimeout(() => {
+                blink.style.opacity = '0.85'; // semi-dark backdrop for modal
+                document.getElementById('defeat-summary').innerHTML =
+                    `You were defeated on <b style="color:#ff8080;">Level ${entry.dungeonLevel}</b>.<br>` +
+                    `You were <b style="color:#80ffd0;">Level ${entry.playerLevel}</b> ` +
+                    `with <b style="color:#ffe066;">${entry.xp}</b> Exp points.`;
+                renderScoreTable(scores, entry);
+                modal.style.opacity = '1';
+                modal.style.transform = 'translate(-50%,-50%) scale(1)';
+                modal.style.pointerEvents = 'auto';
+            }, 1600);
+        });
+    })();
 </script>
 </body>
 </html>

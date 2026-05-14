@@ -3444,10 +3444,8 @@ function tickMonsterAI(dt){
                     const atkDmg = 5 + Math.floor(Math.random() * 8); // 5–12 raw damage
                     _monSetAnim(ud, 'attack');
                     _autoFaceOnAttack(monBase); // T0.20 — turn camera to face attacker
-                    window.parent.postMessage({type:'MONSTER_ATTACK', damage: atkDmg,
-                        name: ud.name||'Goblin'},'*');
-                    addCameraTrauma(0.35);
-                    triggerHitStop(80);
+                    // T0.25 — Route through _applyPlayerDamage so HP decrements + sidebar updates
+                    _applyPlayerDamage(atkDmg, ud.name);
                     spawnDamageText(atkDmg, _atkVec3.set(px, 1.2, pz), true);
                 } else {
                     _monSetAnim(ud, 'idle');
@@ -3542,6 +3540,87 @@ function tickMonsterAI(dt){
 // _getMissileTable, _isMissileCard, _isShuriken → js/v8/combat/CardExecutor.js
 // DUNGEON_LEVEL is declared as `let` at the top of the generator — it mutates on descent.
 const playerStats = { level:1, skill:5 }; // bumped by SYNC_STATS
+
+// T0.25 — Player state authority. Engine owns HP, level, XP, gold.
+// On every monster hit we decrement HP and broadcast SYNC_STATS so the
+// sidebar fill bar stays in sync. HP <= 0 triggers _onPlayerDeath.
+let playerHp = 100, playerMaxHp = 100;
+let playerXp = 0,   playerMaxXp = 100;
+let playerLevel = 1, playerGold = 50;
+let playerDead = false;
+function _syncPlayerStats(){
+    window.parent.postMessage({
+        type: 'SYNC_STATS',
+        hp: playerHp, maxHp: playerMaxHp,
+        playerLevel, xp: playerXp, maxXp: playerMaxXp,
+        gold: playerGold,
+    }, '*');
+}
+function _applyPlayerDamage(dmg, name){
+    if (playerDead || dmg <= 0) return;
+    // Shield absorbs 75% — softer hit
+    let actual = dmg;
+    if (_shieldActive){
+        actual = Math.max(1, Math.floor(dmg * 0.25));
+    }
+    playerHp = Math.max(0, playerHp - actual);
+    _syncPlayerStats();
+    // Notify panels for the damage log + showBigCombatText
+    window.parent.postMessage({type:'MONSTER_ATTACK', damage: actual, name: name || 'Goblin'}, '*');
+    if (_shieldActive){
+        _spawnMeleeVFX('THRUST');
+        addCameraTrauma(0.12); triggerHitStop(30);
+        window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
+            text:'🛡️ Shield blocks the blow! <b>75% absorbed.</b>'},'*');
+    } else {
+        _spawnMeleeVFX('SLASH');
+        addCameraTrauma(0.5); triggerHitStop(60);
+    }
+    autoWalkInterrupt = true;
+    if (playerHp <= 0) _onPlayerDeath();
+}
+
+// Death cinematic state
+let _deathPhase = null; // 'fall' | 'blink' | 'done'
+let _deathT = 0;
+let _deathCamStartY = 0, _deathCamStartRotX = 0;
+function _onPlayerDeath(){
+    if (_deathPhase) return;
+    _deathPhase = 'fall';
+    _deathT = 0;
+    _deathCamStartY = camera.position.y;
+    _deathCamStartRotX = camera.rotation.x;
+    // Wipe input keys
+    Object.keys(keys).forEach(k => delete keys[k]);
+    window.parent.postMessage({type:'LOG_EVENT', logType:'damage',
+        text:'☠️ <b>You have been slain!</b>'}, '*');
+}
+function _tickPlayerDeath(dt){
+    if (!_deathPhase || _deathPhase === 'done') return;
+    _deathT += dt;
+    if (_deathPhase === 'fall'){
+        // 1.5s: camera drops from eye height to ~0.2 (floor), rotates to look down
+        const FALL_DUR = 1.5;
+        const t = Math.min(1, _deathT / FALL_DUR);
+        const easedT = t * t; // ease-in gravity
+        camera.position.y = _deathCamStartY + (0.2 - _deathCamStartY) * easedT;
+        camera.rotation.x = _deathCamStartRotX + (-Math.PI/2.4 - _deathCamStartRotX) * easedT;
+        if (_deathT >= FALL_DUR){
+            _deathPhase = 'blink';
+            _deathT = 0;
+            // Tell panels to start the blink + show modal
+            window.parent.postMessage({
+                type: 'DEFEAT_BLINK',
+                dungeonLevel: DUNGEON_LEVEL,
+                playerLevel,
+                xp: playerXp,
+            }, '*');
+        }
+    } else if (_deathPhase === 'blink'){
+        // Panels owns the blink anim + modal. Engine just freezes here.
+        if (_deathT > 4.0) _deathPhase = 'done';
+    }
+}
 
 // Wire-up: bind damage calc functions to live DUNGEON_LEVEL / playerStats refs
 const { calcDamage, calcMissileDamage, calcSpellDamage } = createCombatCalc(
@@ -3957,10 +4036,8 @@ function _spawnReturnShuriken(monsterWrapper, origMissile){
         if(t >= 1){
             // Hit the player
             scene.remove(mesh);
-            window.parent.postMessage({type:'MONSTER_ATTACK', damage: dmg,
-                name: (ud.name||'Goblin') + ' (return)'}, '*');
-            addCameraTrauma(0.30);
-            triggerHitStop(60);
+            // T0.25 — Route through _applyPlayerDamage so HP decrements + sidebar updates
+            _applyPlayerDamage(dmg, (ud.name||'Goblin') + ' (return)');
             spawnDamageText(dmg, _atkVec3.set(px, 1.4, pz), true);
             return;
         }
@@ -5059,6 +5136,7 @@ function loop(){
     tickMissiles(dt);
     tickDots(dt);
     _tickDyingMonsters(dt);
+    _tickPlayerDeath(dt); // T0.25 — falling-camera death cinematic
 
     // Proximity outline targeting + auto-melee bump collision
     let closestEnemy=null, closestDist=5.0;
@@ -5248,6 +5326,8 @@ function loop(){
 
 // Signal ready
 window.parent.postMessage({type:'ENGINE8_READY',version:8},'*');
+// T0.25 — Initial player stats sync so the sidebar HP bar reflects starting state
+_syncPlayerStats();
 console.log('🎴 Origami Engine v8 — legacy port complete, dungeon built, loop starting');
 </script>
 </body>
