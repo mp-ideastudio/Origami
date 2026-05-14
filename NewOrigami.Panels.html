@@ -1767,21 +1767,28 @@
         let currentDeckIndex = 0;
         let categories = decks[currentDeckIndex];
 
-        // ── T0.7 card class system ──────────────────────────────────────────────
-        // Two top-level classes: SPELLS (default) and COMBAT (melee + ranged
-        // merged via a separator marker). Cycled by Space (in kbd mode) or the
-        // ATTACK sidebar button. The legacy `decks` array remains for back-compat
-        // with other code paths that call switchDeck() directly.
-        const combatMergedCategories = [
-            ...combatCategories,
-            { separator: true, id: '__SEP__' },
-            ...rangeCategories,
-        ];
+        // ── T0.19 card class system (4 independent classes) ────────────────────
+        // SPELLS (default) → MELEE → MISSILE → ITEMS → (back to SPELLS).
+        // Cycled by Spacebar (in keyboard mode) or the ATTACK sidebar button.
+        // T0.7's merged COMBAT class was rolled back per user request — each
+        // playing-card type is its own independent set again.
+        const CARD_CLASS_ORDER = ['SPELLS', 'MELEE', 'MISSILE', 'ITEMS'];
+        const CARD_CLASS_DECKS = {
+            SPELLS:  spellCategories,
+            MELEE:   combatCategories,
+            MISSILE: rangeCategories,
+            ITEMS:   itemCategories,
+        };
         window.cardClass = 'SPELLS';
         window._lastSelectedCardName = null;
         window.cycleCardClass = function(forceTo) {
-            window.cardClass = forceTo || (window.cardClass === 'SPELLS' ? 'COMBAT' : 'SPELLS');
-            loadDeck(window.cardClass === 'SPELLS' ? spellCategories : combatMergedCategories);
+            if (forceTo && CARD_CLASS_DECKS[forceTo]) {
+                window.cardClass = forceTo;
+            } else {
+                const i = CARD_CLASS_ORDER.indexOf(window.cardClass);
+                window.cardClass = CARD_CLASS_ORDER[(i + 1) % CARD_CLASS_ORDER.length];
+            }
+            loadDeck(CARD_CLASS_DECKS[window.cardClass]);
             focusedColIndex = 0;
             setFocus(focusedColIndex);
             const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
