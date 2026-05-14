@@ -1693,6 +1693,7 @@ worldGroup.traverse(obj => {
 // π → SOUTH (+Z), -π/2 → WEST (-X). Increasing rot turns clockwise.
 // Spawn faces NORTH (into the castle, away from the exit stairway behind).
 let px=spawnX*GRID, pz=spawnZ*GRID, rot=0;
+let _sidebarOpen = false; // set by parent when any panels sidebar opens
 let bobT=0, bobH=0, bobSway=0;
 let isMoving=false;
 let cameraTrauma=0, hitStopUntil=0;
@@ -2442,8 +2443,8 @@ function _hasLineOfSight(ax, az, bx, bz){
 }
 
 // ── Melee card executor ───────────────────────────────────────────────────────
-function _executeMeleeCard(cardName){
-    const n = cardName.toUpperCase();
+function _executeMeleeCard(cardName, opts = {}){
+    const n = (cardName||'').toUpperCase();
     const isHeavy  = /HEAVY/.test(n);
     const isThrust = /THRUST/.test(n);
     const isDefend = /DEFEND/.test(n);
@@ -2462,10 +2463,19 @@ function _executeMeleeCard(cardName){
 
     const MELEE_RANGE = isHeavy ? 3.0 : isThrust ? 3.8 : 2.8;
     let best=null, bestD=Infinity;
-    for(const w of monsterWrappers){
-        if(w.userData.isDead) continue;
-        const d = camera.position.distanceTo(w.position);
-        if(d < MELEE_RANGE && d < bestD){ bestD=d; best=w; }
+
+    // If caller provided a target override (auto-aim from panels), prefer it
+    const targetOverride = opts && opts.target ? opts.target : null;
+    const overrideDmg = (opts && typeof opts.damage === 'number') ? opts.damage : undefined;
+
+    if(targetOverride){
+        best = targetOverride;
+    } else {
+        for(const w of monsterWrappers){
+            if(w.userData.isDead) continue;
+            const d = camera.position.distanceTo(w.position);
+            if(d < MELEE_RANGE && d < bestD){ bestD=d; best=w; }
+        }
     }
 
     _spawnMeleeVFX(vfxType);
@@ -2475,13 +2485,15 @@ function _executeMeleeCard(cardName){
         for(const w of monsterWrappers){
             if(w.userData.isDead) continue;
             if(camera.position.distanceTo(w.position) < MELEE_RANGE){
-                _applyMonsterDamage(w, calcDamage('HEAVY ATTACK'), 'DEFAULT');
+                const dmg = overrideDmg !== undefined ? overrideDmg : calcDamage('HEAVY ATTACK');
+                _applyMonsterDamage(w, dmg, 'DEFAULT');
                 _pushMonster(w, 4.5);
                 _spawnHitBurst(w.position.clone().setY(1.2), 'DEFAULT');
             }
         }
     } else if(best){
-        _applyMonsterDamage(best, calcDamage(cardName), 'DEFAULT');
+        const dmg = overrideDmg !== undefined ? overrideDmg : calcDamage(cardName);
+        _applyMonsterDamage(best, dmg, 'DEFAULT');
         _pushMonster(best, isThrust ? 5.5 : 3.0);
         _spawnHitBurst(best.position.clone().setY(1.2), 'DEFAULT');
         addCameraTrauma(isThrust ? 0.28 : 0.22);
@@ -2502,6 +2514,11 @@ window.addEventListener('message',e=>{
     const d=e.data;
     if(d.type==='KEY_DOWN'){keys[d.key]=true;keys[(d.key||'').toLowerCase()]=true;if(d.code)keys[d.code]=true;}
     if(d.type==='KEY_UP'){keys[d.key]=false;keys[(d.key||'').toLowerCase()]=false;if(d.code)keys[d.code]=false;}
+
+    // Panels can inform engine when any sidebar opens/closes — cache locally
+    if(d.type==='SIDEBAR_OPEN'){ _sidebarOpen = true; return; }
+    if(d.type==='SIDEBAR_CLOSE'){ _sidebarOpen = false; return; }
+
     if(d.type==='PIP_SYNC_RECT'){
         _pipRect={width:d.width,height:d.height,left:d.left,top:d.top,bottom:d.bottom};
         // Position the WRAPPER so both canvases + cinematic overlays follow.
@@ -3002,6 +3019,7 @@ setTimeout(()=>{
 
 // ── Monster AI ────────────────────────────────────────────────────────────────
 let _lastCombatVisible = false;
+let _lastCombatTargetId = null; // T0.13 — track which monster the combat panel is currently bound to
 
 // ── Monster Alert System ──────────────────────────────────────────────────────
 // Alert radius: all live monsters within ALERT_TILES grid-tiles of the HIT monster.
@@ -3089,6 +3107,12 @@ const MON_WANDER_SPD = 1.4; // world-units/sec while wandering idle
 
 function _monSetAnim(ud, key){
     if(ud._animKey === key) return;
+    // T0.14 — Don't interrupt an in-flight attack animation. AI calls
+    // _monSetAnim(ud,'idle') every frame between cooldown hits; without this
+    // guard the attack clip gets crossfaded out mid-swing and never plays
+    // visibly. The attack's own timeout (below) clears _animKey to null and
+    // THEN transitions to idle — that path is not blocked here.
+    if(key === 'idle' && ud._animKey === 'attack') return;
     ud._animKey = key;
     const ia = ud.idleAction, wa = ud.walkAction, ba = ud.bowAction;
     if(key === 'death'){
@@ -3405,11 +3429,34 @@ function tickMonsterAI(dt){
             }
             ud._bowTimer = (ud._bowTimer||0) - dt;
             if(ud._bowTimer <= 0){
+                // T0.15 — Instead of going straight back to wandering, linger in
+                // a "chat" mini-state. They keep facing each other and play idle
+                // animation for 4-6 seconds — feels like two ghosts having a
+                // quiet conversation. Bow partner pos is retained so facing
+                // doesn't snap back during the chat.
+                ud.aiState = 'chat';
+                ud._chatTimer = 4.0 + Math.random() * 2.0;
+                ud.aiWalkTarget = null;
+                _monSetAnim(ud, 'idle');
+            }
+        } else if(ud.aiState === 'chat'){
+            // T0.15 — Hold the post-bow conversation. Slow facing-lerp toward
+            // partner so the monsters stay turned toward each other.
+            if(ud._bowPartnerPos){
+                const cdx = ud._bowPartnerPos.x - monBase.position.x;
+                const cdz = ud._bowPartnerPos.z - monBase.position.z;
+                const cAngle = Math.atan2(cdx, cdz);
+                let cdiff = cAngle - (monBase.rotation.y||0);
+                while(cdiff > Math.PI) cdiff -= Math.PI*2;
+                while(cdiff < -Math.PI) cdiff += Math.PI*2;
+                monBase.rotation.y += cdiff * Math.min(1, dt*2);
+                w.rotation.y = monBase.rotation.y;
+            }
+            ud._chatTimer = (ud._chatTimer||0) - dt;
+            if(ud._chatTimer <= 0){
                 ud.aiState = 'idle';
                 ud._bowPartnerPos = null;
-                ud.aiWalkTarget = null;
                 ud.aiNextTurn = now + 0.5 + Math.random();
-                _monSetAnim(ud, 'idle');
             }
         } else if(ud.aiState === 'flee'){
             // Run directly away from player
@@ -3678,9 +3725,12 @@ function _obAutoTarget(cardName, dmg){
 
 // _isMissileCard, _isShuriken → imported from js/v8/combat/CardExecutor.js
 
-function launchMissile(cardName, recoveryCallback){
+function launchMissile(cardName, recoveryCallback, opts = {}){
     const isShuriken = _isShuriken(cardName);
-    const { dmg, isCrit } = calcMissileDamage(cardName);
+    const baseRoll = calcMissileDamage(cardName) || {dmg:0,isCrit:false};
+    const baseDmg = baseRoll.dmg, baseCrit = baseRoll.isCrit;
+    const dmg = (opts && typeof opts.damage === 'number') ? opts.damage : baseDmg;
+    const isCrit = (opts && typeof opts.isCrit === 'boolean') ? opts.isCrit : baseCrit;
 
     // Build the right model
     const missileGroup = isShuriken ? _buildShurikenModel() : _buildArrowModel();
@@ -3692,7 +3742,7 @@ function launchMissile(cardName, recoveryCallback){
     scene.add(missileGroup);
 
     // Auto-aim via OniBaba — she picks target, logs to hive-mind, triggers retaliate
-    const target = _obAutoTarget(cardName, dmg);
+    const target = opts && opts.target ? opts.target : _obAutoTarget(cardName, dmg);
 
     // Compute initial velocity with gravity arc
     // Direction: toward target mid-body, or straight camera forward
@@ -3833,6 +3883,62 @@ function tickMissiles(dt){
     }
 }
 
+// T0.16 — Spawn a return shuriken thrown by a wounded monster back at the player.
+// Removes the lodged shuriken (the one in the monster's body) and creates a
+// fresh visual projectile that animates from monster chest to player chest over
+// 0.5s. On arrival, emits MONSTER_ATTACK with the same damage value.
+function _spawnReturnShuriken(monsterWrapper, origMissile){
+    const ud = monsterWrapper.userData;
+    if(ud.isDead) return; // Dead monsters can't throw
+
+    // Yank the lodged missile out (visual consume)
+    if(origMissile && origMissile.lodged && origMissile.mesh){
+        const par = origMissile.lodgeParent || monsterWrapper;
+        par.remove(origMissile.mesh);
+        if(origMissile.lodgeLight){ par.remove(origMissile.lodgeLight); origMissile.lodgeLight = null; }
+        if(origMissile.bloomRing){ par.remove(origMissile.bloomRing); origMissile.bloomRing = null; }
+        if(origMissile.bloomRing2){ par.remove(origMissile.bloomRing2); origMissile.bloomRing2 = null; }
+        origMissile.lodged = false;
+        origMissile.life = -1; // mark for removal next tick
+    }
+
+    // Quick "pull out" anim hint — flash on monster + brief slash
+    _monSetAnim(ud, 'attack');
+
+    // Build a return shuriken mesh
+    const mesh = _buildShurikenModel();
+    const startPos = monsterWrapper.position.clone(); startPos.y += 1.2;
+    mesh.position.copy(startPos);
+    scene.add(mesh);
+
+    const FLIGHT_MS = 500;
+    const startT = performance.now();
+    const endPos = new THREE.Vector3(px, 1.5, pz);
+    const dmg = origMissile?.dmg ?? 8;
+
+    function step(){
+        const t = (performance.now() - startT) / FLIGHT_MS;
+        if(t >= 1){
+            // Hit the player
+            scene.remove(mesh);
+            window.parent.postMessage({type:'MONSTER_ATTACK', damage: dmg,
+                name: (ud.name||'Goblin') + ' (return)'}, '*');
+            addCameraTrauma(0.30);
+            triggerHitStop(60);
+            spawnDamageText(dmg, _atkVec3.set(px, 1.4, pz), true);
+            return;
+        }
+        // Lerp toward player with a slight upward arc
+        const arc = Math.sin(t * Math.PI) * 0.4;
+        mesh.position.lerpVectors(startPos, endPos, t);
+        mesh.position.y += arc;
+        // Spin
+        mesh.rotateZ(0.6);
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
 function _onMissileHit(m, targetWrapper, idx){
     const ud = targetWrapper.userData;
 
@@ -3886,6 +3992,14 @@ function _onMissileHit(m, targetWrapper, idx){
     flash.position.set(0, 1.2, 0);
     targetWrapper.add(flash);
     setTimeout(()=>targetWrapper.remove(flash), 130);
+
+    // T0.16 — Shuriken return-throw. If a SHURIKEN lodges in a live monster,
+    // 1.0s later the monster pulls it out and flings it back for the same
+    // damage. The lodged mesh is removed at that moment and a visual return
+    // shuriken flies for 0.5s before hitting the player.
+    if(m.isShuriken && !m.fromMonster && !ud.isDead){
+        setTimeout(()=> _spawnReturnShuriken(targetWrapper, m), 1000);
+    }
 
     // ── Persistent bloom light — parented to monster, follows movement ──
     const bloomColor = m.isShuriken ? 0x88ffdd : 0x88bbff;
@@ -4006,13 +4120,13 @@ function _buildFireballMesh(){
     return group;
 }
 
-function launchCard(cardName){
+function launchCard(cardName, opts = {}){
     const el = _cardElement(cardName);
     if(el === 'EARTH' && /BOULDER/.test(cardName.toUpperCase())) {
         launchBoulder(cardName); return;
     }
     const elCol = EL_COLORS[el] || EL_COLORS.DEFAULT;
-    const dmg = calcDamage(cardName);
+    const dmg = (opts && typeof opts.damage === 'number') ? opts.damage : calcDamage(cardName);
     const isFire = (el === 'FIRE');
 
     // 1. Conjure group — ALL materials are MeshBasicMaterial (unlit, no light reflection)
@@ -4060,7 +4174,7 @@ function launchCard(cardName){
     conjureGroup.add(outlineRing);
 
     const MAX_DIST = 22;
-    const target = _obAutoTarget(cardName, dmg);
+    const target = opts && opts.target ? opts.target : _obAutoTarget(cardName, dmg);
     const dir = target
         ? target.position.clone().sub(camera.position).normalize()
         : fwd.clone();
@@ -4207,6 +4321,22 @@ function tickSpells(dt){
     }
 }
 
+// T0.17 — Monster-death loot pool, weighted toward SHURIKEN so players have a
+// steady stream of throwing stars (the user's stated design goal: "constant
+// flow"). Roughly 70% of monster kills drop something; of those drops,
+// SHURIKEN takes 55% — far more common than any other weapon.
+function _rollMonsterLoot(){
+    if(Math.random() > 0.70) return null; // 30% drop nothing
+    const r = Math.random();
+    if(r < 0.55) return { catId:'MISSILE', title:'SHURIKEN',  desc:'Throwing star', kanji:'投', attr:'(DMG*1DICE)' };
+    if(r < 0.68) return { catId:'MISSILE', title:'DAGGER',    desc:'Quick blade',   kanji:'刃', attr:'(DMG*1DICE)' };
+    if(r < 0.78) return { catId:'MISSILE', title:'SHORT BOW', desc:'Light bow',     kanji:'弓', attr:'(DMG*2DICE)' };
+    if(r < 0.84) return { catId:'MISSILE', title:'LONG BOW',  desc:'Heavy bow',     kanji:'長弓', attr:'(DMG*3DICE)' };
+    if(r < 0.90) return { catId:'EARTH',   title:'BOULDER',   desc:'Heavy impact',  kanji:'地', attr:'(STUN*2DICE)' };
+    if(r < 0.96) return { catId:'FIRE',    title:'FIREBALL',  desc:'Inferno star',  kanji:'火', attr:'(DMG*4DICE)' };
+    return                { catId:'WATER',  title:'TIDE',      desc:'Washes away',   kanji:'水', attr:'(SLOW*3DICE)' };
+}
+
 function _applyMonsterDamage(w, dmg, el){
     const ud = w.userData;
     const hpBefore = ud.hp ?? 50;
@@ -4230,6 +4360,14 @@ function _applyMonsterDamage(w, dmg, el){
         // Notify OniBaba — standard -1; extra -1 for killing a fleeing monster
         window.parent.postMessage({type:'MONSTER_DEATH', id:ud.id},'*');
         if(wasFleeing) window.parent.postMessage({type:'MONSTER_DEATH', id:ud.id, extra:true},'*');
+        // T0.17 — Roll a loot drop (SHURIKEN-biased pool, ~70% drop rate)
+        const loot = _rollMonsterLoot();
+        if(loot){
+            const lx = Math.round(w.position.x/GRID);
+            const lz = Math.round(w.position.z/GRID);
+            try { spawnLootCard(lx, lz, loot.catId, loot.title, loot.desc, loot.kanji, loot.attr); }
+            catch(e){ /* spawnLootCard failures are non-fatal */ }
+        }
         // T0.10 — Cinematic death: bow (0.8s) → fall (0.6s) → sink-fade (1.4s)
         // Play the death animation throughout; we layer a wrapper-rotation tilt on top
         // for explicit bow + face-plant motion regardless of what the GLB clips look like.
@@ -4477,24 +4615,55 @@ window.addEventListener('message', e=>{
         // Skip non-combat UI actions
         const UI_ONLY = new Set(['MAP','BAG','REST','HEAL','VIEW','LOG','WAGER','PARLEY',
                                   'HIDE','RETREAT','OBSERVE','ATTACK','BET_EVEN','BET_ODD']);
-        // Melee cards route to _executeMeleeCard, never to launchCard (which fires projectiles)
-        const MELEE_CARDS = new Set(['SLASH','THRUST','HEAVY ATTACK','DEFEND']);
         if(!UI_ONLY.has(action)){
-            if(MELEE_CARDS.has(action)){
-                _executeMeleeCard(action);
-            } else if(_isMissileCard(action)){
-                // Recovery callback: tell panels to restore +1 ammo on the card
-                const recoveryCb = (name) => {
-                    window.parent.postMessage({type:'MISSILE_RECOVERED', cardName: name}, '*');
-                };
-                launchMissile(action, recoveryCb);
+            // Determine melee vs missile vs spell using CardDatabase if available
+            let isMelee = false;
+            try{
+                if(window.CardDatabase && CardDatabase[action] && CardDatabase[action].fx && CardDatabase[action].fx.type){
+                    isMelee = CardDatabase[action].fx.type === 'melee';
+                } else if(typeof _cardCategory === 'function'){
+                    const c = _cardCategory(action);
+                    isMelee = (c === 'COMBAT' || c === 'KATANA' || c === 'MELEE');
+                } else {
+                    const MELEE_FALLBACK = new Set(['SLASH','THRUST','STRONG ATTACK','HEAVY ATTACK','DEFEND']);
+                    isMelee = MELEE_FALLBACK.has(action);
+                }
+            }catch(e){ /* ignore */ }
+
+            const sidebarActive = !!_sidebarOpen;
+            if(sidebarActive){
+                // When any sidebar is open: always use auto-aim + spell damage
+                const overrideDmg = calcSpellDamage(action);
+                const target = _obAutoTarget(action, overrideDmg);
+                if(isMelee){
+                    _executeMeleeCard(action, {target, damage: overrideDmg});
+                } else if(_isMissileCard(action)){
+                    const recoveryCb = (name) => { window.parent.postMessage({type:'MISSILE_RECOVERED', cardName: name}, '*'); };
+                    launchMissile(action, recoveryCb, {damage: overrideDmg, target});
+                } else {
+                    launchCard(action, {damage: overrideDmg, target});
+                }
             } else {
-                launchCard(action);
+                // Normal behavior
+                if(isMelee){
+                    _executeMeleeCard(action);
+                } else if(_isMissileCard(action)){
+                    const recoveryCb = (name) => { window.parent.postMessage({type:'MISSILE_RECOVERED', cardName: name}, '*'); };
+                    launchMissile(action, recoveryCb);
+                } else {
+                    launchCard(action);
+                }
             }
         }
         // ATTACK button = repeat the last melee card the player used
         if(action === 'ATTACK'){
-            _executeMeleeCard(_lastMeleeAction);
+            if(_sidebarOpen){
+                const overrideDmg = calcSpellDamage(_lastMeleeAction);
+                const target = _obAutoTarget(_lastMeleeAction, overrideDmg);
+                _executeMeleeCard(_lastMeleeAction, {target, damage: overrideDmg});
+            } else {
+                _executeMeleeCard(_lastMeleeAction);
+            }
         }
     }
 });
@@ -4897,8 +5066,14 @@ function loop(){
                 if(dist < nearestDist){ nearestDist=dist; nearestVisible=w; }
             }
         }
-        if(combatVisible !== _lastCombatVisible){
+        // T0.13 — Also re-sync the combat panel when the NEAREST target changes
+        // (e.g. monster A dies while monster B is still in the player's cone).
+        // Previously this `!== _lastCombatVisible` gate suppressed the update,
+        // leaving the panel showing the dead monster's stale HP.
+        const targetId = nearestVisible ? nearestVisible.userData.id : null;
+        if(combatVisible !== _lastCombatVisible || targetId !== _lastCombatTargetId){
             _lastCombatVisible = combatVisible;
+            _lastCombatTargetId = targetId;
             if(combatVisible && nearestVisible){
                 const ud = nearestVisible.userData;
                 window.parent.postMessage({
