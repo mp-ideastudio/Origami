@@ -1394,9 +1394,29 @@
                     });
                     pipCanvas.addEventListener('wheel', (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         window.parent.postMessage({ type: 'PIP_ZOOM', delta: Math.sign(e.deltaY) }, '*');
                     }, { passive: false });
                 }
+
+                // T0.23 — Window-level wheel listener: when the cursor is NOT
+                // over an interactive UI element, treat it as a main 3D view
+                // zoom and forward MAIN_ZOOM to the engine. PIP, card deck,
+                // event log, and modals are excluded — they have their own
+                // wheel handlers (or are scrollable natively).
+                window.addEventListener('wheel', (e) => {
+                    if (!e.target || !e.target.closest) return;
+                    const ignore = e.target.closest(
+                        '#pipCanvas, #moondial-wrapper, ' +
+                        '#bottom-panel, #event-log-container, ' +
+                        '#inventory-modal, #settings-modal, #exit-modal, ' +
+                        '.guide-card, .card-column, .modal-card-hd, ' +
+                        'input, textarea'
+                    );
+                    if (ignore) return;
+                    e.preventDefault();
+                    window.parent.postMessage({ type: 'MAIN_ZOOM', delta: Math.sign(e.deltaY) }, '*');
+                }, { passive: false });
 
                 // Moonphase calculation based on current Date
                 function getMoonPhase() {

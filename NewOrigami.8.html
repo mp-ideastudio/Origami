@@ -94,6 +94,10 @@
         case 'TEXT_COMMAND': case 'CHAT_SUBMIT': case 'TOGGLE_AUTOPICKUP':
         case 'PIP_TOGGLE': case 'PIP_ZOOM': case 'PIP_ROTATE': case 'PIP_PAN':
         case 'PIP_CLICK': case 'PIP_SYNC_RECT': case 'PIP_PERSPECTIVE': case 'MOON_PHASE':
+        case 'SIDEBAR_OPEN': case 'SIDEBAR_CLOSE':
+        case 'MAIN_ZOOM':
+          // Cache sidebar state locally and forward to engine
+          try{ window.__panelsSidebarOpen = (ev.type === 'SIDEBAR_OPEN'); }catch(e){}
           to(fpv, ev); break;
 
         // Engine ready

@@ -2558,6 +2558,14 @@ window.addEventListener('message',e=>{
         _pipPan={x:0,z:0};
     }
     if(d.type==='PIP_ZOOM'){_pipLastInteractionTime=Date.now();_pipZoomScale=Math.max(0.2,Math.min(2.0,_pipZoomScale+(d.delta||0)*0.1));_pipSaveState();}
+    // T0.23 — Main 3D view zoom via scroll wheel over the FPV area. Adjusts
+    // camera.fov within a sane range (35° = narrow telescopic, 100° = wide
+    // fish-eye). delta is +1 (wheel down = zoom out) or -1 (wheel up = zoom in).
+    if(d.type==='MAIN_ZOOM'){
+        const FOV_MIN = 35, FOV_MAX = 100, FOV_STEP = 3;
+        camera.fov = Math.max(FOV_MIN, Math.min(FOV_MAX, camera.fov + (d.delta||0) * FOV_STEP));
+        camera.updateProjectionMatrix();
+    }
     if(d.type==='PIP_ROTATE'){_pipLastInteractionTime=Date.now();_pipRot.theta-=(d.dx||0)*0.01;_pipRot.phi=Math.max(0.1,Math.min(Math.PI/2-0.05,_pipRot.phi-(d.dy||0)*0.01));_pipSaveState();}
     if(d.type==='PIP_PAN'){_pipLastInteractionTime=Date.now();const sp=0.05/(_pipZoomScale||1);_pipPan.x+=-(d.dx||0)*sp*Math.cos(_pipRot.theta)+(d.dy||0)*sp*Math.sin(_pipRot.theta);_pipPan.z+=(d.dx||0)*sp*Math.sin(_pipRot.theta)+(d.dy||0)*sp*Math.cos(_pipRot.theta);_pipSaveState();}
     if(d.type==='PIP_PERSPECTIVE'){
