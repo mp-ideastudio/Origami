@@ -595,7 +595,9 @@ try {
 let modeAlpha = 0, modeAlphaTarget = 0;
 const TOPDOWN_ORBIT_R = 16; // meters from player (orbit radius)
 
-let _pipZoomScale=1.0, _pipPan={x:0,z:0}, _pipRot={theta:0.5,phi:0.96,radius:17};
+// T0.24 — Default zoom bumped from 1.0 → 1.5 (+50%) so the PIP shows a
+// closer, more readable view by default. User saved state still wins.
+let _pipZoomScale=1.5, _pipPan={x:0,z:0}, _pipRot={theta:0.5,phi:0.96,radius:17};
 
 // T0.9 — PIP state persistence + cinematic state
 // PIP is its own camera (topDownCamera) — main `camera` is never touched by PIP_*
@@ -2695,17 +2697,21 @@ function _pipNearestHostile() {
     return best;
 }
 
-// T0.9 — Tick the cinematic state: when a hostile monster is within ~2 tiles
-// AND the user hasn't manually adjusted the PIP recently, blend toward an
-// angled cinematic view that frames both player + monster. Smooth easing.
+// T0.24 — "Animation capture mode" for the PIP cam. Triggers in two cases:
+//   1. Active combat (_lastCombatVisible is true — player has a hostile in
+//      the forward cone with LOS), OR
+//   2. Any hostile within 4 tiles of the player even outside the cone.
+// When triggered, the PIP camera tilts dramatically (movie-cam feel),
+// tightens onto the action, and frames the midpoint of player + nearest
+// hostile. Manual PIP input (zoom/rot/pan) locks out the cinematic for 4s.
 function _pipUpdateCinematic(dt) {
     const sinceInteract = (Date.now() - _pipLastInteractionTime) / 1000;
-    const allowAuto = sinceInteract > 4.0; // 4s lockout after manual PIP input
+    const allowAuto = sinceInteract > 4.0;
     const near = allowAuto ? _pipNearestHostile() : null;
-    const trigger = near && near.dist < 2.0 * GRID;
-    if (trigger) _pipCinematicTarget = near;
-    const target = trigger ? 1 : 0;
-    // Lerp progress with ~0.6s settle time
+    const COMBAT_PIP_RANGE = 4.0 * GRID;
+    const inCombat = allowAuto && (_lastCombatVisible || (near && near.dist < COMBAT_PIP_RANGE));
+    if (inCombat && near) _pipCinematicTarget = near;
+    const target = inCombat ? 1 : 0;
     _pipCinematicT += (target - _pipCinematicT) * Math.min(1, dt * 2.5);
     if (_pipCinematicT < 0.01) _pipCinematicTarget = null;
 }
@@ -2729,19 +2735,25 @@ function _positionPipCamera(dt){
         cz = cz + (midZ - cz) * _pipCinematicT;
     }
 
-    // Radius: base PIP_CAM_RADIUS, tighter when cinematic-zoomed, plus user zoom
-    const cinematicR = 8.0; // tight enough to frame two adjacent tiles
+    // T0.24 — Stronger cinematic radius drop + tilt for the "animation
+    // capture" feel. cinematicR pulls closer to the action; tiltOffset
+    // moves the camera off-axis so we get a ~30° angled top-down shot.
+    const cinematicR = 7.0; // closer than before (was 8) for tighter action shot
     const baseR = PIP_CAM_RADIUS / Math.max(0.4, _pipZoomScale);
     const R = baseR + (cinematicR - baseR) * _pipCinematicT;
 
-    // Slight cinematic tilt: ~12° off straight-down at full cinematic blend.
-    // This gives the "movie shot" feel while still letting the player see down.
-    const tiltOffset = 1.2 * _pipCinematicT;
-    topDownCamera.position.set(cx + tiltOffset, R, cz + tiltOffset);
+    // Bigger tilt: at full cinematic blend, the camera is offset ~4 units
+    // toward (+x, +z) from the look-at center. With R≈7 that's ~30° tilt.
+    // The offset direction is rotated by _pipRot.theta so manual rotation
+    // still influences the cinematic angle.
+    const tiltMag = 4.0 * _pipCinematicT;
+    const tiltOX = tiltMag * Math.cos(_pipRot.theta);
+    const tiltOZ = tiltMag * Math.sin(_pipRot.theta);
+    topDownCamera.position.set(cx + tiltOX, R, cz + tiltOZ);
     topDownCamera.lookAt(cx, 0, cz);
     topDownCamera.up.set(0, 0, -1);
     const baseFov = 22 / Math.max(0.4, _pipZoomScale);
-    const cinematicFov = 38;
+    const cinematicFov = 44; // wider during cinematic for movie feel (was 38)
     topDownCamera.fov = baseFov + (cinematicFov - baseFov) * _pipCinematicT;
     topDownCamera.aspect = 1.0;
     topDownCamera.near = 0.3;
@@ -2814,9 +2826,7 @@ function sendPipFrame(dt){
     _pipCompCtx.beginPath(); _pipCompCtx.arc(cx,cz,9,0,Math.PI*2); _pipCompCtx.fill();
     _pipCompCtx.beginPath(); _pipCompCtx.arc(cx,cz,3.5,0,Math.PI*2);
     _pipCompCtx.fillStyle='#fff'; _pipCompCtx.fill();
-    // Outer ring
-    _pipCompCtx.beginPath(); _pipCompCtx.arc(cx,cz,PIP_RT_SIZE/2-2,0,Math.PI*2);
-    _pipCompCtx.strokeStyle='rgba(124,224,184,0.45)'; _pipCompCtx.lineWidth=2.5; _pipCompCtx.stroke();
+    // T0.24 — Green perimeter ring removed per user request
     _pipCompCtx.restore();
 
     // Transfer to Panels via ImageBitmap (zero-copy where supported)
@@ -2918,9 +2928,7 @@ function drawPip(){
 
     pipCtx.restore();
 
-    // Outer ring
-    pipCtx.beginPath(); pipCtx.arc(PW/2,PH/2,PW/2-1.5,0,Math.PI*2);
-    pipCtx.strokeStyle='rgba(124,224,184,0.4)'; pipCtx.lineWidth=2; pipCtx.stroke();
+    // T0.24 — Green perimeter ring removed per user request
 }
 
 // ── Fullscreen Top-Down Map ───────────────────────────────────────────────────
