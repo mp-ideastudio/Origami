@@ -1693,6 +1693,27 @@ worldGroup.traverse(obj => {
 // π → SOUTH (+Z), -π/2 → WEST (-X). Increasing rot turns clockwise.
 // Spawn faces NORTH (into the castle, away from the exit stairway behind).
 let px=spawnX*GRID, pz=spawnZ*GRID, rot=0;
+
+// T0.20 — Auto-face attacker. When a monster attacks, the camera smoothly
+// rotates to face the attacker so the player can see what's hitting them.
+// If a nearer attacker fires while a target is already active, the nearer
+// one wins. Manual rotation input (rotL/rotR) cancels it.
+let _autoFaceTarget = null; // { x, z, until }
+function _autoFaceOnAttack(monBase){
+    const dx = monBase.position.x - px;
+    const dz = monBase.position.z - pz;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    if (_autoFaceTarget && performance.now() < _autoFaceTarget.until){
+        const tdx = _autoFaceTarget.x - px, tdz = _autoFaceTarget.z - pz;
+        const tdist = Math.sqrt(tdx*tdx + tdz*tdz);
+        if (tdist < dist) return; // already locking on a nearer attacker
+    }
+    _autoFaceTarget = {
+        x: monBase.position.x,
+        z: monBase.position.z,
+        until: performance.now() + 1500,
+    };
+}
 let _sidebarOpen = false; // set by parent when any panels sidebar opens
 let bobT=0, bobH=0, bobSway=0;
 let isMoving=false;
@@ -3406,6 +3427,7 @@ function tickMonsterAI(dt){
                     ud._atkCooldown = 1.2 + Math.random() * 0.8; // 1.2–2s between hits
                     const atkDmg = 5 + Math.floor(Math.random() * 8); // 5–12 raw damage
                     _monSetAnim(ud, 'attack');
+                    _autoFaceOnAttack(monBase); // T0.20 — turn camera to face attacker
                     window.parent.postMessage({type:'MONSTER_ATTACK', damage: atkDmg,
                         name: ud.name||'Goblin'},'*');
                     addCameraTrauma(0.35);
@@ -3793,25 +3815,14 @@ function tickMissiles(dt){
     for(let i = activeMissiles.length-1; i >= 0; i--){
         const m = activeMissiles[i];
         if(m.lodged){
-            m.lodgeTimer -= dt;
-            const tf = Math.max(0, m.lodgeTimer / 2.8);
-            // Persistent bloom: pulse light + update position to follow monster
+            // T0.22 — Lodged missiles persist until monster death (or until
+            // thrown back by the monster). No auto-expiry timer. Just keep
+            // the bloom subtly pulsing while the monster is alive.
             if(m.lodgeLight){
-                // Light is parented to monster — just fade intensity, no position update needed
-                m.lodgeLight.intensity = (4 + Math.sin(performance.now()*0.006)*2) * tf;
+                m.lodgeLight.intensity = 3 + Math.sin(performance.now()*0.005) * 1.2;
             }
             if(m.bloomRing){
-                m.bloomRing.rotation.z += dt * 1.2;
-                m.bloomRing.material.opacity = 0.55 * tf;
-            }
-            if(m.lodgeTimer <= 0){
-                // Remove from monster parent (not scene)
-                const par = m.lodgeParent || scene;
-                par.remove(m.mesh);
-                if(m.lodgeLight){ par.remove(m.lodgeLight); m.lodgeLight = null; }
-                if(m.bloomRing){ par.remove(m.bloomRing); m.bloomRing = null; }
-                if(m.bloomRing2){ par.remove(m.bloomRing2); m.bloomRing2 = null; }
-                activeMissiles.splice(i, 1);
+                m.bloomRing.rotation.z += dt * 0.6;
             }
             continue;
         }
@@ -3891,19 +3902,28 @@ function _spawnReturnShuriken(monsterWrapper, origMissile){
     const ud = monsterWrapper.userData;
     if(ud.isDead) return; // Dead monsters can't throw
 
-    // Yank the lodged missile out (visual consume)
+    // T0.21+T0.22 — Yank the lodged missile out and remove it from the
+    // monster's lodgedMissiles list so it WON'T be counted in the death loot.
+    // (If thrown back, the missile is -1 from final loot count.)
     if(origMissile && origMissile.lodged && origMissile.mesh){
         const par = origMissile.lodgeParent || monsterWrapper;
         par.remove(origMissile.mesh);
         if(origMissile.lodgeLight){ par.remove(origMissile.lodgeLight); origMissile.lodgeLight = null; }
         if(origMissile.bloomRing){ par.remove(origMissile.bloomRing); origMissile.bloomRing = null; }
         if(origMissile.bloomRing2){ par.remove(origMissile.bloomRing2); origMissile.bloomRing2 = null; }
+        if (ud.lodgedMissiles){
+            const i = ud.lodgedMissiles.indexOf(origMissile);
+            if (i >= 0) ud.lodgedMissiles.splice(i, 1);
+        }
+        // Also splice from activeMissiles so tickMissiles stops touching it
+        const ai = activeMissiles.indexOf(origMissile);
+        if (ai >= 0) activeMissiles.splice(ai, 1);
         origMissile.lodged = false;
-        origMissile.life = -1; // mark for removal next tick
     }
 
     // Quick "pull out" anim hint — flash on monster + brief slash
     _monSetAnim(ud, 'attack');
+    _autoFaceOnAttack(monsterWrapper); // T0.20 — face the returning shuriken thrower
 
     // Build a return shuriken mesh
     const mesh = _buildShurikenModel();
@@ -3953,22 +3973,35 @@ function _onMissileHit(m, targetWrapper, idx){
     addCameraTrauma(m.isCrit ? 0.35 : 0.18);
     triggerHitStop(m.isCrit ? 90 : 55);
 
-    // Lodge — arrow sticks out of monster, parented so it moves with them
+    // T0.21+T0.22 — 50% chance to lodge in the monster. The other 50% bounces
+    // off and the missile is consumed (no instant ammo recovery — recovery is
+    // now via loot drops at monster death).
+    const lodges = Math.random() < 0.5;
+    if (!lodges){
+        scene.remove(m.mesh);
+        if (idx >= 0) activeMissiles.splice(idx, 1);
+        return;
+    }
+
+    // Lodge — missile sticks out of monster, parented so it moves with them
     m.lodged = true;
-    m.lodgeTimer = 2.8;
     m.lodgeTarget = targetWrapper;
+    m.lodgeParent = targetWrapper;
+    // Persist this missile in the monster's lodged list — converted to loot on death
+    if (!ud.lodgedMissiles) ud.lodgedMissiles = [];
+    ud.lodgedMissiles.push(m);
 
     // Detach from scene and re-parent to the monster wrapper
     scene.remove(m.mesh);
     targetWrapper.add(m.mesh);
-    m.mesh.scale.setScalar(0.85); // full-size lodged arrow visible as protrusion
+    m.mesh.scale.setScalar(0.85);
 
-    // Position at chest in local monster space (y+1.2 = center mass)
-    const chestLocal = new THREE.Vector3(0, 1.2, 0);
-    // Random slight offset so multiple arrows spread across torso
-    chestLocal.x += (Math.random()-0.5)*0.35;
-    chestLocal.z += (Math.random()-0.5)*0.25;
-    m.mesh.position.copy(chestLocal);
+    // T0.21 — Random body location (head 1.7 / torso 1.0-1.4 / legs 0.4-0.8).
+    // Width spread covers arms; depth covers front/back hits.
+    const bodyY = 0.4 + Math.random() * 1.4;          // 0.4 (leg) to 1.8 (head)
+    const bodyX = (Math.random() - 0.5) * 0.7;        // ±0.35 (arm spread)
+    const bodyZ = (Math.random() - 0.5) * 0.4;        // ±0.20 (front/back)
+    m.mesh.position.set(bodyX, bodyY, bodyZ);
 
     // Orient the shaft so the tip faces INTO the body and shaft protrudes OUT
     // Arrow model points -Z at tip; we want tip pointing roughly toward monster center
@@ -3987,59 +4020,30 @@ function _onMissileHit(m, targetWrapper, idx){
         m.mesh.rotateY(Math.PI); // arrow -Z tip correction
     }
 
-    // Bright white impact flash (very brief)
+    // Bright white impact flash at the lodge point
     const flash = new THREE.PointLight(0xffffff, 24, 3.5);
-    flash.position.set(0, 1.2, 0);
+    flash.position.set(bodyX, bodyY, bodyZ);
     targetWrapper.add(flash);
     setTimeout(()=>targetWrapper.remove(flash), 130);
 
-    // T0.16 — Shuriken return-throw. If a SHURIKEN lodges in a live monster,
-    // 1.0s later the monster pulls it out and flings it back for the same
-    // damage. The lodged mesh is removed at that moment and a visual return
-    // shuriken flies for 0.5s before hitting the player.
-    if(m.isShuriken && !m.fromMonster && !ud.isDead){
+    // T0.16/T0.21 — Shuriken return-throw. If a SHURIKEN lodges in a live
+    // monster, 60% chance the monster pulls it out 1.0s later and flings it
+    // back for the same damage. When this happens the missile is spliced
+    // from ud.lodgedMissiles (so it won't be counted in the death loot drop).
+    if(m.isShuriken && !m.fromMonster && !ud.isDead && Math.random() < 0.6){
         setTimeout(()=> _spawnReturnShuriken(targetWrapper, m), 1000);
     }
 
-    // ── Persistent bloom light — parented to monster, follows movement ──
+    // ── Persistent bloom light at the lodge point (no auto-removal) ──
     const bloomColor = m.isShuriken ? 0x88ffdd : 0x88bbff;
-    const lodgeGlow = new THREE.PointLight(bloomColor, 5, 2.8);
-    lodgeGlow.position.set(0, 1.2, 0);
+    const lodgeGlow = new THREE.PointLight(bloomColor, 4, 2.5);
+    lodgeGlow.position.set(bodyX, bodyY, bodyZ);
     targetWrapper.add(lodgeGlow);
     m.lodgeLight = lodgeGlow;
-    m.lodgeParent = targetWrapper; // track so we can remove from correct parent
 
-    // Spinning bloom ring halo (parented to monster)
-    const bRingGeo = new THREE.TorusGeometry(0.55, 0.055, 8, 32);
-    const bRingMat = new THREE.MeshBasicMaterial({
-        color: bloomColor, transparent: true, opacity: 0.55,
-        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-    });
-    const bloomRing = new THREE.Mesh(bRingGeo, bRingMat);
-    bloomRing.position.set(0, 1.2, 0);
-    bloomRing.rotation.x = Math.PI / 2;
-    targetWrapper.add(bloomRing);
-    m.bloomRing = bloomRing;
-
-    // Crit gets a second larger ring
-    if(m.isCrit){
-        const bRingGeo2 = new THREE.TorusGeometry(0.9, 0.04, 8, 32);
-        const bRing2 = new THREE.Mesh(bRingGeo2, bRingMat.clone());
-        bRing2.position.set(0, 1.2, 0);
-        bRing2.rotation.x = -Math.PI / 3;
-        targetWrapper.add(bRing2);
-        m.bloomRing2 = bRing2;
-    }
-
-    // 50% chance: missile survives — notify panels to restore ammo
-    const survives = Math.random() < 0.5;
-    if(survives && m.recoveryCallback){
-        m.recoveryCallback(m.cardName);
-        window.parent.postMessage({type:'LOG_EVENT', logType:'loot',
-            text:`${m.isShuriken?'Shuriken':'Arrow'} recovered! (+1 ammo)`},'*');
-    }
-
-    // Lean missile into the body
+    // T0.21 — No more instant 50% ammo recovery. Recovery only happens via
+    // loot drops at monster death (see _tickDyingMonsters sink phase).
+    // Lean missile into the body for a more violent stick
     m.mesh.rotation.x += (Math.random()-0.5)*0.3;
     m.mesh.rotation.z += (Math.random()-0.5)*0.3;
 }
@@ -4476,6 +4480,37 @@ function _tickDyingMonsters(dt){
                 if(c.isMesh && c.material) c.material.opacity = Math.max(0, fade);
             });
             if(d.timer <= 0){
+                // T0.22 — Sink complete. Any missiles still lodged in the body
+                // are left behind as loot. Group by card name, spawn a single
+                // loot card per group with qty equal to count. The body sinks
+                // away but the missiles "remain" at the corpse tile as the
+                // user described.
+                if (d.ud.lodgedMissiles && d.ud.lodgedMissiles.length > 0){
+                    const tally = {};
+                    const totalLeft = d.ud.lodgedMissiles.length;
+                    for (const m of d.ud.lodgedMissiles){
+                        const name = m.cardName || (m.isShuriken ? 'SHURIKEN' : 'ARROW');
+                        tally[name] = (tally[name] || 0) + 1;
+                        const par = m.lodgeParent || d.w;
+                        if (m.mesh) par.remove(m.mesh);
+                        if (m.lodgeLight) par.remove(m.lodgeLight);
+                        if (m.bloomRing) par.remove(m.bloomRing);
+                        if (m.bloomRing2) par.remove(m.bloomRing2);
+                        const ai = activeMissiles.indexOf(m);
+                        if (ai >= 0) activeMissiles.splice(ai, 1);
+                    }
+                    d.ud.lodgedMissiles = [];
+                    const lx = Math.round(d.w.position.x / GRID);
+                    const lz = Math.round(d.w.position.z / GRID);
+                    for (const [name, qty] of Object.entries(tally)){
+                        const title = qty > 1 ? `${name} x${qty}` : name;
+                        try {
+                            spawnLootCard(lx, lz, 'MISSILE', title, 'Recovered from body', '投', '(DMG*1DICE)');
+                        } catch(e){ /* loot spawn failure is non-fatal */ }
+                    }
+                    window.parent.postMessage({type:'LOG_EVENT', logType:'loot',
+                        text:`💢 ${totalLeft} missile(s) left in the body.`},'*');
+                }
                 scene.remove(d.w);
                 if(d.ud.monBase) scene.remove(d.ud.monBase);
                 _pipInvalidateWallCache();
@@ -4736,6 +4771,27 @@ function loop(){
     const rotR = keys['ArrowRight']||keys['d']||keys['Numpad6']||keys['6'];
     if(rotL) rot-=ROT_SPD*dt;
     if(rotR) rot+=ROT_SPD*dt;
+
+    // T0.20 — Auto-face attacker. Smoothly lerp rot toward the attacker
+    // angle when no manual turn input is active. Forward at rot=0 is -Z,
+    // so the target rot = atan2(dx, -dz). Auto-face self-cancels after
+    // ~0.05 rad alignment or 1.5s timeout.
+    if (_autoFaceTarget && performance.now() < _autoFaceTarget.until){
+        if (rotL || rotR){
+            _autoFaceTarget = null;
+        } else {
+            const dx = _autoFaceTarget.x - px;
+            const dz = _autoFaceTarget.z - pz;
+            const wantRot = Math.atan2(dx, -dz);
+            let diff = wantRot - rot;
+            while (diff >  Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            rot += diff * Math.min(1, dt * 5); // ~0.2s settle
+            if (Math.abs(diff) < 0.05) _autoFaceTarget = null;
+        }
+    } else if (_autoFaceTarget) {
+        _autoFaceTarget = null; // expired
+    }
 
     // Movement input
     const fwd  = keys['ArrowUp']||keys['w']||keys['Numpad8']||keys['8'];
