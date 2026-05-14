@@ -2903,6 +2903,15 @@
             }
             
             window.parent.postMessage({ type: 'FPV_ACTION', action: a }, '*');
+
+            // T0.7.1 — Any card launch (real attack, not UI action) exits keyboard
+            // selection mode so the player can move immediately. Applies to mouse
+            // clicks AND Enter-key fires routed through here.
+            if (!isUIAction && a && window.isKeyboardSelectorActive) {
+                window.toggleKeyboardSelector();
+                document.body.classList.remove('kbd-card-active');
+            }
+
             let btn = explicitBtn;
             if (!btn && window.event && window.event.currentTarget) {
                 btn = window.event.currentTarget;
@@ -3335,55 +3344,38 @@
                 return;
             }
             
-            // Intercept Deck Navigation
+            // GLOBAL RETURN KEY = enter keyboard selector
             if (e.key === 'Enter' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
-                const _flashAndFire = (card) => {
-                    card.classList.remove('selected-card', 'superimposed-card');
-                    card.classList.add('enter-flash');
-                    const name = card.dataset.cardAction || card.querySelector('.card-title').textContent;
-                    window._lastSelectedCardName = name; // T0.7 — persist for Enter-twice re-fire
-                    setTimeout(() => {
-                        card.classList.remove('enter-flash');
-                        card.classList.add('launching');
-                        emitAction(name, card);
-                        setTimeout(() => {
-                            card.classList.remove('launching');
-                        }, 450);
-                    }, 160); // flash leads the launch by 160ms
-                    // T0.7 — Enter fires AND exits keyboard mode so player can move immediately
-                    if (window.isKeyboardSelectorActive) {
-                        window.toggleKeyboardSelector();
-                        document.body.classList.remove('kbd-card-active');
-                    }
-                };
-                // If any card is already selected (click/long-press), fire it immediately
-                const alreadySelected = document.querySelector('.guide-card.selected-card');
-                if (alreadySelected) {
-                    _flashAndFire(alreadySelected);
-                    return;
-                }
-                // T0.7 — Out of mode + previously fired card → re-fire it (Enter-twice pattern).
-                if (!window.isKeyboardSelectorActive && window._lastSelectedCardName) {
-                    emitAction(window._lastSelectedCardName, null);
-                    return;
-                }
+                
                 if (!window.isKeyboardSelectorActive) {
+                    // Return toggles ON keyboard selector
                     toggleKeyboardSelector();
                     document.body.classList.add('kbd-card-active');
                     return;
                 }
                 
+                // When already in keyboard selector: first Enter selects, second fires
                 const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
-                if (topCard) {
-                    if (topCard.classList.contains('selected-card')) {
-                        // Second Enter = FIRE
-                        _flashAndFire(topCard);
-                    } else {
-                        // First Enter = bloom-select (label switches to ↵ FIRE !)
-                        document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
-                        topCard.classList.add('selected-card');
-                    }
+                if (!topCard) return;
+                
+                if (topCard.classList.contains('selected-card')) {
+                    // Second Enter = FIRE the selected card
+                    topCard.classList.remove('selected-card', 'superimposed-card');
+                    topCard.classList.add('enter-flash');
+                    setTimeout(() => {
+                        topCard.classList.remove('enter-flash');
+                        topCard.classList.add('launching');
+                        const name = topCard.dataset.cardAction || topCard.querySelector('.card-title').textContent;
+                        emitAction(name, topCard);
+                        setTimeout(() => {
+                            topCard.classList.remove('launching');
+                        }, 450);
+                    }, 160);
+                } else {
+                    // First Enter = bloom-select (visual feedback, ready to fire)
+                    document.querySelectorAll('.guide-card.selected-card').forEach(c => c.classList.remove('selected-card'));
+                    topCard.classList.add('selected-card');
                 }
                 return;
             }
@@ -4273,20 +4265,22 @@
             const origOpen  = window[openName];
             const origClose = window[closeName];
             if (typeof origOpen === 'function') {
-                window[openName] = function(...args) {
-                    const r = origOpen.apply(this, args);
-                    const lc = document.getElementById('event-log-container');
-                    if (lc) {
-                        lc.classList.add('active');
-                        clearTimeout(logHideTimeout);
-                    }
-                    return r;
-                };
-            }
+                    window[openName] = function(...args) {
+                        const r = origOpen.apply(this, args);
+                        const lc = document.getElementById('event-log-container');
+                        if (lc) {
+                            lc.classList.add('active');
+                            clearTimeout(logHideTimeout);
+                        }
+                        try{ window.parent.postMessage({type:'SIDEBAR_OPEN', sidebar: openName}, '*'); }catch(e){}
+                        return r;
+                    };
+                }
             if (typeof origClose === 'function') {
                 window[closeName] = function(...args) {
                     const r = origClose.apply(this, args);
                     resetLogHideTimer();
+                    try{ window.parent.postMessage({type:'SIDEBAR_CLOSE', sidebar: closeName}, '*'); }catch(e){}
                     return r;
                 };
             }
