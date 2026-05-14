@@ -2535,7 +2535,7 @@ function triggerHitStop(ms){ hitStopUntil=performance.now()+ms; }
 window.addEventListener('message',e=>{
     if(!e.data) return;
     const d=e.data;
-    if(d.type==='KEY_DOWN'){keys[d.key]=true;keys[(d.key||'').toLowerCase()]=true;if(d.code)keys[d.code]=true;}
+    if(d.type==='KEY_DOWN'){keys[d.key]=true;keys[(d.key||'').toLowerCase()]=true;if(d.code)keys[d.code]=true;_markPlayerAction();}
     if(d.type==='KEY_UP'){keys[d.key]=false;keys[(d.key||'').toLowerCase()]=false;if(d.code)keys[d.code]=false;}
 
     // Panels can inform engine when any sidebar opens/closes — cache locally
@@ -2620,7 +2620,7 @@ window.addEventListener('message',e=>{
         autoWalkInterrupt = true; // side panels up = stop auto-walk immediately
     }
     // Any panel-side action (card cast, gamble, retreat) breaks auto-walk
-    if(d.type==='FPV_ACTION') autoWalkInterrupt = true;
+    if(d.type==='FPV_ACTION') { autoWalkInterrupt = true; _markPlayerAction(); }
     // Gambling win: tame nearest monster in room → clears auto-walk block
     if(d.type==='WAGER_RESOLVE'){
         autoWalkInterrupt = true; // always stop on wager result
@@ -3598,6 +3598,68 @@ window.addEventListener('message', e => {
     }
 });
 
+// ── T0.27 — COMBAT ASSIST ────────────────────────────────────────────────────
+// Light auto-help so slow / new players don't get crushed. Three behaviours:
+//   1. PER-ATTACK auto-shield: incoming monster hit + player idle ≥ 0.5s →
+//      auto-fire DEFEND so the shield's 75% absorb kicks in. 3s cooldown.
+//   2. SWARM auto-shield: 2+ hostiles in melee range + player idle ≥ 0.5s →
+//      auto-fire DEFEND preemptively. 4s cooldown. Threshold drops to 1
+//      hostile when Oni-Baba is benevolent (her mercy).
+//   3. AUTO-MELEE: hostile in melee range + player idle ≥ 2.5s → auto-fire
+//      SLASH. 3s cooldown. Idle threshold drops to 2.0s when benevolent.
+// Every auto-action is logged so the player learns the pattern. Disabled
+// when the player is dead.
+const _combatAssist = {
+    enabled: true,
+    lastPlayerActionT: 0,
+    lastAutoShieldT:   0,
+    lastAutoMeleeT:    0,
+};
+function _markPlayerAction(){ _combatAssist.lastPlayerActionT = performance.now(); }
+
+function _tickCombatAssist(dt){
+    if (!_combatAssist.enabled || playerDead) return;
+    const now = performance.now();
+    const idleTime = (now - _combatAssist.lastPlayerActionT) / 1000;
+    // Skip until at least 0.4s idle — avoid triggering during normal input
+    if (idleTime < 0.4) return;
+
+    // Count nearby hostiles + nearest
+    let nearestDist = Infinity, hostileInMelee = 0;
+    for (const w of monsterWrappers){
+        if (w.userData.isDead || w.userData.aiState !== 'hostile') continue;
+        const dx = w.position.x - px, dz = w.position.z - pz;
+        const d = Math.sqrt(dx*dx + dz*dz);
+        if (d < 2 * GRID) hostileInMelee++;
+        if (d < nearestDist) nearestDist = d;
+    }
+    if (nearestDist === Infinity) return; // no threats
+
+    // "Generous" assist when Oni-Baba is benevolent
+    const generous = _combatBrain.params.playerDmgMult > 1.05;
+    const swarmThreshold  = generous ? 1 : 2;
+    const autoMeleeIdleT  = generous ? 2.0 : 2.5;
+
+    // SWARM auto-shield
+    if (hostileInMelee >= swarmThreshold && !_shieldActive
+        && (now - _combatAssist.lastAutoShieldT) > 4000){
+        _combatAssist.lastAutoShieldT = now;
+        _executeMeleeCard('DEFEND');
+        window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
+            text:`🛡️ Auto-shield: Oni-Baba steadies your hand against the swarm.`}, '*');
+        return;
+    }
+
+    // AUTO-MELEE (only if a hostile is in melee range)
+    if (nearestDist < 2 * GRID && idleTime > autoMeleeIdleT
+        && (now - _combatAssist.lastAutoMeleeT) > 3000){
+        _combatAssist.lastAutoMeleeT = now;
+        _executeMeleeCard('SLASH');
+        window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
+            text:`⚔ Auto-strike: your hand reacts before you do.`}, '*');
+    }
+}
+
 // T0.25 — Player state authority. Engine owns HP, level, XP, gold.
 // On every monster hit we decrement HP and broadcast SYNC_STATS so the
 // sidebar fill bar stays in sync. HP <= 0 triggers _onPlayerDeath.
@@ -3615,6 +3677,19 @@ function _syncPlayerStats(){
 }
 function _applyPlayerDamage(dmg, name){
     if (playerDead || dmg <= 0) return;
+    // T0.27 — Per-attack auto-shield. If the player has been idle ≥ 0.5s when
+    // a hit lands, fire DEFEND so the existing 75% absorb in this function
+    // engages. 3s cooldown so it doesn't auto-tank everything for free.
+    if (_combatAssist.enabled && !_shieldActive){
+        const now = performance.now();
+        const idleTime = (now - _combatAssist.lastPlayerActionT) / 1000;
+        if (idleTime > 0.5 && (now - _combatAssist.lastAutoShieldT) > 3000){
+            _combatAssist.lastAutoShieldT = now;
+            _executeMeleeCard('DEFEND');
+            window.parent.postMessage({type:'LOG_EVENT', logType:'combat',
+                text:'🛡️ Auto-shield raises in time.'}, '*');
+        }
+    }
     // T0.26 — Route through Oni-Baba's combat brain for hit-chance + mood mods
     const resolved = _oniBabaResolveCombat({
         kind: 'monster_to_player',
@@ -5231,6 +5306,7 @@ function loop(){
     tickDots(dt);
     _tickDyingMonsters(dt);
     _tickPlayerDeath(dt); // T0.25 — falling-camera death cinematic
+    _tickCombatAssist(dt); // T0.27 — auto-shield + auto-melee assist
 
     // Proximity outline targeting + auto-melee bump collision
     let closestEnemy=null, closestDist=5.0;
