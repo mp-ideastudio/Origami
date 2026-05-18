@@ -1748,8 +1748,8 @@ buildWorldGeometry() {
 
                         buildEntity(sp, true, entityWrapper);
                     }, undefined, (primaryErr) => {
-                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying CDN...`, primaryErr?.message);
-                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying alternate local path...`, primaryErr?.message);
+                        gltfLoader.load('./assets/models/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
                             const goblin = fallbackGltf.scene;
                             const entityWrapper = new THREE.Group();
                             entityWrapper.add(goblin);

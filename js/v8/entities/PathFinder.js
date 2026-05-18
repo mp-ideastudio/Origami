@@ -10,7 +10,7 @@
  *   from start to goal (inclusive), or null on failure.
  */
 
-const _MON_A_STAR_MAX = 200;
+const _MON_A_STAR_MAX = 800;   // bumped from 200 — cross-floor chases need a bigger expansion budget so monsters that lose LOS can still path to the player through doors.
 
 /**
  * createPathFinder(map, MAP_W, MAP_H)

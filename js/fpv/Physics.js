@@ -21,11 +21,11 @@ export class PhysicsSystem {
                 if (!this.engine.lastAttackTime || (now - this.engine.lastAttackTime > 600)) {
                     this.engine.lastAttackTime = now;
                     this.engine.postToAI({
-                        type: 'COMBAT_ATTACK',
-                        id: this.engine.activeTarget.userData.id,
-                        dealer: 'player',
-                        weapon: 'KATANA', // Can be updated to use action data
-                        damageMod: (actionKey === 'STRONG ATTACK') ? 2 : 0
+                      type: "COMBAT_ATTACK",
+                      id: this.engine.activeTarget.userData.id,
+                      dealer: "player",
+                      weapon: "KATANA", // Can be updated to use action data
+                      damageMod: actionKey === "HARD ATTACK" ? 0.5 : 0,
                     });
                 }
             }

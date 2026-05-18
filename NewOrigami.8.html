@@ -1,9 +1,18 @@
 <!DOCTYPE html>
+<!--
+  Origami Dungeon™ — Idea Software Studio © 2026 All rights reserved.
+  Origami Dungeon is a Trademark of Idea Software Studio.
+  Contact: dev@ideasoftware.studio
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>NewOrigami 8 — The Living Engine</title>
+  <meta name="copyright" content="© 2026 Idea Software Studio. All rights reserved."/>
+  <meta name="author" content="Idea Software Studio"/>
+  <meta name="contact" content="dev@ideasoftware.studio"/>
+  <meta name="trademark" content="Origami Dungeon is a Trademark of Idea Software Studio."/>
+  <title>Origami Dungeon — Idea Software Studio</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sans-serif}
@@ -12,6 +21,9 @@
     #ui-viewport{position:absolute;inset:0;z-index:30;pointer-events:none;background:transparent}
     #ui-viewport iframe{width:100%;height:100%;border:none;background:transparent;pointer-events:auto}
     #v8-badge{position:fixed;top:6px;left:10px;z-index:50;pointer-events:none;font:10px monospace;color:rgba(200,169,110,.5);letter-spacing:1.5px}
+    /* Descent fade — covers the engine iframe during floor reload */
+    #descent-fade{position:fixed;inset:0;z-index:9999;background:#000;opacity:0;pointer-events:none;transition:opacity .55s ease;display:flex;align-items:center;justify-content:center;color:rgba(200,169,110,.8);font:600 14px monospace;letter-spacing:3px}
+    #descent-fade.active{opacity:1;pointer-events:auto}
   </style>
 </head>
 <body>
@@ -25,6 +37,7 @@
   </div>
 
   <div id="v8-badge">ORIGAMI v8 ◆ 折り紙</div>
+  <div id="descent-fade"></div>
 
   <script src="NewOrigami.OniBaba.js"></script>
   <script src="js/v8/OniBaba8.js"></script>
@@ -38,7 +51,10 @@
     // Key relay
     document.addEventListener('keydown', e=>{
       if(e.repeat||document.activeElement?.tagName==='INPUT') return;
-      to(fpv,{type:'KEY_DOWN',key:e.key,code:e.code});
+      // TAB is bound to in-game target cycling — block the browser's
+      // focus-next-element default so the engine receives the event clean.
+      if (e.key === 'Tab') e.preventDefault();
+      to(fpv,{type:'KEY_DOWN',key:e.key,code:e.code,shift:e.shiftKey});
     });
     document.addEventListener('keyup', e=>{
       if(document.activeElement?.tagName==='INPUT') return;
@@ -63,11 +79,21 @@
         case 'RADAR_UPDATE': case 'SYNC_STATS': case 'ADD_CARD': case 'UPDATE_LOOT_CARDS':
         case 'LOOT_CARDS': case 'SHOW_LOOT_UI': case 'SHOW_COMBAT': case 'HIDE_COMBAT':
         case 'HIDE_ALL': case 'COMBAT_STATE_UPDATE': case 'COMBAT_ATTACK': case 'MONSTER_ATTACK':
-        case 'SHOW_EXIT': case 'HIDE_EXIT': case 'LCD_EVENT': case 'LOG_EVENT':
+        case 'SHOW_EXIT': case 'HIDE_EXIT': case 'LCD_EVENT': case 'LOG_EVENT': case 'CAMERA_MODE':
         case 'TOGGLE_INVENTORY': case 'SYNC_INVENTORY': case 'SYNC_UI':
         case 'MISSILE_RECOVERED':
         case 'DEFEAT_BLINK':
+        case 'FLOOR_UPDATE':
+        case 'SAVE_LIST': case 'SAVE_DONE': case 'INVENTORY_RESTORE':
+        case 'MONSTER_HAIKU':
           to(panels, ev); break;
+        // Engine → Oni-Baba pipeline (per-monster brain).
+        case 'MONSTER_INTEL': case 'MONSTER_SPIRIT_REPORT':
+        case 'MONSTER_SOCIAL_DECLARED':
+          // Oni-Baba already listens on window directly — no forwarding
+          // needed. (The engine posts via window.parent.postMessage which
+          // reaches the parent window where both Oni-Baba scripts hook.)
+          break;
         // PIP_FRAME carries a transferred ImageBitmap — must re-post with transfer list
         case 'PIP_FRAME':
           if(panels && panels.contentWindow){
@@ -90,6 +116,9 @@
 
         // T0.26 — Oni-Baba's combat brain → Engine
         case 'SYNC_COMBAT_PARAMS':
+        // Spirit hauntings — Oni-Baba assigns spirits of fallen goblins to
+        // monsters on later floors. Engine boosts the matching monsters.
+        case 'HAUNT_ASSIGNMENTS':
           to(fpv, ev); break;
 
         // T0.26 — Engine → Oni-Baba (already listens via window message)
@@ -107,8 +136,13 @@
         case 'TEXT_COMMAND': case 'CHAT_SUBMIT': case 'TOGGLE_AUTOPICKUP':
         case 'PIP_TOGGLE': case 'PIP_ZOOM': case 'PIP_ROTATE': case 'PIP_PAN':
         case 'PIP_CLICK': case 'PIP_SYNC_RECT': case 'PIP_PERSPECTIVE': case 'MOON_PHASE':
+        case 'OPEN_FULL_MAP':
         case 'SIDEBAR_OPEN': case 'SIDEBAR_CLOSE':
         case 'MAIN_ZOOM':
+        // i18n locale broadcast — Panels → Engine so monster names refresh live
+        case 'LOCALE_CHANGE':
+        // Save / Load — panels → engine
+        case 'SAVE_NOW': case 'LOAD_NOW': case 'DELETE_SAVE': case 'LIST_SAVES':
           // Cache sidebar state locally and forward to engine
           try{ window.__panelsSidebarOpen = (ev.type === 'SIDEBAR_OPEN'); }catch(e){}
           to(fpv, ev); break;
@@ -118,6 +152,33 @@
           if(cachedInit) to(fpv, cachedInit);
           to(panels,{type:'LOG_EVENT',logType:'system',text:'⚡ NewOrigami v8 online.'});
           window.__engineReady = true; // v8 constructor harness signal (G-SMOKE)
+          // Fade out the descent overlay if a floor transition just landed
+          {
+            const fade = document.getElementById('descent-fade');
+            if(fade && fade.classList.contains('active')){
+              setTimeout(() => { fade.classList.remove('active'); fade.textContent = ''; }, 250);
+            }
+          }
+          break;
+
+        // Descent: fade to black, then reload the engine iframe with ?floor=N.
+        // The engine wrote hp/karma/floor to sessionStorage before posting this,
+        // and reads them back during boot. L7 has no stairs_down so the floor
+        // is clamped on the engine side; here we just respect what was sent.
+        case 'DESCEND_REQUEST':
+          {
+            const floor = Math.max(1, Math.min(7, parseInt(ev.floor || 1, 10)));
+            const fade = document.getElementById('descent-fade');
+            if(fade){
+              fade.textContent = `DESCENDING — FLOOR ${floor}`;
+              fade.classList.add('active');
+            }
+            window.__engineReady = false;
+            setTimeout(() => {
+              fpv.src = `NewOrigami.Engine8.html?floor=${floor}`;
+              cachedInit = null; // engine will re-init entities on the new floor
+            }, 600);
+          }
           break;
 
         // Constructor protocol — Oni-Baba narrates build/validation events

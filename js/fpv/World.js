@@ -21,11 +21,23 @@ export const WorldMethods = {
 
                 // Fast Lambert Materials (no expensive GGX BRDF physics on 7 SpotLights)
                 const mats = {
-                    floor: new THREE.MeshLambertMaterial({ map: floorTex }),
-                    ceil: new THREE.MeshLambertMaterial({ map: ceilTex, color: 0xFFFFFF }),
-                    wall: new THREE.MeshLambertMaterial({ map: wallTex, color: 0xFFFFFF }),
-                    npc: new THREE.MeshLambertMaterial({ color: '#7cfc00', map: objTex }),
-                    monster: new THREE.MeshLambertMaterial({ color: '#b85450', map: objTex })
+                  floor: new THREE.MeshLambertMaterial({ map: floorTex }),
+                  ceil: new THREE.MeshLambertMaterial({
+                    map: ceilTex,
+                    color: 0xffffff,
+                  }),
+                  wall: new THREE.MeshLambertMaterial({
+                    map: wallTex,
+                    color: 0x333333,
+                  }),
+                  npc: new THREE.MeshLambertMaterial({
+                    color: "#7cfc00",
+                    map: objTex,
+                  }),
+                  monster: new THREE.MeshLambertMaterial({
+                    color: "#b85450",
+                    map: objTex,
+                  }),
                 };
 
                 // Merge geometry for insane performance (instead of 1000s of distinct meshes)
@@ -120,12 +132,12 @@ export const WorldMethods = {
                         const hudTexSearch = this.createStatusCircleTexture('#ff0000', false, '#000000');
                         
                         const circleGeo = new THREE.PlaneGeometry(this.gridSize * 0.9, this.gridSize * 0.9);
-                        const circleMat = new THREE.MeshBasicMaterial({ 
-                            map: hudTexIdle,
-                            color: 0xffffff, // White overlay tints the white borders/arrows when changed
-                            transparent: true, 
-                            opacity: 0.9,
-                            depthWrite: false 
+                        const circleMat = new THREE.MeshBasicMaterial({
+                          map: hudTexIdle,
+                          color: 0x666666, // Dimmed 80% to reduce floor washout
+                          transparent: true,
+                          opacity: 0.45,
+                          depthWrite: false,
                         });
                         const circle = new THREE.Mesh(circleGeo, circleMat);
                         circle.rotation.x = -Math.PI / 2;
@@ -267,12 +279,13 @@ export const WorldMethods = {
 
                                     child.material = nativeMat;
                                 } else {
-                                    // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
-                                    const eyeMat = nativeMat.clone();
-                                    if (eyeMat.color) eyeMat.color.setHex(0xffffff);
-                                    eyeMat.emissive.setHex(0xffffff);
-                                    eyeMat.emissiveIntensity = 5.0; // Extreme intensity for Bloom threshold 0.9
-                                    child.material = eyeMat;
+                                  // Make eyes terrifyingly bright and pure white so Bloom pass triggers heavily
+                                  const eyeMat = nativeMat.clone();
+                                  if (eyeMat.color)
+                                    eyeMat.color.setHex(0xffffff);
+                                  eyeMat.emissive.setHex(0xffffff);
+                                  eyeMat.emissiveIntensity = 1.0; // Reduced 80% to stop washout
+                                  child.material = eyeMat;
                                 }
                                 
                                 // Fix Z-Index sorting issue against the red targeting circle
@@ -281,7 +294,11 @@ export const WorldMethods = {
                         });
 
                         // Attach a strong pure white point light slightly in front and above the monster so it is well-lit
-                        const frontLight = new THREE.PointLight(0xffffff, 4.0, this.gridSize * 1.5);
+                        const frontLight = new THREE.PointLight(
+                          0xffffff,
+                          0.8,
+                          this.gridSize * 1.5,
+                        );
                         frontLight.position.set(0, 2.5, 1.5); // Above and in front (world +Z)
                         goblin.add(frontLight);
 
@@ -303,8 +320,8 @@ export const WorldMethods = {
 
                         buildEntity(sp, true, entityWrapper);
                     }, undefined, (e) => {
-                        console.warn(`Failed to load Primary Model for spawn ${idx}, attempting CDN fallback:`, e?.message || e);
-                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+                        console.warn(`Failed to load Primary Model for spawn ${idx}, attempting local fallback:`, e?.message || e);
+                        gltfLoader.load('./assets/models/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
                             const goblin = fallbackGltf.scene.clone();
                             const entityWrapper = new THREE.Group();
                             entityWrapper.add(goblin);

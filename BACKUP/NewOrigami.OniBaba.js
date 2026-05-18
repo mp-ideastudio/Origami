@@ -49,6 +49,9 @@ class OniBabaEngine {
             this.post({ type: 'REALITY_SHIFT', mood: this.currentMood });
             this.logToPlayer(`The Underworld trembles. Oni-Baba is now ${this.currentMood}...`, 'karma');
         }
+        
+        // Broadcast exact karma to UI for visual Yin-Yang updates
+        this.post({ type: 'KARMA_UPDATE', karma: this.karmaScore });
     }
 
     handleMessage(e) {
@@ -62,6 +65,12 @@ class OniBabaEngine {
             case 'PLAYER_ATTACK':
             case 'COMBAT_ATTACK':
                 this.processCombatTurn(e.data);
+                break;
+                
+            case 'MONSTER_DEATH':
+                this.karmaScore -= 1;
+                this.logToPlayer(`Oni-Baba witnesses the kill. -1 Karma`, 'karma');
+                this.updateMood();
                 break;
                 
             case 'PARLEY':
@@ -79,8 +88,8 @@ class OniBabaEngine {
         window.postMessage(msg, '*');
     }
 
-    logToPlayer(message, type = 'combat') {
-        this.post({ type: 'LOG_EVENT', message, logType: type });
+    logToPlayer(text, type = 'combat') {
+        this.post({ type: 'LOG_EVENT', text, logType: type });
     }
 
     seedDungeon(mapData) {
@@ -91,8 +100,14 @@ class OniBabaEngine {
 
     processCombatTurn(data) {
         // The player has taken a turn (attacked a monster)
+        // Validate incoming combat data
+        if (!data || !data.targetId) {
+            console.warn('[OniBaba] Received invalid PLAYER_ATTACK - missing targetId');
+            return;
+        }
+
         const targetId = data.targetId;
-        const damage = data.damage || 1;
+        const damage = Math.max(1, data.damage || 1); // Ensure positive damage
         const attackType = data.attackType || 'melee';
         
         if (!this.monsters[targetId]) {
@@ -110,14 +125,12 @@ class OniBabaEngine {
             this.hiveMind.monsterAdaptationLevel += 10;
         }
 
-        // 2. Goddess Intervention & Karma (Did you attack a pleading monster?)
+        // 2. Goddess Intervention & Karma (Cruelty Check)
         if (monster.isPleading) {
             this.karmaScore -= 10; // Major wrongness!
             this.logToPlayer("CRUELTY! Oni-Baba watches you strike a surrendered foe.", 'karma');
-        } else {
-            this.karmaScore -= 1; // Standard combat is slightly negative karma (violence)
+            this.updateMood();
         }
-        this.updateMood();
 
         // 3. Process Damage & Monster AI Response
         // Did the Hive mind learn enough to dodge?
@@ -186,6 +199,12 @@ class OniBabaEngine {
         const targetId = data.targetId;
         if (!this.monsters[targetId]) return;
         const monster = this.monsters[targetId];
+        
+        // Guard: Spare only works on pleading monsters
+        if (!monster.isPleading) {
+            this.logToPlayer("The monster is not surrendering. This action has no effect.", 'karma');
+            return;
+        }
         
         if (monster.isPleading) {
             this.karmaScore += 20; // Ultimate Rightness

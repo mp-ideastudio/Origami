@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Current Issues</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .info { color: #4444ff; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Current Issues</h1>
+    <div id="output"></div>
+    
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js?v=2"></script>
+    
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        async function testModule(path, name) {
+            try {
+                const module = await import(path);
+                log(`✅ ${name} - Loaded successfully`, 'success');
+                return true;
+            } catch (error) {
+                log(`❌ ${name} - Failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function testFile(path, name) {
+            try {
+                const response = await fetch(path);
+                if (response.ok) {
+                    log(`✅ ${name} - Accessible`, 'success');
+                    return true;
+                } else {
+                    log(`❌ ${name} - HTTP ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ ${name} - Failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Test Three.js
+        if (typeof THREE !== 'undefined') {
+            log('✅ Three.js - Available', 'success');
+        } else {
+            log('❌ Three.js - Not available', 'error');
+        }
+        
+        // Test core files
+        await testFile('../New.Origami.2/css/styles.css', 'CSS Styles');
+        await testFile('../New.Origami.2/js/engine/Core.js', 'Core Engine');
+        await testFile('../New.Origami.2/js/engine/TileSystem.js', 'Tile System');
+        await testFile('../New.Origami.2/js/engine/RoomTemplates.js', 'Room Templates');
+        await testFile('../New.Origami.2/js/engine/NewDungeonGen.js', 'Dungeon Generator');
+        await testFile('../New.Origami.2/js/fpv/FPVSystem.js', 'FPV System');
+        await testFile('../New.Origami.2/js/fpv/Combat.js', 'Combat System');
+        await testFile('../New.Origami.2/js/fpv/Physics.js', 'Physics System');
+        await testFile('../New.Origami.2/js/fpv/CardRegistry.js', 'Card Registry');
+        await testFile('../New.Origami.2/js/systems/AISystem.js', 'AI System');
+        await testFile('../New.Origami.2/js/systems/LootSystem.js', 'Loot System');
+        await testFile('../New.Origami.2/js/systems/CardSystem.js', 'Card System');
+        await testFile('../New.Origami.2/js/systems/PanelManager.js', 'Panel Manager');
+        
+        // Test module imports
+        await testModule('../New.Origami.2/js/engine/Core.js', 'Core Module');
+        await testModule('../New.Origami.2/js/fpv/Combat.js', 'Combat Module');
+        await testModule('../New.Origami.2/js/fpv/CardRegistry.js', 'Card Registry Module');
+        
+        log('🔍 Debug complete - check results above', 'info');
+    </script>
+</body>
+</html>

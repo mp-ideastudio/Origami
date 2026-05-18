@@ -248,14 +248,73 @@ export class UIEngine {
                 ];
         
                 const combatCategories = [
-                    { id: 'KATANA', kanji: '斬', icon: 'fa-fire', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['SLASH'] },
-                    { id: 'KATANA', kanji: '突', icon: 'fa-wind', desc: 'Melee Weapon', attr: '(DMG * 1DICE)', cards: ['THRUST'] },
-                    { id: 'KATANA', kanji: '強', icon: 'fa-mountain', desc: 'Melee Weapon', attr: '(DMG * 3DICE)', cards: ['STRONG ATTACK'] },
-                    { id: 'MISSILE', kanji: '投', icon: 'fa-star', desc: 'Thrown Weapon', attr: '(DMG * 1DICE)', cards: ['SHURIKEN'], qty: 3 },
-                    { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 2DICE)', cards: ['SHORT BOW'], qty: 25 },
-                    { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow', desc: 'Ranged Weapon', attr: '(DMG * 4DICE)', cards: ['LONG BOW'], qty: 12 },
-                    { id: 'ITEM', kanji: '盾', icon: 'fa-water', desc: 'Armor', attr: '(DEFEND * 2DICE)', cards: ['SHIELD'] },
-                    { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['HEAL POTION'] }
+                  {
+                    id: "KATANA",
+                    kanji: "斬",
+                    icon: "fa-fire",
+                    desc: "Melee Weapon",
+                    attr: "(DMG * 1DICE)",
+                    cards: ["SLASH"],
+                  },
+                  {
+                    id: "KATANA",
+                    kanji: "突",
+                    icon: "fa-wind",
+                    desc: "Melee Weapon",
+                    attr: "(DMG * 1DICE)",
+                    cards: ["THRUST"],
+                  },
+                  {
+                    id: "KATANA",
+                    kanji: "強",
+                    icon: "fa-mountain",
+                    desc: "Melee Weapon",
+                    attr: "(DMG * 4DICE, -25% HIT)",
+                    cards: ["HARD ATTACK"],
+                  },
+                  {
+                    id: "MISSILE",
+                    kanji: "投",
+                    icon: "fa-star",
+                    desc: "Thrown Weapon",
+                    attr: "(DMG * 1DICE)",
+                    cards: ["SHURIKEN"],
+                    qty: 3,
+                  },
+                  {
+                    id: "MISSILE",
+                    kanji: "弓",
+                    icon: "fa-bow-arrow",
+                    desc: "Ranged Weapon",
+                    attr: "(DMG * 2DICE)",
+                    cards: ["SHORT BOW"],
+                    qty: 25,
+                  },
+                  {
+                    id: "MISSILE",
+                    kanji: "長",
+                    icon: "fa-bow-arrow",
+                    desc: "Ranged Weapon",
+                    attr: "(DMG * 4DICE)",
+                    cards: ["LONG BOW"],
+                    qty: 12,
+                  },
+                  {
+                    id: "ITEM",
+                    kanji: "盾",
+                    icon: "fa-water",
+                    desc: "Armor",
+                    attr: "(DEFEND * 2DICE)",
+                    cards: ["SHIELD"],
+                  },
+                  {
+                    id: "ITEM",
+                    kanji: "具",
+                    icon: "fa-flask",
+                    desc: "Consumable",
+                    attr: "(RESTORE)",
+                    cards: ["HEAL POTION"],
+                  },
                 ];
         
                 let categories = defaultCategories;
@@ -1781,6 +1840,30 @@ export class UIEngine {
                                 card.id = 'loot-c-' + item.id;
                                 
                                 const cat = defaultCategories.find(c => c.cards.includes(item.cardName)) || defaultCategories[0];
+                                const masterCard = (
+                                  window.OrigamiCards || []
+                                ).find(
+                                  (c) =>
+                                    c.name === item.cardName ||
+                                    c.id === item.cardName,
+                                );
+                                const cardLoc = masterCard
+                                  ? window.tCard &&
+                                    window.tCard(
+                                      masterCard.id,
+                                      window.currentLang,
+                                    )
+                                  : null;
+                                const cardTitle = cardLoc
+                                  ? cardLoc.name
+                                  : item.cardName;
+                                const cardDesc = cardLoc
+                                  ? cardLoc.desc
+                                  : cat.desc;
+                                const cardAttr = cardLoc
+                                  ? cardLoc.attr
+                                  : cat.attr || "";
+                                
                                 card.className = `guide-card card-${cat.id.toLowerCase()}`;
                                 card.dataset.depth = "0";
                                 card.style.position = 'absolute';
@@ -1789,10 +1872,10 @@ export class UIEngine {
                                 
                                 // Matches generateCardHTML layout pixel-perfectly
                                 card.innerHTML = `
-                                    <div class="card-header"><span class="card-kanji">${cat.kanji || ''}</span><div class="card-type-pill">${cat.id}</div></div>
-                                    <h3 class="card-title" style="margin:0; height:18px;">${item.cardName}</h3><p class="card-desc" style="margin:0; height:12px;">${cat.desc}</p>
+                                    <div class="card-header"><span class="card-kanji">${cat.kanji || ""}</span><div class="card-type-pill">${cat.id}</div></div>
+                                    <h3 class="card-title" style="margin:0; height:18px;">${cardTitle}</h3><p class="card-desc" style="margin:0; height:12px;">${cardDesc}</p>
                                     <div class="card-icon-3d" data-element="${cat.id}"><canvas></canvas></div>
-                                    <div class="card-attr-fused">${cat.attr || ''}</div>
+                                    <div class="card-attr-fused">${cardAttr}</div>
                                 `;
                                 
                                 // Click to activate the 3D card remotely
@@ -1975,8 +2058,8 @@ export class UIEngine {
                             window.renderInventory();
                         }
                     } else if (e.data && e.data.type === 'LCD_EVENT') {
-                        if (window.showLcdEvent) window.showLcdEvent(e.data.text || "SYS_ERR");
-                        window.logEvent(e.data.text || "SYS_ERR", 'system');
+                        if (window.showLcdEvent)
+                          window.showLcdEvent(e.data.text || "SYS_ERR");
                     } else if (e.data && e.data.type === 'LOG_EVENT') {
                         window.logEvent(e.data.text, e.data.logType || 'system');
                     } else if (e.data && e.data.type === 'PLAYER_MOVE') {

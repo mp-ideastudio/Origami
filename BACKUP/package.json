@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "acorn": "^8.16.0",
-    "puppeteer": "^24.42.0"
-  }
-}

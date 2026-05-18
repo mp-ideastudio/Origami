@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Game Loading</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .error { color: #ff4444; background: #330000; padding: 10px; margin: 5px 0; }
+        .success { color: #44ff44; background: #003300; padding: 10px; margin: 5px 0; }
+        .info { color: #4444ff; background: #000033; padding: 10px; margin: 5px 0; }
+        #log { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Game Loading Test</h1>
+    <div id="log"></div>
+    
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js?v=2"></script>
+    
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        // Override console methods to capture all output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = (...args) => {
+            addLog(args.join(' '), 'info');
+            originalLog.apply(console, args);
+        };
+        
+        console.error = (...args) => {
+            addLog(args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+        
+        console.warn = (...args) => {
+            addLog(args.join(' '), 'info');
+            originalWarn.apply(console, args);
+        };
+        
+        // Test game loading
+        try {
+            addLog('Starting game test...', 'info');
+            
+            // Test Three.js
+            if (typeof THREE !== 'undefined') {
+                addLog('✅ Three.js loaded', 'success');
+            } else {
+                addLog('❌ Three.js not available', 'error');
+                return;
+            }
+            
+            // Test canvas
+            const canvas = document.createElement('canvas');
+            canvas.id = 'gameCanvas';
+            document.body.appendChild(canvas);
+            
+            // Import and test Core
+            addLog('Importing Core engine...', 'info');
+            import('../New.Origami.2/js/engine/Core.js').then(module => {
+                addLog('✅ Core engine imported', 'success');
+                
+                try {
+                    addLog('Creating game instance...', 'info');
+                    const game = new module.OrigamiCore();
+                    addLog('✅ Game instance created successfully', 'success');
+                    
+                    // Wait a moment for initialization
+                    setTimeout(() => {
+                        if (game.scene && game.camera && game.renderer) {
+                            addLog('✅ Three.js components initialized', 'success');
+                        } else {
+                            addLog('❌ Three.js components not initialized', 'error');
+                        }
+                        
+                        if (game.rooms && game.rooms.length > 0) {
+                            addLog(`✅ Dungeon generated with ${game.rooms.length} rooms`, 'success');
+                        } else {
+                            addLog('❌ Dungeon not generated', 'error');
+                        }
+                        
+                        addLog('🎮 Game test complete!', 'success');
+                    }, 2000);
+                    
+                } catch (error) {
+                    addLog(`❌ Game creation failed: ${error.message}`, 'error');
+                }
+                
+            }).catch(error => {
+                addLog(`❌ Core import failed: ${error.message}`, 'error');
+            });
+            
+        } catch (error) {
+            addLog(`❌ Test failed: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html>

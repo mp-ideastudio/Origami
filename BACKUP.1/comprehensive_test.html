@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive System Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #333; border-radius: 4px; }
+        .pass { background: #2d5a2d; }
+        .fail { background: #5a2d2d; }
+        .pending { background: #5a5a2d; }
+        .error { color: #ff4444; background: #330000; }
+        .success { color: #44ff44; background: #003300; }
+        #log { max-height: 500px; overflow-y: auto; white-space: pre-wrap; }
+        .summary { background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Comprehensive System Test</h1>
+    <div class="summary">
+        <h2>Test Results</h2>
+        <div id="status">Initializing...</div>
+        <div id="progress"></div>
+    </div>
+    <div id="log"></div>
+    
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js?v=2"></script>
+    
+    <script type="module">
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        const progress = document.getElementById('progress');
+        
+        let tests = [];
+        let completed = 0;
+        let passed = 0;
+        let failed = 0;
+        
+        function addLog(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function test(name, testFn, critical = false) {
+            const div = document.createElement('div');
+            div.className = 'test pending';
+            div.innerHTML = `⏳ ${name}...`;
+            log.appendChild(div);
+            tests.push({ name, element: div, critical });
+            
+            try {
+                const result = testFn();
+                if (result instanceof Promise) {
+                    result.then(success => {
+                        div.className = `test ${success ? 'pass' : 'fail'}`;
+                        div.innerHTML = `${success ? '✅' : '❌'} ${name}`;
+                        if (success) passed++; else failed++;
+                        updateProgress();
+                        if (!success && critical) {
+                            addLog(`CRITICAL FAILURE: ${name}`, 'error');
+                        }
+                    }).catch(error => {
+                        div.className = 'test fail';
+                        div.innerHTML = `❌ ${name}: ${error.message}`;
+                        failed++;
+                        updateProgress();
+                        if (critical) {
+                            addLog(`CRITICAL FAILURE: ${name} - ${error.message}`, 'error');
+                        }
+                    });
+                } else {
+                    div.className = `test ${result ? 'pass' : 'fail'}`;
+                    div.innerHTML = `${result ? '✅' : '❌'} ${name}`;
+                    if (result) passed++; else failed++;
+                    updateProgress();
+                    if (!result && critical) {
+                        addLog(`CRITICAL FAILURE: ${name}`, 'error');
+                    }
+                }
+            } catch (error) {
+                div.className = 'test fail';
+                div.innerHTML = `❌ ${name}: ${error.message}`;
+                failed++;
+                updateProgress();
+                if (critical) {
+                    addLog(`CRITICAL FAILURE: ${name} - ${error.message}`, 'error');
+                }
+            }
+            completed++;
+        }
+        
+        function updateProgress() {
+            progress.textContent = `Progress: ${completed}/${tests.length} (✅${passed} ❌${failed})`;
+            
+            if (completed === tests.length) {
+                const criticalFailures = tests.filter(t => t.critical && !t.element.classList.contains('pass'));
+                
+                if (criticalFailures.length === 0) {
+                    status.innerHTML = `
+                        <div style="color: #44ff44;">🎉 ALL CRITICAL SYSTEMS WORKING</div>
+                        <div>Passed: ${passed}/${tests.length}</div>
+                        <div>Failed: ${failed}/${tests.length}</div>
+                    `;
+                    addLog('✅ ALL CRITICAL SYSTEMS WORKING - Game should load!', 'success');
+                } else {
+                    status.innerHTML = `
+                        <div style="color: #ff4444;">❌ CRITICAL FAILURES DETECTED</div>
+                        <div>Passed: ${passed}/${tests.length}</div>
+                        <div>Failed: ${failed}/${tests.length}</div>
+                        <div>Critical Failures: ${criticalFailures.length}</div>
+                    `;
+                    addLog(`❌ ${criticalFailures.length} CRITICAL FAILURES - Game will not work!`, 'error');
+                }
+            }
+        }
+        
+        // Start comprehensive testing
+        addLog('Starting comprehensive system test...', 'info');
+        
+        // Test 1: Three.js
+        test('Three.js loaded', () => {
+            return typeof THREE !== 'undefined' && THREE.Scene && THREE.WebGLRenderer;
+        }, true);
+        
+        // Test 2: Three.js functionality
+        test('Three.js can create scene', () => {
+            try {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer();
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }, true);
+        
+        // Test 3: CSS loading
+        test('CSS styles accessible', async () => {
+            const response = await fetch('../New.Origami.2/css/styles.css');
+            return response.ok;
+        }, true);
+        
+        // Test 4: Core engine file
+        test('Core engine file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/engine/Core.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('OrigamiCore') && content.includes('export class');
+        }, true);
+        
+        // Test 5: TileSystem file
+        test('TileSystem file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/engine/TileSystem.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('TileSystem') && content.includes('TileTypes');
+        }, true);
+        
+        // Test 6: RoomTemplates file
+        test('RoomTemplates file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/engine/RoomTemplates.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('RoomTemplates');
+        }, true);
+        
+        // Test 7: NewDungeonGen file
+        test('NewDungeonGen file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/engine/NewDungeonGen.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('NewDungeonGen') && content.includes('generateDungeon');
+        }, true);
+        
+        // Test 8: FPV System file
+        test('FPV System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/fpv/FPVSystem.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('FPVSystem') && content.includes('export class');
+        }, true);
+        
+        // Test 9: Combat System file
+        test('Combat System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/fpv/Combat.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('CombatSystem') && content.includes('export');
+        }, true);
+        
+        // Test 10: Physics System file
+        test('Physics System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/fpv/Physics.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('PhysicsSystem') && content.includes('export');
+        }, true);
+        
+        // Test 11: CardRegistry file
+        test('CardRegistry file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/fpv/CardRegistry.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('CardDatabase') && content.includes('export');
+        }, true);
+        
+        // Test 12: AI System file
+        test('AI System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/systems/AISystem.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('AISystem') && content.includes('export class');
+        }, true);
+        
+        // Test 13: Loot System file
+        test('Loot System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/systems/LootSystem.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('LootSystem') && content.includes('export class');
+        }, true);
+        
+        // Test 14: Card System file
+        test('Card System file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/systems/CardSystem.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('CardSystem') && content.includes('export class');
+        }, true);
+        
+        // Test 15: Panel Manager file
+        test('Panel Manager file accessible', async () => {
+            const response = await fetch('../New.Origami.2/js/systems/PanelManager.js');
+            if (!response.ok) return false;
+            const content = await response.text();
+            return content.includes('PanelManager') && content.includes('export class');
+        }, true);
+        
+        // Test 16: Module imports - Core
+        test('Core engine module imports', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/engine/Core.js');
+                return module.OrigamiCore !== undefined;
+            } catch (error) {
+                addLog(`Core import error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        // Test 17: Module imports - Combat
+        test('Combat System module imports', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/fpv/Combat.js');
+                return module.CombatSystem !== undefined;
+            } catch (error) {
+                addLog(`Combat import error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        // Test 18: Module imports - CardRegistry
+        test('CardRegistry module imports', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/fpv/CardRegistry.js');
+                return module.CardDatabase !== undefined;
+            } catch (error) {
+                addLog(`CardRegistry import error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        // Test 19: Core engine instantiation
+        test('Core engine can be instantiated', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/engine/Core.js');
+                const game = new module.OrigamiCore();
+                return game !== null && game !== undefined;
+            } catch (error) {
+                addLog(`Core instantiation error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        // Test 20: Dungeon generation
+        test('Dungeon generation works', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/engine/NewDungeonGen.js');
+                const dungeonGen = new module.NewDungeonGen();
+                const dungeon = dungeonGen.generateDungeon();
+                return dungeon && dungeon.rooms && Array.isArray(dungeon.rooms);
+            } catch (error) {
+                addLog(`Dungeon generation error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        // Test 21: Tile system
+        test('Tile system works', async () => {
+            try {
+                const module = await import('../New.Origami.2/js/engine/TileSystem.js');
+                const tileSystem = new module.TileSystem();
+                return tileSystem !== null && tileSystem.geometries && tileSystem.materials;
+            } catch (error) {
+                addLog(`Tile system error: ${error.message}`, 'error');
+                return false;
+            }
+        }, true);
+        
+        addLog('Test suite complete - check results above', 'info');
+    </script>
+</body>
+</html>

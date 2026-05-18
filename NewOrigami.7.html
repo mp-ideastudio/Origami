@@ -83,7 +83,7 @@
       
       <!-- FPV Background (Fullscreen) -->
       <div id="fpv-viewport">
-        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.2.html?v=2" allow="autoplay; fullscreen"></iframe>
+        <iframe id="fpv-iframe" title="FPV View Engine" src="NewOrigami.FPV.2.html?v=2" allow="fullscreen"></iframe>
       </div>
 
       <div id="adventure-panel">
@@ -221,6 +221,7 @@
                   case 'PIP_PAN':
                   case 'PIP_CLICK':
                   case 'PIP_SYNC_RECT':
+                  case 'PIP_PERSPECTIVE':
                   case 'TOGGLE_AUTOPICKUP':
                      notifyEngine('fpv', evData);
                      break;

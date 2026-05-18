@@ -525,28 +525,73 @@ generateMap() {
                 
                 // Spawn 1 monster in every generated room
                 this.rooms.forEach((room, idx) => {
-                    // Skip the shop room (id 99) if it exists
-                    if (room.id === 99) return;
-                    
-                    // Offset slightly from exact center if it's the last room to avoid standing ON the stairs
-                    const isLastRoom = (idx === this.rooms.length - 1) && (!this.level || this.level < 3);
-                    const spawnX = room.center.x + (isLastRoom ? 1 : 0);
-                    const spawnZ = room.center.y;
-                    
-                    this.mobSpawns.push({ 
-                        id: `goblin-${idx}-${Date.now()}`,
-                        name: 'Yakuza Goblin',
-                        type: 'goblin', 
-                        x: spawnX, 
-                        z: spawnZ, 
-                        homeX: spawnX, 
-                        homeZ: spawnZ, 
-                        speed: 8.0, 
-                        hp: 50, maxHp: 50,
-                        state: 'IDLE', searchTimer: 0,
-                        isHostile: true // Fix: Ensure it bypasses Room 0 pacifism check
+                  // Skip the shop room (id 99) if it exists
+                  if (room.id === 99) return;
+
+                  // Offset slightly from exact center if it's the last room to avoid standing ON the stairs
+                  const isLastRoom =
+                    idx === this.rooms.length - 1 &&
+                    (!this.level || this.level < 3);
+                  const spawnX = room.center.x + (isLastRoom ? 1 : 0);
+                  const spawnZ = room.center.y;
+
+                  this.mobSpawns.push({
+                    id: `goblin-${idx}-${Date.now()}`,
+                    name: "Yakuza Goblin",
+                    type: "goblin",
+                    x: spawnX,
+                    z: spawnZ,
+                    homeX: spawnX,
+                    homeZ: spawnZ,
+                    speed: 8.0,
+                    hp: 50,
+                    maxHp: 50,
+                    state: "IDLE",
+                    searchTimer: 0,
+                    isHostile: true, // Fix: Ensure it bypasses Room 0 pacifism check
+                  });
+
+                  // Add two imp henchmen around single-goblin rooms. They use the same goblin model/texture path
+                  const henchmanOffsets = [
+                    { dx: 1, dz: 0 },
+                    { dx: -1, dz: 0 },
+                    { dx: 0, dz: 1 },
+                    { dx: 0, dz: -1 },
+                    { dx: 1, dz: 1 },
+                    { dx: 1, dz: -1 },
+                    { dx: -1, dz: 1 },
+                    { dx: -1, dz: -1 },
+                  ];
+                  let impAdded = 0;
+                  for (const offset of henchmanOffsets) {
+                    if (impAdded >= 2) break;
+                    const impX = spawnX + offset.dx;
+                    const impZ = spawnZ + offset.dz;
+                    if (
+                      impX < room.x ||
+                      impX >= room.x + room.w ||
+                      impZ < room.y ||
+                      impZ >= room.y + room.h
+                    )
+                      continue;
+                    this.mobSpawns.push({
+                      id: `imp-${idx}-${impAdded}-${Date.now()}`,
+                      name: "Imp Henchman",
+                      type: "imp",
+                      x: impX,
+                      z: impZ,
+                      homeX: impX,
+                      homeZ: impZ,
+                      speed: 9.0,
+                      hp: 30,
+                      maxHp: 30,
+                      state: "IDLE",
+                      searchTimer: 0,
+                      isHostile: true,
                     });
-                });
+                    impAdded += 1;
+                  }
+                };);
             },
 
 carveFuzzyHallway(start, end) {
@@ -589,8 +634,8 @@ makeWoodTexture(baseColor) {
                 canvas.height = 512;
                 const ctx = canvas.getContext("2d");
                 
-                // Base: Ghostly grey/white paper
-                ctx.fillStyle = "#e0e3e8";
+                // Base: Aged, tea-stained shoji paper — dark and moody
+                ctx.fillStyle = "#c8b89a";
                 ctx.fillRect(0, 0, 512, 512);
                 
                 // Paper grain noise
@@ -1044,25 +1089,59 @@ buildWorldGeometry() {
 
                 // Photo-Realistic Toy Aesthetic (Standard Materials with high roughness)
                 const mats = {
-                    floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9, metalness: 0.1 }),
-                    floorLarge: new THREE.MeshStandardMaterial({ map: floorLargeTex, roughness: 0.8, metalness: 0.2 }),
-                    ceil: new THREE.MeshStandardMaterial({ map: ceilTex, color: 0xFFFFFF, roughness: 1.0, metalness: 0.0 }),
-                    pipWall: new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.15, depthWrite: false }),
-                    wallTop: new THREE.MeshStandardMaterial({ map: wallTopTex, color: 0xE6E6E6, roughness: 0.9, metalness: 0.0 }),
-                    npc: new THREE.MeshStandardMaterial({ color: '#7cfc00', map: objTex, roughness: 0.6 }),
-                    monster: new THREE.MeshPhysicalMaterial({ 
-                        color: '#b0e0e6', // Soft powder blue
-                        emissive: '#00ffff', // Cyan glow
-                        emissiveIntensity: 0.5,
-                        map: objTex,
-                        roughness: 0.1,
-                        metalness: 0.1,
-                        transparent: true,
-                        opacity: 0.65,
-                        depthWrite: false, // Prevents z-sorting artifacts with other transparents
-                        side: THREE.DoubleSide
-                    }),
-                    spiderweb: new THREE.MeshBasicMaterial({ map: this.createSpiderwebTexture(), color: 0xeeeeee, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide })
+                  floor: new THREE.MeshStandardMaterial({
+                    map: floorTex,
+                    roughness: 0.9,
+                    metalness: 0.1,
+                  }),
+                  floorLarge: new THREE.MeshStandardMaterial({
+                    map: floorLargeTex,
+                    roughness: 0.8,
+                    metalness: 0.2,
+                  }),
+                  ceil: new THREE.MeshStandardMaterial({
+                    map: ceilTex,
+                    color: 0x1a1a1a,
+                    roughness: 1.0,
+                    metalness: 0.0,
+                  }),
+                  pipWall: new THREE.MeshStandardMaterial({
+                    color: 0x111111,
+                    transparent: true,
+                    opacity: 0.15,
+                    depthWrite: false,
+                  }),
+                  wallTop: new THREE.MeshStandardMaterial({
+                    map: wallTopTex,
+                    color: 0x7a7a72,
+                    roughness: 0.95,
+                    metalness: 0.0,
+                  }),
+                  npc: new THREE.MeshStandardMaterial({
+                    color: "#7cfc00",
+                    map: objTex,
+                    roughness: 0.6,
+                  }),
+                  monster: new THREE.MeshPhysicalMaterial({
+                    color: "#2a4a3a", // Deep muted jade shadow
+                    emissive: "#113322", // Barely-there green glow in darkness
+                    emissiveIntensity: 0.3,
+                    map: objTex,
+                    roughness: 0.85,
+                    metalness: 0.0,
+                    transparent: true,
+                    opacity: 0.75,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+                  }),
+                  spiderweb: new THREE.MeshBasicMaterial({
+                    map: this.createSpiderwebTexture(),
+                    color: 0xeeeeee,
+                    transparent: true,
+                    opacity: 0.6,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+                  }),
                 };
                 this.mats = mats;
 
@@ -1109,7 +1188,12 @@ buildWorldGeometry() {
                 wallTex.wrapT = THREE.RepeatWrapping;
                 wallTex.repeat.set(1, 1);
                 
-                const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xFFFFFF, roughness: 0.8, metalness: 0.0 });
+                const wallMaterial = new THREE.MeshStandardMaterial({
+                  map: wallTex,
+                  color: 0x888880,
+                  roughness: 0.95,
+                  metalness: 0.0,
+                });
                 const meshMats = [wallMaterial, wallMaterial, mats.wallTop, wallMaterial, wallMaterial, wallMaterial];
                 const fpvWallMesh = new THREE.InstancedMesh(wallGeo, meshMats, wallCount);
                 fpvWallMesh.castShadow = false; // DISABLED TO RESTORE 60 FPS
@@ -1713,49 +1797,52 @@ buildWorldGeometry() {
                                 
                                 // Skip applying hologram transparency and neon color logic to the white eyes
                                 if (!isEye) {
-                                    // Apply neon cyan/green hologram rules directly to native material to preserve vertex colors and maps
-                                    const applyHoloLayer = (mat) => {
-                                        mat.transparent = true;  // Ghostbusters translucent spirit look
-                                        mat.opacity = 0.55;       // 55% opacity — more solid, still ethereal
-                                        mat.blending = THREE.NormalBlending;
-                                        mat.side = THREE.FrontSide; // FrontSide only: DoubleSide caused back-face bleed-through 'double goblin' artifact
-                                        mat.depthWrite = false;   // CRITICAL: prevents sorting artifacts on translucent mesh
-                                        if (mat.roughness !== undefined) mat.roughness = 1.0; // Completely matte to remove reflection
-                                        if (mat.metalness !== undefined) mat.metalness = 0.0; // Remove metallic reflections
-                                        
-                                        // Some native materials don't have emissive, so we check or fallback
-                                        if (mat.emissive !== undefined) {
-                                            mat.emissive.set("#00ffcc");
-                                            mat.emissiveIntensity = 0.5;
-                                        }
+                                  // Apply neon cyan/green hologram rules directly to native material to preserve vertex colors and maps
+                                  const applyHoloLayer = (mat) => {
+                                    mat.transparent = true; // Spectral ghost
+                                    mat.opacity = 0.72; // More opaque — solid enough to be scary
+                                    mat.blending = THREE.NormalBlending;
+                                    mat.side = THREE.FrontSide;
+                                    mat.depthWrite = false;
+                                    if (mat.roughness !== undefined)
+                                      mat.roughness = 1.0; // Fully matte — no plastic sheen
+                                    if (mat.metalness !== undefined)
+                                      mat.metalness = 0.0;
 
-                                        // Custom Shader Injection: Isolate bright white texture regions (the eyes) from being tinted by the hologram!
-                                        mat.onBeforeCompile = (shader) => {
-                                            shader.fragmentShader = shader.fragmentShader.replace(
-                                                '#include <emissivemap_fragment>',
-                                                [
-                                                    '#ifdef USE_EMISSIVEMAP',
-                                                    '    vec4 emissiveMapColor = texture2D( emissiveMap, vUv );',
-                                                    '    totalEmissiveRadiance *= emissiveMapColor.rgb;',
-                                                    '#endif',
-                                                    '// Check the brightness of the base texture map',
-                                                    'float baseBrightness = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));',
-                                                    'if (baseBrightness > 0.65) {', 
-                                                    '    totalEmissiveRadiance = vec3(2.0); // Extreme white emissive override',
-                                                    '    diffuseColor.rgb = vec3(0.0); // Zero out diffuse so red lights cannot reflect off it',
-                                                    '}'
-                                                ].join('\n')
-                                            );
-                                        };
-                                    };
-
-                                    if (Array.isArray(nativeMat)) {
-                                        nativeMat.forEach(applyHoloLayer);
-                                    } else {
-                                        applyHoloLayer(nativeMat);
+                                    // Deep jade-shadow ghost tint — spooky, not 90s cartoon
+                                    if (mat.emissive !== undefined) {
+                                      mat.emissive.set("#0a2218");
+                                      mat.emissiveIntensity = 0.2;
                                     }
 
-                                    child.material = nativeMat;
+                                    // Custom Shader Injection: Isolate bright white texture regions (the eyes) from being tinted by the hologram!
+                                    mat.onBeforeCompile = (shader) => {
+                                      shader.fragmentShader =
+                                        shader.fragmentShader.replace(
+                                          "#include <emissivemap_fragment>",
+                                          [
+                                            "#ifdef USE_EMISSIVEMAP",
+                                            "    vec4 emissiveMapColor = texture2D( emissiveMap, vUv );",
+                                            "    totalEmissiveRadiance *= emissiveMapColor.rgb;",
+                                            "#endif",
+                                            "// Check the brightness of the base texture map",
+                                            "float baseBrightness = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));",
+                                            "if (baseBrightness > 0.65) {",
+                                            "    totalEmissiveRadiance = vec3(2.0); // Extreme white emissive override",
+                                            "    diffuseColor.rgb = vec3(0.0); // Zero out diffuse so red lights cannot reflect off it",
+                                            "}",
+                                          ].join("\n"),
+                                        );
+                                    };
+                                  };
+
+                                  if (Array.isArray(nativeMat)) {
+                                    nativeMat.forEach(applyHoloLayer);
+                                  } else {
+                                    applyHoloLayer(nativeMat);
+                                  }
+
+                                  child.material = nativeMat;
                                 } else {
                                     // preserve original white eye texture, removing all reflective properties by using unlit Basic material
                                     child.material = new THREE.MeshBasicMaterial({ color: 0xffffff, skinning: true });
@@ -1789,8 +1876,8 @@ buildWorldGeometry() {
 
                         buildEntity(sp, true, entityWrapper);
                     }, undefined, (primaryErr) => {
-                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying CDN...`, primaryErr?.message);
-                        gltfLoader.load('https://raw.githubusercontent.com/mp-ideastudio/origami-models/main/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
+                        console.warn(`Primary local load blocked (CORS/file:// expected). Trying alternate local path...`, primaryErr?.message);
+                        gltfLoader.load('./assets/models/YakuzaGoblinGhost.2.glb', (fallbackGltf) => {
                             const goblin = fallbackGltf.scene;
                             const entityWrapper = new THREE.Group();
                             entityWrapper.add(goblin);
@@ -1859,708 +1946,1302 @@ buildWorldGeometry() {
                 
                 // Spawn high-fidelity UI-replica 3D cards in hallway
                 if (this.entrancePos) {
-                    this.spawnLootCard = (x, z, catId, inTitle, desc, kanji, attr, isShopItem = false, price = 50) => {
-                        let originalTitle = inTitle;
-                        let masterCard = null;
-                        if (window.OrigamiCards) {
-                            masterCard = window.OrigamiCards.find(c => c.name === originalTitle);
+                  this.spawnLootCard = (
+                    x,
+                    z,
+                    catId,
+                    inTitle,
+                    desc,
+                    kanji,
+                    attr,
+                    isShopItem = false,
+                    price = 50,
+                  ) => {
+                    let originalTitle = inTitle;
+                    let masterCard = null;
+                    if (window.OrigamiCards) {
+                      masterCard = window.OrigamiCards.find(
+                        (c) => c.name === originalTitle,
+                      );
+                    }
+
+                    let displayKanji = masterCard ? masterCard.kanji : kanji;
+                    let displayDesc = masterCard ? masterCard.desc : desc;
+                    let displayAttr = masterCard ? masterCard.attr : attr;
+                    let displayTypePill = masterCard
+                      ? masterCard.type.toUpperCase()
+                      : catId.toUpperCase();
+                    let elId = masterCard ? masterCard.el : catId;
+
+                    let title = inTitle;
+                    let qty = 1;
+                    if (title === "SHURIKEN") {
+                      qty = Math.floor(Math.random() * 6) + 3; // 3 to 8
+                      title = `SHURIKEN x${qty}`;
+                    } else if (title === "LONG BOW") {
+                      qty = Math.floor(Math.random() * 9) + 7; // 7 to 15 arrows
+                      title = `LONG BOW x${qty}`;
+                    } else if (title === "SHORT BOW") {
+                      qty = Math.floor(Math.random() * 8) + 5; // 5 to 12 arrows
+                      title = `SHORT BOW x${qty}`;
+                    }
+
+                    const W = 256;
+                    const H = 384;
+                    const canvas = document.createElement("canvas");
+                    canvas.width = W;
+                    canvas.height = H;
+                    const ctx = canvas.getContext("2d");
+
+                    // Base dark background (exactly matching dark-mode CSS)
+                    let baseColor = "#232527";
+                    let themeColor = "#66BB6A"; // Default Item
+
+                    // Exact CSS var mapping for accents ONLY
+                    if (catId === "WIND" || catId === "SPELL")
+                      themeColor = "#b0bec5";
+                    else if (elId === "EARTH") themeColor = "#5C4033";
+                    else if (
+                      catId === "ITEM" ||
+                      catId === "SHIELD" ||
+                      catId === "DEFEND"
+                    )
+                      themeColor = "#5c6bc0";
+                    else if (catId === "WATER" || catId === "THRUST")
+                      themeColor = "#0d6efd";
+                    else if (
+                      catId === "FIRE" ||
+                      catId === "SLASH" ||
+                      catId === "KATANA"
+                    )
+                      themeColor = "#ef5350";
+                    else if (catId === "MISSILE") themeColor = "#ab47bc";
+                    else if (catId === "GOLD_COIN") themeColor = "#b8860b";
+                    else themeColor = "#66bb6a"; // SCROLL
+
+                    ctx.fillStyle = baseColor;
+                    ctx.beginPath();
+                    ctx.roundRect(0, 0, W, H, 24);
+                    ctx.fill();
+
+                    // Thin element color outer border (inset 1px to prevent corner tearing at canvas edge)
+                    ctx.strokeStyle = themeColor;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(1, 1, W - 2, H - 2, 23);
+                    ctx.stroke();
+
+                    // Clean inner border for 3D playing card look
+                    ctx.strokeStyle = "rgba(255,255,255,0.02)";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(2, 2, W - 4, H - 4, 22);
+                    ctx.stroke();
+
+                    // Kanji (Theme Colored)
+                    ctx.font = "900 32px sans-serif";
+                    ctx.fillStyle = themeColor;
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "top";
+                    ctx.fillText(displayKanji, 20, 20);
+
+                    // Type Pill (Theme Colored string background / border)
+                    ctx.fillStyle = themeColor;
+                    ctx.beginPath();
+                    ctx.roundRect(W / 2 - 45, 20, 90, 30, 8);
+                    ctx.fill();
+                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.font = "800 16px sans-serif";
+                    ctx.fillStyle =
+                      catId === "GOLD_COIN" ? "#000000" : "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(
+                      catId === "GOLD_COIN" ? "GOLD" : displayTypePill,
+                      W / 2,
+                      35,
+                    );
+
+                    // Title (Auto-scaling to prevent overflow)
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    let titleSize = 32;
+                    ctx.font = `900 ${titleSize}px sans-serif`;
+                    while (
+                      ctx.measureText(title).width > W * 0.85 &&
+                      titleSize > 12
+                    ) {
+                      titleSize -= 1;
+                      ctx.font = `900 ${titleSize}px sans-serif`;
+                    }
+                    ctx.fillText(title, W / 2, 90);
+
+                    // Desc
+                    ctx.font = "500 18px sans-serif";
+                    ctx.fillStyle = "#999999";
+                    function wrapText(
+                      context,
+                      text,
+                      x,
+                      y,
+                      maxWidth,
+                      lineHeight,
+                    ) {
+                      const words = text.split(" ");
+                      let line = "";
+                      for (let n = 0; n < words.length; n++) {
+                        const testLine = line + words[n] + " ";
+                        const metrics = context.measureText(testLine);
+                        const testWidth = metrics.width;
+                        if (testWidth > maxWidth && n > 0) {
+                          context.fillText(line, x, y);
+                          line = words[n] + " ";
+                          y += lineHeight;
+                        } else {
+                          line = testLine;
                         }
-                        
-                        let displayKanji = masterCard ? masterCard.kanji : kanji;
-                        let displayDesc = masterCard ? masterCard.desc : desc;
-                        let displayAttr = masterCard ? masterCard.attr : attr;
-                        let displayTypePill = masterCard ? masterCard.type.toUpperCase() : catId.toUpperCase();
-                        let elId = masterCard ? masterCard.el : catId;
+                      }
+                      context.fillText(line, x, y);
+                    }
+                    wrapText(ctx, displayDesc, W / 2, 130, W * 0.8, 22);
 
-                        let title = inTitle;
-                        let qty = 1;
-                        if (title === 'SHURIKEN') {
-                            qty = Math.floor(Math.random() * 6) + 3; // 3 to 8
-                            title = `SHURIKEN x${qty}`;
-                        }
+                    // [PLAYING CARD CACHE] Save clean canvas state before punching physical hole
+                    const cleanCardURL = canvas.toDataURL();
 
-                        const W = 256; const H = 384;
-                        const canvas = document.createElement('canvas');
-                        canvas.width = W; canvas.height = H;
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Base dark background (exactly matching dark-mode CSS)
-                        let baseColor = '#232527';
-                        let themeColor = '#66BB6A'; // Default Item
-                        
-                        // Exact CSS var mapping for accents ONLY
-                        if (catId === 'WIND' || catId === 'SPELL') themeColor = '#b0bec5';
-                        else if (elId === 'EARTH') themeColor = '#5C4033';
-                        else if (catId === 'ITEM' || catId === 'SHIELD' || catId === 'DEFEND') themeColor = '#5c6bc0';
-                        else if (catId === 'WATER' || catId === 'THRUST') themeColor = '#0d6efd';
-                        else if (catId === 'FIRE' || catId === 'SLASH' || catId === 'KATANA') themeColor = '#ef5350';
-                        else if (catId === 'MISSILE') themeColor = '#ab47bc';
-                        else if (catId === 'GOLD_COIN') themeColor = '#b8860b';
-                        else themeColor = '#66bb6a'; // SCROLL
-                        
-                        ctx.fillStyle = baseColor;
-                        ctx.beginPath(); ctx.roundRect(0, 0, W, H, 24); ctx.fill();
-                        
-                        // Thin element color outer border (inset 1px to prevent corner tearing at canvas edge)
-                        ctx.strokeStyle = themeColor; ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.roundRect(1, 1, W - 2, H - 2, 23); ctx.stroke();
-                        
-                        // Clean inner border for 3D playing card look
-                        ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.roundRect(2, 2, W-4, H-4, 22); ctx.stroke();
+                    // Deep Icon Cavity (Porthole) Hole Cutout
+                    ctx.save();
+                    ctx.globalCompositeOperation = "destination-out";
+                    ctx.beginPath();
+                    ctx.arc(W / 2, H * 0.58, 60, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
 
-                        // Kanji (Theme Colored)
-                        ctx.font = '900 32px sans-serif';
-                        ctx.fillStyle = themeColor;
-                        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-                        ctx.fillText(displayKanji, 20, 20);
+                    // Inner Shadow for the hole
+                    const holeGrad = ctx.createRadialGradient(
+                      W / 2,
+                      H * 0.58,
+                      45,
+                      W / 2,
+                      H * 0.58,
+                      60,
+                    );
+                    holeGrad.addColorStop(0, "rgba(0,0,0,0)");
+                    holeGrad.addColorStop(1, "rgba(0,0,0,0.9)");
+                    ctx.fillStyle = holeGrad;
+                    ctx.beginPath();
+                    ctx.arc(W / 2, H * 0.58, 60, 0, Math.PI * 2);
+                    ctx.fill();
 
-                        // Type Pill (Theme Colored string background / border)
-                        ctx.fillStyle = themeColor;
-                        ctx.beginPath(); ctx.roundRect(W/2 - 45, 20, 90, 30, 8); ctx.fill();
-                        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
-                        ctx.font = '800 16px sans-serif'; 
-                        ctx.fillStyle = (catId === 'GOLD_COIN') ? '#000000' : '#ffffff';
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.fillText(catId === 'GOLD_COIN' ? 'GOLD' : displayTypePill, W/2, 35);
+                    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
 
-                        // Title (Auto-scaling to prevent overflow)
-                        ctx.fillStyle = '#ffffff';
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        
-                        let titleSize = 32;
-                        ctx.font = `900 ${titleSize}px sans-serif`;
-                        while (ctx.measureText(title).width > W * 0.85 && titleSize > 12) {
-                            titleSize -= 1;
-                            ctx.font = `900 ${titleSize}px sans-serif`;
-                        }
-                        ctx.fillText(title, W/2, 90);
+                    // We do not draw the 2D geo symbols anymore, we'll attach real 3D models!
 
-                        // Desc
-                        ctx.font = '500 18px sans-serif'; ctx.fillStyle = '#999999';
-                        function wrapText(context, text, x, y, maxWidth, lineHeight) {
-                            const words = text.split(' '); let line = '';
-                            for(let n = 0; n < words.length; n++) {
-                                const testLine = line + words[n] + ' '; const metrics = context.measureText(testLine); const testWidth = metrics.width;
-                                if (testWidth > maxWidth && n > 0) { context.fillText(line, x, y); line = words[n] + ' '; y += lineHeight; }
-                                else { line = testLine; }
-                            }
-                            context.fillText(line, x, y);
-                        }
-                        wrapText(ctx, displayDesc, W/2, 130, W * 0.8, 22);
-                        
-                        // [PLAYING CARD CACHE] Save clean canvas state before punching physical hole
-                        const cleanCardURL = canvas.toDataURL();
+                    // Solid Black Bottom Block for Attributes (no separator line)
+                    ctx.fillStyle = "rgba(10, 10, 12, 0.8)";
+                    ctx.beginPath();
+                    ctx.roundRect(1, H - 50, W - 2, 49, [0, 0, 23, 23]);
+                    ctx.fill();
 
-                        // Deep Icon Cavity (Porthole) Hole Cutout
-                        ctx.save();
-                        ctx.globalCompositeOperation = 'destination-out';
-                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
-                        ctx.restore();
-                        
-                        // Inner Shadow for the hole
-                        const holeGrad = ctx.createRadialGradient(W/2, H*0.58, 45, W/2, H*0.58, 60);
-                        holeGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                        holeGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
-                        ctx.fillStyle = holeGrad;
-                        ctx.beginPath(); ctx.arc(W/2, H * 0.58, 60, 0, Math.PI*2); ctx.fill();
-                        
-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 3; ctx.stroke();
-                        
-                        // We do not draw the 2D geo symbols anymore, we'll attach real 3D models!
+                    // Attr inside black block
+                    ctx.font = "800 18px sans-serif";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    wrapText(ctx, displayAttr, W / 2, H - 25, W * 0.9, 22);
 
-                        // Solid Black Bottom Block for Attributes (no separator line)
-                        ctx.fillStyle = 'rgba(10, 10, 12, 0.8)';
-                        ctx.beginPath();
-                        ctx.roundRect(1, H - 50, W - 2, 49, [0, 0, 23, 23]); 
-                        ctx.fill();
+                    if (isShopItem) {
+                      ctx.font = "900 24px sans-serif";
+                      ctx.fillStyle = "#FFD700"; // Gold
+                      ctx.fillText(price + " Gold", W / 2, H - 15);
+                    }
 
-                        // Attr inside black block
-                        ctx.font = '800 18px sans-serif'; ctx.fillStyle = '#ffffff';
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        wrapText(ctx, displayAttr, W/2, H - 25, W * 0.9, 22);
+                    const tex = new THREE.CanvasTexture(canvas);
+                    // Upgrade to Physical Material for a glossy "plastic sleeve" look
+                    // Added emissive property to prevent need for PointLight shader recompilation
+                    const cardMat = new THREE.MeshPhysicalMaterial({
+                      map: tex,
+                      transparent: true,
+                      alphaTest: 0.5,
+                      roughness: 0.5,
+                      metalness: 0.1,
+                      clearcoat: 1.0,
+                      clearcoatRoughness: 0.2,
+                      ior: 1.5,
+                      emissive: 0x222222,
+                      emissiveMap: tex,
+                      emissiveIntensity: 0.8,
+                    });
 
-                        if (isShopItem) {
-                            ctx.font = '900 24px sans-serif';
-                            ctx.fillStyle = '#FFD700'; // Gold
-                            ctx.fillText(price + ' Gold', W/2, H - 15);
-                        }
+                    // We use a Group to hold a Front and Back face, effectively creating a "solid" but ultra-thin card
+                    const cardGroup = new THREE.Group();
 
-                        const tex = new THREE.CanvasTexture(canvas);
-                        // Upgrade to Physical Material for a glossy "plastic sleeve" look
-                        // Added emissive property to prevent need for PointLight shader recompilation
-                        const cardMat = new THREE.MeshPhysicalMaterial({ 
-                            map: tex, transparent: true, alphaTest: 0.5, roughness: 0.5, metalness: 0.1,
-                            clearcoat: 1.0, clearcoatRoughness: 0.2, ior: 1.5,
-                            emissive: 0x222222, emissiveMap: tex, emissiveIntensity: 0.8
+                    const edgeColor =
+                      {
+                        EARTH: 0x5c4033,
+                        WATER: 0x0d6efd,
+                        FIRE: 0xb71c1c,
+                        WIND: 0x37474f,
+                        SCROLL: 0x1b5e20,
+                        GOLD_COIN: 0xffd700,
+                      }[elId] || 0x444444;
+                    const edgeMat = new THREE.MeshStandardMaterial({
+                      color: edgeColor,
+                      roughness: catId === "GOLD_COIN" ? 0.2 : 0.5,
+                      metalness: catId === "GOLD_COIN" ? 1.0 : 0.0,
+                    });
+
+                    const shape = new THREE.Shape();
+                    const r = 0.075;
+                    const w = 0.8,
+                      h = 1.2;
+                    const sx = -w / 2,
+                      sy = -h / 2;
+                    shape.moveTo(sx, sy + r);
+                    shape.lineTo(sx, sy + h - r);
+                    shape.quadraticCurveTo(sx, sy + h, sx + r, sy + h);
+                    shape.lineTo(sx + w - r, sy + h);
+                    shape.quadraticCurveTo(sx + w, sy + h, sx + w, sy + h - r);
+                    shape.lineTo(sx + w, sy + r);
+                    shape.quadraticCurveTo(sx + w, sy, sx + w - r, sy);
+                    shape.lineTo(sx + r, sy);
+                    shape.quadraticCurveTo(sx, sy, sx, sy + r);
+
+                    const holePath = new THREE.Path();
+                    holePath.absarc(0, -0.096, 0.1875, 0, Math.PI * 2, true);
+                    shape.holes.push(holePath);
+
+                    const extrudeSettings = {
+                      depth: 0.02,
+                      bevelEnabled: false,
+                    };
+                    const edgeGeo = new THREE.ExtrudeGeometry(
+                      shape,
+                      extrudeSettings,
+                    );
+                    edgeGeo.translate(0, 0, -0.01);
+
+                    const edgeMesh = new THREE.Mesh(edgeGeo, edgeMat);
+                    cardGroup.add(edgeMesh);
+
+                    const frontMesh = new THREE.Mesh(
+                      new THREE.PlaneGeometry(0.8, 1.2),
+                      cardMat,
+                    );
+                    frontMesh.position.z = 0.011;
+
+                    const backMesh = new THREE.Mesh(
+                      new THREE.PlaneGeometry(0.8, 1.2),
+                      cardMat,
+                    );
+                    backMesh.rotation.y = Math.PI;
+                    backMesh.position.z = -0.011;
+
+                    cardGroup.add(frontMesh);
+                    cardGroup.add(backMesh);
+
+                    // Add real 3D Model matching the UI panels
+                    const createLootIcon = () => {
+                      let iconMesh = new THREE.Group();
+                      let customUpdate = null;
+                      const matColor =
+                        {
+                          EARTH: 0x5c4033,
+                          WATER: 0x0d6efd,
+                          FIRE: 0xb71c1c,
+                          WIND: 0x37474f,
+                          SCROLL: 0x1b5e20,
+                        }[catId] || 0x444444;
+                      const mat = new THREE.MeshStandardMaterial({
+                        color: matColor,
+                        roughness: 0.15,
+                        metalness: 0.4,
+                        flatShading: true,
+                        side: THREE.DoubleSide,
+                      });
+
+                      if (originalTitle === "MAGIC LANTERN") {
+                        const bodyGeo = new THREE.CylinderGeometry(
+                          0.1,
+                          0.1,
+                          0.6,
+                          16,
+                        );
+                        const bodyMat = new THREE.MeshStandardMaterial({
+                          color: 0x111111,
+                          metalness: 0.8,
+                          roughness: 0.2,
                         });
-                        
-                        // We use a Group to hold a Front and Back face, effectively creating a "solid" but ultra-thin card
-                        const cardGroup = new THREE.Group();
-                        
-                        const edgeColor = { EARTH: 0x5C4033, WATER: 0x0d6efd, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20, GOLD_COIN: 0xffd700 }[elId] || 0x444444;
-                        const edgeMat = new THREE.MeshStandardMaterial({ 
-                            color: edgeColor, 
-                            roughness: catId === 'GOLD_COIN' ? 0.2 : 0.5,
-                            metalness: catId === 'GOLD_COIN' ? 1.0 : 0.0
+                        const flashlight = new THREE.Mesh(bodyGeo, bodyMat);
+                        flashlight.position.y = -0.1;
+
+                        const headGeo = new THREE.CylinderGeometry(
+                          0.18,
+                          0.1,
+                          0.25,
+                          16,
+                        );
+                        const headMat = new THREE.MeshStandardMaterial({
+                          color: 0x222222,
+                          metalness: 0.9,
+                          roughness: 0.1,
                         });
-                        
-                        const shape = new THREE.Shape();
-                        const r = 0.075; const w = 0.8, h = 1.2;
-                        const sx = -w/2, sy = -h/2;
-                        shape.moveTo(sx, sy + r);
-                        shape.lineTo(sx, sy + h - r);
-                        shape.quadraticCurveTo(sx, sy + h, sx + r, sy + h);
-                        shape.lineTo(sx + w - r, sy + h);
-                        shape.quadraticCurveTo(sx + w, sy + h, sx + w, sy + h - r);
-                        shape.lineTo(sx + w, sy + r);
-                        shape.quadraticCurveTo(sx + w, sy, sx + w - r, sy);
-                        shape.lineTo(sx + r, sy);
-                        shape.quadraticCurveTo(sx, sy, sx, sy + r);
-                        
-                        const holePath = new THREE.Path();
-                        holePath.absarc(0, -0.096, 0.1875, 0, Math.PI * 2, true);
-                        shape.holes.push(holePath);
-                        
-                        const extrudeSettings = { depth: 0.02, bevelEnabled: false };
-                        const edgeGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-                        edgeGeo.translate(0, 0, -0.01);
-                        
-                        const edgeMesh = new THREE.Mesh(edgeGeo, edgeMat);
-                        cardGroup.add(edgeMesh);
+                        const head = new THREE.Mesh(headGeo, headMat);
+                        head.position.y = 0.42;
+                        flashlight.add(head);
 
-                        const frontMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
-                        frontMesh.position.z = 0.011; 
-                        
-                        const backMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), cardMat);
-                        backMesh.rotation.y = Math.PI; 
-                        backMesh.position.z = -0.011;
-                        
-                        cardGroup.add(frontMesh);
-                        cardGroup.add(backMesh);
-                        
-                        // Add real 3D Model matching the UI panels
-                        const createLootIcon = () => {
-                            let iconMesh = new THREE.Group();
-                            let customUpdate = null;
-                            const matColor = { EARTH: 0x5C4033, WATER: 0x0d6efd, FIRE: 0xb71c1c, WIND: 0x37474f, SCROLL: 0x1b5e20 }[catId] || 0x444444;
-                            const mat = new THREE.MeshStandardMaterial({ 
-                                color: matColor, roughness: 0.15, metalness: 0.4, flatShading: true, side: THREE.DoubleSide 
-                            });
+                        const lensGeo = new THREE.CylinderGeometry(
+                          0.16,
+                          0.16,
+                          0.05,
+                          16,
+                        );
+                        const lensMat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          emissive: 0xffffee,
+                          emissiveIntensity: 2.0,
+                        });
+                        const lens = new THREE.Mesh(lensGeo, lensMat);
+                        lens.position.y = 0.13;
+                        head.add(lens);
 
-                            
-                            if (originalTitle === 'MAGIC LANTERN') {
-                                const bodyGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 16);
-                                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
-                                const flashlight = new THREE.Mesh(bodyGeo, bodyMat);
-                                flashlight.position.y = -0.1;
-                                
-                                const headGeo = new THREE.CylinderGeometry(0.18, 0.1, 0.25, 16);
-                                const headMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.1 });
-                                const head = new THREE.Mesh(headGeo, headMat);
-                                head.position.y = 0.42;
-                                flashlight.add(head);
-                                
-                                const lensGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.05, 16);
-                                const lensMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffee, emissiveIntensity: 2.0 });
-                                const lens = new THREE.Mesh(lensGeo, lensMat);
-                                lens.position.y = 0.13;
-                                head.add(lens);
-                                
-                                iconMesh.add(flashlight);
-                                
-                                const lanternLight = new THREE.PointLight(0xfff5e0, 2.0, 10);
-                                lanternLight.position.set(0, 1, 1.5);
-                                iconMesh.add(lanternLight);
-                                customUpdate = (t, meshInstance) => {
-                                    meshInstance.rotation.x = Math.sin(t * 1.5) * 0.1;
-                                    meshInstance.rotation.y = t * 1.0;
-                                    meshInstance.rotation.z = Math.PI / 4; // slanted
-                                };
-                            } else if (elId === 'EARTH') {
+                        iconMesh.add(flashlight);
 
-                                const rockMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8, flatShading: true });
-                                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 2), rockMat); 
-                                iconMesh.add(rock);
-                                customUpdate = (t, meshInstance) => {
-                                    rock.rotation.x = t * 1.8;
-                                    rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
-                                };
-                            } else if (elId === 'FIRE') {
-                                const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1), new THREE.MeshStandardMaterial({ color: 0xb71c1c, emissive: 0x4a0000, emissiveIntensity: 3, flatShading: true })); 
-                                iconMesh.add(core);
-                                const flames = [];
-                                for(let i=0; i<60; i++) {
-                                    const s = new THREE.Mesh(new THREE.TetrahedronGeometry(0.28, 0), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xffea00 : (i % 2 === 0 ? 0xff4500 : 0xb71c1c), emissive: i % 3 === 0 ? 0xffea00 : 0xff4500, emissiveIntensity: 2.5, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, flatShading: true }));
-                                    const ang = (i / 60) * Math.PI * 2, rad = 0.2 + Math.random() * 0.45;
-                                    s.position.set(Math.cos(ang) * rad, 0.3, Math.sin(ang) * rad); iconMesh.add(s);
-                                    flames.push({ m: s, s: 3 + Math.random() * 6, o: Math.random() * Math.PI, rs: (Math.random() - 0.5) * 2 });
-                                }
-                                customUpdate = (t, meshInstance) => {
-                                    core.rotation.y = t * 0.25; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
-                                    flames.forEach(f => {
-                                        f.m.rotation.x += f.rs * 0.005; f.m.rotation.y += f.rs * 0.005; 
-                                        f.m.position.y = 0.3 + ((Math.sin(t * (f.s * 0.5) + f.o) + 1) * 0.8);
-                                        const sc = Math.max(0.1, 1 - (f.m.position.y / 1.5));
-                                        f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5); 
-                                    });
-                                };
-                            } else if (elId === 'WIND') {
-                                const tornado = new THREE.Group();
-                                const numSpirals = 2; 
-                                const mat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
-                                for(let i=0; i<numSpirals; i++) {
-                                    const pts = [];
-                                    const pointsCount = 40;
-                                    const phaseOffset = (i / numSpirals) * Math.PI * 2;
-                                    for(let j=0; j<=pointsCount; j++) {
-                                        const h = j / pointsCount; 
-                                        const r = Math.pow(h, 2.0) * 1.5 + 0.2; 
-                                        const y = (h - 0.5) * 2.5; 
-                                        const angle = h * Math.PI * 12 + phaseOffset; 
-                                        pts.push(new THREE.Vector3(Math.cos(angle)*r, y, Math.sin(angle)*r));
-                                    }
-                                    const curve = new THREE.CatmullRomCurve3(pts);
-                                    const geometry = new THREE.TubeGeometry(curve, 40, 0.075, 6, false);
-                                    const mesh = new THREE.Mesh(geometry, mat);
-                                    tornado.add(mesh);
-                                }
-                                tornado.position.y = -0.2;
-                                iconMesh.add(tornado);
-                                customUpdate = (t, meshInstance) => { 
-                                    tornado.rotation.y = t * -3.0; 
-                                    tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
-                                };
-                            } else if (elId === 'WATER') {
-                                // 1. The Inner Water Fluid (without the glass marble shell, as spawnLootCard adds a generic glassBubble)
-                                const geo = new THREE.SphereGeometry(1.75, 64, 64);
-                                geo.computeVertexNormals();
-                                const mat = new THREE.MeshStandardMaterial({
-                                    color: 0xffffff, roughness: 0.1, metalness: 0.1, vertexColors: true,
-                                    emissive: 0x0d6efd, emissiveIntensity: 0.3
-                                });
-                                const pos = geo.attributes.position;
-                                // We need original Ys to restore the spherical bottom
-                                const originalYs = new Float32Array(pos.count);
-                                for(let i=0; i<pos.count; i++) originalYs[i] = pos.getY(i);
-                                geo.setAttribute('originalY', new THREE.BufferAttribute(originalYs, 1));
-                                
-                                const colors = new Float32Array(pos.count * 3);
-                                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                                const fluid = new THREE.Mesh(geo, mat);
-                                
-                                iconMesh.add(fluid);
-                                
-                                customUpdate = (t, meshInstance) => {
-                                    const p = geo.attributes.position;
-                                    const origY = geo.attributes.originalY;
-                                    const c = geo.attributes.color;
-                                    const white = new THREE.Color(0xffffff);
-                                    const bsBlue = new THREE.Color(0x0d6efd); // Bootstrap Blue
-                                    const deepBlue = new THREE.Color(0x0a58ca);
-                                    
-                                    for(let i=0; i<p.count; i++) {
-                                        const x = p.getX(i), z = p.getZ(i), oy = origY.getX(i);
-                                        
-                                        // Wavy surface
-                                        const w = Math.sin(x * 3.0 + t * 4) * 0.15 + Math.cos(z * 2.5 + t * 3.5) * 0.1 + Math.sin((x+z)*5.0 + t*5.0) * 0.05;
-                                        
-                                        // Water fills up to slightly below middle
-                                        const waterLevel = -0.2;
-                                        
-                                        if (oy > waterLevel) {
-                                            // Project to the flat surface with waves
-                                            const dist2D = Math.sqrt(x*x + z*z);
-                                            const maxR = Math.sqrt(1.75*1.75 - waterLevel*waterLevel);
-                                            
-                                            // Optional: push vertices inward to create flat surface
-                                            if (dist2D < maxR) {
-                                                p.setY(i, waterLevel + w);
-                                                // Coloring: Crests are white/bright, troughs are deep blue
-                                                const mixRatio = (w + 0.25) / 0.5; // Map [-0.25, 0.25] to [0, 1]
-                                                const vertColor = deepBlue.clone().lerp(white, mixRatio);
-                                                c.setXYZ(i, vertColor.r, vertColor.g, vertColor.b);
-                                            } else {
-                                                p.setY(i, oy);
-                                                c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
-                                            }
-                                        } else {
-                                            // Bottom of the sphere
-                                            p.setY(i, oy);
-                                            c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
-                                        }
-                                    }
-                                    p.needsUpdate = true;
-                                    c.needsUpdate = true;
-                                    geo.computeVertexNormals();
-                                };
-                            } else if (catId === 'KATANA' || originalTitle === 'SLASH') {
-                                const addGlow = (mesh) => {
-                                    const glowGeo = mesh.geometry.clone();
-                                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false, blending: THREE.AdditiveBlending });
-                                    const glow = new THREE.Mesh(glowGeo, glowMat);
-                                    glow.scale.setScalar(1.2);
-                                    mesh.add(glow);
-                                };
+                        const lanternLight = new THREE.PointLight(
+                          0xfff5e0,
+                          2.0,
+                          10,
+                        );
+                        lanternLight.position.set(0, 1, 1.5);
+                        iconMesh.add(lanternLight);
+                        customUpdate = (t, meshInstance) => {
+                          meshInstance.rotation.x = Math.sin(t * 1.5) * 0.1;
+                          meshInstance.rotation.y = t * 1.0;
+                          meshInstance.rotation.z = Math.PI / 4; // slanted
+                        };
+                      } else if (elId === "EARTH") {
+                        const rockMat = new THREE.MeshStandardMaterial({
+                          color: 0x5c4033,
+                          roughness: 0.8,
+                          flatShading: true,
+                        });
+                        const rock = new THREE.Mesh(
+                          new THREE.DodecahedronGeometry(1.6, 2),
+                          rockMat,
+                        );
+                        iconMesh.add(rock);
+                        customUpdate = (t, meshInstance) => {
+                          rock.rotation.x = t * 1.8;
+                          rock.position.y = Math.abs(Math.sin(t * 3)) * 1.2;
+                        };
+                      } else if (elId === "FIRE") {
+                        const core = new THREE.Mesh(
+                          new THREE.IcosahedronGeometry(0.85, 1),
+                          new THREE.MeshStandardMaterial({
+                            color: 0xb71c1c,
+                            emissive: 0x4a0000,
+                            emissiveIntensity: 3,
+                            flatShading: true,
+                          }),
+                        );
+                        iconMesh.add(core);
+                        const flames = [];
+                        for (let i = 0; i < 60; i++) {
+                          const s = new THREE.Mesh(
+                            new THREE.TetrahedronGeometry(0.28, 0),
+                            new THREE.MeshStandardMaterial({
+                              color:
+                                i % 3 === 0
+                                  ? 0xffea00
+                                  : i % 2 === 0
+                                    ? 0xff4500
+                                    : 0xb71c1c,
+                              emissive: i % 3 === 0 ? 0xffea00 : 0xff4500,
+                              emissiveIntensity: 2.5,
+                              transparent: true,
+                              opacity: 0.9,
+                              depthWrite: false,
+                              blending: THREE.AdditiveBlending,
+                              flatShading: true,
+                            }),
+                          );
+                          const ang = (i / 60) * Math.PI * 2,
+                            rad = 0.2 + Math.random() * 0.45;
+                          s.position.set(
+                            Math.cos(ang) * rad,
+                            0.3,
+                            Math.sin(ang) * rad,
+                          );
+                          iconMesh.add(s);
+                          flames.push({
+                            m: s,
+                            s: 3 + Math.random() * 6,
+                            o: Math.random() * Math.PI,
+                            rs: (Math.random() - 0.5) * 2,
+                          });
+                        }
+                        customUpdate = (t, meshInstance) => {
+                          core.rotation.y = t * 0.25;
+                          core.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
+                          flames.forEach((f) => {
+                            f.m.rotation.x += f.rs * 0.005;
+                            f.m.rotation.y += f.rs * 0.005;
+                            f.m.position.y =
+                              0.3 + (Math.sin(t * (f.s * 0.5) + f.o) + 1) * 0.8;
+                            const sc = Math.max(0.1, 1 - f.m.position.y / 1.5);
+                            f.m.scale.set(sc * 1.5, sc * 2.5, sc * 1.5);
+                          });
+                        };
+                      } else if (elId === "WIND") {
+                        const tornado = new THREE.Group();
+                        const numSpirals = 2;
+                        const mat = new THREE.MeshBasicMaterial({
+                          color: 0xcccccc,
+                          transparent: true,
+                          opacity: 0.8,
+                          side: THREE.DoubleSide,
+                        });
+                        for (let i = 0; i < numSpirals; i++) {
+                          const pts = [];
+                          const pointsCount = 40;
+                          const phaseOffset = (i / numSpirals) * Math.PI * 2;
+                          for (let j = 0; j <= pointsCount; j++) {
+                            const h = j / pointsCount;
+                            const r = Math.pow(h, 2.0) * 1.5 + 0.2;
+                            const y = (h - 0.5) * 2.5;
+                            const angle = h * Math.PI * 12 + phaseOffset;
+                            pts.push(
+                              new THREE.Vector3(
+                                Math.cos(angle) * r,
+                                y,
+                                Math.sin(angle) * r,
+                              ),
+                            );
+                          }
+                          const curve = new THREE.CatmullRomCurve3(pts);
+                          const geometry = new THREE.TubeGeometry(
+                            curve,
+                            40,
+                            0.075,
+                            6,
+                            false,
+                          );
+                          const mesh = new THREE.Mesh(geometry, mat);
+                          tornado.add(mesh);
+                        }
+                        tornado.position.y = -0.2;
+                        iconMesh.add(tornado);
+                        customUpdate = (t, meshInstance) => {
+                          tornado.rotation.y = t * -3.0;
+                          tornado.rotation.x = Math.sin(t * 3.5) * 0.15;
+                        };
+                      } else if (elId === "WATER") {
+                        // 1. The Inner Water Fluid (without the glass marble shell, as spawnLootCard adds a generic glassBubble)
+                        const geo = new THREE.SphereGeometry(1.75, 64, 64);
+                        geo.computeVertexNormals();
+                        const mat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          roughness: 0.1,
+                          metalness: 0.1,
+                          vertexColors: true,
+                          emissive: 0x0d6efd,
+                          emissiveIntensity: 0.3,
+                        });
+                        const pos = geo.attributes.position;
+                        // We need original Ys to restore the spherical bottom
+                        const originalYs = new Float32Array(pos.count);
+                        for (let i = 0; i < pos.count; i++)
+                          originalYs[i] = pos.getY(i);
+                        geo.setAttribute(
+                          "originalY",
+                          new THREE.BufferAttribute(originalYs, 1),
+                        );
 
-                                const bladeShape = new THREE.Shape();
-                                bladeShape.moveTo(0, 0); // Guard level
-                                bladeShape.quadraticCurveTo(-0.1, 1.0, -0.05, 2.0); // Back edge
-                                bladeShape.lineTo(0.15, 1.85); // Tip
-                                bladeShape.quadraticCurveTo(0.2, 1.0, 0.2, 0); // Cutting edge
-                                bladeShape.lineTo(0, 0);
-                                const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
-                                bladeGeo.center();
-                                const blade = new THREE.Mesh(bladeGeo, new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide}));
-                                blade.position.y = 1.0;
-                                addGlow(blade);
-                                
-                                const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12), new THREE.MeshBasicMaterial({color: 0x8b0000, side: THREE.DoubleSide}));
-                                hilt.position.y = -0.4;
-                                addGlow(hilt);
-                                
-                                const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16), new THREE.MeshBasicMaterial({color: 0xffd700, side: THREE.DoubleSide}));
-                                guard.position.y = 0;
-                                addGlow(guard);
-                                
-                                const swordContainer = new THREE.Group();
-                                swordContainer.add(hilt, blade, guard);
-                                swordContainer.position.y = -0.3;
-                                swordContainer.position.z = 1.2; // Push Katana forward so it doesn't clip the card
-                                
-                                swordContainer.scale.set(0.8, 0.8, 0.1); // flatten z depth
+                        const colors = new Float32Array(pos.count * 3);
+                        geo.setAttribute(
+                          "color",
+                          new THREE.BufferAttribute(colors, 3),
+                        );
+                        const fluid = new THREE.Mesh(geo, mat);
 
-                                const sword1 = swordContainer;
-                                sword1.position.set(0, -0.3, 0);
+                        iconMesh.add(fluid);
 
-                                iconMesh.add(sword1);
-                                
-                                customUpdate = (t, meshInstance) => { 
-                                    sword1.rotation.y = t * 1.5;
-                                    sword1.position.y = -0.3 + Math.sin(t * 2) * 0.1;
-                                };
-                            } else if (catId === 'MISSILE' || originalTitle === 'SHURIKEN') {
-                                const addGlow = (mesh) => {
-                                    const glowGeo = mesh.geometry.clone();
-                                    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false, blending: THREE.AdditiveBlending });
-                                    const glow = new THREE.Mesh(glowGeo, glowMat);
-                                    glow.scale.set(1.15, 1.15, 1.5);
-                                    mesh.add(glow);
-                                };
-                                const starShape = new THREE.Shape();
-                                const outerRadius = 1.8;
-                                const innerRadius = 0.45;
-                                for (let i = 0; i < 8; i++) {
-                                    const angle = (i * Math.PI) / 4;
-                                    const r = i % 2 === 0 ? outerRadius : innerRadius;
-                                    if (i === 0) starShape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                                    else starShape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                                }
-                                const geo = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
-                                geo.center();
-                                const starMat = new THREE.MeshStandardMaterial({color: 0xdddddd, metalness: 0.5, roughness: 0.2, emissive: 0x666666, side: THREE.DoubleSide});
-                                const starMesh = new THREE.Mesh(geo, starMat);
-                                addGlow(starMesh);
+                        customUpdate = (t, meshInstance) => {
+                          const p = geo.attributes.position;
+                          const origY = geo.attributes.originalY;
+                          const c = geo.attributes.color;
+                          const white = new THREE.Color(0xffffff);
+                          const bsBlue = new THREE.Color(0x0d6efd); // Bootstrap Blue
+                          const deepBlue = new THREE.Color(0x0a58ca);
 
-                                const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16), new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.DoubleSide}));
-                                hole.rotation.x = Math.PI / 2;
-                                
-                                const starGroup = new THREE.Group();
-                                starGroup.add(starMesh, hole);
-                                starGroup.scale.set(0.8, 0.8, 0.1); // flatten z depth
-                                
-                                const star1 = starGroup;
-                                star1.position.set(0, 0, 0);
+                          for (let i = 0; i < p.count; i++) {
+                            const x = p.getX(i),
+                              z = p.getZ(i),
+                              oy = origY.getX(i);
 
-                                const star2 = starGroup.clone();
-                                star2.rotation.y = Math.PI;
+                            // Wavy surface
+                            const w =
+                              Math.sin(x * 3.0 + t * 4) * 0.15 +
+                              Math.cos(z * 2.5 + t * 3.5) * 0.1 +
+                              Math.sin((x + z) * 5.0 + t * 5.0) * 0.05;
 
-                                iconMesh.add(star1, star2);
-                                customUpdate = (t, meshInstance) => { 
-                                    star1.rotation.z = -t * 0.5; 
-                                    star2.rotation.z = -t * 0.5;
-                                };
-                            } else if (originalTitle === 'SAMURAI HELMET') {
-                                const addOutline = (mesh) => {
-                                    const edges = new THREE.EdgesGeometry(mesh.geometry);
-                                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
-                                    mesh.add(line);
-                                };
-                                // Samurai Helmet (Kabuto)
-                                const helmetMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.2, metalness: 0.3, side: THREE.DoubleSide});
-                                const goldMat = new THREE.MeshStandardMaterial({color: 0xffaa00, metalness: 0.8, roughness: 0.2, side: THREE.DoubleSide});
-                                
-                                // Dome
-                                const domeGeo = new THREE.SphereGeometry(1.0, 16, 16, 0, Math.PI * 2, 0, Math.PI/2);
-                                const dome = new THREE.Mesh(domeGeo, helmetMat);
-                                dome.position.y = -0.2;
-                                addOutline(dome);
-                                
-                                // Face Guard (Mempo) - just a cylinder slice
-                                const guardGeo = new THREE.CylinderGeometry(1.1, 1.2, 0.4, 16, 1, false, Math.PI * 0.75, Math.PI * 1.5);
-                                const guard = new THREE.Mesh(guardGeo, helmetMat);
-                                guard.position.y = -0.4;
-                                addOutline(guard);
-                                
-                                // Kuwagata (Crescent Horns)
-                                const hornShape = new THREE.Shape();
-                                hornShape.moveTo(0, 0);
-                                hornShape.quadraticCurveTo(0.8, 0.8, 1.2, 1.8);
-                                hornShape.quadraticCurveTo(0.8, 0.4, 0.2, 0.2);
-                                hornShape.lineTo(0, 0);
-                                const hornGeo1 = new THREE.ExtrudeGeometry(hornShape, {depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2});
-                                const horn1 = new THREE.Mesh(hornGeo1, goldMat);
-                                horn1.position.set(0, 0.3, 0.9);
-                                horn1.rotation.z = -0.3;
-                                horn1.rotation.y = 0.2;
-                                addOutline(horn1);
-                                
-                                const horn2 = new THREE.Mesh(hornGeo1, goldMat);
-                                horn2.position.set(0, 0.3, 0.9);
-                                horn2.rotation.y = Math.PI - 0.2; // Flip for left side
-                                horn2.rotation.z = -0.3;
-                                addOutline(horn2);
-                                
-                                const boss = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), goldMat);
-                                boss.position.set(0, 0.4, 1.0);
-                                addOutline(boss);
-                                
-                                iconMesh.add(dome, guard, horn1, horn2, boss);
-                                iconMesh.scale.set(1.0, 1.0, 0.1); // flatten z depth
-                                customUpdate = (t, meshInstance) => { meshInstance.rotation.y = t * 1.5; };
-                            } else if (originalTitle === 'SHIELD' || catId === 'SHIELD' || catId === 'ARMOR') {
-                                const addOutline = (mesh) => {
-                                    const edges = new THREE.EdgesGeometry(mesh.geometry);
-                                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
-                                    mesh.add(line);
-                                };
+                            // Water fills up to slightly below middle
+                            const waterLevel = -0.2;
 
-                                const shieldShape = new THREE.Shape();
-                                shieldShape.moveTo(0, -1.2);
-                                shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
-                                shieldShape.lineTo(-1.0, 1.0);
-                                shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
+                            if (oy > waterLevel) {
+                              // Project to the flat surface with waves
+                              const dist2D = Math.sqrt(x * x + z * z);
+                              const maxR = Math.sqrt(
+                                1.75 * 1.75 - waterLevel * waterLevel,
+                              );
 
-                                const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
-                                shieldGeo.center();
-                                
-                                const shieldMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.5, roughness: 0.3, emissive: 0x444444, side: THREE.DoubleSide});
-                                const shield = new THREE.Mesh(shieldGeo, shieldMat);
-                                shield.scale.set(1.4, 1.4, 0.14); // flatten z depth
-                                addOutline(shield);
-                                
-                                // Inner shield design
-                                const innerGeo = new THREE.ExtrudeGeometry(shieldShape, { depth: 0.1, bevelEnabled: false });
-                                innerGeo.center();
-                                const innerMat = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.1, roughness: 0.2, side: THREE.DoubleSide});
-                                const innerShield = new THREE.Mesh(innerGeo, innerMat);
-                                innerShield.scale.set(0.5, 0.5, 1.0);
-                                innerShield.position.z = 0; // centered so it pokes out both sides
-                                addOutline(innerShield);
-                                
-                                shield.add(innerShield);
-                                
-                                const frontShield = shield;
-                                frontShield.position.z = 0;
-                                
-                                iconMesh.add(frontShield);
-                                customUpdate = (t, meshInstance) => { 
-                                    frontShield.rotation.y = t * 1.5;
-                                };
-                            } else if (originalTitle === 'POTION' || catId === 'SCROLL') {
-                                const potionGroup = new THREE.Group();
-
-                                const glassMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.1, metalness: 0.4, transparent: true, opacity: 0.4, depthWrite: false });
-                                const corkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.1 });
-                                const liquidMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-                                
-                                // Flask base
-                                const baseGeo = new THREE.SphereGeometry(1.0, 16, 16);
-                                const base = new THREE.Mesh(baseGeo, glassMat);
-                                
-                                // Liquid inside
-                                const liquidGeo = new THREE.SphereGeometry(0.85, 16, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
-                                const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-                                
-                                // Neck
-                                const neckGeo = new THREE.CylinderGeometry(0.3, 0.5, 0.8, 16);
-                                const neck = new THREE.Mesh(neckGeo, glassMat);
-                                neck.position.y = 1.0;
-                                
-                                // Lip
-                                const lipGeo = new THREE.TorusGeometry(0.35, 0.1, 8, 16);
-                                const lip = new THREE.Mesh(lipGeo, glassMat);
-                                lip.position.y = 1.4;
-                                lip.rotation.x = Math.PI / 2;
-                                
-                                // Cork
-                                const corkGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.4, 12);
-                                const cork = new THREE.Mesh(corkGeo, corkMat);
-                                cork.position.y = 1.55;
-                                
-                                potionGroup.add(base, liquid, neck, lip, cork);
-                                potionGroup.position.y = -0.4;
-                                
-                                iconMesh.add(potionGroup);
-                                
-                                customUpdate = (t, meshInstance) => {
-                                    potionGroup.rotation.y = t * 1.5;
-                                    potionGroup.rotation.z = Math.sin(t * 2) * 0.1;
-                                    liquid.rotation.x = Math.sin(t * 5) * 0.2; // sloshing
-                                    liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
-                                };
-                            } else if (catId === 'GOLD_COIN') {
-                                const coinShape = new THREE.Shape();
-                                coinShape.arc(0, 0, 1.68, 0, Math.PI * 2, false); // CCW outer
-                                
-                                const holePath = new THREE.Path();
-                                // CW inner square cutout for Yen shape
-                                holePath.moveTo(-0.48, 0.48);
-                                holePath.lineTo(0.48, 0.48);
-                                holePath.lineTo(0.48, -0.48);
-                                holePath.lineTo(-0.48, -0.48);
-                                holePath.lineTo(-0.48, 0.48);
-                                coinShape.holes.push(holePath);
-                                
-                                // Embed depth evenly through card (make it thick enough to pierce the card given the 0.07 scale, but not excessively huge)
-                                const coinGeo = new THREE.ExtrudeGeometry(coinShape, { depth: 0.8, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 2 });
-                                coinGeo.center();
-                                
-                                // Generate faux-metal gradient texture to provide 3D shine without requiring actual light sources
-                                const tCanvas = document.createElement('canvas');
-                                tCanvas.width = 128; tCanvas.height = 128;
-                                const tCtx = tCanvas.getContext('2d');
-                                const grd = tCtx.createLinearGradient(0, 0, 128, 128);
-                                grd.addColorStop(0, '#d4af37');   // Darker highlight
-                                grd.addColorStop(0.3, '#b8860b'); // Darker base
-                                grd.addColorStop(0.5, '#d4af37'); // Darker highlight
-                                grd.addColorStop(0.7, '#6b4f00'); // Deep shadow
-                                grd.addColorStop(1, '#b8860b');   // Darker base
-                                tCtx.fillStyle = grd;
-                                tCtx.fillRect(0, 0, 128, 128);
-                                const goldTex = new THREE.CanvasTexture(tCanvas);
-                                
-                                const coinMat = new THREE.MeshBasicMaterial({
-                                    map: goldTex,
-                                    side: THREE.DoubleSide
-                                });
-                                const coin = new THREE.Mesh(coinGeo, coinMat);
-                                
-                                // Flat against the card, NO tilting to prevent it getting chopped by the card plane
-                                coin.rotation.x = 0;
-                                coin.rotation.y = 0;
-                                
-                                iconMesh.add(coin);
-                                
-                                // Removed PointLights to eliminate massive bloom artifacts
-
-                                customUpdate = (t, meshInstance) => { 
-                                    // Coin remains static per user request
-                                };
+                              // Optional: push vertices inward to create flat surface
+                              if (dist2D < maxR) {
+                                p.setY(i, waterLevel + w);
+                                // Coloring: Crests are white/bright, troughs are deep blue
+                                const mixRatio = (w + 0.25) / 0.5; // Map [-0.25, 0.25] to [0, 1]
+                                const vertColor = deepBlue
+                                  .clone()
+                                  .lerp(white, mixRatio);
+                                c.setXYZ(
+                                  i,
+                                  vertColor.r,
+                                  vertColor.g,
+                                  vertColor.b,
+                                );
+                              } else {
+                                p.setY(i, oy);
+                                c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
+                              }
                             } else {
-                                // DICE fallback
-                                const dieMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
-                                const die = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), dieMat);
-                                iconMesh.add(die);
-                                customUpdate = (t, meshInstance) => { meshInstance.rotation.y = t * 1.5; meshInstance.rotation.x = Math.sin(t * 2) * 0.5; };
+                              // Bottom of the sphere
+                              p.setY(i, oy);
+                              c.setXYZ(i, bsBlue.r, bsBlue.g, bsBlue.b);
                             }
-
-                            return { iconMesh, customUpdate };
+                          }
+                          p.needsUpdate = true;
+                          c.needsUpdate = true;
+                          geo.computeVertexNormals();
+                        };
+                      } else if (
+                        catId === "KATANA" ||
+                        originalTitle === "SLASH"
+                      ) {
+                        const addGlow = (mesh) => {
+                          const glowGeo = mesh.geometry.clone();
+                          const glowMat = new THREE.MeshBasicMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.15,
+                            depthWrite: false,
+                            blending: THREE.AdditiveBlending,
+                          });
+                          const glow = new THREE.Mesh(glowGeo, glowMat);
+                          glow.scale.setScalar(1.2);
+                          mesh.add(glow);
                         };
 
-                        const iconModel = createLootIcon();
-                        
-                        const iconWrapper = new THREE.Group();
-                        
-                        // Scale: Flashlight gets bigger, everything else stays standard
-                        let EXACT_SCALE = 0.07;
-                        if (originalTitle === 'MAGIC LANTERN') EXACT_SCALE = 0.35;
-                        
-                        // SINGLE CENTERED ICON (DoubleSide materials make back visible)
-                        const frontIcon = iconModel.iconMesh;
-                        frontIcon.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
-                        frontIcon.position.set(0, -0.096, 0); // Dead center in hole
-                        
-                        // Traverse to ensure DoubleSide materials
-                        frontIcon.traverse((child) => {
-                            if (child.isMesh) {
-                                if (child.material && !Array.isArray(child.material)) {
-                                    child.material.transparent = true;
-                                    child.material.side = THREE.DoubleSide;
-                                    child.material.needsUpdate = true;
-                                }
-                                child.renderOrder = 20;
-                            }
+                        const bladeShape = new THREE.Shape();
+                        bladeShape.moveTo(0, 0); // Guard level
+                        bladeShape.quadraticCurveTo(-0.1, 1.0, -0.05, 2.0); // Back edge
+                        bladeShape.lineTo(0.15, 1.85); // Tip
+                        bladeShape.quadraticCurveTo(0.2, 1.0, 0.2, 0); // Cutting edge
+                        bladeShape.lineTo(0, 0);
+                        const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, {
+                          depth: 0.1,
+                          bevelEnabled: true,
+                          bevelThickness: 0.03,
+                          bevelSize: 0.03,
+                          bevelSegments: 2,
                         });
-                        iconWrapper.add(frontIcon);
-                        
-                        // The Glass Bubble Enclosure
-                        if (!this._sharedGlassBubbleGeo) {
-                            this._sharedGlassBubbleGeo = new THREE.SphereGeometry(0.2, 32, 32);
-                            this._sharedGlassBubbleMat = new THREE.MeshPhysicalMaterial({
-                                color: 0xe0f0ff, transparent: true, opacity: 0.55,
-                                roughness: 0.05, metalness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.05,
-                                ior: 1.5, depthWrite: false
-                            });
+                        bladeGeo.center();
+                        const blade = new THREE.Mesh(
+                          bladeGeo,
+                          new THREE.MeshBasicMaterial({
+                            color: 0xffffff,
+                            side: THREE.DoubleSide,
+                          }),
+                        );
+                        blade.position.y = 1.0;
+                        addGlow(blade);
+
+                        const hilt = new THREE.Mesh(
+                          new THREE.CylinderGeometry(0.08, 0.08, 0.8, 12),
+                          new THREE.MeshBasicMaterial({
+                            color: 0x8b0000,
+                            side: THREE.DoubleSide,
+                          }),
+                        );
+                        hilt.position.y = -0.4;
+                        addGlow(hilt);
+
+                        const guard = new THREE.Mesh(
+                          new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16),
+                          new THREE.MeshBasicMaterial({
+                            color: 0xffd700,
+                            side: THREE.DoubleSide,
+                          }),
+                        );
+                        guard.position.y = 0;
+                        addGlow(guard);
+
+                        const swordContainer = new THREE.Group();
+                        swordContainer.add(hilt, blade, guard);
+                        swordContainer.position.y = -0.3;
+                        swordContainer.position.z = 1.2; // Push Katana forward so it doesn't clip the card
+
+                        swordContainer.scale.set(0.8, 0.8, 0.1); // flatten z depth
+
+                        const sword1 = swordContainer;
+                        sword1.position.set(0, -0.3, 0);
+
+                        iconMesh.add(sword1);
+
+                        customUpdate = (t, meshInstance) => {
+                          sword1.rotation.y = t * 1.5;
+                          sword1.position.y = -0.3 + Math.sin(t * 2) * 0.1;
+                        };
+                      } else if (
+                        catId === "MISSILE" ||
+                        originalTitle === "SHURIKEN"
+                      ) {
+                        const addGlow = (mesh) => {
+                          const glowGeo = mesh.geometry.clone();
+                          const glowMat = new THREE.MeshBasicMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.15,
+                            depthWrite: false,
+                            blending: THREE.AdditiveBlending,
+                          });
+                          const glow = new THREE.Mesh(glowGeo, glowMat);
+                          glow.scale.set(1.15, 1.15, 1.5);
+                          mesh.add(glow);
+                        };
+                        const starShape = new THREE.Shape();
+                        const outerRadius = 1.8;
+                        const innerRadius = 0.45;
+                        for (let i = 0; i < 8; i++) {
+                          const angle = (i * Math.PI) / 4;
+                          const r = i % 2 === 0 ? outerRadius : innerRadius;
+                          if (i === 0)
+                            starShape.moveTo(
+                              Math.cos(angle) * r,
+                              Math.sin(angle) * r,
+                            );
+                          else
+                            starShape.lineTo(
+                              Math.cos(angle) * r,
+                              Math.sin(angle) * r,
+                            );
                         }
-                        const glassBubble = new THREE.Mesh(this._sharedGlassBubbleGeo, this._sharedGlassBubbleMat);
-                        glassBubble.position.set(0, -0.096, 0);
-                        glassBubble.scale.set(1, 1, 0.75); // Deeper dome to enclose unwarped 3D models
-                        glassBubble.renderOrder = 10;
-                        iconWrapper.add(glassBubble);
+                        const geo = new THREE.ExtrudeGeometry(starShape, {
+                          depth: 0.1,
+                          bevelEnabled: true,
+                          bevelThickness: 0.03,
+                          bevelSize: 0.03,
+                          bevelSegments: 2,
+                        });
+                        geo.center();
+                        const starMat = new THREE.MeshStandardMaterial({
+                          color: 0xdddddd,
+                          metalness: 0.5,
+                          roughness: 0.2,
+                          emissive: 0x666666,
+                          side: THREE.DoubleSide,
+                        });
+                        const starMesh = new THREE.Mesh(geo, starMat);
+                        addGlow(starMesh);
 
-                        cardGroup.add(iconWrapper);
-                        
-                        const combinedUpdate = (t) => {
-                            if (iconModel.customUpdate) iconModel.customUpdate(t, frontIcon);
-                        };
-                        
-                        cardGroup.position.set(x * this.gridSize, 1.2, z * this.gridSize);
-                        
-                        // Removed PointLights from loot cards as per user request to avoid errors
+                        const hole = new THREE.Mesh(
+                          new THREE.CylinderGeometry(0.25, 0.25, 0.4, 16),
+                          new THREE.MeshBasicMaterial({
+                            color: 0x000000,
+                            side: THREE.DoubleSide,
+                          }),
+                        );
+                        hole.rotation.x = Math.PI / 2;
 
-                        cardGroup.userData = { 
-                            type: 'loot_cards', floatTimer: Math.random() * Math.PI * 2, basePos: 1.2, gridX: x, gridZ: z, 
-                            cardDataURL: canvas.toDataURL(), cleanCardURL: cleanCardURL, iconMesh: iconWrapper, customUpdate: combinedUpdate,
-                            cardData: { el: catId, name: inTitle, desc: desc, kanji: kanji, attr: attr, themeClr: themeColor, qty: qty },
-                            cardName: title, // Use modified title (with x5) for UI
-                            isShopItem: isShopItem,
-                            price: price
+                        const starGroup = new THREE.Group();
+                        starGroup.add(starMesh, hole);
+                        starGroup.scale.set(0.8, 0.8, 0.1); // flatten z depth
+
+                        const star1 = starGroup;
+                        star1.position.set(0, 0, 0);
+
+                        const star2 = starGroup.clone();
+                        star2.rotation.y = Math.PI;
+
+                        iconMesh.add(star1, star2);
+                        customUpdate = (t, meshInstance) => {
+                          star1.rotation.z = -t * 0.5;
+                          star2.rotation.z = -t * 0.5;
                         };
-                        
-                        this.worldGroup.add(cardGroup);
-                        this.lootItems.push(cardGroup);
+                      } else if (originalTitle === "SAMURAI HELMET") {
+                        const addOutline = (mesh) => {
+                          const edges = new THREE.EdgesGeometry(mesh.geometry);
+                          const line = new THREE.LineSegments(
+                            edges,
+                            new THREE.LineBasicMaterial({
+                              color: 0xffffff,
+                              transparent: true,
+                              opacity: 0.8,
+                            }),
+                          );
+                          mesh.add(line);
+                        };
+                        // Samurai Helmet (Kabuto)
+                        const helmetMat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          roughness: 0.2,
+                          metalness: 0.3,
+                          side: THREE.DoubleSide,
+                        });
+                        const goldMat = new THREE.MeshStandardMaterial({
+                          color: 0xffaa00,
+                          metalness: 0.8,
+                          roughness: 0.2,
+                          side: THREE.DoubleSide,
+                        });
+
+                        // Dome
+                        const domeGeo = new THREE.SphereGeometry(
+                          1.0,
+                          16,
+                          16,
+                          0,
+                          Math.PI * 2,
+                          0,
+                          Math.PI / 2,
+                        );
+                        const dome = new THREE.Mesh(domeGeo, helmetMat);
+                        dome.position.y = -0.2;
+                        addOutline(dome);
+
+                        // Face Guard (Mempo) - just a cylinder slice
+                        const guardGeo = new THREE.CylinderGeometry(
+                          1.1,
+                          1.2,
+                          0.4,
+                          16,
+                          1,
+                          false,
+                          Math.PI * 0.75,
+                          Math.PI * 1.5,
+                        );
+                        const guard = new THREE.Mesh(guardGeo, helmetMat);
+                        guard.position.y = -0.4;
+                        addOutline(guard);
+
+                        // Kuwagata (Crescent Horns)
+                        const hornShape = new THREE.Shape();
+                        hornShape.moveTo(0, 0);
+                        hornShape.quadraticCurveTo(0.8, 0.8, 1.2, 1.8);
+                        hornShape.quadraticCurveTo(0.8, 0.4, 0.2, 0.2);
+                        hornShape.lineTo(0, 0);
+                        const hornGeo1 = new THREE.ExtrudeGeometry(hornShape, {
+                          depth: 0.1,
+                          bevelEnabled: true,
+                          bevelThickness: 0.03,
+                          bevelSize: 0.03,
+                          bevelSegments: 2,
+                        });
+                        const horn1 = new THREE.Mesh(hornGeo1, goldMat);
+                        horn1.position.set(0, 0.3, 0.9);
+                        horn1.rotation.z = -0.3;
+                        horn1.rotation.y = 0.2;
+                        addOutline(horn1);
+
+                        const horn2 = new THREE.Mesh(hornGeo1, goldMat);
+                        horn2.position.set(0, 0.3, 0.9);
+                        horn2.rotation.y = Math.PI - 0.2; // Flip for left side
+                        horn2.rotation.z = -0.3;
+                        addOutline(horn2);
+
+                        const boss = new THREE.Mesh(
+                          new THREE.SphereGeometry(0.2, 8, 8),
+                          goldMat,
+                        );
+                        boss.position.set(0, 0.4, 1.0);
+                        addOutline(boss);
+
+                        iconMesh.add(dome, guard, horn1, horn2, boss);
+                        iconMesh.scale.set(1.0, 1.0, 0.1); // flatten z depth
+                        customUpdate = (t, meshInstance) => {
+                          meshInstance.rotation.y = t * 1.5;
+                        };
+                      } else if (
+                        originalTitle === "SHIELD" ||
+                        catId === "SHIELD" ||
+                        catId === "ARMOR"
+                      ) {
+                        const addOutline = (mesh) => {
+                          const edges = new THREE.EdgesGeometry(mesh.geometry);
+                          const line = new THREE.LineSegments(
+                            edges,
+                            new THREE.LineBasicMaterial({
+                              color: 0xffffff,
+                              transparent: true,
+                              opacity: 0.8,
+                            }),
+                          );
+                          mesh.add(line);
+                        };
+
+                        const shieldShape = new THREE.Shape();
+                        shieldShape.moveTo(0, -1.2);
+                        shieldShape.quadraticCurveTo(1.2, -0.2, 1.0, 1.0);
+                        shieldShape.lineTo(-1.0, 1.0);
+                        shieldShape.quadraticCurveTo(-1.2, -0.2, 0, -1.2);
+
+                        const shieldGeo = new THREE.ExtrudeGeometry(
+                          shieldShape,
+                          {
+                            depth: 0.1,
+                            bevelEnabled: true,
+                            bevelThickness: 0.03,
+                            bevelSize: 0.03,
+                            bevelSegments: 2,
+                          },
+                        );
+                        shieldGeo.center();
+
+                        const shieldMat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          metalness: 0.5,
+                          roughness: 0.3,
+                          emissive: 0x444444,
+                          side: THREE.DoubleSide,
+                        });
+                        const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                        shield.scale.set(1.4, 1.4, 0.14); // flatten z depth
+                        addOutline(shield);
+
+                        // Inner shield design
+                        const innerGeo = new THREE.ExtrudeGeometry(
+                          shieldShape,
+                          { depth: 0.1, bevelEnabled: false },
+                        );
+                        innerGeo.center();
+                        const innerMat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          metalness: 0.1,
+                          roughness: 0.2,
+                          side: THREE.DoubleSide,
+                        });
+                        const innerShield = new THREE.Mesh(innerGeo, innerMat);
+                        innerShield.scale.set(0.5, 0.5, 1.0);
+                        innerShield.position.z = 0; // centered so it pokes out both sides
+                        addOutline(innerShield);
+
+                        shield.add(innerShield);
+
+                        const frontShield = shield;
+                        frontShield.position.z = 0;
+
+                        iconMesh.add(frontShield);
+                        customUpdate = (t, meshInstance) => {
+                          frontShield.rotation.y = t * 1.5;
+                        };
+                      } else if (
+                        originalTitle === "POTION" ||
+                        catId === "SCROLL"
+                      ) {
+                        const potionGroup = new THREE.Group();
+
+                        const glassMat = new THREE.MeshStandardMaterial({
+                          color: 0x888888,
+                          roughness: 0.1,
+                          metalness: 0.4,
+                          transparent: true,
+                          opacity: 0.4,
+                          depthWrite: false,
+                        });
+                        const corkMat = new THREE.MeshStandardMaterial({
+                          color: 0x8b5a2b,
+                          roughness: 0.9,
+                          metalness: 0.1,
+                        });
+                        const liquidMat = new THREE.MeshBasicMaterial({
+                          color: 0x00ff44,
+                          transparent: true,
+                          opacity: 0.9,
+                          blending: THREE.AdditiveBlending,
+                        });
+
+                        // Flask base
+                        const baseGeo = new THREE.SphereGeometry(1.0, 16, 16);
+                        const base = new THREE.Mesh(baseGeo, glassMat);
+
+                        // Liquid inside
+                        const liquidGeo = new THREE.SphereGeometry(
+                          0.85,
+                          16,
+                          16,
+                          0,
+                          Math.PI * 2,
+                          Math.PI / 2,
+                          Math.PI / 2,
+                        );
+                        const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+
+                        // Neck
+                        const neckGeo = new THREE.CylinderGeometry(
+                          0.3,
+                          0.5,
+                          0.8,
+                          16,
+                        );
+                        const neck = new THREE.Mesh(neckGeo, glassMat);
+                        neck.position.y = 1.0;
+
+                        // Lip
+                        const lipGeo = new THREE.TorusGeometry(
+                          0.35,
+                          0.1,
+                          8,
+                          16,
+                        );
+                        const lip = new THREE.Mesh(lipGeo, glassMat);
+                        lip.position.y = 1.4;
+                        lip.rotation.x = Math.PI / 2;
+
+                        // Cork
+                        const corkGeo = new THREE.CylinderGeometry(
+                          0.25,
+                          0.2,
+                          0.4,
+                          12,
+                        );
+                        const cork = new THREE.Mesh(corkGeo, corkMat);
+                        cork.position.y = 1.55;
+
+                        potionGroup.add(base, liquid, neck, lip, cork);
+                        potionGroup.position.y = -0.4;
+
+                        iconMesh.add(potionGroup);
+
+                        customUpdate = (t, meshInstance) => {
+                          potionGroup.rotation.y = t * 1.5;
+                          potionGroup.rotation.z = Math.sin(t * 2) * 0.1;
+                          liquid.rotation.x = Math.sin(t * 5) * 0.2; // sloshing
+                          liquid.rotation.z = Math.cos(t * 4) * 0.2; // sloshing
+                        };
+                      } else if (catId === "GOLD_COIN") {
+                        const coinShape = new THREE.Shape();
+                        coinShape.arc(0, 0, 1.68, 0, Math.PI * 2, false); // CCW outer
+
+                        const holePath = new THREE.Path();
+                        // CW inner square cutout for Yen shape
+                        holePath.moveTo(-0.48, 0.48);
+                        holePath.lineTo(0.48, 0.48);
+                        holePath.lineTo(0.48, -0.48);
+                        holePath.lineTo(-0.48, -0.48);
+                        holePath.lineTo(-0.48, 0.48);
+                        coinShape.holes.push(holePath);
+
+                        // Embed depth evenly through card (make it thick enough to pierce the card given the 0.07 scale, but not excessively huge)
+                        const coinGeo = new THREE.ExtrudeGeometry(coinShape, {
+                          depth: 0.8,
+                          bevelEnabled: true,
+                          bevelThickness: 0.1,
+                          bevelSize: 0.1,
+                          bevelSegments: 2,
+                        });
+                        coinGeo.center();
+
+                        // Generate faux-metal gradient texture to provide 3D shine without requiring actual light sources
+                        const tCanvas = document.createElement("canvas");
+                        tCanvas.width = 128;
+                        tCanvas.height = 128;
+                        const tCtx = tCanvas.getContext("2d");
+                        const grd = tCtx.createLinearGradient(0, 0, 128, 128);
+                        grd.addColorStop(0, "#d4af37"); // Darker highlight
+                        grd.addColorStop(0.3, "#b8860b"); // Darker base
+                        grd.addColorStop(0.5, "#d4af37"); // Darker highlight
+                        grd.addColorStop(0.7, "#6b4f00"); // Deep shadow
+                        grd.addColorStop(1, "#b8860b"); // Darker base
+                        tCtx.fillStyle = grd;
+                        tCtx.fillRect(0, 0, 128, 128);
+                        const goldTex = new THREE.CanvasTexture(tCanvas);
+
+                        const coinMat = new THREE.MeshBasicMaterial({
+                          map: goldTex,
+                          side: THREE.DoubleSide,
+                        });
+                        const coin = new THREE.Mesh(coinGeo, coinMat);
+
+                        // Flat against the card, NO tilting to prevent it getting chopped by the card plane
+                        coin.rotation.x = 0;
+                        coin.rotation.y = 0;
+
+                        iconMesh.add(coin);
+
+                        // Removed PointLights to eliminate massive bloom artifacts
+
+                        customUpdate = (t, meshInstance) => {
+                          // Coin remains static per user request
+                        };
+                      } else {
+                        // DICE fallback
+                        const dieMat = new THREE.MeshStandardMaterial({
+                          color: 0xffffff,
+                          roughness: 0.2,
+                          metalness: 0.1,
+                        });
+                        const die = new THREE.Mesh(
+                          new THREE.BoxGeometry(1.6, 1.6, 1.6),
+                          dieMat,
+                        );
+                        iconMesh.add(die);
+                        customUpdate = (t, meshInstance) => {
+                          meshInstance.rotation.y = t * 1.5;
+                          meshInstance.rotation.x = Math.sin(t * 2) * 0.5;
+                        };
+                      }
+
+                      return { iconMesh, customUpdate };
                     };
 
-                    const randomCards = [
-                        ['EARTH', 'BOULDER', 'Heavy impact.', '地', '(STUN * 2DICE)'],
-                        ['FIRE', 'FIREBALL', 'Inferno star.', '火', '(DMG * 4DICE)'],
-                        ['KATANA', 'SLASH', 'Basic slash.', '斬', '(DMG * 1DICE)'],
-                        ['WIND', 'GALE', 'Forceful gust.', '風', '(PUSH * 3DICE)'],
-                        ['WATER', 'SURGE', 'Crashing wave.', '水', '(DMG * 3DICE)'],
-                        ['ITEM', 'SHIELD', 'Raises AC.', '盾', '(AC + 5)'],
-                        ['SCROLL', 'POTION', 'Consumable', '具', '(HP + 20)'],
-                        ['MISSILE', 'SHURIKEN', 'Ranged attack.', '投', '(DMG * 2DICE)']
-                    ];
-                    const selected = randomCards[Math.floor(Math.random() * randomCards.length)];
-                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 4, selected[0], selected[1], selected[2], selected[3], selected[4]);
-                    
-                    this.spawnLootCard(this.entrancePos.x, this.entrancePos.z - 2, 'ITEM', 'MAGIC LANTERN', 'Light your way.', '灯', 'EQUIP');
-                    
-                    if (!this.level || this.level === 1) {
-                        const shop = this.rooms.find(r => r.id === 99);
-                        if (shop) {
-                            const shopWestX = shop.x; 
-                            let zPos = shop.y;
-                            for (let i = 0; i < 4; i++) {
-                                const cardData = randomCards[Math.floor(Math.random() * randomCards.length)];
-                                let price = 50;
-                                if (cardData[0] === 'SCROLL') price = 25;
-                                if (cardData[0] === 'FIRE') price = 100;
-                                this.spawnLootCard(shopWestX, zPos + i, cardData[0], cardData[1], cardData[2], cardData[3], cardData[4], true, price);
-                            }
+                    const iconModel = createLootIcon();
+
+                    const iconWrapper = new THREE.Group();
+
+                    // Scale: Flashlight gets bigger, everything else stays standard
+                    let EXACT_SCALE = 0.07;
+                    if (originalTitle === "MAGIC LANTERN") EXACT_SCALE = 0.35;
+
+                    // SINGLE CENTERED ICON (DoubleSide materials make back visible)
+                    const frontIcon = iconModel.iconMesh;
+                    frontIcon.scale.set(EXACT_SCALE, EXACT_SCALE, EXACT_SCALE);
+                    frontIcon.position.set(0, -0.096, 0); // Dead center in hole
+
+                    // Traverse to ensure DoubleSide materials
+                    frontIcon.traverse((child) => {
+                      if (child.isMesh) {
+                        if (child.material && !Array.isArray(child.material)) {
+                          child.material.transparent = true;
+                          child.material.side = THREE.DoubleSide;
+                          child.material.needsUpdate = true;
                         }
+                        child.renderOrder = 20;
+                      }
+                    });
+                    iconWrapper.add(frontIcon);
+
+                    // The Glass Bubble Enclosure
+                    if (!this._sharedGlassBubbleGeo) {
+                      this._sharedGlassBubbleGeo = new THREE.SphereGeometry(
+                        0.2,
+                        32,
+                        32,
+                      );
+                      this._sharedGlassBubbleMat =
+                        new THREE.MeshPhysicalMaterial({
+                          color: 0xe0f0ff,
+                          transparent: true,
+                          opacity: 0.55,
+                          roughness: 0.05,
+                          metalness: 0.3,
+                          clearcoat: 1.0,
+                          clearcoatRoughness: 0.05,
+                          ior: 1.5,
+                          depthWrite: false,
+                        });
                     }
+                    const glassBubble = new THREE.Mesh(
+                      this._sharedGlassBubbleGeo,
+                      this._sharedGlassBubbleMat,
+                    );
+                    glassBubble.position.set(0, -0.096, 0);
+                    glassBubble.scale.set(1, 1, 0.75); // Deeper dome to enclose unwarped 3D models
+                    glassBubble.renderOrder = 10;
+                    iconWrapper.add(glassBubble);
+
+                    cardGroup.add(iconWrapper);
+
+                    const combinedUpdate = (t) => {
+                      if (iconModel.customUpdate)
+                        iconModel.customUpdate(t, frontIcon);
+                    };
+
+                    cardGroup.position.set(
+                      x * this.gridSize,
+                      1.2,
+                      z * this.gridSize,
+                    );
+
+                    // Removed PointLights from loot cards as per user request to avoid errors
+
+                    cardGroup.userData = {
+                      type: "loot_cards",
+                      floatTimer: Math.random() * Math.PI * 2,
+                      basePos: 1.2,
+                      gridX: x,
+                      gridZ: z,
+                      cardDataURL: canvas.toDataURL(),
+                      cleanCardURL: cleanCardURL,
+                      iconMesh: iconWrapper,
+                      customUpdate: combinedUpdate,
+                      cardData: {
+                        el: catId,
+                        name: inTitle,
+                        desc: desc,
+                        kanji: kanji,
+                        attr: attr,
+                        themeClr: themeColor,
+                        qty: qty,
+                      },
+                      cardName: title, // Use modified title (with x5) for UI
+                      isShopItem: isShopItem,
+                      price: price,
+                    };
+
+                    this.worldGroup.add(cardGroup);
+                    this.lootItems.push(cardGroup);
+                  };
+
+                  const randomCards = [
+                    [
+                      "EARTH",
+                      "BOULDER",
+                      "Heavy impact.",
+                      "地",
+                      "(STUN * 2DICE)",
+                    ],
+                    [
+                      "FIRE",
+                      "FIREBALL",
+                      "Inferno star.",
+                      "火",
+                      "(DMG * 4DICE)",
+                    ],
+                    ["KATANA", "SLASH", "Basic slash.", "斬", "(DMG * 1DICE)"],
+                    ["WIND", "GALE", "Forceful gust.", "風", "(PUSH * 3DICE)"],
+                    ["WATER", "SURGE", "Crashing wave.", "水", "(DMG * 3DICE)"],
+                    ["ITEM", "SHIELD", "Raises AC.", "盾", "(AC + 5)"],
+                    ["SCROLL", "POTION", "Consumable", "具", "(HP + 20)"],
+                    [
+                      "MISSILE",
+                      "SHURIKEN",
+                      "Ranged attack.",
+                      "投",
+                      "(DMG * 2DICE)",
+                    ],
+                  ];
+                  const selected =
+                    randomCards[Math.floor(Math.random() * randomCards.length)];
+                  this.spawnLootCard(
+                    this.entrancePos.x,
+                    this.entrancePos.z - 4,
+                    selected[0],
+                    selected[1],
+                    selected[2],
+                    selected[3],
+                    selected[4],
+                  );
+
+                  this.spawnLootCard(
+                    this.entrancePos.x,
+                    this.entrancePos.z - 2,
+                    "ITEM",
+                    "MAGIC LANTERN",
+                    "Light your way.",
+                    "灯",
+                    "EQUIP",
+                  );
+
+                  // --- 2x LONG BOW x7 along LEFT side of entrance hallway ---
+                  // hallX - 1 is the left lane; hallway runs from entrancePos.z-6 upward
+                  this.spawnLootCard(
+                    this.entrancePos.x - 1,
+                    this.entrancePos.z - 5,
+                    "MISSILE",
+                    "LONG BOW",
+                    "Heavy shot.",
+                    "長",
+                    "(DMG * 4DICE)",
+                  );
+                  this.spawnLootCard(
+                    this.entrancePos.x - 1,
+                    this.entrancePos.z - 3,
+                    "MISSILE",
+                    "LONG BOW",
+                    "Heavy shot.",
+                    "長",
+                    "(DMG * 4DICE)",
+                  );
+
+                  // --- 3 SKILL ATTRIBUTE cards along LEFT wall of Room 1 ---
+                  // Room 1 left wall = rStartX (hallX - 3). Cards placed inside the room along x = rStartX + 1
+                  const skillLoot = [
+                    ["KATANA", "SLASH", "Basic slash.", "斬", "+1 STR"],
+                    ["WIND", "GALE", "Forceful gust.", "風", "+1 DEX"],
+                    ["KATANA", "THRUST", "Quick stab.", "突", "+1 STR"],
+                  ];
+                  skillLoot.forEach((card, i) => {
+                    this.spawnLootCard(
+                      rStartX + 1,
+                      rStartZ + 1 + i * 2,
+                      card[0],
+                      card[1],
+                      card[2],
+                      card[3],
+                      card[4],
+                    );
+                  });
+
+                  // --- 3 ARMOR cards along RIGHT wall of Room 1 (+1 AC each) ---
+                  // Room 1 right wall = rStartX + roomSize - 1. Cards placed at x = rStartX + roomSize - 2
+                  const armorLoot = [
+                    ["ITEM", "HELMET", "Head armor.", "兜", "+1 AC"],
+                    ["ITEM", "SHIELD", "Arm guard.", "盾", "+2 AC"],
+                    ["ITEM", "CHEST ARMOR", "Body armor.", "鎧", "+3 AC"],
+                  ];
+                  armorLoot.forEach((card, i) => {
+                    this.spawnLootCard(
+                      rStartX + roomSize - 2,
+                      rStartZ + 1 + i * 2,
+                      card[0],
+                      card[1],
+                      card[2],
+                      card[3],
+                      card[4],
+                    );
+                  });
+
+                  if (!this.level || this.level === 1) {
+                    const shop = this.rooms.find((r) => r.id === 99);
+                    if (shop) {
+                      const shopWestX = shop.x;
+                      let zPos = shop.y;
+                      for (let i = 0; i < 4; i++) {
+                        const cardData =
+                          randomCards[
+                            Math.floor(Math.random() * randomCards.length)
+                          ];
+                        let price = 50;
+                        if (cardData[0] === "SCROLL") price = 25;
+                        if (cardData[0] === "FIRE") price = 100;
+                        this.spawnLootCard(
+                          shopWestX,
+                          zPos + i,
+                          cardData[0],
+                          cardData[1],
+                          cardData[2],
+                          cardData[3],
+                          cardData[4],
+                          true,
+                          price,
+                        );
+                      }
+                    }
+                  }
                 }
             }
 };

@@ -893,7 +893,7 @@ const Engine = {
                 this.scene.add(rimLight);
                 
                 // Base ambient light to prevent pitch black MeshStandardMaterial (walls/floors are basic mat so they remain dark)
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.22);
                 this.scene.add(ambientLight);
                 
                 // Player Flashlight
@@ -926,10 +926,10 @@ const Engine = {
 
                 // 1. Unreal Bloom Pass (Core Phantom Glow for SSS look and bright eyes)
                 this.bloomPass = new THREE.UnrealBloomPass(
-                    new THREE.Vector2(window.innerWidth, window.innerHeight),
-                    0.8,    // strength (increased for intense radiant bloom)
-                    0.6,    // radius (widened for soft spread)
-                    0.9     // threshold (tightly clamped so only the 0xffffff glows)
+                  new THREE.Vector2(window.innerWidth, window.innerHeight),
+                  0.16, // strength (reduced 80% to stop FPV washout / FPS drop)
+                  0.4, // radius
+                  0.95, // threshold (raised so only true HDR glows)
                 );
                 this.composer.addPass(this.bloomPass);
 
@@ -940,9 +940,9 @@ const Engine = {
                 this.outlinePass.edgeThickness = 1.1; // Increased by 10% per user request
                 this.outlinePass.pulsePeriod = 0;
                 
-                // Using setRGB with values > 1.0 forces it into HDR range so UnrealBloom catches it aggressively
-                this.outlinePass.visibleEdgeColor.setRGB(0, 4.0, 3.0); 
-                this.outlinePass.hiddenEdgeColor.setRGB(0, 4.0, 3.0);
+                // Outline edges kept in LDR range so they don't blow out the bloom pass
+                this.outlinePass.visibleEdgeColor.setRGB(0, 0.9, 0.7); 
+                this.outlinePass.hiddenEdgeColor.setRGB(0, 0.9, 0.7);
                 
                 // CRITICAL FIX: Three.js r128 OutlinePass materials do NOT support skinning by default!
                 // This causes the outline to freeze in T-Pose when approaching the camera.

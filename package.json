@@ -1,7 +1,11 @@
 {
-  "name": "new-origami",
+  "name": "origami-dungeon",
   "version": "0.0.0",
   "private": true,
+  "description": "Origami Dungeon — a procedural roguelike dungeon crawler. Origami Dungeon is a Trademark of Idea Software Studio.",
+  "author": "Idea Software Studio <dev@ideasoftware.studio>",
+  "license": "UNLICENSED",
+  "copyright": "© 2026 Idea Software Studio. All rights reserved.",
   "scripts": {
     "claude:test": "node scripts/claude_test.js",
     "claude:sdk-test": "node scripts/claude_sdk_test.js",

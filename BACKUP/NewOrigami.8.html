@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NewOrigami 8 — The Living Engine</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:sans-serif}
+    #fpv-viewport{position:absolute;inset:0;z-index:0}
+    #fpv-viewport iframe{width:100%;height:100%;border:none}
+    #ui-viewport{position:absolute;inset:0;z-index:30;pointer-events:none;background:transparent}
+    #ui-viewport iframe{width:100%;height:100%;border:none;background:transparent;pointer-events:auto}
+    #v8-badge{position:fixed;top:6px;left:10px;z-index:50;pointer-events:none;font:10px monospace;color:rgba(200,169,110,.5);letter-spacing:1.5px}
+  </style>
+</head>
+<body>
+
+  <div id="fpv-viewport">
+    <iframe id="engine-iframe" src="NewOrigami.Engine8.html" allow="fullscreen"></iframe>
+  </div>
+
+  <div id="ui-viewport">
+    <iframe id="panels-iframe" src="NewOrigami.Panels.html?mode=dock&v=8"></iframe>
+  </div>
+
+  <div id="v8-badge">ORIGAMI v8 ◆ 折り紙</div>
+
+  <script src="NewOrigami.OniBaba.js"></script>
+  <script src="js/v8/OniBaba8.js"></script>
+
+  <script>
+    const fpv    = document.getElementById('engine-iframe');
+    const panels = document.getElementById('panels-iframe');
+
+    function to(frame, msg){ if(frame&&frame.contentWindow) frame.contentWindow.postMessage(msg,'*'); }
+
+    // Key relay
+    document.addEventListener('keydown', e=>{
+      if(e.repeat||document.activeElement?.tagName==='INPUT') return;
+      to(fpv,{type:'KEY_DOWN',key:e.key,code:e.code});
+    });
+    document.addEventListener('keyup', e=>{
+      if(document.activeElement?.tagName==='INPUT') return;
+      to(fpv,{type:'KEY_UP',key:e.key,code:e.code});
+    });
+
+    let cachedInit = null;
+
+    window.addEventListener('message', e=>{
+      const d = e.data; if(!d||!d.type) return;
+
+      // Oni-Baba mutation
+      let ev = d;
+      // OniBaba8 is primary — she owns the mutation bus
+      if(window.oniBaba8?.mutateEvent)  ev = window.oniBaba8.mutateEvent(ev)  ?? ev;
+      else if(window.goddessAI?.mutateEvent) ev = window.goddessAI.mutateEvent(ev) ?? ev;
+      if(!ev || ev.type==='EVENT_CANCELLED') return;
+
+      switch(ev.type){
+        // Engine → Panels
+        case 'PLAYER_ROT_REALTIME': case 'PLAYER_MOVE': case 'PLAYER_MOVE_STATE':
+        case 'RADAR_UPDATE': case 'SYNC_STATS': case 'ADD_CARD': case 'UPDATE_LOOT_CARDS':
+        case 'LOOT_CARDS': case 'SHOW_LOOT_UI': case 'SHOW_COMBAT': case 'HIDE_COMBAT':
+        case 'HIDE_ALL': case 'COMBAT_STATE_UPDATE': case 'COMBAT_ATTACK': case 'MONSTER_ATTACK':
+        case 'SHOW_EXIT': case 'HIDE_EXIT': case 'LCD_EVENT': case 'LOG_EVENT':
+        case 'TOGGLE_INVENTORY': case 'SYNC_INVENTORY': case 'SYNC_UI':
+        case 'MISSILE_RECOVERED':
+          to(panels, ev); break;
+        // PIP_FRAME carries a transferred ImageBitmap — must re-post with transfer list
+        case 'PIP_FRAME':
+          if(panels && panels.contentWindow){
+            if(ev.bitmap) panels.contentWindow.postMessage(ev,'*',[ev.bitmap]);
+            else panels.contentWindow.postMessage(ev,'*');
+          }
+          break;
+
+        // Entity cache
+        case 'INIT_ENTITIES':
+          cachedInit = ev;
+          to(fpv, ev);
+          if(window.goddessAI?.handleMessage) window.goddessAI.handleMessage({data:ev});
+          break;
+
+        // AI → both
+        case 'AI_UPDATES': case 'AI_DEATH': case 'COMBAT_UPDATE':
+        case 'REALITY_SHIFT': case 'KARMA_UPDATE':
+          to(fpv, ev); to(panels, ev); break;
+
+        // Panels → Engine
+        case 'FPV_ACTION': case 'KEY_DOWN': case 'KEY_UP': case 'EQUIP_CARD':
+        case 'WAGER': case 'ATTACK': case 'RETREAT': case 'PARLEY': case 'SPARE':
+        case 'EXPLORE_ROOM': case 'AUTO_EXPLORE': case 'APPROACH_MONSTER':
+        case 'TEXT_COMMAND': case 'CHAT_SUBMIT': case 'TOGGLE_AUTOPICKUP':
+        case 'PIP_TOGGLE': case 'PIP_ZOOM': case 'PIP_ROTATE': case 'PIP_PAN':
+        case 'PIP_CLICK': case 'PIP_SYNC_RECT': case 'PIP_PERSPECTIVE': case 'MOON_PHASE':
+          to(fpv, ev); break;
+
+        // Engine ready
+        case 'ENGINE8_READY':
+          if(cachedInit) to(fpv, cachedInit);
+          to(panels,{type:'LOG_EVENT',logType:'system',text:'⚡ NewOrigami v8 online.'}); break;
+      }
+    });
+  </script>
+</body>
+</html>
