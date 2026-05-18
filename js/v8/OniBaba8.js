@@ -209,6 +209,196 @@ class OniBaba8 {
         return flicker;
     }
 
+    /**
+     * Oni-Baba's smart-cull oracle for the engine's top-down render pass.
+     * Returns hints the engine uses to decide what to render — keeps the
+     * beautiful design alive while killing waste. Adapts to her current
+     * sensors: under high renderStress she tightens the world; under low
+     * stress and high tension she opens it so the player can read the
+     * combat staging clearly.
+     *
+     * Returns:
+     *   radiusTiles            — base monster/loot cull radius (player-relative)
+     *   keepAdjacentRooms      — true: never cull monsters in rooms touching the player's
+     *   keepHostilesAlways     — true: never cull hostile/chase monsters anywhere
+     *   keepActiveSpellZones   — true: never cull within range of an active spell/vortex
+     *   mixerRadiusTiles       — separate, slightly wider radius for skeletal anim updates
+     *   maxOffscreenAnims      — hard cap on how many off-room skeletons may animate
+     *
+     * Engine usage:
+     *   const hint = window.oniBaba8?.getCullHint?.() || { radiusTiles: 16, mixerRadiusTiles: 18 };
+     */
+    getCullHint() {
+        const s = this.sensors;
+        const stress = s.renderStress || 0;
+        const tension = s.tension || 0;
+        // Base radius: 18 tiles relaxed → 10 tiles when render is choking.
+        // Curve is sharp above 0.7 stress so we react fast to a frame spike.
+        const stressLerp = stress > 0.7
+            ? (stress - 0.7) / 0.3              // 0..1 over the hot zone
+            : 0;
+        const radiusTiles = Math.round(_lerp(18, 10, stressLerp));
+        // Mixer radius is always 2 tiles wider than visibility so the
+        // animation on the edge tile isn't visibly frozen.
+        const mixerRadiusTiles = radiusTiles + 2;
+        // Anim cap: under stress, only 4 off-room skeletons may keep
+        // animating; relaxed, allow up to 12 so distant social goblins
+        // don't visibly freeze when the player glances over.
+        const maxOffscreenAnims = stress > 0.7 ? 4
+                                : stress > 0.4 ? 8
+                                                : 12;
+        return {
+            radiusTiles,
+            mixerRadiusTiles,
+            // Under combat tension keep adjacent-room threats animated even
+            // beyond the radius — the player needs to see them closing.
+            keepAdjacentRooms:    tension > 0.25 && stress < 0.85,
+            // Hostiles always visible unless we are deeply choking.
+            keepHostilesAlways:   stress < 0.92,
+            // Active spell zones (vortex / boulder / fissure) always render
+            // — they're a focal point of the scene composition.
+            keepActiveSpellZones: stress < 0.95,
+            maxOffscreenAnims,
+            // Diagnostic value the engine can surface in the HUD.
+            _stress: stress,
+            _tension: tension,
+        };
+    }
+
+    /**
+     * AI scheduling oracle — Oni-Baba decides which monsters get to run
+     * EXPENSIVE work this tick (A* recompute, peer scans, brain ticks,
+     * fetch-doorway searches). Cheap work (position lerp, animation tick,
+     * facing) still runs every tick for every monster — only the heavy
+     * algorithmic ops are gated.
+     *
+     * The user's diagnosis was correct: tickMonsterAI has 8 nested
+     * monsterWrappers loops and 32 expensive call sites. With 30 monsters
+     * in a room every tick was doing O(N²)=900 cross-monster checks plus
+     * an A* on demand. This scheduler caps the cost.
+     *
+     * Algorithm: each monster gets a stable cohort id (0..COHORTS-1) at
+     * spawn. Each engine tick only ONE cohort runs heavy work, so
+     * every monster does heavy work at (1/COHORTS) frequency. Plus
+     * Oni-Baba caps the total pathfinds/peer-scans per tick globally
+     * regardless of cohort — under high renderStress she tightens hard.
+     *
+     * Engine usage:
+     *   const sched = oniBaba8.getAISchedule(tickIndex);
+     *   if (sched.heavyCohort === monster.userData._aiCohort
+     *       && sched.pathBudgetLeft > 0) {
+     *       sched.pathBudgetLeft--;
+     *       // ... do A* ...
+     *   }
+     */
+    getAISchedule(tickIndex) {
+        const s = this.sensors;
+        const stress = s.renderStress || 0;
+        const tension = s.tension || 0;
+        // Cohort count — how many AI "shifts" we cycle through. More
+        // cohorts = lower per-tick cost but slower individual reactions.
+        // Under combat tension we drop cohorts (more responsive AI);
+        // under render stress we raise cohorts (less responsive but cheap).
+        let COHORTS;
+        if (stress > 0.85)      COHORTS = 8;   // game choking — slow them way down
+        else if (stress > 0.6)  COHORTS = 6;
+        else if (tension > 0.5) COHORTS = 2;   // active combat — responsive
+        else                    COHORTS = 4;   // default
+        const heavyCohort = ((tickIndex|0) % COHORTS);
+        // Global per-tick caps — even if a whole cohort wants to A*, we
+        // limit how many can. Each A* call walks the map (worst case
+        // 16k cells); 3 per tick is the steady-state cap.
+        let pathBudget, peerScanBudget, brainBudget;
+        if (stress > 0.85) {
+            pathBudget = 1; peerScanBudget = 1; brainBudget = 2;
+        } else if (stress > 0.6) {
+            pathBudget = 2; peerScanBudget = 2; brainBudget = 4;
+        } else if (tension > 0.5) {
+            pathBudget = 4; peerScanBudget = 3; brainBudget = 6;
+        } else {
+            pathBudget = 3; peerScanBudget = 2; brainBudget = 6;
+        }
+        return {
+            COHORTS,
+            heavyCohort,
+            pathBudgetLeft:     pathBudget,
+            peerScanBudgetLeft: peerScanBudget,
+            brainBudgetLeft:    brainBudget,
+            // Hostile cascade cap — when a monster goes hostile,
+            // _alertNearbyRadius walks every peer; capping the number of
+            // monsters that can run that cascade in one tick prevents
+            // the "entire dungeon panics simultaneously" pile-up.
+            maxCascadesThisTick: stress > 0.7 ? 1 : 3,
+            _stress: stress,
+            _tension: tension,
+        };
+    }
+
+    /**
+     * Performance verdict — reads the combat-tick profiler data the engine
+     * accumulates on window._perfMarks and returns a narrative report
+     * naming the gameplay phase that has cost the most frame time across
+     * the session. Returns an object the engine surfaces as a chat log:
+     *   {
+     *     verdict: human-readable narrative,
+     *     ranked:  [{label, totalMs, avgMs, worstMs, share}, ...] desc,
+     *     worstSingleTickStall: {label, ms, at} | null,
+     *     sessionMs:           total session length,
+     *     stalls:              count of >500ms phase events
+     *   }
+     *
+     * Call from the engine console: oniBaba8.reportPerformanceVerdict()
+     * Or trigger from chat: "perf" / "perf report" / "onibaba report".
+     */
+    reportPerformanceVerdict(perfMarks) {
+        const PM = perfMarks || (typeof window !== 'undefined' && window._perfMarks);
+        if (!PM || !PM.totals || !Object.keys(PM.totals).length) {
+            return {
+                verdict: '🐉 Oni-Baba: I have no telemetry yet — fight a few combats first and ask again.',
+                ranked: [],
+                worstSingleTickStall: null,
+                sessionMs: 0,
+                stalls: 0,
+            };
+        }
+        const sessionMs = Math.max(1, performance.now() - (PM.sessionStart || 0));
+        // Rank phases by cumulative cost across the session.
+        const ranked = Object.entries(PM.totals)
+            .map(([label, totalMs]) => ({
+                label,
+                totalMs,
+                avgMs:   totalMs / Math.max(1, PM.ticks[label] || 1),
+                worstMs: PM.worst[label] || 0,
+                ticks:   PM.ticks[label] || 0,
+                share:   (totalMs / sessionMs),  // 0..1 of session spent in this phase
+            }))
+            .sort((a, b) => b.totalMs - a.totalMs);
+        // Worst single-tick stall across all stored events.
+        const stalls = (PM.stalls || []).slice().sort((a, b) => b.ms - a.ms);
+        const worstSingleTickStall = stalls[0] || null;
+        // Narrative — Oni-Baba's voice. Picks the #1 offender and frames
+        // the result the way she'd narrate it to the player.
+        const top = ranked[0];
+        const top3 = ranked.slice(0, 3)
+            .map(r => `${r.label} ${(r.share * 100).toFixed(1)}% (avg ${r.avgMs.toFixed(1)}ms, worst ${r.worstMs.toFixed(0)}ms)`)
+            .join(' · ');
+        const sessSec = (sessionMs / 1000).toFixed(0);
+        let verdict;
+        if (worstSingleTickStall && worstSingleTickStall.ms > 1500) {
+            verdict = `🐉 Oni-Baba: the game choked HARD — <b>${worstSingleTickStall.label}</b> ate ${(worstSingleTickStall.ms/1000).toFixed(1)}s in a single tick. Sustained offenders over ${sessSec}s of play: ${top3}.`;
+        } else if (top && top.share > 0.30) {
+            verdict = `🐉 Oni-Baba: <b>${top.label}</b> is the swamp — it consumed <b>${(top.share*100).toFixed(0)}%</b> of frame time over ${sessSec}s (avg ${top.avgMs.toFixed(1)}ms/tick, worst ${top.worstMs.toFixed(0)}ms). Next two: ${ranked.slice(1,3).map(r=>r.label+' '+(r.share*100).toFixed(0)+'%').join(', ')}.`;
+        } else if (stalls.length > 3) {
+            verdict = `🐉 Oni-Baba: ${stalls.length} hard stalls (>500ms) recorded across ${sessSec}s. Worst was <b>${worstSingleTickStall.label}</b> at ${worstSingleTickStall.ms.toFixed(0)}ms. Investigate ${top.label} first — it dominates the steady-state cost.`;
+        } else {
+            verdict = `🐉 Oni-Baba: the engine runs smooth. Over ${sessSec}s the heaviest phase was <b>${top.label}</b> at ${(top.share*100).toFixed(1)}% / avg ${top.avgMs.toFixed(1)}ms. No combat phase exceeded the stall threshold.`;
+        }
+        return {
+            verdict, ranked, worstSingleTickStall, sessionMs,
+            stalls: stalls.length,
+        };
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // FUZZY LOGIC ENGINE
     // ══════════════════════════════════════════════════════════════════════════

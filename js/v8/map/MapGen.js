@@ -852,13 +852,16 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
         .reduce((best, r) => (r.cz > best.cz ? r : best), rooms[0]);
 
   if (level === 1) {
-    // Room 1 is the locked start room (carved up top with id=1) so no swap
-    // needed here. Just dock the 7-tile entrance hallway against its south
-    // edge as ROOM 0 ENTRANCE.
-    const HALL_LEN = 7;
+    // Room 1 is the locked start room (carved up top with id=1). Dock the
+    // entrance hallway (Room 0) against its south edge — 8 tiles long so
+    // the player walks: spawn (1 tile north of stairs) → 7 more tiles
+    // through Room 0 hallway → Room 1. Spawn is NOT on the stairs tile
+    // anymore so the player doesn't immediately trigger floor exit.
+    const HALL_LEN = 8;
     const hallX = spawnRoom.cx;
     const roomSouthEdge = spawnRoom.y + spawnRoom.h;
     const hallStart = roomSouthEdge;
+    // Clamp to map bounds, but prefer the exact 7-tile length.
     const stairsUpZ = Math.min(MAP_H - 3, hallStart + HALL_LEN - 1);
     const actualHallLen = stairsUpZ - hallStart + 1;
     for (let cz = hallStart; cz <= stairsUpZ; cz++) {
@@ -881,6 +884,9 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       map[hallX][stairsUpZ] = { type: "stairs_up", roomId: 0 };
     if (map[hallX + 1]?.[stairsUpZ])
       map[hallX + 1][stairsUpZ] = { type: "stairs_up_r", roomId: 0 };
+    // Spawn ONE tile NORTH of the stairs-up tile so the player can move
+    // off it immediately without triggering an exit. Faces north up the
+    // 7-walkable-tile corridor toward Room 1.
     spawnX = hallX;
     spawnZ = stairsUpZ - 1;
   } else {
@@ -895,10 +901,15 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
     spawnZ = uz - 1; // one tile north of the up-stairs, facing into the room
   }
 
-  // Stairs down — every level except 7 has them. Place in the room farthest
-  // (Manhattan) from the spawn room so descent feels like a real journey,
-  // never adjacent to the up-stairs. Skips throne room.
+  // ── CASINO + VAULT (replaces vanilla stairs-down) ───────────────────────
+  // The farthest-from-spawn room becomes the CASINO — a 10×10-ish chamber
+  // with slot machines lining one wall and the floor's BOSS (Oyabun) at
+  // the centre. Carved adjacent to it is a small VAULT (4×4) sealed by
+  // a silver 3D "vault_door" tile. Stairs_down live inside the vault, so
+  // the player must defeat the boss + open the vault to descend.
   let stairsDownRoom = null;
+  let casinoRoom     = null;
+  let vaultRoom      = null;
   if (level !== 7) {
     let farthest = null, bestDist = -1;
     for (const r of rooms) {
@@ -906,12 +917,79 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       const d = Math.abs(r.cx - spawnRoom.cx) + Math.abs(r.cz - spawnRoom.cz);
       if (d > bestDist) { bestDist = d; farthest = r; }
     }
-    if (!farthest) farthest = spawnRoom; // single-room degenerate fallback
-    map[farthest.cx][farthest.cz] = {
-      type: "stairs_down",
-      roomId: farthest.id,
-    };
-    stairsDownRoom = farthest;
+    if (!farthest) farthest = spawnRoom;
+    casinoRoom = farthest;
+    casinoRoom.isCasino  = true;
+    casinoRoom.roomType  = casinoRoom.roomType || "casino";
+    casinoRoom.roomName  = "賭場";
+    casinoRoom.roomNameEn = "Casino";
+    // Try to carve a 4×4 vault on one of the casino's NORTH / EAST / SOUTH /
+    // WEST sides, whichever has clear walkable space. Carve walls around it
+    // and a single VAULT DOOR tile linking it to the casino.
+    const VAULT_W = 4, VAULT_H = 4;
+    const sides = [
+      { dx: 0,  dz: -1 - VAULT_H, ddx: -1, ddz: -1, doorOff: { x: 0, z: 0 }, dir: 'N' }, // north
+      { dx: casinoRoom.w + 1, dz: 0, ddx: 0, ddz: -1, doorOff: { x: 0, z: 0 }, dir: 'E' },
+      { dx: 0,  dz: casinoRoom.h + 1, ddx: -1, ddz: 0, doorOff: { x: 0, z: 0 }, dir: 'S' },
+      { dx: -1 - VAULT_W, dz: 0, ddx: -1, ddz: -1, doorOff: { x: 0, z: 0 }, dir: 'W' },
+    ];
+    let placed = null;
+    for (const s of sides){
+      const vx = casinoRoom.x + s.dx;
+      const vz = casinoRoom.y + s.dz;
+      // Bounds + free-space check
+      if (vx < BORDER || vz < BORDER) continue;
+      if (vx + VAULT_W > MAP_W - BORDER || vz + VAULT_H > MAP_H - BORDER) continue;
+      let clear = true;
+      for (let cx = vx - 1; cx <= vx + VAULT_W && clear; cx++){
+        for (let cz = vz - 1; cz <= vz + VAULT_H; cz++){
+          const cell = map[cx]?.[cz];
+          if (cell && cell.type === 'floor' && cell.roomId !== casinoRoom.id){
+            clear = false; break;
+          }
+        }
+      }
+      if (clear){ placed = { ...s, vx, vz }; break; }
+    }
+    if (placed){
+      const vaultId = rooms.length + 1;
+      // Carve the vault floor.
+      for (let cx = placed.vx; cx < placed.vx + VAULT_W; cx++){
+        for (let cz = placed.vz; cz < placed.vz + VAULT_H; cz++){
+          map[cx][cz] = { type: 'floor', roomId: vaultId };
+        }
+      }
+      // Stairs down at the centre of the vault.
+      const vCx = placed.vx + Math.floor(VAULT_W / 2);
+      const vCz = placed.vz + Math.floor(VAULT_H / 2);
+      map[vCx][vCz] = { type: 'stairs_down', roomId: vaultId };
+      // Pick a door tile — adjacent edge between casino + vault.
+      let doorX = vCx, doorZ = vCz;
+      if (placed.dir === 'N'){ doorZ = placed.vz + VAULT_H;     doorX = placed.vx + Math.floor(VAULT_W/2); }
+      if (placed.dir === 'S'){ doorZ = placed.vz - 1;           doorX = placed.vx + Math.floor(VAULT_W/2); }
+      if (placed.dir === 'E'){ doorX = placed.vx - 1;           doorZ = placed.vz + Math.floor(VAULT_H/2); }
+      if (placed.dir === 'W'){ doorX = placed.vx + VAULT_W;     doorZ = placed.vz + Math.floor(VAULT_H/2); }
+      if (map[doorX]?.[doorZ]){
+        map[doorX][doorZ] = { type: 'vault_door', roomId: vaultId, sealed: true };
+      }
+      vaultRoom = {
+        id: vaultId,
+        x: placed.vx, y: placed.vz, w: VAULT_W, h: VAULT_H,
+        cx: vCx, cz: vCz,
+        center: { x: vCx, y: vCz },
+        roomName: "金庫",
+        roomNameEn: "Vault",
+        roomType: "vault",
+        isVault: true,
+        casinoId: casinoRoom.id,
+      };
+      rooms.push(vaultRoom);
+      stairsDownRoom = vaultRoom;
+    } else {
+      // No room for a vault — fall back to vanilla stairs_down in the casino.
+      map[casinoRoom.cx][casinoRoom.cz] = { type: "stairs_down", roomId: casinoRoom.id };
+      stairsDownRoom = casinoRoom;
+    }
   }
 
   // ── Monster spawns: 1–3 per room ─────────────────────────────────────────
@@ -1099,6 +1177,28 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       });
       placedFL++;
     }
+  }
+
+  // ── OYABUN boss (every level except 7) ───────────────────────────────────
+  // The Oyabun guards the casino — defeat him + open the vault behind him to
+  // descend. Big goblin, locked to casino centre, hostile from spawn. HP
+  // scales with level so each floor's Oyabun is meaningfully tougher.
+  if (level !== 7 && casinoRoom) {
+    mobSpawns.push({
+      id: `boss-oyabun-${level}-${mobIdCtr++}`,
+      nameKey: "yakuza_supervisor",
+      name: "Oyabun",
+      type: "monster",
+      x: casinoRoom.cx,
+      z: casinoRoom.cz,
+      hp:    monsterHp * 3,
+      maxHp: monsterHp * 3,
+      isHostile: true,
+      isBoss: true,
+      isOyabun: true,                                       // engine flag
+      casinoRoomId: casinoRoom.id,
+      vulnerability: { FIRE:1.0, WATER:1.0, EARTH:0.85, WIND:1.1, VOID:1.0, DEFAULT:0.9 },
+    });
   }
 
   // ── Throne boss (level 7 only) ───────────────────────────────────────────

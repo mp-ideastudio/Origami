@@ -88,11 +88,28 @@
 
         /* --- SIDE PANELS (Bloom Removed) --- */
         #encounter-zone { position: absolute; top: 50%; left: 0; width: 100%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: stretch; padding: 0; box-sizing: border-box; pointer-events: none; z-index: 100; }
-        .side-panel { 
-            position: relative; width: 130px; height: auto; 
-            background: var(--bg-glass);   
-            border: 1px solid rgba(255,255,255,0.08); padding: 20px 8px 25px 8px; 
-            box-sizing: border-box; display: flex; flex-direction: column; align-items: center; 
+        /* ── Oni-Baba's fluid-layout advice ──────────────────────────────
+           Side panels were locked at 130px on desktop, dropping abruptly
+           to 71/95px at media-query breakpoints. The jump created an
+           "almost-broken" mid-zone (1024–1440px) where the panels were
+           too wide for narrow laptops but too small to feel native on
+           ultrawides. Oni-Baba's pattern: scale with viewport, not with
+           breakpoints. clamp(min, preferred, max) lets the panel breathe
+           continuously across every viewport — narrow phones get min,
+           large monitors get max, everything between interpolates. */
+        .side-panel {
+            /* Default desktop/tablet width — fixed 130px (was the original
+               size before my fluid clamp). The clamp() got smushy on mid
+               viewports and looked broken. Mobile shrinks happen in the
+               @media (max-width: 1024px) block below; non-mobile stays
+               at its proper width so the panel reads as normal. */
+            position: relative;
+            width: 130px;
+            height: auto;
+            background: var(--bg-glass);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 20px 8px 25px 8px;
+            box-sizing: border-box; display: flex; flex-direction: column; align-items: center;
             box-shadow:
                 3px 3px 10px rgba(0,0,0,0.5),
                 -1px -1px 4px rgba(255,255,255,0.03),
@@ -113,6 +130,28 @@
         #action-rail::before { right: 0; background: var(--fire-clr); } /* Removed box-shadow */
 
 
+        /* Dungeon stats card — sits at the TOP of the left side panel,
+           above the encounter title. Compact monospace rows so the data
+           reads at a glance even on the slim mobile (71px) panel. The
+           "ORIGAMI DUNGEON" title in the shell carries the brand; this
+           is pure gameplay-state telemetry. */
+        .sp-dungeon-stats {
+            width: 92%; margin-bottom: 8px;
+            padding: clamp(4px, 0.7vw, 7px) clamp(5px, 0.8vw, 8px);
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(200,169,110,0.18);
+            border-radius: 6px;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.55);
+            font-family: 'SF Mono','Menlo',monospace;
+        }
+        .sds-row {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: clamp(7px, 0.7vw, 9px);
+            line-height: 1.4; letter-spacing: 0.8px;
+        }
+        .sds-label { color: rgba(200,169,110,0.65); font-weight: 700; }
+        .sds-val   { color: #e9c98c; font-weight: 900; text-shadow: 0 0 4px rgba(200,169,110,0.45); }
+
         .sp-title { font-size: clamp(14px, 1.4vw, 17px); font-weight: 900; margin-bottom: 2px; width: 100%; text-align: center; text-transform: uppercase; line-height: 1.1; }
         .sp-sub { font-size: 9px; font-weight: 800; color: var(--color-text-dim); margin-bottom: 8px; width: 100%; text-align: center; line-height: 1.2; }
         
@@ -122,6 +161,23 @@
         .sp-bar-label .hp-num { font-size: 14px; font-weight: 900; font-family: monospace; letter-spacing: -0.5px; }
         .sp-bar-label .hp-max { font-size: 9px; color: var(--color-text-dim); }
         .sp-bar { width: 100%; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; box-shadow: var(--nm-shadow-inner); border: 1px solid rgba(0,0,0,0.05); }
+        /* AI thinking display — compact monospace status + plan, lives
+           directly under the monster HP bar. Engine pushes updates via
+           MONSTER_AI_THOUGHT messages keyed on _lockedTarget. */
+        .sp-ai-think {
+            width: 95%;
+            margin: 4px 0 8px 0;
+            padding: 4px 6px;
+            background: rgba(0,0,0,0.30);
+            border: 1px solid rgba(124,224,184,0.20);
+            border-radius: 4px;
+            font-family: 'SF Mono','Menlo',monospace;
+            font-size: 8px;
+            line-height: 1.3;
+        }
+        .ai-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+        .ai-label { color: rgba(124,224,184,0.70); font-weight: 800; letter-spacing: 0.6px; }
+        .ai-val   { color: #cde9d8; font-weight: 600; text-align: right; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .player-attributes { display: flex; justify-content: space-between; width: 90%; background: var(--nm-bg); padding: 8px; border-radius: 6px; box-shadow: var(--nm-shadow-inset-light); margin-bottom: 6px; font-family: monospace; font-size: 10px; font-weight: bold; color: var(--color-text); }
         .attr-col { display: flex; flex-direction: column; width: 45%; gap: 4px; }
         .attr-row { display: flex; justify-content: space-between; align-items: center; }
@@ -130,18 +186,22 @@
         .sp-fill { height: 100%; width: 55%; background: linear-gradient(90deg, var(--fire-clr), #ff5252); transition: width 0.3s ease; }
         .sp-fill.player { height: 100%; width: 80%; background: linear-gradient(90deg, var(--item-clr), #4caf50); transition: width 0.3s ease; }
         
-        /* Tactical Buttons */
-        .sp-btn { 
-            position: relative; width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px; 
-            border: var(--glass-border); 
-            background: var(--bg-glass); 
-            font-weight: 900; font-size: 10px; text-transform: uppercase; 
-            cursor: pointer; display: flex; align-items: center; justify-content: flex-start; 
+        /* Tactical Buttons — desktop default. Mobile shrinks via the
+           @media (max-width:1024px) block (height auto, font 7.5px, wraps).
+           text-align + justify-content centered per user request. */
+        .sp-btn {
+            position: relative; width: 90%; height: 38px; border-radius: 7px; margin-bottom: 10px;
+            border: var(--glass-border);
+            background: var(--bg-glass);
+            font-weight: 900; font-size: 10px; text-transform: uppercase;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
             padding: 0 10px; box-sizing: border-box;
+            text-align: center;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 4px 4px 10px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.06);
             color: var(--color-text);
         }
+        .sp-btn span { text-align: center; flex: 0 1 auto; }
         .sp-btn:active {
             box-shadow: inset 4px 4px 8px rgba(0,0,0,0.6), inset -4px -4px 8px rgba(255,255,255,0.05);
             transform: translateY(2px);
@@ -170,7 +230,8 @@
 
         body.dark-mode .sp-btn:not(.btn-wager):not(.btn-attack):not(.btn-ranged):not(.btn-spells) { color: #ffffff !important; border-color: rgba(255,255,255,0.25); }
 
-        .sp-btn span { flex: 1; text-align: left; }
+        /* (label centered — was left-aligned, fixed per user request) */
+        .sp-btn span { flex: 0 1 auto; text-align: center; }
         .sp-btn:active { transform: scale(0.92); box-shadow: inset 1px 1px 4px var(--nm-shadow-dark); }
         .sp-btn.punch-anim { animation: btnPunch 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); background: rgba(255, 60, 60, 0.5) !important; }
         @keyframes btnPunch {
@@ -215,6 +276,54 @@
         .pos-n { --tx: 0px; --ty: -59px; } .pos-s { --tx: 0px; --ty: 59px; } .pos-e { --tx: 59px; --ty: 0px; } .pos-w { --tx: -59px; --ty: 0px; }
         
         #left-panel.dpad-hidden .u-btn { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); }
+
+        /* ── HEAL action button (replaces VIEW) ──
+           Green 3D bottle icon — cap + body — drawn purely with CSS so it
+           reads sharply at button size without a sprite. Greys out + blocks
+           clicks when the player has zero HEAL POTION cards in the deck. */
+        .heal-btn .heal-bottle-3d {
+            position: relative;
+            width: 18px; height: 22px;
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 1px;
+        }
+        .heal-btn .heal-bottle-cap {
+            width: 8px; height: 4px;
+            background: linear-gradient(180deg, #ff9a30 0%, #d65800 100%);
+            border-radius: 1.5px 1.5px 0 0;
+            box-shadow: inset -1px -1px 1px rgba(0,0,0,0.35), inset 1px 1px 1px rgba(255,255,255,0.55);
+        }
+        .heal-btn .heal-bottle-body {
+            width: 14px; height: 17px;
+            background:
+                linear-gradient(180deg,
+                    rgba(255,255,255,0.55) 0%,
+                    rgba(255,255,255,0.10) 12%,
+                    transparent 22%,
+                    transparent 100%),
+                linear-gradient(90deg,
+                    #1e9a26 0%, #2ddc34 35%, #58ef58 60%, #2ddc34 85%, #176a18 100%);
+            border-radius: 3px 3px 4px 4px / 4px 4px 8px 8px;
+            margin-top: -1px;
+            box-shadow:
+                inset -2px 0 2px rgba(0,0,0,0.30),
+                inset  2px 0 2px rgba(255,255,255,0.25),
+                0 1px 2px rgba(0,0,0,0.35);
+            position: relative;
+        }
+        .heal-btn .heal-bottle-body::after {
+            content: ''; position: absolute;
+            left: 1px; right: 1px; top: 8px; height: 2.5px;
+            background: rgba(255,255,255,0.65); border-radius: 1px;
+        }
+        .heal-disabled .heal-bottle-cap,
+        .heal-disabled .heal-bottle-body {
+            filter: grayscale(1) brightness(0.55);
+        }
+        .heal-disabled {
+            opacity: 0.55;
+            pointer-events: none !important;
+        }
         .btn-action { 
             width: 44px !important; height: 44px !important; border-radius: 50% !important;
             opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0); 
@@ -268,7 +377,12 @@
 
         /* --- HARDWARE SYMMETRIC CARD ENGINE --- */
         #bottom-panel { display: flex; flex-direction: column; align-items: center; z-index: 10; gap: 10px; background: transparent; width: 100%; max-width: calc(100vw - 320px); height: auto; align-self: end; }
-        #guides-container { display: flex; width: calc(100% + 100px); padding: 50px; margin: -40px -50px; box-sizing: border-box; position: relative; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
+        /* overflow-y forced HIDDEN. `overflow-x: auto` alone triggers a
+           computed overflow-y of `auto` per CSS spec, which was painting
+           a vertical scrollbar on the deck even though nothing scrolled
+           vertically. Explicit `hidden` suppresses the bar; the 50px
+           padding gives the depth-stacked cards room without clipping. */
+        #guides-container { display: flex; width: calc(100% + 100px); padding: 50px; margin: -40px -50px; box-sizing: border-box; position: relative; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x mandatory; justify-content: center; gap: 14px; align-items: center; transition: opacity 0.4s ease; }
         #guides-container::-webkit-scrollbar { height: 6px; }
         #guides-container::-webkit-scrollbar-track { background: transparent; }
         #guides-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.0); border-radius: 4px; transition: background 0.3s; }
@@ -301,7 +415,19 @@
 
         .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
         .card-column.focused { z-index: 30; }
-        .card-column.focused .guide-card[data-depth="0"] { box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 14px var(--theme-clr); }
+        /* The big lift-shadow + theme halo on .focused .guide-card used to
+           paint every time `setFocus(0)` ran (loadDeck calls it on every
+           combat / deck switch). That made the leftmost card look
+           "oversized / lifted" even when the player wasn't keyboard-
+           selecting. Now the strong style only shows in keyboard mode
+           (body.kbd-card-active); idle / mouse-only play shows a subtle
+           outline glow only — no Y-lift. */
+        body.kbd-card-active .card-column.focused .guide-card[data-depth="0"] {
+            box-shadow: 0 15px 30px var(--nm-shadow-dark), 0 0 14px var(--theme-clr);
+        }
+        body:not(.kbd-card-active) .card-column.focused .guide-card[data-depth="0"] {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+        }
         /* Keyboard cursor overrides depth transform so animation wins */
         .guide-card.superimposed-card { will-change: transform, box-shadow; transform: none; }
 
@@ -311,23 +437,222 @@
         @media (max-width: 900px) {
             .card-column:nth-child(n+5) { display: none !important; }
         }
-        @media (max-width: 750px) { 
-            .card-column:nth-child(n+4) { display: none !important; }
+        @media (max-width: 750px) {
+            .card-column:nth-child(n+5) { display: none !important; }
             #lower-ui-row { display: flex; justify-content: center; position: relative; }
-            #bottom-panel { transform: scale(0.85); transform-origin: bottom center; margin: 0; }
-            #left-panel { position: absolute; left: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.85); transform-origin: left bottom; }
-            #right-panel { position: absolute; right: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.85); transform-origin: right bottom; }
+            /* Kill the legacy 75px bottom padding + −50px margin on the dock —
+               those were desktop spacers that pushed the input field 125px
+               above the viewport bottom on mobile (the user wants it FLUSH). */
+            #ui-dock { padding: 0 !important; margin-bottom: 0 !important; }
+            /* ── Alignment fix per user ─────────────────────────────────
+               The corner panels (left-panel = thumb, right-panel = action
+               rail) were anchored to iframe edges (left:0 / right:0). On
+               mobile the iframe extends past the visible viewport on the
+               right, so the right panel clipped. Inset both with a safe
+               left/right margin equal to the OUTER half of an empty band
+               next to the input field — the panels now sit at the true
+               midpoint between the input's outer edge and the viewport
+               edge. Both sides use the same value so they stay symmetric
+               (thumb on the left mirrors action-rail on the right). */
+            :root { --panel-edge-inset: clamp(8px, 2.4vw, 24px); }
+            #bottom-panel {
+                transform: scale(0.85); transform-origin: bottom center; margin: 0;
+                max-width: 100vw;
+                gap: 0;             /* was 10px — collapse deck/input gap */
+            }
+            /* Deck: center the cards INSIDE their box, no negative margins
+               that push the first card off the iframe's left edge. */
+            #guides-container {
+                gap: 6px;
+                padding: 30px 0 0 0;
+                margin: 0;
+                width: 100%;
+                max-width: 100vw;
+                box-sizing: border-box;
+                justify-content: center;
+            }
+            /* Card attr pill ("(DMG × 2DICE)") was sitting BELOW the visible
+               card and leaking into the gap above the event log. Anchor it
+               inside the card on mobile so it never escapes the card frame. */
+            .card-attr-fused {
+                position: absolute !important;
+                bottom: 4px; left: 0; right: 0;
+                margin: 0 !important;
+            }
+            /* Input container flush to bottom — no 50px desktop margin. */
+            #input-container { margin: 0 auto !important; }
+            /* Inset edges via --panel-edge-inset so panels stop clipping
+               at the iframe boundary. Symmetric on both sides keeps the
+               thumb button and the right panel at matching distances
+               from the visible viewport edges. */
+            #left-panel {
+                position: absolute;
+                left: var(--panel-edge-inset, 12px); bottom: 0;
+                width: 150px; height: 150px; min-width: 0;
+                transform: scale(0.85); transform-origin: left bottom;
+            }
+            #right-panel {
+                position: absolute;
+                right: var(--panel-edge-inset, 12px); bottom: 0;
+                width: 150px; height: 150px; min-width: 0;
+                transform: scale(0.85); transform-origin: right bottom;
+            }
             #left-panel .u-btn { display: none !important; }
             #moondial-wrapper { top: 85px !important; left: 85px !important; transform: scale(0.8); transform-origin: top left; }
         }
         @media (max-width: 500px) {
-            .card-column:nth-child(n+4) { display: none !important; }
+            :root { --panel-edge-inset: clamp(6px, 2vw, 18px); }
+            .card-column:nth-child(n+5) { display: none !important; }
             #lower-ui-row { display: flex; justify-content: center; position: relative; }
-            #bottom-panel { transform: scale(0.75); transform-origin: bottom center; margin: 0; }
+            #ui-dock { padding: 0 !important; margin-bottom: 0 !important; }
+            #bottom-panel {
+                transform: scale(0.75); transform-origin: bottom center; margin: 0;
+                max-width: 100vw;
+                gap: 0;
+            }
+            #guides-container {
+                gap: 5px;
+                padding: 24px 0 0 0;
+                margin: 0;
+                width: 100%;
+                max-width: 100vw;
+                box-sizing: border-box;
+                justify-content: center;
+            }
+            .card-attr-fused {
+                position: absolute !important;
+                bottom: 3px; left: 0; right: 0;
+                margin: 0 !important;
+            }
+            #input-container { margin: 0 auto !important; }
             #left-panel { position: absolute; left: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.75); transform-origin: left bottom; }
             #right-panel { position: absolute; right: 0px; bottom: 0; width: 150px; height: 150px; min-width: 0; transform: scale(0.75); transform-origin: right bottom; }
             #left-panel .u-btn { display: none !important; }
             #moondial-wrapper { top: 85px !important; left: 85px !important; transform: scale(0.75); transform-origin: top left; }
+        }
+
+        /* ── MOBILE / TABLET REFACTOR (≤ 1024px) ─────────────────────────
+           Tablet (640–1023px) and mobile (≤639) share this layout, since
+           the user treats their 880px tablet as "mobile". Goals:
+            • side panels slimmer — 95px wide, 6px padding, no width waste
+            • single-column player attributes (no left/right split — was
+              eating horizontal real estate the panel couldn't spare)
+            • all panel typography compressed ~25% so it stays readable but
+              doesn't overflow at the new width
+            • player deck cards shrunk 20% via CSS-variable override (no
+              JS / layout math touches needed — every card-column reads
+              --card-w / --card-h and follows automatically)
+            • PIP/moondial nudged smaller + tucked into the top-left so it
+              doesn't cover the top-down view
+           ──────────────────────────────────────────────────────────────── */
+        @media (max-width: 1024px) {
+            /* Cards: 96×142 → 77×114 (20% smaller, rounded). The card layout
+               math reads these vars throughout (.card-column flex, .guide-card
+               positioning) so changing them here is sufficient. */
+            :root {
+                --card-w: 77px;
+                --card-h: 114px;
+            }
+
+            /* Side panels: thinner + tighter padding */
+            .side-panel {
+                width: 71px !important;
+                padding: 8px 4px 10px 4px;
+            }
+            .side-panel .sp-title       { font-size: 11px !important; letter-spacing: 0; margin-bottom: 1px; }
+            .side-panel .sp-sub         { font-size: 8px  !important; margin-bottom: 5px; }
+            .side-panel .sp-bar-wrap    { width: 95%; margin-bottom: 8px; }
+            .side-panel .sp-bar-label   { font-size: 8px; }
+            .side-panel .sp-bar-label .hp-num { font-size: 11px; }
+            .side-panel .sp-bar-label .hp-max { font-size: 8px; }
+            .side-panel .sp-bar         { height: 6px; }
+
+            /* Player-attributes: collapse the two columns into one stack
+               so the data list doesn't wrap into a wider 2×N grid. */
+            .side-panel .player-attributes {
+                flex-direction: column;
+                width: 95%;
+                padding: 5px 6px;
+                gap: 2px;
+                font-size: 9px;
+            }
+            .side-panel .attr-col { width: 100%; gap: 2px; }
+            .side-panel .attr-row span:last-child { font-size: 10px; }
+
+            /* ── Mobile sidebar CTAs (PRO redesign) ──────────────────────
+               Drop the wrapping-label hack. Mobile uses ICON-FIRST buttons
+               with a single-line label below the icon. Each button is a
+               square-ish chip (54×40) — tap-friendly, recognizable, and
+               nothing clips because there's no horizontal text wrap. The
+               icon circle becomes the dominant visual; the label is a
+               7.5px caption underneath. Reads as a real mobile control,
+               not an oversized desktop button squeezed into a tiny panel. */
+            .side-panel .sp-btn {
+                width: 100%;
+                height: 42px;
+                min-height: 42px;
+                border-radius: 6px;
+                margin-bottom: 5px;
+                padding: 4px 2px 3px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1px;
+                text-align: center;
+                font-size: 7.5px;
+                font-weight: 800;
+                letter-spacing: 0.4px;
+                line-height: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .side-panel .sp-btn .btn-icon-circle {
+                width: 18px; height: 18px;
+                margin: 0; flex-shrink: 0;
+                border-width: 1px;
+            }
+            .side-panel .sp-btn i { font-size: 9px; }
+            .side-panel .sp-btn span {
+                width: 100%;
+                font-size: 7.5px;
+                line-height: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-weight: 800;
+            }
+
+            /* Override the desktop @media (min-width:1200px) panel-260 rule
+               just in case a UA reports both — defensive, harmless on tablets. */
+            @media (max-width: 1024px) {
+                .side-panel { width: 71px !important; }
+            }
+
+            /* PIP — same shrink pattern as the 750/500 breakpoints: scale
+               via transform so the wrapper's JS-managed inline width/height
+               (set by the drag-resize handlers) isn't overridden and out
+               of sync with the user's saved PIP state. */
+            #moondial-wrapper {
+                transform: scale(0.78);
+                transform-origin: top left;
+            }
+        }
+
+        /* ── TINY MOBILE (≤ 500px) — PIP would be > 50% screen width even
+           at scale(0.78), so we shrink it hard and tuck it into the corner.
+           The "green circle in the top-left covering the UI" was the player's
+           own (now WAGER-green) pedestal disc rendered into the FPV preview,
+           seen through a 195px PIP that ate the whole gameplay area. */
+        @media (max-width: 500px) {
+            #moondial-wrapper {
+                transform: scale(0.50) !important;
+                transform-origin: top left;
+                top: 8px !important;
+                left: 8px !important;
+            }
         }
 
         .guide-card {
@@ -401,8 +726,13 @@
             100% { box-shadow: 0 0 14px 4px rgba(255,220,60,0.35), 0 0 36px 10px rgba(255,200,30,0.12); }
         }
         .superimposed-card {
+            /* Was scale(1.1) — the keyboard-focused card visibly bloated
+               next to the depth-stacked siblings (which sit at 0.85-0.95
+               scale), producing a "weird oversized morph" look. Dropped
+               to scale(1.03) for a subtle highlight; the pulse animation
+               + translateY pop carry the focus indication. */
             animation: kb-cursor-pulse 1.1s ease-in-out infinite !important;
-            transform: translateY(-10px) scale(1.1) !important;
+            transform: translateY(-8px) scale(1.03) !important;
             z-index: 100 !important;
             outline: none !important;
             transition: none !important;
@@ -962,6 +1292,35 @@
             box-shadow: inset -1px -1px 3px rgba(255,255,255,0.9), 0 -1px 2px rgba(0,0,0,0.6);
             transition: all 0.8s ease-out;
         }
+        /* ── Karma status dot (center) ──────────────────────────────────
+           Same 14% size as the eye-dots. Background is set by JS in
+           response to KARMA_UPDATE messages from Oni-Baba. Color lerps
+           from #fff (saintly) → #888 (neutral) → #111 (cruel). At -100
+           karma a slow pulse + faint orange flame glow kicks in as a
+           visual prelude to the karma-armor system. */
+        .yin-yang-dot-karma {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 18%; height: 18%; border-radius: 50%;
+            background: #888;
+            z-index: 4;
+            box-shadow:
+                inset 1px 1px 3px rgba(255,255,255,0.25),
+                inset -1px -1px 3px rgba(0,0,0,0.55),
+                0 0 4px rgba(0,0,0,0.6);
+            transition: background 0.6s ease, box-shadow 0.6s ease;
+        }
+        .yin-yang-dot-karma.karma-dark {
+            box-shadow:
+                inset 1px 1px 3px rgba(255,80,20,0.25),
+                inset -1px -1px 3px rgba(0,0,0,0.85),
+                0 0 8px rgba(255,80,20,0.55),
+                0 0 14px rgba(255,40,0,0.35);
+            animation: karmaDarkPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes karmaDarkPulse {
+            0%,100% { filter: brightness(1.0); }
+            50%     { filter: brightness(1.35); }
+        }
         .kp-center-btn:hover .yin-yang-thumb { transform: rotate(180deg) scale(1.15); box-shadow: 0 0 15px rgba(255,255,255,0.8); }
         .kp-center-btn:active .yin-yang-thumb { transform: scale(0.9); }
         
@@ -1003,7 +1362,7 @@
         #lang-flag {
             font-size: 22px; line-height: 1;
             transition: transform 0.25s ease, opacity 0.25s ease;
-            user-select: none;
+            -webkit-user-select: none; user-select: none;
         }
         #lang-flag.flip {
             transform: rotateY(90deg); opacity: 0;
@@ -1034,6 +1393,28 @@
         <div id="encounter-zone">
             <!-- PAX CONSOLE (Green Accent) -->
             <div id="pax-console" class="side-panel">
+                <!-- Dungeon stats card — replaces the old top-center FLOOR
+                     badge. Shows current floor, player tile coords (X,Z),
+                     kill count, and wagers won (gold). Updated by
+                     SYNC_STATS messages from the engine. -->
+                <div class="sp-dungeon-stats">
+                    <div class="sds-row">
+                        <span class="sds-label">FLOOR</span>
+                        <span class="sds-val" id="sds-floor">1/7</span>
+                    </div>
+                    <div class="sds-row">
+                        <span class="sds-label">COORDS</span>
+                        <span class="sds-val" id="sds-coords">0,0</span>
+                    </div>
+                    <div class="sds-row">
+                        <span class="sds-label">KILLS</span>
+                        <span class="sds-val" id="sds-kills">0</span>
+                    </div>
+                    <div class="sds-row">
+                        <span class="sds-label">WAGERS</span>
+                        <span class="sds-val" id="sds-wagers">0</span>
+                    </div>
+                </div>
                 <div class="sp-title" id="monster-name">Yakuza Goblin</div>
                 <div class="sp-sub" id="monster-type-label"><span data-i18n="enemy-label">ENEMY</span> * <span class="dist-text">40 <span data-i18n="dist-unit">ft</span></span></div>
                 <div class="sp-bar-wrap">
@@ -1042,6 +1423,13 @@
                         <span class="hp-max" id="monster-hp-max">/ 50 HP</span>
                     </div>
                     <div class="sp-bar"><div class="sp-fill" id="monster-hp-fill"></div></div>
+                </div>
+                <!-- AI thinking display — real-time status + next plan for
+                     the locked target monster. Engine emits MONSTER_AI_THOUGHT
+                     messages every ~250ms; this block re-renders them. -->
+                <div class="sp-ai-think" id="monster-ai-think">
+                    <div class="ai-row"><span class="ai-label">STATUS</span><span class="ai-val" id="ai-status">—</span></div>
+                    <div class="ai-row"><span class="ai-label">PLAN</span><span class="ai-val" id="ai-plan">—</span></div>
                 </div>
                 <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
@@ -1081,17 +1469,22 @@
                     </div>
                 </div>
                 <div class="sp-sub sp-xp-status"><span data-i18n="xp-label">XP</span>: <span id="player-xp-val">0</span> / <span id="player-xp-max">100</span></div>
+                <!-- Three single-word action buttons.
+                     MELEE  → fires the player's current melee weapon.
+                     RANGED → switches deck to ranged + fires last ranged.
+                     FLEE   → runs the player to the nearest safe doorway
+                              (no monster on a 2-tile margin around it). -->
                 <button class="sp-btn btn-attack" onclick="window.handleSidePanelAttack(this)">
                     <div class="btn-icon-circle"><i class="fa-solid fa-crosshairs"></i></div>
-                    <span data-i18n="btn-attack">Attack</span>
+                    <span>MELEE</span>
                 </button>
                 <button class="sp-btn btn-ranged" onclick="emitAction('RANGED_ATTACK', this)">
                     <div class="btn-icon-circle"><i class="fa-solid fa-bullseye"></i></div>
-                    <span data-i18n="btn-ranged-attack">Ranged Attack</span>
+                    <span>RANGED</span>
                 </button>
-                <button class="sp-btn btn-spells" onclick="emitAction('CHANGE_SPELLS', this)">
-                    <div class="btn-icon-circle"><i class="fa-solid fa-wand-sparkles"></i></div>
-                    <span data-i18n="btn-change-spells">Change Spells</span>
+                <button class="sp-btn btn-spells" onclick="emitAction('FLEE', this)">
+                    <div class="btn-icon-circle"><i class="fa-solid fa-person-running"></i></div>
+                    <span>FLEE</span>
                 </button>
             </div>
         </div>
@@ -1124,7 +1517,14 @@
                 z-index: 1; /* Keep above before layer */
             }
             #event-log-container.active {
-                height: 180px; opacity: 1; pointer-events: auto; padding: 20px; padding-bottom: 0px;
+                /* Height clamped against viewport so on mobile the log
+                   doesn't grow into the deck above. Was a fixed 180px,
+                   which on a 600px-tall phone consumed 30% of the
+                   screen and clipped the card pills. */
+                height: clamp(70px, 22vh, 180px);
+                opacity: 1; pointer-events: auto;
+                padding: clamp(8px, 1.6vw, 20px);
+                padding-bottom: 0px;
                 font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif; letter-spacing: 0.5px;
             }
             /* Input container margins handled differently now */
@@ -1464,6 +1864,10 @@
                 transition: opacity 0.4s ease, color 0.4s ease, border-color 0.4s ease;
             }
             #floor-badge.visible { opacity: 1; }
+            /* Old centered FLOOR badge is superseded by the side-panel
+               stats card + the new top-center ORIGAMI DUNGEON header.
+               Force-hide so it never reappears overlapping the title. */
+            #floor-badge { display: none !important; }
             #floor-badge.throne {
                 color: rgba(255,90,90,0.95);
                 border-color: rgba(255,60,60,0.35);
@@ -1715,6 +2119,32 @@
             body.topdown-mode #moondial-wrapper .pip-zoom-btn,
             body.topdown-mode #moondial-wrapper .pip-persp-btn {
                 pointer-events: auto;
+            }
+
+            /* ── Topdown PIP relocation + shrink ─────────────────────────
+               When the main view is topdown the PIP is the FPV preview,
+               and the player needs to see the topdown map UNDER it — so
+               we move the PIP from the default top-left to the TOP-RIGHT
+               corner and shrink it to ~70%. !important + right/auto
+               override the drag-handler's inline left/top values so this
+               always takes effect when topdown is active. The moondial
+               decorations (compass, season ring, moon-selector) stay
+               visible — we're only repositioning + scaling the wrapper,
+               not hiding its children. */
+            body.topdown-mode #moondial-wrapper {
+                top:   12px !important;
+                left:  auto !important;
+                right: 12px !important;
+                transform: scale(0.70) !important;
+                transform-origin: top right !important;
+            }
+            body.topdown-mode #moondial-wrapper .compass-outer-ring,
+            body.topdown-mode #moondial-wrapper .season-outer-ring,
+            body.topdown-mode #moondial-wrapper .moon-selector,
+            body.topdown-mode #moondial-wrapper .compass-bg-ring {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
             }
 
             /* Zoom buttons: left side, close together vertically, r=28% from center */
@@ -2000,6 +2430,11 @@
                     <div class="yin-yang-thumb">
                         <div class="yin-yang-dot-black"></div>
                         <div class="yin-yang-dot-white"></div>
+                        <!-- Karma indicator dot (center) — color lerps from
+                             white (+karma good) through grey to black
+                             (-karma kill streaks). JS updates background
+                             when KARMA_UPDATE messages arrive from Oni-Baba. -->
+                        <div class="yin-yang-dot-karma" id="karma-status-dot"></div>
                     </div>
                     <div class="yin-yang-glass"></div>
                 </div>
@@ -2066,7 +2501,16 @@
                     <div class="u-btn btn-action act-sw lang-flag-btn" id="lang-toggle-btn" onclick="switchLanguage()" title="Switch language">
                         <div id="lang-flag"></div>
                     </div>
-                    <div class="u-btn btn-action act-w" onclick="emitAction('VIEW')"><i class="fa-solid fa-eye"></i><span class="ac-text" data-i18n="act-view">View</span></div>
+                    <!-- HEAL — emits FPV_ACTION 'HEAL POTION' so engine fires
+                         the Gatorade-bottle drink animation. Disabled when
+                         the deck has no HEAL POTION qty (gated below). -->
+                    <div id="heal-action-btn" class="u-btn btn-action act-w heal-btn heal-disabled" onclick="emitAction('HEAL POTION')" title="Drink a Heal Potion">
+                        <span class="heal-bottle-3d" aria-hidden="true">
+                            <span class="heal-bottle-cap"></span>
+                            <span class="heal-bottle-body"></span>
+                        </span>
+                        <span class="ac-text" data-i18n="act-heal">Heal</span>
+                    </div>
                     <div class="u-btn btn-action act-nw" onclick="emitAction('LOG')"><i class="fa-solid fa-scroll"></i><span class="ac-text" data-i18n="act-log">Log</span></div>
                 </div>
             </div>
@@ -2341,8 +2785,15 @@
         ];
 
         const itemCategories = [
-            { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Consumable', attr: '(RESTORE)', cards: ['HEAL POTION'] },
-            { id: 'ITEM', kanji: '巻', icon: 'fa-scroll', desc: 'Consumable', attr: '(IDENTIFY)', cards: ['SCROLL OF IDENTITY'] }
+            // Starter HEAL POTION: 2 in the deck. Restore is randomized 20–100%
+            // of maxHP on use (engine-side roll); the small attr label here
+            // shows the floor/ceiling so the player knows what to expect.
+            { id: 'ITEM', kanji: '具', icon: 'fa-flask', desc: 'Heal Potion', attr: '(HEAL 20–100%)', cards: ['HEAL POTION'], qty: 2 },
+            // XTRA HEALING — high-floor variant: always restores at least 60%,
+            // up to a full 100%. Starter qty 1 so the player has one "panic
+            // button" alongside the two regular potions.
+            { id: 'ITEM', kanji: '極', icon: 'fa-flask', desc: 'Xtra Healing', attr: '(HEAL 60–100%)', cards: ['XTRA HEALING'], qty: 1 },
+            { id: 'ITEM', kanji: '巻', icon: 'fa-scroll', desc: 'Consumable',  attr: '(IDENTIFY)',      cards: ['SCROLL OF IDENTITY'] }
         ];
 
         const decks = [spellCategories, combatCategories, rangeCategories, itemCategories];
@@ -2621,65 +3072,68 @@
                         geo.computeVertexNormals();
                     };
                 } else if (el === 'ITEM') {
+                    // ── HEAL POTION = Gatorade-style sports bottle ──
+                    // Plastic body (semi-transparent, slight tint), bright
+                    // orange liquid filling most of the bottle, orange
+                    // plastic screw-cap. Matches the FPV drink-animation bottle.
                     const potionGroup = new THREE.Group();
-
-                    // 5% grayish smokey vial glass
-                    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.05, metalness: 0.1, transmission: 0.95, transparent: true, opacity: 0.4, ior: 1.5, depthWrite: false });
-                    const corkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9, metalness: 0.1 });
-                    const liquidMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
-                    
-                    // Beaker vial look (Cylinder with slightly tapered top)
-                    const baseGeo = new THREE.CylinderGeometry(0.8, 0.9, 1.6, 24);
-                    const base = new THREE.Mesh(baseGeo, glassMat);
-                    
-                    // Liquid inside (50% full with sloshing top)
-                    const liquidGeo = new THREE.CylinderGeometry(0.82, 0.85, 0.8, 24);
-                    // Move geometry origin to bottom so we can rotate the top
-                    liquidGeo.translate(0, 0.4, 0); 
-                    const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-                    liquid.position.y = -0.7; // Bottom of the beaker
-                    
-                    // Neck
-                    const neckGeo = new THREE.CylinderGeometry(0.4, 0.8, 0.6, 24);
-                    const neck = new THREE.Mesh(neckGeo, glassMat);
-                    neck.position.y = 1.1;
-                    
-                    // Lip
-                    const lipGeo = new THREE.TorusGeometry(0.45, 0.1, 8, 24);
-                    const lip = new THREE.Mesh(lipGeo, glassMat);
-                    lip.position.y = 1.4;
-                    lip.rotation.x = Math.PI / 2;
-                    
-                    // Cork
-                    const corkGeo = new THREE.CylinderGeometry(0.35, 0.3, 0.4, 12);
-                    const cork = new THREE.Mesh(corkGeo, corkMat);
-                    cork.position.y = 1.55;
-                    
-                    potionGroup.add(base, liquid, neck, lip, cork);
-                    potionGroup.position.set(0, -0.4, 1.5);
-                    potionGroup.scale.set(1.5, 1.5, 1.5);
+                    const plasticMat = new THREE.MeshPhysicalMaterial({
+                        color: 0xeef2f6, roughness: 0.20, metalness: 0.0,
+                        transmission: 0.65, transparent: true, opacity: 0.55,
+                        ior: 1.45, depthWrite: false,
+                    });
+                    const liquidMat = new THREE.MeshStandardMaterial({
+                        color: 0xff7a18, roughness: 0.45, metalness: 0.0,
+                        emissive: 0xff5a08, emissiveIntensity: 0.45,
+                    });
+                    const capMat    = new THREE.MeshStandardMaterial({
+                        color: 0xff6a10, roughness: 0.55, metalness: 0.08,
+                        emissive: 0x331100, emissiveIntensity: 0.18,
+                    });
+                    const labelMat  = new THREE.MeshStandardMaterial({
+                        color: 0xffffff, roughness: 0.85, metalness: 0.0,
+                    });
+                    const stripeMat = new THREE.MeshStandardMaterial({
+                        color: 0xff8a30, roughness: 0.70, metalness: 0.0,
+                    });
+                    // Body — cylinder slightly tapered at the bottom for sports-bottle shape.
+                    const body    = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.82, 1.95, 32), plasticMat);
+                    // Liquid inside (fills ~85% of body, sits behind the plastic).
+                    const liquidGeo = new THREE.CylinderGeometry(0.74, 0.79, 1.55, 28);
+                    const liquid    = new THREE.Mesh(liquidGeo, liquidMat);
+                    liquid.position.y = -0.16;
+                    // Shoulder transition from body to neck.
+                    const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.78, 0.34, 32), plasticMat);
+                    shoulder.position.y = 1.14;
+                    // Neck.
+                    const neck     = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.30, 24), plasticMat);
+                    neck.position.y = 1.46;
+                    // Cap — orange plastic, slightly textured (subtle ribbing implied via geo segments).
+                    const cap      = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.38, 28), capMat);
+                    cap.position.y = 1.80;
+                    // White label band around the body's mid-section.
+                    const label    = new THREE.Mesh(new THREE.CylinderGeometry(0.835, 0.835, 0.65, 32, 1, true), labelMat);
+                    label.position.y = 0.10;
+                    // Orange brand stripe at the bottom edge of the label.
+                    const stripe   = new THREE.Mesh(new THREE.CylinderGeometry(0.84, 0.84, 0.14, 32, 1, true), stripeMat);
+                    stripe.position.y = -0.18;
+                    potionGroup.add(body, liquid, shoulder, neck, cap, label, stripe);
+                    potionGroup.position.set(0, -0.35, 1.5);
+                    potionGroup.scale.set(1.45, 1.45, 1.45);
                     group.add(potionGroup);
-                    
                     const pointLight = new THREE.PointLight(0xffffff, 2.0, 10);
                     pointLight.position.set(0, 0, 3);
                     group.add(pointLight);
-                    
-                    update = (t) => { 
-                        potionGroup.rotation.y = t * 1.5; 
+                    update = (t) => {
+                        // Gentle spin + breathing tilt — same cadence as the
+                        // prior vial so the deck rhythm is unchanged.
+                        potionGroup.rotation.y = t * 1.5;
                         potionGroup.rotation.z = Math.sin(t * 1.5) * 0.05;
-                        
-                        // Liquid sloshing
-                        const pos = liquidGeo.attributes.position;
-                        for(let i=0; i<pos.count; i++) {
-                            const yOrig = pos.getY(i);
-                            if (yOrig > 0.1) {
-                                const x = pos.getX(i);
-                                const z = pos.getZ(i);
-                                const slosh = Math.sin(x * 5.0 + t * 2.0) * 0.15 + Math.cos(z * 4.0 + t * 1.5) * 0.15;
-                                pos.setY(i, 0.8 + slosh);
-                            }
-                        }
-                        pos.needsUpdate = true;
+                        // Pulse the cap's orange a bit so the icon visibly
+                        // reads as "active healing" at a glance in the deck.
+                        const pulse = 0.18 + 0.10 * (0.5 + 0.5 * Math.sin(t * 3.0));
+                        capMat.emissiveIntensity    = pulse;
+                        liquidMat.emissiveIntensity = 0.35 + 0.18 * (0.5 + 0.5 * Math.sin(t * 2.2));
                     };
                 } else if (el === 'KATANA' || el === 'KATANA_HEAVY') {
                     const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x333333 }));
@@ -3433,6 +3887,38 @@
             });
         }
 
+        // ── Most-recently-used surfacing ────────────────────────────────
+        // When the player fires a card, slide it to the FRONT of its column
+        // (data-depth=0) and renumber the rest so the previous front card
+        // takes depth=1, the previous depth=1 takes depth=2, etc. — preserves
+        // the original ordering of the other cards but elevates the just-used
+        // one. Called from emitAction whenever a real card (not a UI button)
+        // fires with its DOM element available.
+        function bringCardToFront(cardEl){
+            if (!cardEl || !cardEl.classList || !cardEl.classList.contains('guide-card')) return;
+            const col = cardEl.closest('.card-column');
+            if (!col) return;
+            const cards = Array.from(col.querySelectorAll('.guide-card'));
+            if (cards.length <= 1) return;
+            // Already at the front — nothing to do.
+            if (parseInt(cardEl.dataset.depth) === 0) return;
+            // Sort cards by their CURRENT depth so the renumbering preserves
+            // the visible stack order (depth 0 → 1, 1 → 2, etc.). The fired
+            // card takes depth 0; everyone else takes consecutive depths
+            // starting at 1, in their original depth order, skipping the
+            // fired card.
+            const byDepth = cards.slice().sort((a,b) =>
+                parseInt(a.dataset.depth) - parseInt(b.dataset.depth)
+            );
+            cardEl.dataset.depth = '0';
+            let next = 1;
+            for (const c of byDepth){
+                if (c === cardEl) continue;
+                c.dataset.depth = String(next++);
+            }
+        }
+        window.bringCardToFront = bringCardToFront;
+
         function setup() {
             loadDeck(categories);
             UXAI.initViewportManager();
@@ -3734,17 +4220,47 @@
         window.lastCombatAttack = null;
 
         window.handleSidePanelAttack = function(btnElement) {
-            const action = window.lastCombatAttack || 'SLASH';
+            // MELEE button — always fires a MELEE card, never a spell/missile.
+            // Uses the last melee specifically (not generic lastCombatAttack)
+            // so the engine's _executeMeleeCard auto-walk fires correctly.
+            // Engine's _autoMeleeChase walks the player to the locked target
+            // and swings on arrival — endless: same card fires every press.
+            const action = window.lastMeleeAttack || 'SLASH';
             emitAction(action, btnElement);
         };
 
-        window.emitAction = (a, explicitBtn = null) => { 
+        // ── HEAL button gating ──
+        // Counts HEAL POTION cards in the deck (qty-aware: "HEAL POTION x3" → 3).
+        // Toggles `.heal-disabled` on #heal-action-btn so the green bottle
+        // greys out + clicks are blocked when the player is empty. Called
+        // whenever the deck changes (ADD_CARD, CONSUME_CARD, qty badge updates).
+        window.refreshHealButton = function(){
+            const btn = document.getElementById('heal-action-btn');
+            if (!btn) return;
+            let qty = 0;
+            // Walk every rendered guide-card top-of-pile title — base name
+            // "HEAL POTION" counts as 1, "HEAL POTION x3" counts as 3.
+            document.querySelectorAll('.guide-card[data-depth="0"] .card-title').forEach(t => {
+                const txt = (t.textContent || '').trim().toUpperCase();
+                const m = txt.match(/^HEAL\s*POTION(?:\s*X(\d+))?$/i);
+                if (m) qty += m[1] ? parseInt(m[1], 10) : 1;
+            });
+            if (qty > 0) btn.classList.remove('heal-disabled');
+            else         btn.classList.add('heal-disabled');
+        };
+
+        window.emitAction = (a, explicitBtn = null) => {
+            // HEAL POTION emit — refuse if button is disabled (empty deck).
+            if (a === 'HEAL POTION'){
+                const btn = document.getElementById('heal-action-btn');
+                if (btn && btn.classList.contains('heal-disabled')) return;
+            }
             if (a === 'SET') {
                 window.openSettings();
                 return;
             }
             
-            const isUIAction = ['SET', 'WAGER', 'PARLEY', 'HIDE', 'RETREAT', 'RANGED_ATTACK', 'CHANGE_SPELLS', 'OBSERVE', 'BET_EVEN', 'BET_ODD', 'REST', 'HEAL', 'VIEW', 'LOG'].includes(a);
+            const isUIAction = ['SET', 'WAGER', 'PARLEY', 'HIDE', 'RETREAT', 'RANGED_ATTACK', 'CHANGE_SPELLS', 'FLEE', 'OBSERVE', 'BET_EVEN', 'BET_ODD', 'REST', 'HEAL', 'VIEW', 'LOG'].includes(a);
             if (!isUIAction && a) {
                 window.lastCombatAttack = a;
                 // Track most recent missile + spell separately so the deck-
@@ -3801,6 +4317,13 @@
             if (btn && btn.classList) {
                 btn.classList.add('punch-anim');
                 setTimeout(() => btn.classList.remove('punch-anim'), 300);
+                // Most-recently-used surfacing: if this was a guide-card in a
+                // column, slide it to the front so it stays one-click-ready
+                // for the next firing. UI-only buttons (.sp-btn, .btn-action)
+                // don't carry .guide-card so they're naturally skipped.
+                if (!isUIAction) {
+                    try { bringCardToFront(btn); } catch (_) {}
+                }
                 
                 if (btn.dataset.qty !== undefined) {
                     let qty = parseInt(btn.dataset.qty);
@@ -4416,6 +4939,16 @@
             _clearSelectorChrome();
             _hideKbdHint();
             if (_kbdIdleTimer){ clearTimeout(_kbdIdleTimer); _kbdIdleTimer = 0; }
+            // ── Engine SIDEBAR_CLOSE notify (was the missing piece) ──
+            // _openCardSelector posts SIDEBAR_OPEN so the engine sets its
+            // _sidebarOpen flag (which gates click-to-target / click-to-
+            // move). The matching close was NEVER sent — once a selector
+            // opened, the engine treated every subsequent click as a
+            // "sidebar is in front" no-op. That's the "click-to-target
+            // / select not working in either top down or fpv" bug.
+            try {
+                window.parent.postMessage({ type: 'SIDEBAR_CLOSE', source: 'card-selector' }, '*');
+            } catch (e) {}
             if (wasActive && reason === 'idle' && window.logEvent){
                 window.logEvent('⌨️ Card selector closed — move freely again.', 'system');
             }
@@ -4509,6 +5042,48 @@
             else      el.classList.remove('shown');
             window._axiomPaused = !!show;
         }
+
+        // ── Click-through to engine canvas ──
+        // The panels iframe sits ON TOP of the engine iframe with
+        // pointer-events:auto so its UI buttons / cards are clickable. That
+        // means even clicks on "empty" panel space (the dark dungeon backdrop
+        // we want to interact with) hit the panels iframe and never reach the
+        // engine's main canvas. We catch those clicks here, check that the
+        // click landed on a non-interactive element (body / encounter zone /
+        // anything with computed pointer-events:none), and forward the
+        // viewport coords to the engine so it can re-fire its own canvas
+        // click handler (used by click-to-target and click-to-move).
+        function _isTransparentClick(e){
+            let n = e.target;
+            while (n && n !== document.body){
+                const pe = getComputedStyle(n).pointerEvents;
+                if (pe === 'auto') return false;
+                n = n.parentElement;
+            }
+            return true;
+        }
+        document.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            if (!_isTransparentClick(e)) return;
+            try {
+                window.parent.postMessage({
+                    type: 'CANVAS_CLICK_FORWARD',
+                    clientX: e.clientX, clientY: e.clientY,
+                }, '*');
+            } catch(_){}
+        }, true);
+        // Double-click forward — engine treats it as attack-monster /
+        // move-to-floor depending on what's under the cursor.
+        document.addEventListener('dblclick', (e) => {
+            if (e.button !== 0) return;
+            if (!_isTransparentClick(e)) return;
+            try {
+                window.parent.postMessage({
+                    type: 'CANVAS_DBLCLICK_FORWARD',
+                    clientX: e.clientX, clientY: e.clientY,
+                }, '*');
+            } catch(_){}
+        }, true);
 
         window.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
@@ -5028,10 +5603,15 @@
                     }
                 }
             } else if (e.data && e.data.type === 'SYNC_UI' && e.data.event === 'MONSTER_DEATH') {
-                const ez = document.getElementById('encounter-zone');
-                if (ez) {
-                    ez.classList.remove('active');
-                }
+                // ⛔ DO NOT force-close the panel here. The engine's own
+                // combat-visibility tick (any in-room LOS monster keeps
+                // panel open) is the single source of truth. Closing
+                // unconditionally on MONSTER_DEATH was flashing the panel
+                // shut while other monsters were still alive in the room
+                // — the engine would re-open it next tick but the flicker
+                // read as the panel "closing when it should be open."
+                // (Left empty intentionally; if a true close is needed
+                // the engine emits HIDE_COMBAT — handled further down.)
             } else if (e.data && e.data.type === 'SHOW_LOOT_UI') {
                 // Prevent GPU lockup: remove any existing YOU GOT animations before showing a new one
                 document.querySelectorAll('.yg-anim-trigger-3d').forEach(el => el.remove());
@@ -5183,7 +5763,10 @@
                 Array.from(layer.children).forEach(c => {
                     if (c.dataset.alive === "0") c.remove();
                 });
-            } else if (e.data && (e.data.type === 'HIDE_COMBAT' || e.data.type === 'HIDE_ALL')) {
+            } else if (e.data && e.data.type === 'HIDE_COMBAT') {
+                // HIDE_COMBAT is the engine's authoritative "no monsters
+                // in LOS, safe to close" signal. Trust it. (HIDE_ALL is
+                // handled separately below — different semantics.)
                 window.currentMonsterGridDistance = Infinity;
                 document.getElementById('encounter-zone').classList.remove('active');
                 if (document.activeElement !== document.querySelector('.chat-input')) {
@@ -5194,6 +5777,14 @@
                 if (document.activeElement && document.activeElement.tagName !== 'INPUT') {
                     window.focus();
                 }
+            } else if (e.data && e.data.type === 'HIDE_ALL') {
+                // HIDE_ALL is for cinematics / cutscenes — only close the
+                // panel if the engine genuinely meant the combat panel too
+                // (it almost never does). Treat as a soft pause: drop the
+                // .active class but DON'T reset the deck or steal focus,
+                // so when the cinematic ends the engine's next combat
+                // visibility tick re-opens immediately if monsters present.
+                document.getElementById('encounter-zone').classList.remove('active');
             } else if (e.data && e.data.type === 'COMBAT_ATTACK') {
                 window.diceAttackSpin = 40.0;
                 // Auto-melee bump: switch to Combat deck, focus column, bloom the fired card
@@ -5274,6 +5865,35 @@
                     if (typeof logEvent === 'function') logEvent(`Monster attacks and MISSES!`, 'system');
                 }
 
+            } else if (e.data && e.data.type === 'MONSTER_AI_THOUGHT') {
+                // Engine sends real-time AI state for the locked target.
+                // Payload: { status: 'hostile'/'chase'/etc, plan: 'Closing
+                // 4ft', distFt: number }. We render compact strings into
+                // the AI thinking block under the monster HP bar.
+                const sEl = document.getElementById('ai-status');
+                const pEl = document.getElementById('ai-plan');
+                if (sEl) sEl.textContent = (e.data.status || '—').toUpperCase();
+                if (pEl) pEl.textContent = e.data.plan || '—';
+            } else if (e.data && e.data.type === 'KARMA_UPDATE') {
+                // ── Karma status dot on the thumb pad ──────────────────
+                // Lerp the dot color from #ffffff (saintly, +karma good)
+                // through #888 (neutral) to #111 (cruel, -karma bad).
+                // At <= -80 karma, add the .karma-dark class for the
+                // pulsing-orange-glow prelude to the karma-armor system.
+                const k = (typeof e.data.karma === 'number') ? e.data.karma : 0;
+                const dot = document.getElementById('karma-status-dot');
+                if (dot){
+                    // Map karma -100..+100 → 0..1 (1 = saintly, 0 = cruel).
+                    const t = Math.max(0, Math.min(1, (k + 100) / 200));
+                    // Lerp greyscale value 0..255.
+                    const v = Math.round(17 + t * (255 - 17));  // 17 = #11, 255 = #ff
+                    const hex = v.toString(16).padStart(2, '0');
+                    dot.style.background = `#${hex}${hex}${hex}`;
+                    if (k <= -80) dot.classList.add('karma-dark');
+                    else          dot.classList.remove('karma-dark');
+                }
+                // Also stash on window so other UI bits can read current karma.
+                window.playerKarma = k;
             } else if (e.data && e.data.type === 'SYNC_STATS') {
                 const php = document.getElementById('player-hp-val');
                 const pgold = document.getElementById('player-gold-val');
@@ -5359,9 +5979,37 @@
                 };
                 _setAmmoBadge(ammoName, 1);
                 if (window.logEvent) window.logEvent(`+1 ${ammoName} recovered`, 'loot');
+            } else if (e.data && e.data.type === 'CONSUME_CARD') {
+                // Engine asked us to consume a card (e.g. HEAL POTION drink).
+                // Decrement qty on the matching top card, or remove it if qty<=1.
+                const want = String(e.data.card || '').toUpperCase();
+                const titles = Array.from(document.querySelectorAll('.guide-card[data-depth="0"] .card-title'));
+                for (const t of titles){
+                    const txt  = (t.textContent || '').trim().toUpperCase();
+                    const baseM = txt.match(/^(.+?)(?:\s*X(\d+))?$/i);
+                    const base  = baseM ? baseM[1].trim().toUpperCase() : txt;
+                    if (base !== want) continue;
+                    const card = t.closest('.guide-card');
+                    let qty = baseM && baseM[2] ? parseInt(baseM[2], 10) : 1;
+                    qty = Math.max(0, qty - 1);
+                    if (qty <= 0){
+                        // Remove the card from the column entirely.
+                        const col = card?.parentElement;
+                        if (col) col.removeChild(card);
+                    } else {
+                        t.textContent = `${base} x${qty}`;
+                        if (card) card.dataset.qty = String(qty);
+                    }
+                    break;
+                }
+                if (window.refreshHealButton) window.refreshHealButton();
             } else if (e.data && e.data.type === 'ADD_CARD') {
                 const cardName = e.data.card;
                 if (!window.cardInventoryCounts) window.cardInventoryCounts = {};
+                // Re-evaluate the HEAL button right after the deck DOM has
+                // a chance to settle (next animation frame). Catches both
+                // the first pickup of a potion AND duplicates.
+                requestAnimationFrame(() => { if (window.refreshHealButton) window.refreshHealButton(); });
 
                 // --- Card Classification ---
                 // Ammo cards: badge tracks ammunition qty, never spawn a second card.
@@ -5833,22 +6481,31 @@
             logContEl.addEventListener('mouseenter', () => { isHoveringLog = true; clearTimeout(logHideTimeout); });
             logContEl.addEventListener('mouseleave', () => { isHoveringLog = false; resetLogHideTimer(); });
 
-            // Pair: event log + side panels (encounter-zone) open together.
-            // Whenever the log gains .active, mirror it onto the encounter-zone
-            // (unless combat already owns the panels — then the existing
-            // .active stays under combat's ownership). The data-pairedWithLog
-            // flag tells resetLogHideTimer it may close ez when the log fades.
+            // ── LAW: event log open ⇒ side panels open ────────────────
+            // Hard pairing — every time the log is .active the encounter
+            // zone (which contains both side panels) MUST also be .active.
+            // The previous implementation only mirrored on edge transitions
+            // (inactive→active), so a side-panel close while the log stayed
+            // open broke the rule. This is now enforced on EVERY class
+            // mutation of the log AND on EVERY class mutation of the ez —
+            // if ez tries to drop .active while the log is still up,
+            // re-apply it immediately.
             const ezForPair = document.getElementById('encounter-zone');
             if (ezForPair && 'MutationObserver' in window) {
-                let lastActive = logContEl.classList.contains('active');
-                new MutationObserver(() => {
-                    const nowActive = logContEl.classList.contains('active');
-                    if (nowActive && !lastActive && !ezForPair.classList.contains('active')) {
+                const _enforce = () => {
+                    if (logContEl.classList.contains('active')
+                        && !ezForPair.classList.contains('active')) {
                         ezForPair.classList.add('active');
                         ezForPair.dataset.pairedWithLog = '1';
                     }
-                    lastActive = nowActive;
-                }).observe(logContEl, { attributes: true, attributeFilter: ['class'] });
+                };
+                _enforce(); // sync at startup in case the log loaded active
+                new MutationObserver(_enforce).observe(logContEl, {
+                    attributes: true, attributeFilter: ['class'],
+                });
+                new MutationObserver(_enforce).observe(ezForPair, {
+                    attributes: true, attributeFilter: ['class'],
+                });
             }
         }
 
@@ -5931,6 +6588,30 @@
             });
             chatInput.addEventListener('input', resetLogHideTimer);
             chatInput.addEventListener('blur', resetLogHideTimer);
+            // ── Chat submit (Enter) — forward to engine for parsing ───
+            // Engine owns monsterWrappers + the targeting / last-weapon
+            // state, so the smart parser lives there. Panels just emits
+            // the raw text + the last weapon hint so the engine doesn't
+            // have to ask back across the iframe boundary.
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const raw = (chatInput.value || '').trim();
+                if (!raw) return;
+                chatInput.value = '';
+                // Echo the player's command into the log so the chat reads
+                // like a conversation, not a silent prompt.
+                if (window.logEvent) window.logEvent(`<i>› ${raw}</i>`, 'system');
+                window.parent.postMessage({
+                    type: 'CHAT_SUBMIT',
+                    text: raw,
+                    lastWeapon:  window.lastCombatAttack || null,
+                    lastMelee:   window.lastMeleeAttack || null,
+                    lastMissile: window.lastMissileAttack || null,
+                    lastSpell:   window.lastSpellAttack || null,
+                }, '*');
+                resetLogHideTimer();
+            });
         }
 
         setTimeout(() => {

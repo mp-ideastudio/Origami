@@ -64,20 +64,44 @@ export function createPathFinder(map, MAP_W, MAP_H) {
             }
             closed.add(ck);
             expanded++;
-            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-            for (let d = 0; d < 4; d++) {
-                const nx = cur.gx + dirs[d][0];
-                const nz = cur.gz + dirs[d][1];
+            // 8-direction neighborhood (was 4). Diagonals get cost √2≈1.414,
+            // cardinals cost 1.0 — keeps the path optimal AND prefers diagonals
+            // when they actually shorten the route. The heuristic also
+            // upgraded to octile distance so A* stays admissible (won't
+            // overestimate when diagonals exist).
+            const dirs = [
+                [ 1,  0, 1.0], [-1,  0, 1.0], [ 0,  1, 1.0], [ 0, -1, 1.0],
+                [ 1,  1, 1.414], [ 1, -1, 1.414], [-1,  1, 1.414], [-1, -1, 1.414],
+            ];
+            for (let d = 0; d < dirs.length; d++) {
+                const dx = dirs[d][0], dz = dirs[d][1], cost = dirs[d][2];
+                const nx = cur.gx + dx;
+                const nz = cur.gz + dz;
                 if (nx < 0 || nx >= MAP_W || nz < 0 || nz >= MAP_H) continue;
                 const cell = map[nx]?.[nz];
                 if (!cell || cell.type === 'wall') continue;
+                // Diagonal corner-cutting prevention: don't slip diagonally
+                // between two walls. e.g. moving NE requires N or E to be
+                // walkable so the monster doesn't squeeze through a 1-tile
+                // diagonal gap that has walls on both cardinal sides.
+                if (cost > 1.0) {
+                    const sideA = map[cur.gx + dx]?.[cur.gz];
+                    const sideB = map[cur.gx]?.[cur.gz + dz];
+                    const blockA = !sideA || sideA.type === 'wall';
+                    const blockB = !sideB || sideB.type === 'wall';
+                    if (blockA && blockB) continue;
+                }
                 const nk = nx + ',' + nz;
                 if (closed.has(nk)) continue;
-                const tg = (gScore.get(ck) ?? Infinity) + 1;
+                const tg = (gScore.get(ck) ?? Infinity) + cost;
                 if (tg < (gScore.get(nk) ?? Infinity)) {
                     cameFrom.set(nk, ck);
                     gScore.set(nk, tg);
-                    const f = tg + Math.abs(nx - gx) + Math.abs(nz - gz);
+                    // Octile heuristic — admissible with √2 diagonals.
+                    const hdx = Math.abs(nx - gx);
+                    const hdz = Math.abs(nz - gz);
+                    const h = Math.max(hdx, hdz) + (Math.SQRT2 - 1) * Math.min(hdx, hdz);
+                    const f = tg + h;
                     // Replace or push
                     let foundOpen = false;
                     for (let i = 0; i < open.length; i++) {

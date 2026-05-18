@@ -842,65 +842,101 @@ export function buildLegacyLootIcon({ catId, elId, originalTitle }) {
         shield.rotation.y = t * 1.5;
       };
     }
-    // ── POTION / SCROLL — glass flask with sloshing liquid ────────────────────
-    else if (originalTitle === "POTION" || catId === "SCROLL") {
+    // ── POTION / HEAL POTION / SCROLL — Gatorade-style sports bottle ──
+    // Cylindrical body with a tapered shoulder + narrow neck + wide cap,
+    // bright green liquid filled to ~75%. Orange label band around the
+    // middle. Spins slowly on the card, with a slight slosh wobble.
+    else if (
+      originalTitle === "POTION" ||
+      originalTitle === "HEAL POTION" ||
+      catId === "SCROLL"
+    ) {
       const potion = new THREE.Group();
-      const glass = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        roughness: 0.1,
-        metalness: 0.4,
-        transparent: true,
-        opacity: 0.4,
-        depthWrite: false,
+      // ── Materials ──
+      const bottleGlass = new THREE.MeshStandardMaterial({
+        color: 0xb8c8d6, roughness: 0.18, metalness: 0.05,
+        transparent: true, opacity: 0.35, depthWrite: false,
       });
-      const cork = new THREE.MeshStandardMaterial({
-        color: 0x8b5a2b,
-        roughness: 0.9,
-        metalness: 0.1,
+      const liquidMat = new THREE.MeshStandardMaterial({
+        color: 0x2ddc34, roughness: 0.45, metalness: 0.0,
+        emissive: 0x115a17, emissiveIntensity: 0.55,
+        transparent: true, opacity: 0.92, depthWrite: false,
       });
-      const liq = new THREE.MeshBasicMaterial({
-        color: 0x00ff44,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
+      const capMat = new THREE.MeshStandardMaterial({
+        color: 0xff7a18, roughness: 0.55, metalness: 0.10,
+        emissive: 0x331100, emissiveIntensity: 0.25,
       });
-      const base = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 16), glass);
+      const labelMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff, roughness: 0.85, metalness: 0.0,
+      });
+      const stripeMat = new THREE.MeshStandardMaterial({
+        color: 0xff9020, roughness: 0.70, metalness: 0.0,
+      });
+      // ── Geometry (scaled to fill the ~2-unit icon slot) ──
+      // Body: cylindrical sports bottle (slight taper toward base + neck).
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.52, 0.55, 1.50, 24, 1, false),
+        bottleGlass,
+      );
+      body.position.y = 0.05;
+      potion.add(body);
+      // Liquid inside — slightly narrower than the glass + 75% fill.
       const liquid = new THREE.Mesh(
-        new THREE.SphereGeometry(
-          0.85,
-          16,
-          16,
-          0,
-          Math.PI * 2,
-          Math.PI / 2,
-          Math.PI / 2,
-        ),
-        liq,
+        new THREE.CylinderGeometry(0.48, 0.51, 1.10, 20),
+        liquidMat,
       );
+      liquid.position.y = -0.13;
+      potion.add(liquid);
+      // Shoulder taper — short cone from body radius down to neck radius.
+      const shoulder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.30, 0.52, 0.25, 24),
+        bottleGlass,
+      );
+      shoulder.position.y = 0.92;
+      potion.add(shoulder);
+      // Neck — slim cylinder above the shoulder.
       const neck = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.3, 0.5, 0.8, 16),
-        glass,
+        new THREE.CylinderGeometry(0.27, 0.27, 0.22, 18),
+        bottleGlass,
       );
-      neck.position.y = 1.0;
-      const lip = new THREE.Mesh(
-        new THREE.TorusGeometry(0.35, 0.1, 8, 16),
-        glass,
+      neck.position.y = 1.16;
+      potion.add(neck);
+      // Cap — wider than the neck (sports-bottle pull-top look).
+      const cap = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.34, 0.34, 0.28, 22),
+        capMat,
       );
-      lip.position.y = 1.4;
-      lip.rotation.x = Math.PI / 2;
-      const corkMesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.25, 0.2, 0.4, 12),
-        cork,
+      cap.position.y = 1.40;
+      potion.add(cap);
+      // Cap dome lip — thin torus on top of cap.
+      const capLip = new THREE.Mesh(
+        new THREE.TorusGeometry(0.30, 0.05, 8, 18),
+        capMat,
       );
-      corkMesh.position.y = 1.55;
-      potion.add(base, liquid, neck, lip, corkMesh);
-      potion.position.y = -0.4;
+      capLip.position.y = 1.555;
+      capLip.rotation.x = Math.PI / 2;
+      potion.add(capLip);
+      // Label band — white strip around the middle of the body.
+      const label = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.555, 0.555, 0.50, 24, 1, true),
+        labelMat,
+      );
+      label.position.y = 0.10;
+      potion.add(label);
+      // Orange flavor stripe at the top of the label.
+      const stripe = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.558, 0.558, 0.12, 24, 1, true),
+        stripeMat,
+      );
+      stripe.position.y = 0.30;
+      potion.add(stripe);
+      potion.position.y = -0.55;
       iconMesh.add(potion);
       customUpdate = (t) => {
-        potion.rotation.y = t * 1.5;
-        potion.rotation.z = Math.sin(t * 2) * 0.1;
-        liquid.rotation.x = Math.sin(t * 5) * 0.2;
-        liquid.rotation.z = Math.cos(t * 4) * 0.2;
+        potion.rotation.y = t * 1.3;
+        potion.rotation.z = Math.sin(t * 1.6) * 0.05;     // tiny slosh wobble
+        // Liquid surface drift — fakes a sloshing meniscus.
+        liquid.position.y = -0.13 + Math.sin(t * 4) * 0.02;
       };
     }
     // ── GOLD COIN — yen-style extruded gold w/ square hole, gradient texture ──

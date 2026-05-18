@@ -2,3 +2,7 @@
 *.zip
 node_modules/
 .vscode/
+# Local working backups — too large for the repo (assets bundled per snapshot).
+BACKUP/
+BACKUP.1/
+BACKUP_NEW/
