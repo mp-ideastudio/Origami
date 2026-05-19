@@ -45,8 +45,21 @@
             
             --bottom-dock-height: 230px;
             --wing-height: 160px;
-            --card-w: 96px;
-            --card-h: 142px;   /* was 158 — −10% per user spec for tighter layout */
+            /* Card width: 96 → 77 (−20% per user). Narrower deck =
+               more horizontal headroom in the bezel + matches the
+               −20% height reduction so the cards stay proportional. */
+            --card-w: 77px;
+            /* Card height: 158 → 142 (−10%) → 114 (−20% more) per user.
+               Frees ~28px of vertical real estate so the event log overlay
+               has more breathing room above the cards. */
+            --card-h: 114px;
+            /* Desktop card capacity — informational max. Computed at
+               window-resize time: `available px / (card-w + gap)`.
+               Window logs the value so we can verify how many distinct
+               cards fit per resolution; right now the deck only has 4
+               spell categories so we see 4 columns, but a future
+               expand-into-subcards layout could fill the room. */
+            --card-gap: 14px;
 
             /* REFINED ELEMENTAL PALETTE (1:1 with Screenshot) */
             --earth-clr: #00bcd4; --earth-bg: rgba(0, 188, 212, 0.1);
@@ -178,6 +191,29 @@
         .ai-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
         .ai-label { color: rgba(124,224,184,0.70); font-weight: 800; letter-spacing: 0.6px; }
         .ai-val   { color: #cde9d8; font-weight: 600; text-align: right; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Oni-Baba bottleneck status — replaces the engine V8 PERF HUD.
+           30s rolling window: top bar names the worst subsystem; the
+           sub-row shows totals across all 4 categories so the player can
+           see at a glance which budget is in trouble. */
+        .sp-bottleneck {
+            width: 95%;
+            margin: 0 0 8px 0;
+            padding: 4px 6px;
+            background: rgba(0,0,0,0.30);
+            border: 1px solid rgba(200,169,110,0.20);
+            border-radius: 4px;
+            font-family: 'SF Mono','Menlo',monospace;
+            font-size: 8px;
+            line-height: 1.3;
+        }
+        .bn-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+        .bn-row.bn-sub { gap: 3px; margin-top: 2px; flex-wrap: wrap; }
+        .bn-label { color: rgba(200,169,110,0.85); font-weight: 800; letter-spacing: 0.6px; }
+        .bn-val   { color: #00ffcc; font-weight: 900; text-align: right; flex: 1; }
+        .bn-val.warn { color: #f0c060; }
+        .bn-val.crit { color: #ff6b7a; }
+        .bn-cat   { font-size: 7.5px; color: rgba(255,255,255,0.55); font-weight: 700; }
+        .bn-cat.worst { color: #ffd9a3; font-weight: 900; }
         .player-attributes { display: flex; justify-content: space-between; width: 90%; background: var(--nm-bg); padding: 8px; border-radius: 6px; box-shadow: var(--nm-shadow-inset-light); margin-bottom: 6px; font-family: monospace; font-size: 10px; font-weight: bold; color: var(--color-text); }
         .attr-col { display: flex; flex-direction: column; width: 45%; gap: 4px; }
         .attr-row { display: flex; justify-content: space-between; align-items: center; }
@@ -413,7 +449,13 @@
         .roll-btn:hover { background: var(--item-clr); color: #fff; transform: translateY(-2px); }
         .roll-btn i { margin-right: 10px; font-size: 20px; }
 
-        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; }
+        /* overflow-clip-margin keeps the lifted-card / bloom halo visible
+           past the column bounds (otherwise focus animations clip) while
+           still hiding deep-stack card attribute pills that were leaking
+           below the column on the first slot (the EARTH "(STUN × 2DICE)"
+           ghost label visible in the screenshot). */
+        .card-column { position: relative; width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; flex: 0 0 var(--card-w); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); margin-right: 0px; overflow: visible; }
+        .card-column .guide-card[data-depth]:not([data-depth="0"]) .card-attr-fused { visibility: hidden; }
         .card-column.focused { z-index: 30; }
         /* The big lift-shadow + theme halo on .focused .guide-card used to
            paint every time `setFocus(0)` ran (loadDeck calls it on every
@@ -658,6 +700,15 @@
         .guide-card {
             -webkit-user-select: none; user-select: none;
             position: absolute; top: 0; left: 0; right: 0; width: 100%; height: var(--card-h);
+            /* overflow:clip + overflow-clip-margin lets the .card-badge
+               (positioned top:-7px right:-5px) sit half-off the corner
+               WITHOUT being chopped, while still clipping the bottom edge
+               where the .card-attr-fused pill used to leak. Fallback to
+               overflow:visible if overflow-clip-margin unsupported — the
+               .card-attr-fused has its own overflow:hidden + fixed height
+               so the leak risk is already mitigated at the source. */
+            overflow: clip;
+            overflow-clip-margin: 12px;
             border-radius: 12px; display: flex; flex-direction: column; align-items: center;
             /* Was flex-start which left a big empty band at the bottom of the
                card (under the .card-icon-3d). space-between pins the .card-header
@@ -688,11 +739,15 @@
         }
         
         .card-badge {
-            position: absolute; top: -10px; right: -6px; width: 22px; height: 22px; 
+            /* Slightly smaller + tighter to the new 77×114 card so it
+               doesn't crowd the header pill. Sits half-on/half-off the
+               top-right corner. */
+            position: absolute; top: -7px; right: -5px; width: 18px; height: 18px;
             border-radius: 50%; background: #ff0000; color: #ffffff;
-            font-size: 11px; font-weight: 900; display: flex; align-items: center; 
-            justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            border: 2px solid #ffffff; z-index: 10;
+            font-size: 9px; font-weight: 900; display: flex; align-items: center;
+            justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.55);
+            border: 1.5px solid #ffffff; z-index: 10;
+            line-height: 1;
         }
         
         .guide-card[data-depth="0"]:hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
@@ -1022,26 +1077,32 @@
         }
         
         /* Rigid Vertical Symmetry Zones */
-        .card-header { width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
-        .card-kanji { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 900; color: var(--card-kanji-clr, var(--theme-clr)); }
-        .card-type-pill { background: var(--theme-clr); color: var(--pill-text, #ffffff); font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); font-style: normal !important; }
+        /* ── CARD HEIGHT BUDGET (114px) ──────────────────────────────────
+           header 20 + title 14 + (title2 0 unless filled) + desc 9 + icon 42 + attr 18 + tiny gaps ≈ 110.
+           Was 143px total — pill kept oozing out the bottom. Now precise. */
+        .card-header { width: 100%; height: 20px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 4px; flex-shrink: 0; }
+        .card-kanji { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 900; color: var(--card-kanji-clr, var(--theme-clr)); }
+        .card-type-pill { background: var(--theme-clr); color: var(--pill-text, #ffffff); font-size: 7px; font-weight: 900; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; border: 0.5px solid rgba(255,255,255,0.2); font-style: normal !important; letter-spacing: 0.3px; }
         
-        .card-title { font-weight: 900; font-size: 12px; height: 16px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; letter-spacing: 0.4px; }
+        .card-title { font-weight: 900; font-size: 11px; height: 14px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0; text-transform: uppercase; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; box-sizing: border-box; letter-spacing: 0.3px; }
         /* Second title line — sits directly under .card-title for multi-word
            card names (e.g. WAND OF / MAGIC MISSILE). Slightly smaller weight
            and a touch of theme tint so the two-line title reads as one unit.
            Always present in the layout so cards stay consistent height. */
-        .card-title-2 { font-weight: 800; font-size: 10px; height: 14px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0 0 1px 0; text-transform: uppercase; flex-shrink: 0; color: var(--theme-clr, var(--card-text, #fff)); opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; letter-spacing: 0.3px; }
+        .card-title-2 { font-weight: 800; font-size: 9px; height: 11px; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; margin: 0; text-transform: uppercase; flex-shrink: 0; color: var(--theme-clr, var(--card-text, #fff)); opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; box-sizing: border-box; letter-spacing: 0.2px; }
+        /* Collapse empty title-2 to zero height so cards without a
+           subtitle get the reclaimed vertical space for the icon/attr. */
+        .card-title-2:empty { height: 0; margin: 0; padding: 0; }
         /* Keep title-2 height STABLE even when empty so every card has the
            same internal layout — missile cards with a sub-title (PISTOL →
            "MAGIC MISSILE") line up identically with spell cards that have
            no sub-title (FIREBALL etc). */
         .card-title-2:empty { height: 14px; visibility: hidden; }
-        .card-desc { font-weight: 800; font-size: 7px; height: 12px; display: flex; align-items: center; justify-content: center; color: var(--card-text-dim, var(--color-text-dim)); margin-bottom: 0; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-desc { font-weight: 700; font-size: 7px; height: 9px; line-height: 9px; display: flex; align-items: center; justify-content: center; color: var(--card-text-dim, var(--color-text-dim)); margin: 0 0 1px 0; flex-shrink: 0; font-style: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; width: 100%; }
         
-        .card-icon-3d { 
-            width: 45px; height: 45px; border-radius: 50%; 
-            margin: 0 auto 5px auto; overflow: hidden; position: relative; flex-shrink: 0; 
+        .card-icon-3d {
+            width: 42px; height: 42px; border-radius: 50%;
+            margin: 0 auto 2px auto; overflow: hidden; position: relative; flex-shrink: 0;
             background: #e0e5ec;
             box-shadow: inset 4px 4px 8px rgba(163,177,198,0.8), inset -4px -4px 8px rgba(255,255,255,0.8);
         }
@@ -1063,27 +1124,34 @@
         
         
         
-        .card-attr-fused { 
-            width: 100%; 
-            height: 25px; 
-            margin-top: auto; 
-            background: rgba(10, 10, 12, 0.8); 
+        .card-attr-fused {
+            width: 100%;
+            height: 18px;
+            margin-top: auto;
+            background: rgba(10, 10, 12, 0.8);
+            /* Top divider + BOTTOM accent line — was missing the bottom accent
+               so the pill looked unfinished against the card frame. Bottom
+               accent uses the card's theme color so each element reads at
+               a glance (EARTH brown, FIRE red, etc.). */
             border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 2px solid var(--theme-clr, rgba(255,255,255,0.35));
+            box-shadow: 0 -1px 0 rgba(255,255,255,0.04) inset,
+                        0 -2px 8px rgba(0,0,0,0.45) inset;
             color: #ffffff;
-            font-weight: 900; 
-            font-size: 8px;
-            letter-spacing: 0px; 
+            font-weight: 900;
+            font-size: 7px;
+            letter-spacing: 0.1px;
             font-style: normal !important;
-            padding: 0 8px; 
-            text-transform: uppercase; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            flex-shrink: 0; 
+            padding: 0 6px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-align: center; 
-            line-height: 1.1; 
-            box-sizing: border-box; 
+            text-align: center;
+            line-height: 1.1;
+            box-sizing: border-box;
             border-radius: 0 0 11px 11px;
         }
 
@@ -1181,16 +1249,22 @@
         .m-btn.launch:hover { filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
         /* --- HIGH PERFORMANCE INPUT --- */
-        #input-container { 
+        #input-container {
             width: 100%; min-width: 0; max-width: calc(var(--card-w) * 6 + 70px);
-            display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; 
+            display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch;
             transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin-top 0.3s ease;
-            margin: 0 auto 50px auto; /* 50px bottom margin perfectly aligns the center of the 56px pill to Y=975 */
+            /* Flush with viewport bottom per user spec — was `0 auto 50px auto`,
+               now 0 all sides so the input pill kisses the viewport edge and
+               every pixel of vertical real estate is used. */
+            margin: 0 auto;
             position: relative;
-            
-            /* Glass properties unified */
+
+            /* Glass properties unified. Radius matches the bezel
+               (#tactical-inner-wrap @ 14px) per user spec — input no longer
+               reads as a separate floating capsule, it reads as the bottom
+               edge of the same panel. */
             background: var(--bg-glass);
-            border-radius: 28px;
+            border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.4) !important;
             box-shadow: 
                 3px 3px 8px rgba(0,0,0,0.15), 
@@ -1431,6 +1505,18 @@
                     <div class="ai-row"><span class="ai-label">STATUS</span><span class="ai-val" id="ai-status">—</span></div>
                     <div class="ai-row"><span class="ai-label">PLAN</span><span class="ai-val" id="ai-plan">—</span></div>
                 </div>
+                <!-- Oni-Baba bottleneck status (replaces the PERF HUD).
+                     30-second rolling window: which subsystem cost the
+                     most frame time? Color-coded by severity. -->
+                <div class="sp-bottleneck" id="oni-bottleneck">
+                    <div class="bn-row"><span class="bn-label">🐉 BOTTLENECK</span><span class="bn-val" id="bn-worst">—</span></div>
+                    <div class="bn-row bn-sub">
+                        <span class="bn-cat" id="bn-ai">AI 0</span>
+                        <span class="bn-cat" id="bn-gpu">GPU 0</span>
+                        <span class="bn-cat" id="bn-pipe">PIPE 0</span>
+                        <span class="bn-cat" id="bn-logs">LOG 0</span>
+                    </div>
+                </div>
                 <button class="sp-btn btn-wager" onclick="emitAction('WAGER')">
                     <div class="btn-icon-circle"><i class="fa-solid fa-dice"></i></div>
                     <span data-i18n="btn-wager">Wager</span>
@@ -1443,6 +1529,10 @@
                     <div class="btn-icon-circle"><i class="fa-solid fa-ghost"></i></div>
                     <span data-i18n="btn-hide">Hide</span>
                 </button>
+                <!-- Don't-show-again checkbox (tiny, bottom of left panel) -->
+                <label class="sp-dontshow" title="Hide this panel for the rest of the session">
+                    <input type="checkbox" id="dontshow-pax"><span>don't show this again</span>
+                </label>
             </div>
             <!-- ACTION RAIL (Red Accent) -->
             <div id="action-rail" class="side-panel">
@@ -1486,6 +1576,10 @@
                     <div class="btn-icon-circle"><i class="fa-solid fa-person-running"></i></div>
                     <span>FLEE</span>
                 </button>
+                <!-- Don't-show-again checkbox (tiny, bottom of right panel) -->
+                <label class="sp-dontshow" title="Hide this panel for the rest of the session">
+                    <input type="checkbox" id="dontshow-action"><span>don't show this again</span>
+                </label>
             </div>
         </div>
 
@@ -1508,31 +1602,280 @@
 
 
 
-            #event-log-container { 
-                width: 100%; height: 0; opacity: 0; pointer-events: none;
-                transition: height 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, margin-bottom 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                display: flex; flex-direction: column; justify-content: flex-start;
+            /* ── Card-holder bezel ────────────────────────────────────────
+               Neumorphic dark background that visually unifies the cards +
+               input field as one extending UI element. Sits inside
+               #tactical-inner-wrap; the event log overlays it (absolute)
+               so opening the log doesn't shove cards/avatar around. */
+            #tactical-inner-wrap {
+                position: relative; /* anchor for the absolute event log */
+                background: linear-gradient(180deg, #16181d 0%, #0d0f13 100%);
+                border-radius: 14px;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.04),
+                    inset 0 -1px 0 rgba(0,0,0,0.7),
+                    0 6px 18px rgba(0,0,0,0.55);
+                padding-top: 4px;
+            }
 
+            /* ── Event log: IN-FLOW above cards, pushes nothing aside ──
+               Sits as a sibling of #guides-container at the TOP of
+               #tactical-inner-wrap. Closed → height:0, takes no space.
+               Open → grows downward inside the bezel above the cards.
+               Cards stay anchored in their own grid row beneath, chat
+               input pinned to the bottom — neither shifts when the log
+               toggles. This is the layout the user asked for: "above
+               the cards" in physical position, not absolute-overlay. */
+            /* ── WoW-style TOTAL GLASS event log (user spec) ──────────
+               No bezel, no border, no inner ring — just a soft frosted
+               panel that floats over the scene. Modeled after WoW's
+               default chat frame: dark glass at ~35% alpha, light
+               backdrop blur, subtle top highlight so the edge reads
+               without a hard line. Entries sit directly on the glass. */
+            #event-log-container {
+                position: relative;
+                width: 100%; height: 0; opacity: 0; pointer-events: none;
+                transition: height 0.28s cubic-bezier(0.2, 0.85, 0.3, 1),
+                            opacity 0.18s ease,
+                            margin-bottom 0.28s cubic-bezier(0.2, 0.85, 0.3, 1);
+                display: flex; flex-direction: column; justify-content: flex-start;
                 box-sizing: border-box; overflow-y: auto; overflow-x: hidden;
-                z-index: 1; /* Keep above before layer */
+                z-index: 6;
+                margin: 0;
+                /* Frosted glass — low alpha + heavy blur. */
+                background: linear-gradient(180deg, rgba(10,14,22,0.42) 0%, rgba(6,10,16,0.48) 100%);
+                backdrop-filter: blur(10px) saturate(1.15);
+                -webkit-backdrop-filter: blur(10px) saturate(1.15);
+                border-radius: 10px;
+                border: none;
+                /* Only a soft drop + a hair of top-edge highlight so the
+                   pane reads against bright scenes without a hard frame. */
+                box-shadow:
+                    0 8px 22px rgba(0,0,0,0.45),
+                    inset 0 1px 0 rgba(255,255,255,0.06);
             }
+            /* Bezel pseudo-element disabled — total glass per user. */
+            #event-log-container::before { content: none; }
+            /* ── PEEK MODE (default active state) ─────────────────────
+               User spec: by default the log shows ONLY the most recent
+               event (one entry, ~44px). The user can hover (or scroll
+               with the wheel / arrow keys) to expand the full history.
+               This keeps the screen clean while still showing the latest
+               combat update in real time.
+
+               Sizing rules:
+                 • .active (no .peek-expand class) → ~44px (1 entry)
+                 • .active.peek-expand              → full clamp(140-280)
+
+               .peek-expand is added by JS on hover / wheel / focus,
+               removed after a 1.4s idle timer. */
             #event-log-container.active {
-                /* Height clamped against viewport so on mobile the log
-                   doesn't grow into the deck above. Was a fixed 180px,
-                   which on a 600px-tall phone consumed 30% of the
-                   screen and clipped the card pills. */
-                height: clamp(70px, 22vh, 180px);
+                height: 44px;
                 opacity: 1; pointer-events: auto;
-                padding: clamp(8px, 1.6vw, 20px);
-                padding-bottom: 0px;
+                margin-bottom: 6px;
+                padding: 8px 14px 4px;
                 font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif; letter-spacing: 0.5px;
+                overflow: hidden;
             }
+            #event-log-container.active.peek-expand {
+                height: clamp(140px, 32vh, 280px);
+                padding: clamp(20px, 2vw, 26px) clamp(18px, 2.2vw, 24px) clamp(16px, 1.8vw, 22px);
+                overflow-y: auto;
+            }
+            /* In peek (collapsed) mode, hide all but the LAST entry so
+               only the freshest line shows in the slim strip. The
+               toolbar (close button) is always exempt. */
+            #event-log-container.active:not(.peek-expand) #event-log-toolbar { display: none; }
+            #event-log-container.active:not(.peek-expand) .log-entry:not(:last-child) { display: none; }
+            #event-log-container.active:not(.peek-expand) .log-entry:last-child {
+                font-size: 12px; line-height: 1.4; margin: 0;
+                animation: none; opacity: 1; transform: none; filter: none;
+            }
+            /* Log entries sit ABOVE the bezel ring */
+            #event-log-container > * { position: relative; z-index: 1; }
+
+            /* ── Top-down mode override ─────────────────────────────────
+               User spec: in topdown, the log should be HALF height so the
+               map below has more room, and the BG should be more
+               transparent ("more lcd glass") so the dungeon shows through
+               like a HUD overlay. Same width — only height + opacity shift.
+               Push-up of the map is implicit since the log occupies half
+               the vertical space it did in FPV mode. */
+            body.topdown-mode #event-log-container.active {
+                /* WoW glass — topdown is even more transparent so the
+                   dungeon map underneath stays readable. Peek-mode
+                   collapsed strip stays at 36px (slim). */
+                height: 36px;
+                background: linear-gradient(180deg, rgba(10,14,22,0.28) 0%, rgba(6,10,16,0.32) 100%);
+                backdrop-filter: blur(8px) saturate(1.10);
+                -webkit-backdrop-filter: blur(8px) saturate(1.10);
+                box-shadow:
+                    0 6px 18px rgba(0,0,0,0.35),
+                    inset 0 1px 0 rgba(255,255,255,0.05);
+            }
+            body.topdown-mode #event-log-container.active.peek-expand {
+                height: clamp(70px, 16vh, 140px);
+            }
+            body.topdown-mode #event-log-container::before { content: none; }
+            /* Toolbar bg matches new transparent log so the strip blends. */
+            body.topdown-mode #event-log-toolbar {
+                background: linear-gradient(180deg, rgba(18,20,26,0.45) 0%, rgba(18,20,26,0.30) 85%, rgba(18,20,26,0) 100%);
+            }
+
+            /* ── Sticky toolbar row: silent checkbox + close button ─────
+               Pinned to the top of the scroll viewport so the close X
+               never scrolls out of view. Sits ABOVE log entries (z-index
+               higher than the log content). */
+            #event-log-toolbar {
+                position: sticky; top: 0; left: 0; right: 0;
+                height: 38px;
+                display: flex; align-items: center; justify-content: space-between;
+                padding: 0 8px 0 10px;
+                margin: -8px -8px 4px -8px;
+                background: linear-gradient(180deg, rgba(22,24,30,0.96) 0%, rgba(22,24,30,0.85) 88%, rgba(22,24,30,0) 100%);
+                z-index: 14; pointer-events: none;
+            }
+            #event-log-toolbar > * { pointer-events: auto; }
+
+            /* ── Log close button ───────────────────────────────────────
+               Neumorphic disc with a subtle inset. */
+            #event-log-close {
+                position: static;
+                width: 30px; height: 30px;
+                border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 18px; line-height: 1; font-weight: 700;
+                color: #ff6b6b;
+                cursor: pointer;
+                -webkit-user-select: none; user-select: none;
+                background: linear-gradient(180deg, #2a2d33 0%, #15171b 100%);
+                border: 1px solid rgba(255, 107, 107, 0.55);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.10),
+                    inset 0 -1px 0 rgba(0,0,0,0.75),
+                    0 2px 4px rgba(0,0,0,0.65),
+                    0 0 8px rgba(255, 80, 80, 0.18);
+                z-index: 12;
+                opacity: 0; pointer-events: none;
+                transition: opacity 0.2s ease, transform 0.12s ease, background 0.18s ease;
+            }
+            #event-log-container.active #event-log-close { opacity: 1; pointer-events: auto; }
+            #event-log-close:hover { color: #ffffff; background: linear-gradient(180deg, #b03333 0%, #5a1010 100%); transform: scale(1.10); }
+            #event-log-close:active { transform: scale(0.92); }
+
+            /* ── Silent checkbox (sits in sticky toolbar, top-left) ──── */
+            #event-log-silent {
+                position: static;
+                display: flex; align-items: center; gap: 5px;
+                font-size: 9.5px; letter-spacing: 0.6px;
+                color: rgba(214,218,223,0.55);
+                font-family: 'Inter', sans-serif; font-weight: 600;
+                text-transform: uppercase;
+                cursor: pointer; user-select: none;
+                z-index: 8;
+                opacity: 0;
+                transition: opacity 0.2s ease, color 0.18s ease;
+            }
+            #event-log-container.active #event-log-silent { opacity: 0.7; }
+            #event-log-silent:hover { color: rgba(248,250,252,0.95); opacity: 1; }
+            #event-log-silent input {
+                appearance: none; -webkit-appearance: none;
+                width: 11px; height: 11px;
+                border-radius: 3px;
+                background: linear-gradient(180deg, #1d1f24 0%, #0e1014 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.05),
+                    inset 0 -1px 0 rgba(0,0,0,0.7);
+                cursor: pointer;
+                position: relative;
+                margin: 0;
+            }
+            #event-log-silent input:checked {
+                background: linear-gradient(180deg, #b07d2a 0%, #6a4a14 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.18),
+                    inset 0 -1px 0 rgba(0,0,0,0.5),
+                    0 0 6px rgba(255,180,80,0.45);
+            }
+            #event-log-silent input:checked::after {
+                content: '';
+                position: absolute;
+                left: 3px; top: 0px;
+                width: 4px; height: 7px;
+                border: solid #fff7e0;
+                border-width: 0 1.5px 1.5px 0;
+                transform: rotate(45deg);
+            }
+
+            /* ── Side-panel "don't show again" checkbox ──────────────────
+               Tiny anchor at the bottom of each side panel that lets the
+               player hide it for the rest of the session (state persisted
+               via localStorage). Same neumorphic visual language as the
+               event-log Keep Silent checkbox. */
+            .sp-dontshow {
+                position: absolute;
+                bottom: 6px; left: 8px; right: 8px;
+                display: flex; align-items: center; gap: 5px;
+                font-size: 9.5px; letter-spacing: 0.4px;
+                color: rgba(214,218,223,0.45);
+                font-family: 'Inter', sans-serif; font-weight: 500;
+                text-transform: lowercase;
+                cursor: pointer;
+                -webkit-user-select: none;
+                user-select: none;
+                pointer-events: auto;
+                z-index: 12;
+                opacity: 0.65;
+                transition: opacity 0.18s ease, color 0.18s ease;
+            }
+            .sp-dontshow:hover { opacity: 1; color: rgba(248,250,252,0.95); }
+            .sp-dontshow input {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 11px; height: 11px;
+                border-radius: 3px;
+                background: linear-gradient(180deg, #1d1f24 0%, #0e1014 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.05),
+                    inset 0 -1px 0 rgba(0,0,0,0.7);
+                cursor: pointer;
+                position: relative; margin: 0;
+            }
+            .sp-dontshow input:checked {
+                background: linear-gradient(180deg, #b07d2a 0%, #6a4a14 100%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,0.18),
+                    inset 0 -1px 0 rgba(0,0,0,0.5),
+                    0 0 6px rgba(255,180,80,0.45);
+            }
+            .sp-dontshow input:checked::after {
+                content: ''; position: absolute;
+                left: 3px; top: 0px; width: 4px; height: 7px;
+                border: solid #fff7e0; border-width: 0 1.5px 1.5px 0;
+                transform: rotate(45deg);
+            }
+            /* Hidden-panel state — set by JS when the checkbox flips on. */
+            .side-panel.user-hidden { display: none !important; }
             /* Input container margins handled differently now */
             
             /* Custom minimalist scrollbar for log */
-            #event-log-container::-webkit-scrollbar { width: 4px; }
-            #event-log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; transition: background 0.2s; }
-            #event-log-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+            /* Pro neumorphic scrollbar — thin recessed track, glowing thumb */
+            #event-log-container::-webkit-scrollbar { width: 6px; }
+            #event-log-container::-webkit-scrollbar-track {
+                background: linear-gradient(90deg, rgba(0,0,0,0.4), rgba(0,0,0,0.25));
+                border-radius: 6px;
+                margin: 12px 2px 12px 0;
+                box-shadow: inset 1px 0 0 rgba(0,0,0,0.6), inset -1px 0 0 rgba(255,255,255,0.03);
+            }
+            #event-log-container::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, rgba(120,160,200,0.45), rgba(60,90,130,0.35));
+                border-radius: 6px;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.4);
+                transition: background 0.2s;
+            }
+            #event-log-container::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(180deg, rgba(150,190,230,0.65), rgba(90,130,170,0.5));
+            }
             
             .log-entry {
                 font-size: 13.5px; font-weight: 500; color: #e6edf3; margin-bottom: 8px; 
@@ -2122,21 +2465,19 @@
             }
 
             /* ── Topdown PIP relocation + shrink ─────────────────────────
-               When the main view is topdown the PIP is the FPV preview,
-               and the player needs to see the topdown map UNDER it — so
-               we move the PIP from the default top-left to the TOP-RIGHT
-               corner and shrink it to ~70%. !important + right/auto
-               override the drag-handler's inline left/top values so this
-               always takes effect when topdown is active. The moondial
-               decorations (compass, season ring, moon-selector) stay
-               visible — we're only repositioning + scaling the wrapper,
-               not hiding its children. */
+               When the main view is topdown the PIP is the FPV preview.
+               User spec: TOP-LEFT corner (was top-right which covered the
+               FPS / Oni-Baba sensor HUD that lives in the top-right area).
+               !important overrides the drag-handler's inline left/top. */
             body.topdown-mode #moondial-wrapper {
                 top:   12px !important;
-                left:  auto !important;
-                right: 12px !important;
-                transform: scale(0.70) !important;
-                transform-origin: top right !important;
+                right: auto !important;
+                left:  12px !important;
+                transform: scale(0.55) !important;
+                transform-origin: top left !important;
+                /* Vertical offset stays small in top-left — no HUD chrome
+                   to dodge over here. */
+                top: 12px !important;
             }
             body.topdown-mode #moondial-wrapper .compass-outer-ring,
             body.topdown-mode #moondial-wrapper .season-outer-ring,
@@ -2271,6 +2612,74 @@
                 border-radius: 50%;
                 pointer-events: auto; /* WebGL handles events through this dummy */
                 cursor: pointer;
+            }
+
+            /* ── WoW-style hit-from-behind cue ──────────────────────────────
+               Red screen-edge vignette pulse + giant centered combat text.
+               Both are display:none until the engine sends MONSTER_ATTACK
+               with fromBehind:true, then the panel adds .show for ~1.4s. */
+            #behind-flash {
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 9998;
+                opacity: 0;
+                background: radial-gradient(ellipse at center,
+                    rgba(0,0,0,0) 35%,
+                    rgba(180,0,0,0.45) 75%,
+                    rgba(120,0,0,0.85) 100%);
+                transition: opacity 0.18s ease-out;
+            }
+            #behind-flash.show { opacity: 1; }
+            #behind-flash.fade { opacity: 0; transition: opacity 0.6s ease-in; }
+
+            #behind-text {
+                position: fixed;
+                top: 36%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.7);
+                pointer-events: none;
+                z-index: 9999;
+                font-family: 'Impact', 'Arial Black', sans-serif;
+                font-weight: 900;
+                letter-spacing: 0.5px;
+                color: #ffe070;
+                text-shadow:
+                    0 0 12px rgba(255,80,40,0.95),
+                    0 0 24px rgba(255,40,0,0.85),
+                    0 2px 0 #500,
+                    0 4px 6px rgba(0,0,0,0.9);
+                opacity: 0;
+                text-align: center;
+                line-height: 1.0;
+                user-select: none;
+            }
+            #behind-text .b-headline {
+                display: block;
+                font-size: clamp(28px, 4.4vw, 64px);
+                color: #ff3a2a;
+                text-shadow:
+                    0 0 14px rgba(255,40,0,0.95),
+                    0 0 30px rgba(255,80,0,0.7),
+                    0 3px 0 #300,
+                    0 6px 10px rgba(0,0,0,0.95);
+            }
+            #behind-text .b-sub {
+                display: block;
+                margin-top: 6px;
+                font-size: clamp(14px, 1.8vw, 24px);
+                color: #ffd866;
+                letter-spacing: 1px;
+            }
+            #behind-text.show {
+                animation: behindPunch 1.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+            }
+            @keyframes behindPunch {
+                0%   { transform: translate(-50%, -50%) scale(0.55); opacity: 0; }
+                12%  { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+                22%  { transform: translate(-50%, -50%) scale(1.00); opacity: 1; }
+                75%  { transform: translate(-50%, -50%) scale(1.00); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(1.06); opacity: 0; }
             }
         </style>
         
@@ -2421,6 +2830,13 @@
         
         <!-- Big Combat Announcement Text Overlay -->
         <div id="big-combat-text"></div>
+
+        <!-- Attacked-from-behind cue: red screen vignette + WoW-style headline -->
+        <div id="behind-flash"></div>
+        <div id="behind-text">
+            <span class="b-headline">ATTACKED FROM BEHIND</span>
+            <span class="b-sub">CRITICAL CHANCE INCREASE!</span>
+        </div>
         
         <div id="lower-ui-row">
             <div id="left-panel" class="u-wing u-panel" tabindex="1">
@@ -2460,6 +2876,22 @@
                         </div>
                     </div>
                     <div id="turn-indicator" data-i18n="turn-player">PLAYER TURN</div>
+                    <!-- Event log lives HERE (above the cards) so when it
+                         opens it sits on TOP of the deck inside the bezel.
+                         Closed → height:0, takes no layout space; open →
+                         grows downward and pushes cards down inside the
+                         same neumorphic wrap. Don't relocate this below
+                         #guides-container — that's where it ends up
+                         visually BELOW cards, which is the bug the user
+                         flagged repeatedly. -->
+                    <div id="event-log-container">
+                        <div id="event-log-toolbar">
+                            <label id="event-log-silent" title="Suppress automatic log popups during combat">
+                                <input type="checkbox" id="event-log-silent-cb"><span>Keep Silent</span>
+                            </label>
+                            <div id="event-log-close" title="Close log (press M or click)">×</div>
+                        </div>
+                    </div>
                     <div id="guides-container"></div>
                     <div id="dice-container">
                         <div class="guide-card wager-card wager-card-container" onclick="emitAction('BET_EVEN', this)">
@@ -2477,8 +2909,11 @@
                            <div class="card-attr-fused wager-attr-text" data-i18n="wager-pays">(PAYS 1:1)</div>
                         </div>
                     </div>
+                    <!-- (Duplicate event log + input container removed —
+                         the log now lives ABOVE #guides-container at the
+                         top of the bezel, and the chat-pill is inlined
+                         below the wagers row.) -->
                     <div id="input-container">
-                        <div id="event-log-container"></div>
                         <div class="chat-pill">
                             <input type="text" class="chat-input" data-i18n-placeholder="chat-placeholder" placeholder="Type here..." autocomplete="off">
                             <span class="enter-symbol" title="Submit Action"><i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i></span>
@@ -2596,6 +3031,10 @@
                     <span class="slider round"></span>
                 </label>
             </div>
+            <div class="settings-row" style="margin-top:12px;">
+                <span class="settings-label">Side Panels &amp; Event Log</span>
+                <button id="restore-panels-btn" class="settings-btn" type="button">Restore</button>
+            </div>
             <style>
                 .settings-modal-container {
                     display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
@@ -2613,6 +3052,17 @@
                 #autopickup-toggle:checked + .slider { background-color: #00bcd4; }
                 #autopickup-toggle:checked + .slider:before { transform: translateX(26px); }
                 .settings-switch .slider:before { position:absolute; content:''; height:16px; width:16px; left:4px; bottom:4px; background-color:white; transition:.4s; border-radius:50%; }
+                .settings-btn {
+                    background: linear-gradient(180deg, #2a2d33 0%, #15171b 100%);
+                    color: #00bcd4; border: 1px solid rgba(0,188,212,0.55);
+                    border-radius: 8px; padding: 6px 14px; font-size: 12px;
+                    font-weight: 700; letter-spacing: 0.5px; cursor: pointer;
+                    font-family: Inter, sans-serif;
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 4px rgba(0,0,0,0.5);
+                    transition: background 0.18s ease, color 0.18s ease;
+                }
+                .settings-btn:hover { color:#ffffff; background: linear-gradient(180deg, #007a8c 0%, #003845 100%); }
+                .settings-btn:active { transform: scale(0.96); }
 
                 /* ── T0.7 — COMBAT class separator bar (between melee + ranged columns) */
                 .combat-separator {
@@ -2689,6 +3139,13 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        // Panels iframe loads the avatar GLB (Player.A.Walking.glb) for the
+        // UI avatar circle in the right action panel. That GLB is Draco-
+        // compressed (72MB→19MB savings) so the loader needs the matching
+        // DRACOLoader, otherwise GLTFLoader throws "No DRACOLoader instance
+        // provided" and the avatar never renders. Decoder pulled from the
+        // same three.js example libs path GLTFLoader expects.
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         window.THREE = THREE;
         // Procedural .45 pistol model (no USDZ load — earlier USDZ file was
@@ -2762,10 +3219,13 @@
         };
 
 
+        // Spell categories — order matters: first column is the user's
+        // landing focus. WIND moved to slot 0 per user request; EARTH
+        // pushed to slot 2 to dodge the first-column attribute-label leak.
         const spellCategories = [
-            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Spell Scroll', attr: '42–158 DMG · STUN', cards: ['BOULDER', 'FISSURE'] },
             { id: 'WIND', kanji: '風', icon: 'fa-wind', desc: 'Spell Scroll', attr: '26–113 DMG · PUSH', cards: ['GALE', 'CYCLONE'] },
             { id: 'FIRE', kanji: '火', icon: 'fa-fire', desc: 'Magic Wand', attr: '42–158 DMG · BURN', cards: ['FIREBALL', 'PYROBLAST', 'COMET'] },
+            { id: 'EARTH', kanji: '地', icon: 'fa-mountain', desc: 'Spell Scroll', attr: '42–158 DMG · STUN', cards: ['BOULDER', 'FISSURE'] },
             { id: 'WATER', kanji: '水', icon: 'fa-water', desc: 'Spell Scroll', attr: '26–113 DMG · SLOW', cards: ['TIDE', 'SURGE'] }
         ];
 
@@ -2781,7 +3241,19 @@
             { id: 'MISSILE', kanji: '刃', icon: 'fa-khanda',       desc: 'Thrown Blade',  attr: '(DMG * 1DICE)',  cards: ['DAGGER'],           qty: 0 },
             { id: 'MISSILE', kanji: '弓', icon: 'fa-bow-arrow',    desc: 'Ranged Weapon', attr: '(DMG * 2DICE)',  cards: ['SHORT BOW'],        qty: 25 },
             { id: 'MISSILE', kanji: '長', icon: 'fa-bow-arrow',    desc: 'Ranged Weapon', attr: '(DMG * 4DICE)',  cards: ['LONG BOW'],         qty: 12 },
-            { id: 'MISSILE', kanji: '銃', icon: 'fa-gun',          desc: '.45 ACP Firearm', attr: '(DMG * 3DICE)', cards: ['PISTOL'], qty: 7 }
+            // ── MAGIC MISSILE — was the misspelled/mislabelled "PISTOL" entry ──
+            // Category fixed to MAGIC (still rendered in the Ranged section
+            // per user spec — Magic projectiles ARE ranged, just with the
+            // MAGIC type pill instead of MISSILE). English + Japanese set on
+            // title/desc/attribute fields so the card renders bilingually.
+            { id: 'MAGIC', kanji: '魔',  kanjiJa: '魔法弾',  icon: 'fa-wand-sparkles',
+              desc:   'Arcane Projectile',
+              descJa: '秘術の飛び道具',
+              attr:   '(DMG * 3DICE)',
+              attrJa: '(ダメージ × 3ダイス)',
+              cards:  ['MAGIC MISSILE'],
+              cardsJa:['魔法弾'],
+              qty:    7 }
         ];
 
         const itemCategories = [
@@ -3801,9 +4273,24 @@
             
             try {
                 const loader = new GLTFLoader();
+                // Attach DRACOLoader — the avatar GLB ships Draco-compressed.
+                // Surface ANY error from the wire-up so we can see why it's
+                // not working (was previously swallowed by a try/catch).
+                try {
+                    if (typeof DRACOLoader !== 'function'){
+                        console.error('[panels] DRACOLoader import missing — class is', typeof DRACOLoader);
+                    } else {
+                        const draco = new DRACOLoader();
+                        draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+                        loader.setDRACOLoader(draco);
+                        console.log('[panels] DRACOLoader wired ✓');
+                    }
+                } catch(err){
+                    console.error('[panels] DRACOLoader setup failed:', err);
+                }
                 const modelUrls = [
-                    './assets/models/Player.A.Walking.glb',
-                    '../assets/models/Player.A.Walking.glb',
+                    './assets/models/player/Player.A.Walking.glb',
+                    '../assets/models/player/Player.A.Walking.glb',
                 ];
                 
                 function tryLoadModel(urlIndex) {
@@ -4130,6 +4617,18 @@
             const modal = document.getElementById('settings-modal');
             if(modal) modal.style.display = 'block';
         };
+        // The settings button's inline onclick calls toggleSettings — alias
+        // it to openSettings so the gear opens the modal. (Closing is via
+        // the × button inside, which calls closeSettings.)
+        window.toggleSettings = function() {
+            const modal = document.getElementById('settings-modal');
+            if (!modal) return;
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+            }
+        };
 
         // ── Save / Load Modal ─────────────────────────────────────────────
         // Save names are user-supplied; we ask the engine to read/write the
@@ -4234,17 +4733,33 @@
         // Toggles `.heal-disabled` on #heal-action-btn so the green bottle
         // greys out + clicks are blocked when the player is empty. Called
         // whenever the deck changes (ADD_CARD, CONSUME_CARD, qty badge updates).
+        // ── Persistent card inventory counts ─────────────────────────────
+        // Mirrors qty for every starter card so the HEAL button (and any
+        // future card-aware UI) can answer "how many HEAL POTIONs do I have"
+        // regardless of which deck is currently rendered. Initialized once
+        // from the starter category definitions; CONSUME_CARD / ADD_CARD
+        // mutate it in lockstep with the DOM badge updates.
+        if (!window.cardInventoryCounts) {
+            window.cardInventoryCounts = {};
+            try {
+                for (const c of (defaultCategories || [])){
+                    const q = parseInt(c.qty ?? 0, 10) || 0;
+                    if (q <= 0) continue;
+                    for (const cardName of (c.cards || [])){
+                        const k = String(cardName || '').toUpperCase().trim();
+                        if (!k) continue;
+                        window.cardInventoryCounts[k] = (window.cardInventoryCounts[k] || 0) + q;
+                    }
+                }
+            } catch(_){}
+        }
+
         window.refreshHealButton = function(){
             const btn = document.getElementById('heal-action-btn');
             if (!btn) return;
-            let qty = 0;
-            // Walk every rendered guide-card top-of-pile title — base name
-            // "HEAL POTION" counts as 1, "HEAL POTION x3" counts as 3.
-            document.querySelectorAll('.guide-card[data-depth="0"] .card-title').forEach(t => {
-                const txt = (t.textContent || '').trim().toUpperCase();
-                const m = txt.match(/^HEAL\s*POTION(?:\s*X(\d+))?$/i);
-                if (m) qty += m[1] ? parseInt(m[1], 10) : 1;
-            });
+            // Read from the truthful inventory map — survives deck switches,
+            // updates as potions are drunk or picked up.
+            const qty = (window.cardInventoryCounts && window.cardInventoryCounts['HEAL POTION']) || 0;
             if (qty > 0) btn.classList.remove('heal-disabled');
             else         btn.classList.add('heal-disabled');
         };
@@ -4332,7 +4847,8 @@
                         let recover = false;
                         if (isRanged && Math.random() < 0.5) {
                             recover = true;
-                            if (window.logEvent) window.logEvent(`Recovered 1 ${a} (Ammo Retained)`, 'loot');
+                            // Silent — the badge stays at the same number,
+                            // which is the player's signal that ammo was kept.
                         }
                         
                         if (!recover) {
@@ -4355,7 +4871,7 @@
                                     if (badge) badge.textContent = '…';
                                     // RELOADING badge overlay (replaces the
                                     // qty number for the duration).
-                                    if (window.logEvent) window.logEvent('🔄 RELOADING…', 'system');
+                                    // Silent — badge shows "…" and SFX plays.
                                     // Three-stage SFX through a tiny dedicated
                                     // AudioContext: mag drop (200ms in), mag
                                     // insert (700ms in), slide rack (1200ms in)
@@ -4387,7 +4903,7 @@
                                         btn.style.opacity = '1';
                                         btn.style.pointerEvents = 'auto';
                                         if (badge) badge.textContent = '7';
-                                        if (window.logEvent) window.logEvent('🔫 PISTOL ready — 7 rounds chambered.', 'system');
+                                        // Silent — badge flips back to 7.
                                     }, 1500);
                                     return;
                                 }
@@ -4521,6 +5037,18 @@
             categories = newCategories;
             const container = document.getElementById('guides-container');
             container.innerHTML = '';
+            // ── CARDS_TO_DISPLAY (user spec) ─────────────────────────────
+            // Target counts: 4 mobile / 5 tablet / 7 desktop. Auto-reduce
+            // to the smaller of (target, viewport-fit) so we never render
+            // more columns than will fit. The viewport-fit is computed by
+            // updateViewportReadout into window._maxCardsFit.
+            const _vw = window.innerWidth;
+            const _target = (_vw >= 1024) ? 7 : (_vw >= 640) ? 5 : 4;
+            const _fit = window._maxCardsFit || _target;
+            window._cardsToDisplay = Math.max(2, Math.min(_target, _fit));
+            // Skip non-separator / non-zero-qty cards in order, dropping any
+            // that exceed the cap.
+            let _renderedCount = 0;
             // colIdx counts only RENDERED columns so IDs are always consecutive
             // (col-0, col-1, col-2…). Using the forEach idx instead created gaps
             // when qty-0 categories were skipped — e.g. DAGGER at idx=1 got
@@ -4529,6 +5057,8 @@
             // breaking bloom and Enter-to-fire for every MISSILE card after it.
             let colIdx = 0;
             categories.forEach((cat, idx) => {
+                // Hard stop once we've rendered the target count.
+                if (_renderedCount >= window._cardsToDisplay) return;
                 // T0.7 — separator marker between melee + ranged in COMBAT class
                 if (cat.separator) {
                     const sep = document.createElement('div');
@@ -4699,7 +5229,11 @@
                     let elId = masterCard ? masterCard.el : cat.id;
                     if (name === 'SHORT BOW') elId = 'BOW_SHORT';
                     if (name === 'LONG BOW') elId = 'BOW_LONG';
-                    if (name === 'PISTOL') elId = 'PISTOL';
+                    // MAGIC MISSILE is the rename of PISTOL — its 3D scene
+                    // is still keyed by 'PISTOL' in window.scenes. Without
+                    // this remap the card canvas stays empty/black (which
+                    // is the "WTF happened to my pistol" bug the user saw).
+                    if (name === 'PISTOL' || name === 'MAGIC MISSILE') elId = 'PISTOL';
                     if (name === 'MAGIC LANTERN') elId = 'MAGIC_LANTERN';
 
                     // i18n: use localized strings if available, else fall back to master card data
@@ -4738,6 +5272,7 @@
                     col.appendChild(card);
                 });
                 container.appendChild(col);
+                _renderedCount++;
             });
             
             // Drag and Drop Container Logic
@@ -4916,6 +5451,31 @@
             const cols = _liveColCount();
             if (cols === 0){ window._closeCardSelector('empty-deck'); return; }
             if (focusedColIndex >= cols) focusedColIndex = 0;
+            // ── Auto-focus on last played card ────────────────────────────
+            // Per user spec: the last card played becomes the current active.
+            // Pressing RETURN should open the selector ALREADY on that card,
+            // so a second RETURN fires it. Find the column whose top card
+            // matches window.lastCombatAttack and set focus there.
+            try {
+                const lastName = (window.lastCombatAttack || '').toString().toUpperCase().trim();
+                if (lastName){
+                    const titles = document.querySelectorAll('.guide-card[data-depth="0"] .card-title');
+                    for (const t of titles){
+                        const txt = (t.textContent || '').trim().toUpperCase();
+                        const base = txt.replace(/\s*X\d+$/i, '').trim();
+                        if (base === lastName){
+                            const col = t.closest('.card-column');
+                            if (col && col.id && col.id.startsWith('col-')){
+                                const idx = parseInt(col.id.slice(4), 10);
+                                if (!Number.isNaN(idx) && idx >= 0 && idx < cols){
+                                    focusedColIndex = idx;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch(_){}
             setFocus(focusedColIndex);
             _clearSelectorChrome();
             const topCard = document.querySelector(`#col-${focusedColIndex} .guide-card[data-depth="0"]`);
@@ -5641,7 +6201,7 @@
                         let elId = cat.id;
                         if (cData.name === 'SHORT BOW') elId = 'BOW_SHORT';
                         if (cData.name === 'LONG BOW') elId = 'BOW_LONG';
-                        if (cData.name === 'PISTOL') elId = 'PISTOL';
+                        if (cData.name === 'PISTOL' || cData.name === 'MAGIC MISSILE') elId = 'PISTOL';
                         return `<div class="card-icon-3d" data-element="${elId}"><canvas></canvas></div>`;
                     })()}
                     <div class="card-attr-fused">${cardAttr}</div>
@@ -5702,7 +6262,7 @@
                                 let elId = cat.id;
                                 if (item.cardName === 'SHORT BOW') elId = 'BOW_SHORT';
                                 if (item.cardName === 'LONG BOW') elId = 'BOW_LONG';
-                                if (item.cardName === 'PISTOL') elId = 'PISTOL';
+                                if (item.cardName === 'PISTOL' || item.cardName === 'MAGIC MISSILE') elId = 'PISTOL';
                                 return `<div class="card-icon-3d" data-element="${elId}"><canvas></canvas></div>`;
                             })()}
                             <div class="card-attr-fused">${cat.attr || ''}</div>
@@ -5853,18 +6413,72 @@
                     }, Math.max(1000, (slash.getClip().duration * 1000) - 200));
                 }
                 
-                if (e.data.damage > 0) {
-                    if (typeof logEvent === 'function') logEvent(`You hit for ${e.data.damage} damage!`, 'system');
-                } else {
-                    if (typeof logEvent === 'function') logEvent(`You swing and MISS!`, 'system');
+                // Player→monster routine hits no longer log — the FPV shows
+                // the floating yellow damage number, and Oni-Baba surfaces
+                // monster deaths through COMBAT_EVENT. Misses (damage===0)
+                // still get one short toast so the player knows the swing
+                // whiffed (no damage number to look at).
+                if (!(e.data.damage > 0)) {
+                    if (typeof logEvent === 'function') logEvent(`You swing and MISS.`, 'combat');
                 }
             } else if (e.data && e.data.type === 'MONSTER_ATTACK') {
-                if (e.data.damage > 0) {
-                    if (typeof logEvent === 'function') logEvent(`Monster hits you for ${e.data.damage} damage!`, 'system');
-                } else {
-                    if (typeof logEvent === 'function') logEvent(`Monster attacks and MISSES!`, 'system');
+                // Routine monster→player hits are NOT logged here anymore —
+                // the floating red damage number on the FPV already tells the
+                // player the hit landed + how much. Oni-Baba's combat ledger
+                // (master shell) decides which hits (burst/heavy/intro/kill)
+                // are worth surfacing as a log line via COMBAT_EVENT.
+                // ── Backstab cue: red flash + WoW headline ──
+                // Engine flags hits where the attacker is in the player's
+                // rear arc. We pulse the screen-edge vignette + show the
+                // "ATTACKED FROM BEHIND - CRITICAL CHANCE INCREASE!" banner.
+                if (e.data.fromBehind && e.data.damage > 0){
+                    const flashEl = document.getElementById('behind-flash');
+                    const textEl  = document.getElementById('behind-text');
+                    if (flashEl){
+                        flashEl.classList.remove('fade');
+                        flashEl.classList.add('show');
+                        if (flashEl._timer) clearTimeout(flashEl._timer);
+                        flashEl._timer = setTimeout(() => {
+                            flashEl.classList.remove('show');
+                            flashEl.classList.add('fade');
+                        }, 350);
+                    }
+                    if (textEl){
+                        textEl.classList.remove('show');
+                        // Force reflow so the animation restarts even if
+                        // the player gets backstabbed twice in a row.
+                        void textEl.offsetWidth;
+                        textEl.classList.add('show');
+                    }
+                    if (typeof logEvent === 'function') {
+                        logEvent(`⚔ <b>Backstab!</b> ${e.data.name || 'Monster'} struck from behind for <b>${e.data.damage}</b> (crit).`, 'combat');
+                    }
                 }
 
+            } else if (e.data && e.data.type === 'ONIBABA_BOTTLENECK') {
+                // Engine sends 1Hz rolling-window category totals (last 30s).
+                // Render the worst subsystem in the bn-worst slot and the
+                // per-category ms in the sub-row. Color tier (ok/warn/crit)
+                // mirrors the engine's severity classification.
+                const t = e.data.totals || {AI:0, GPU:0, PIPELINE:0, LOGS:0};
+                const worst = e.data.worst || 'AI';
+                const sev = e.data.sev || 'ok';
+                const wEl = document.getElementById('bn-worst');
+                if (wEl){
+                    const ms = Math.round(t[worst] || 0);
+                    wEl.textContent = `${worst} ${ms}ms`;
+                    wEl.className = 'bn-val ' + (sev === 'crit' ? 'crit' : sev === 'warn' ? 'warn' : '');
+                }
+                const _setCat = (id, key) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.textContent = `${key} ${Math.round(t[key] || 0)}`;
+                    el.classList.toggle('worst', key === worst);
+                };
+                _setCat('bn-ai', 'AI');
+                _setCat('bn-gpu', 'GPU');
+                _setCat('bn-pipe', 'PIPELINE');
+                _setCat('bn-logs', 'LOGS');
             } else if (e.data && e.data.type === 'MONSTER_AI_THOUGHT') {
                 // Engine sends real-time AI state for the locked target.
                 // Payload: { status: 'hostile'/'chase'/etc, plan: 'Closing
@@ -5983,6 +6597,12 @@
                 // Engine asked us to consume a card (e.g. HEAL POTION drink).
                 // Decrement qty on the matching top card, or remove it if qty<=1.
                 const want = String(e.data.card || '').toUpperCase();
+                // Mirror the consume on the truthful inventory map so the HEAL
+                // button stays in sync even if the player is browsing a different
+                // deck when the consume fires.
+                if (window.cardInventoryCounts && window.cardInventoryCounts[want] > 0){
+                    window.cardInventoryCounts[want]--;
+                }
                 const titles = Array.from(document.querySelectorAll('.guide-card[data-depth="0"] .card-title'));
                 for (const t of titles){
                     const txt  = (t.textContent || '').trim().toUpperCase();
@@ -6006,6 +6626,12 @@
             } else if (e.data && e.data.type === 'ADD_CARD') {
                 const cardName = e.data.card;
                 if (!window.cardInventoryCounts) window.cardInventoryCounts = {};
+                // Mirror pickup on the inventory map. Card-name normalized so
+                // "Heal Potion" pickup ↔ "HEAL POTION" gating both agree.
+                if (cardName){
+                    const k = String(cardName).toUpperCase().trim();
+                    window.cardInventoryCounts[k] = (window.cardInventoryCounts[k] || 0) + 1;
+                }
                 // Re-evaluate the HEAL button right after the deck DOM has
                 // a chance to settle (next animation frame). Catches both
                 // the first pickup of a potion AND duplicates.
@@ -6097,7 +6723,11 @@
                             .some(t => t.textContent === baseName || t.textContent.startsWith(baseName + ' x'));
                     _applyBadge(baseName, cardQty);
                     _syncCategoryQty(baseName, cardQty);
-                    if (wasHidden) loadDeck(categories); // re-render to surface the now-non-zero card
+                    // Deferred re-render (only needed when surfacing a card
+                    // that was hidden because qty was 0). Synchronous loadDeck
+                    // here blocks the engine RAF and is the bigger half of the
+                    // "pause on pickup" the user reported.
+                    if (wasHidden) requestAnimationFrame(() => loadDeck(categories));
                     if (window.logEvent) window.logEvent(`+${cardQty} ${baseName} ammo`, 'loot');
 
                 } else if (isSkillCard && prevCount >= 1) {
@@ -6119,12 +6749,17 @@
                     window.renderInventory();
                 }
 
-                // ── Auto-switch the deck to the picked card ──
+                // ── Auto-switch the deck to the picked card (DEFERRED) ──
                 // Player feedback for "I just picked up X" is that X immediately
                 // becomes the active card on the playing-card row, in whichever
-                // deck (SPELLS / MELEE / MISSILE / ITEMS) owns it. The deck is
-                // resolved by scanning the four category arrays for a
-                // category whose `cards` includes the baseName.
+                // deck (SPELLS / MELEE / MISSILE / ITEMS) owns it.
+                //
+                // CRITICAL: This was running SYNCHRONOUSLY inside the postMessage
+                // handler, which blocks the engine RAF (iframes share the main
+                // event loop). `cycleCardClass` triggers a full loadDeck()
+                // re-render which can take 5-20ms — that's the "pause on
+                // pickup" the user reported. Deferred via requestAnimationFrame
+                // so the engine's next frame paints first.
                 {
                     const DECK_LOOKUP = {
                         SPELLS:  spellCategories,
@@ -6139,17 +6774,16 @@
                         }
                     }
                     if (targetDeck && typeof window.cycleCardClass === 'function'){
-                        // Switch decks only if we're not already there — avoids
-                        // a needless re-render flash on same-deck pickups.
-                        if (window.cardClass !== targetDeck){
-                            window.cycleCardClass(targetDeck);
-                        }
-                        // Focus the picked card so it sits as the active
-                        // top-of-stack one. Defer to next tick so loadDeck has
-                        // mounted the new DOM before we query for it.
-                        if (typeof window._focusCardByName === 'function'){
-                            setTimeout(() => window._focusCardByName(baseName), 0);
-                        }
+                        requestAnimationFrame(() => {
+                            // Switch decks only if we're not already there —
+                            // avoids a needless re-render flash on same-deck.
+                            if (window.cardClass !== targetDeck){
+                                window.cycleCardClass(targetDeck);
+                            }
+                            if (typeof window._focusCardByName === 'function'){
+                                setTimeout(() => window._focusCardByName(baseName), 0);
+                            }
+                        });
                     }
                 }
             } else if (e.data && e.data.type === 'LCD_EVENT') {
@@ -6216,7 +6850,19 @@
                         let wantCls = 'mon-radar-dot';
                         if (b.kind === 'loot') wantCls += ' loot';
                         if (isClose)           wantCls += ' close';
+                        if (b.hostile)         wantCls += ' hostile';
                         if (dot.className !== wantCls) dot.className = wantCls;
+
+                        // Hostile blips fade brighter slowly. `bright` is
+                        // 0→1 ramped engine-side over ~2s once the monster
+                        // enters hostile/chase. Render as a brightness
+                        // multiplier on the dot's red glow.
+                        const hotMul = (typeof b.bright === 'number') ? b.bright : (b.hostile ? 1 : 0);
+                        if (hotMul > 0.01){
+                            dot.style.filter = `brightness(${(1 + hotMul * 0.6).toFixed(2)}) drop-shadow(0 0 ${(4 + hotMul * 8).toFixed(0)}px rgba(255,80,80,${(0.5 + hotMul * 0.45).toFixed(2)}))`;
+                        } else if (dot.style.filter) {
+                            dot.style.filter = '';
+                        }
 
                         dot.style.transform = `translate(${pxX}px, ${pxZ}px)`;
                         dot.style.display = 'block';
@@ -6426,16 +7072,51 @@
         // Viewport Readout Logic
         function updateViewportReadout() {
             const readout = document.getElementById('viewport-readout');
-            if (readout) {
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                let device = 'Mobile';
-                if (w >= 1024) device = 'Desktop';
-                else if (w >= 640) device = 'Tablet';
-                readout.textContent = `(Viewport:${device} [${w}x${h}])`;
-            }
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            let device = 'Mobile';
+            if (w >= 1024) device = 'Desktop';
+            else if (w >= 640) device = 'Tablet';
+            if (readout) readout.textContent = `(Viewport:${device} [${w}x${h}])`;
+            // ── Desktop card capacity ────────────────────────────────────
+            // Compute how many cards fit horizontally so the deck system
+            // can expand (future work). Logs the count once per resize.
+            // Available width = viewport − 320px wings reservation.
+            // Each card slot = card-w + gap.
+            try {
+                const cs = getComputedStyle(document.documentElement);
+                const cardW = parseInt(cs.getPropertyValue('--card-w'))  || 77;
+                const cardG = parseInt(cs.getPropertyValue('--card-gap')) || 14;
+                const avail = Math.max(0, w - 320);
+                const maxCards = Math.max(1, Math.floor(avail / (cardW + cardG)));
+                window._maxCardsFit = maxCards;
+                // Tier-tag the panel body so CSS can react to capacity buckets.
+                const body = document.body;
+                body.classList.remove('cards-fit-4','cards-fit-6','cards-fit-8','cards-fit-10');
+                if      (maxCards >= 10) body.classList.add('cards-fit-10');
+                else if (maxCards >= 8)  body.classList.add('cards-fit-8');
+                else if (maxCards >= 6)  body.classList.add('cards-fit-6');
+                else                     body.classList.add('cards-fit-4');
+                if (window._lastCapLog !== maxCards){
+                    window._lastCapLog = maxCards;
+                    try { console.log(`[card-capacity] viewport ${w}×${h} → ${maxCards} cards fit (card-w=${cardW}, gap=${cardG})`); } catch(_){}
+                }
+                // ── Re-render deck if target count changed (resize across
+                //    breakpoints — mobile ↔ tablet ↔ desktop). _cardsToDisplay
+                //    was set by the previous loadDeck; recompute here so a
+                //    breakpoint cross triggers a fresh load.
+                const _vw = w;
+                const _target = (_vw >= 1024) ? 7 : (_vw >= 640) ? 5 : 4;
+                const _nextDisplay = Math.max(2, Math.min(_target, maxCards));
+                if (window._cardsToDisplay && window._cardsToDisplay !== _nextDisplay && typeof loadDeck === 'function' && categories){
+                    loadDeck(categories);
+                }
+            } catch(_){}
         }
         window.addEventListener('resize', updateViewportReadout);
+        // Initial call so window._maxCardsFit + window._cardsToDisplay are
+        // populated BEFORE the first loadDeck on boot.
+        try { updateViewportReadout(); } catch(_){}
         
         let logHideTimeout = null;
         let isHoveringLog = false;
@@ -6478,8 +7159,59 @@
         // Keep active while hovered so user can scroll
         const logContEl = document.getElementById('event-log-container');
         if (logContEl) {
-            logContEl.addEventListener('mouseenter', () => { isHoveringLog = true; clearTimeout(logHideTimeout); });
-            logContEl.addEventListener('mouseleave', () => { isHoveringLog = false; resetLogHideTimer(); });
+            // ── PEEK-EXPAND wiring (user spec) ─────────────────────────
+            // Default = collapsed (just shows the LAST entry). Expand to
+            // full history on:
+            //   • mouse hover
+            //   • wheel-up while hovering
+            //   • arrow-up / page-up while focused
+            // Collapse again after 1.4s of no hover + no scroll input.
+            let _peekIdleT = null;
+            const _peekExpand = () => {
+                logContEl.classList.add('peek-expand');
+                clearTimeout(_peekIdleT);
+            };
+            const _peekCollapseSoon = (delay = 1400) => {
+                clearTimeout(_peekIdleT);
+                _peekIdleT = setTimeout(() => {
+                    logContEl.classList.remove('peek-expand');
+                    // After collapse, snap scroll to bottom so the freshest
+                    // entry is the one visible in the slim strip next time.
+                    logContEl.scrollTop = logContEl.scrollHeight;
+                }, delay);
+            };
+            // Hover = expand. Leave = collapse soon.
+            logContEl.addEventListener('mouseenter', () => {
+                isHoveringLog = true;
+                clearTimeout(logHideTimeout);
+                _peekExpand();
+            });
+            logContEl.addEventListener('mouseleave', () => {
+                isHoveringLog = false;
+                resetLogHideTimer();
+                _peekCollapseSoon();
+            });
+            // Mouse-wheel inside log = expand + keep open (resets idle).
+            logContEl.addEventListener('wheel', (e) => {
+                _peekExpand();
+                _peekCollapseSoon(2500);
+            }, { passive: true });
+            // Arrow-up / PageUp / Home while log has focus = expand + scroll.
+            logContEl.tabIndex = 0; // make focusable
+            logContEl.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                    e.key === 'PageUp'  || e.key === 'PageDown' ||
+                    e.key === 'Home'    || e.key === 'End'){
+                    _peekExpand();
+                    const step = (e.key === 'PageUp' || e.key === 'PageDown') ? 80 : 22;
+                    if (e.key === 'ArrowUp' || e.key === 'PageUp') logContEl.scrollTop -= step;
+                    else if (e.key === 'ArrowDown' || e.key === 'PageDown') logContEl.scrollTop += step;
+                    else if (e.key === 'Home') logContEl.scrollTop = 0;
+                    else if (e.key === 'End')  logContEl.scrollTop = logContEl.scrollHeight;
+                    _peekCollapseSoon(2500);
+                    e.preventDefault();
+                }
+            });
 
             // ── LAW: event log open ⇒ side panels open ────────────────
             // Hard pairing — every time the log is .active the encounter
@@ -6546,8 +7278,51 @@
             if (!container) return;
             if (text == null || text === '') return;
 
-            // Auto open panel for any system or combat dialogue
-            if (type === 'chat' || type === 'system' || type === 'damage' || type === 'room' || type === 'flee' || type === 'haiku') {
+            // ── Combat truncation ──
+            // While combat is active (encounter-zone open) the event log
+            // gets spammy: every swing, every dodge, every monster bow.
+            // Drop low-priority entries during combat so the player sees
+            // only the meaningful events. Priority tiers:
+            //   ALWAYS    — karma, loot, room (story-relevant)
+            //   COMBAT-OK — damage, combat, flee, haiku (the fight itself)
+            //   SUPPRESS  — system, chat (spammy during combat)
+            // Player chat (echoed via "> ..." pattern) is NEVER suppressed
+            // — that's the player typing, they want to see it.
+            try {
+                const ez = document.getElementById('encounter-zone');
+                const inCombat = ez && ez.classList.contains('active');
+                if (inCombat){
+                    const isPlayerEcho = /^›\s|^&rsaquo;\s/.test(String(text));
+                    if (!isPlayerEcho){
+                        const KEEP = { karma: 1, loot: 1, room: 1, damage: 1, combat: 1, flee: 1 };
+                        if (!KEEP[type]){
+                            // Suppress entirely; combat clarity wins.
+                            return;
+                        }
+                    }
+                    // Hard cap on visible entries during combat — keep only
+                    // the last 8 so a 30s fight doesn't pile up 50+ lines.
+                    const COMBAT_MAX = 8;
+                    while (container.childNodes.length >= COMBAT_MAX){
+                        container.removeChild(container.firstChild);
+                    }
+                }
+            } catch(_){}
+
+            // ── Auto-show rules (rewritten) ────────────────────────────────
+            // The old logic popped the log open on virtually every event type
+            // (chat / system / damage / room / flee / haiku), which interrupted
+            // combat constantly. New rules:
+            //   • If the user ticked "Keep Silent", NEVER auto-show. The log
+            //     still accumulates entries — just doesn't pop visible.
+            //   • Otherwise, auto-show only for HIGH-SIGNAL types: ROOM (new
+            //     area), HAIKU (boss/goblin flavor), KARMA (story beat),
+            //     CHAT (player input echo). Everything else logs silently.
+            //   • Player can always open the log manually (chat focus, close
+            //     button toggle, etc.) and read accumulated entries.
+            const _silentMode = !!(document.getElementById('event-log-silent-cb')?.checked);
+            const _autoShowTypes = { room:1, haiku:1, karma:1, chat:1 };
+            if (!_silentMode && _autoShowTypes[type]) {
                 container.classList.add('active');
                 resetLogHideTimer();
             }
@@ -6579,6 +7354,107 @@
             while (container.childNodes.length > 50) container.removeChild(container.firstChild);
             container.scrollTop = container.scrollHeight;
         };
+
+        // ── Event log close button + Keep Silent checkbox ────────────────
+        // The user complained the log popping up clouds the avatar in
+        // top-down view. Close button gives explicit dismiss; Silent
+        // checkbox suppresses all auto-shows session-to-session
+        // (persisted in localStorage).
+        {
+            const closeBtn = document.getElementById('event-log-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const lc = document.getElementById('event-log-container');
+                    if (lc) lc.classList.remove('active');
+                    if (logHideTimeout) clearTimeout(logHideTimeout);
+                });
+            }
+            const silentCb = document.getElementById('event-log-silent-cb');
+            if (silentCb) {
+                try { silentCb.checked = (localStorage.getItem('origami.v8.eventlog.silent') === '1'); } catch(_){}
+                silentCb.addEventListener('change', () => {
+                    try {
+                        localStorage.setItem('origami.v8.eventlog.silent', silentCb.checked ? '1' : '0');
+                    } catch(_){}
+                });
+                // Clicking the label / checkbox shouldn't bubble up and
+                // re-trigger the log mouseenter / focus paths.
+                silentCb.addEventListener('click', (e) => e.stopPropagation());
+            }
+        }
+
+        // ── Sidepanel "don't show again" checkboxes ──────────────────────
+        // Each side panel (pax-console / action-rail) has a tiny checkbox
+        // at the bottom. When ticked, the panel is hidden via
+        // .user-hidden CSS and the state persists to localStorage so the
+        // dismissal carries across reloads / sessions. The checkbox itself
+        // stays clickable inside the hidden panel via a fallback — see
+        // below: we don't actually hide the LABEL, we hide the parent's
+        // content while keeping the label visible (using a clipped wrapper
+        // would be ideal but the cheaper path is to leave the checkbox
+        // accessible via the settings modal — for now, you can re-show by
+        // running `localStorage.removeItem(...)` from devtools).
+        {
+            const pairs = [
+                { cb: 'dontshow-pax',    panel: 'pax-console',  key: 'origami.v8.pax.hidden'    },
+                { cb: 'dontshow-action', panel: 'action-rail',  key: 'origami.v8.action.hidden' },
+            ];
+            for (const { cb, panel, key } of pairs){
+                const box  = document.getElementById(cb);
+                const sp   = document.getElementById(panel);
+                if (!box || !sp) continue;
+                // ── Per user spec: EVERY game load shows the sidepanels ──
+                // We no longer restore the persisted hidden state. The
+                // checkbox still works mid-session (the change handler
+                // below toggles + persists), but every reload starts the
+                // panels visible. Also clear the persisted flag so the
+                // box reads "unchecked" on boot.
+                box.checked = false;
+                sp.classList.remove('user-hidden');
+                try {
+                    localStorage.removeItem(key);
+                } catch(_){}
+                /* old restore (intentionally disabled per user spec — every
+                   load shows panels):
+                try {
+                    if (localStorage.getItem(key) === '1'){
+                        box.checked = true;
+                        sp.classList.add('user-hidden');
+                    }
+                } catch(_){}
+                */
+                // Mid-session toggle still works (hides until next reload).
+                box.addEventListener('change', () => {
+                    if (box.checked) sp.classList.add('user-hidden');
+                    else             sp.classList.remove('user-hidden');
+                    // Don't persist — next reload always shows them.
+                });
+                box.addEventListener('click', (e) => e.stopPropagation());
+            }
+            // ── Settings → Restore hidden panels button ─────────────────
+            // Clears the "do not show again" flags for both side panels
+            // AND the event-log silent flag, then immediately un-hides the
+            // panels + un-checks the boxes so the user sees the change
+            // without reloading.
+            const restoreBtn = document.getElementById('restore-panels-btn');
+            if (restoreBtn){
+                restoreBtn.addEventListener('click', () => {
+                    for (const { cb, panel, key } of pairs){
+                        const box = document.getElementById(cb);
+                        const sp  = document.getElementById(panel);
+                        if (box) box.checked = false;
+                        if (sp)  sp.classList.remove('user-hidden');
+                        try { localStorage.removeItem(key); } catch(_){}
+                    }
+                    // Also clear the event-log silent flag so popup logs
+                    // resume during combat.
+                    try { localStorage.removeItem('origami.v8.eventlog.silent'); } catch(_){}
+                    const silentCb = document.getElementById('event-log-silent-cb');
+                    if (silentCb) silentCb.checked = false;
+                });
+            }
+        }
 
         const chatInput = document.querySelector('.chat-input');
         if (chatInput) {

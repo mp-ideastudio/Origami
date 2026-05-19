@@ -33,9 +33,10 @@ export function createPathFinder(map, MAP_W, MAP_H) {
      */
     function monAStar(sx, sz, gx, gz) {
         if (sx === gx && sz === gz) return [[sx, sz]];
-        // Bail fast if goal is in a wall
+        // Bail fast if goal is in a wall or shoji panel (paper screens are
+        // visually thin but still solid — engine collision matches).
         const goalCell = map[gx]?.[gz];
-        if (!goalCell || goalCell.type === 'wall') return null;
+        if (!goalCell || goalCell.type === 'wall' || goalCell.type === 'shoji') return null;
 
         const open = [{ gx: sx, gz: sz, f: Math.abs(sx - gx) + Math.abs(sz - gz) }];
         const gScore = new Map();
@@ -79,16 +80,16 @@ export function createPathFinder(map, MAP_W, MAP_H) {
                 const nz = cur.gz + dz;
                 if (nx < 0 || nx >= MAP_W || nz < 0 || nz >= MAP_H) continue;
                 const cell = map[nx]?.[nz];
-                if (!cell || cell.type === 'wall') continue;
+                if (!cell || cell.type === 'wall' || cell.type === 'shoji') continue;
                 // Diagonal corner-cutting prevention: don't slip diagonally
-                // between two walls. e.g. moving NE requires N or E to be
-                // walkable so the monster doesn't squeeze through a 1-tile
-                // diagonal gap that has walls on both cardinal sides.
+                // between two walls (or shoji panels). e.g. moving NE requires
+                // N or E to be walkable so the monster doesn't squeeze through
+                // a 1-tile diagonal gap that has walls on both cardinal sides.
                 if (cost > 1.0) {
                     const sideA = map[cur.gx + dx]?.[cur.gz];
                     const sideB = map[cur.gx]?.[cur.gz + dz];
-                    const blockA = !sideA || sideA.type === 'wall';
-                    const blockB = !sideB || sideB.type === 'wall';
+                    const blockA = !sideA || sideA.type === 'wall' || sideA.type === 'shoji';
+                    const blockB = !sideB || sideB.type === 'wall' || sideB.type === 'shoji';
                     if (blockA && blockB) continue;
                 }
                 const nk = nx + ',' + nz;

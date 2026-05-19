@@ -11,9 +11,9 @@
 | | Count |
 |---|---:|
 | Total tasks | 33 |
-| Done | 8 |
+| Done | 9 |
 | In progress | 0 |
-| Pending | 25 |
+| Pending | 24 |
 | Blocked | 0 |
 | **Slice progress** | **~24%** |
 
@@ -47,7 +47,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 |---|---|:---:|---|---|
 | T0.0 | Validation Harness Bootstrap | ✅ | — | _git log_ |
 | T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | _see git log (T0.1.A–E)_ |
-| T0.2 | RAF tick try/catch | 🔲 | T0.1 | — |
+| T0.2 | RAF tick try/catch | ✅ | T0.1 | _git log_ |
 | T0.3 | Save/Load | 🔲 | T0.1 | — |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
 | T0.5 | Collision Substepping | 🔲 | T0.1 | — |

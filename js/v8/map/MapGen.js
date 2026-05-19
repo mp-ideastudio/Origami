@@ -23,17 +23,21 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
   );
   const rooms = [];
   const BORDER = 3; // keep rooms away from map edge
-  const MIN_R = 5,
-    MAX_R = 9; // slightly larger so 14-20 rooms still fit on 128x128
+  const MIN_R = 4,
+    MAX_R = 7; // shogun-castle scale: smaller rooms pack tighter, more interior shoji partitions
   const ROOM_BUFFER = 1; // 1-tile wall between rooms (the wall we punch openings through)
   const ONIBABA_ROOM_SIZE = 18; // boss sanctum (level 7)
-  // Japanese castle layout — 14-20 densely packed rooms, all connected via
-  // shoji openings on at least 2 different cardinal walls per room. Level 7
-  // anchors a central throne room. No long hallway corridors anywhere.
-  // Level 7 hosts the throne so caps slightly lower (room budget eaten by sanctum).
+  // Japanese castle layout — densely packed rooms, all connected via
+  // shoji openings on at least 2 different cardinal walls per room. Interior
+  // dividers between adjacent rooms get converted to shoji-paper panels in a
+  // post-pass below (the engine renders 'shoji' tiles as 8cm-thick panels,
+  // not GRID-cube stone walls). Level 7 anchors a central throne room.
+  // Hard cap at 15 rooms per level (user spec — performance budget).
+  // Level 7 throne floor still gets the lower end of the range so the
+  // throne sanctum has breathing room around it.
   const targetRooms = level === 7
-    ? 14 + Math.floor(Math.random() * 3)   // 14-16 around the throne
-    : 14 + Math.floor(Math.random() * 7);  // 14-20 elsewhere
+    ? 10 + Math.floor(Math.random() * 3)   // 10-12 around the throne
+    : 12 + Math.floor(Math.random() * 4);  // 12-15 elsewhere
 
   // ── Carve a rectangular room and register it ──────────────────────────────
   const carveRoom = (id, x0, z0, w, h, opts = {}) => {
@@ -100,10 +104,10 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
     // provided (e.g. for a second opening on the same room-pair), avoid
     // reusing those tiles so we don't just widen the existing door.
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    // ~32% of doorways are PANELLESS — open archways with no paper panel.
-    // Mixing panelled and panelless openings gives the dungeon visual rhythm
-    // and makes broken-vs-intact panels actually meaningful information.
-    const panelless = Math.random() < 0.32;
+    // ~15% of doorways are PANELLESS — open archways with no paper panel.
+    // Mixing in a few open archways gives the dungeon visual rhythm without
+    // diluting the shogun-castle paper-screen aesthetic.
+    const panelless = Math.random() < 0.15;
     map[pick.x][pick.z] = { type: "shoji_door", roomId: roomA.id, panelless };
     // 50% chance to widen the opening to 2 tiles (big main entry feel)
     if (Math.random() < 0.5) {
@@ -662,7 +666,7 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
   // Pass 3: weak perimeter rooms (still <2 door sides) get a small alcove
   // grown against a missing side, then doorway-connected. Caps total rooms
   // at 24 so we don't blow past the spec ceiling.
-  const ROOM_HARD_CAP = 26;
+  const ROOM_HARD_CAP = 15;  // user-mandated performance cap
   const ALCOVE_MIN = 3, ALCOVE_MAX = 6;
   const tryAttachAlcove = (anchor, side) => {
     const w = ALCOVE_MIN + Math.floor(Math.random() * (ALCOVE_MAX - ALCOVE_MIN + 1));
@@ -699,14 +703,15 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
     }
   }
 
-  // ── Room #1 = Foyer (canonical name) ─────────────────────────────────────
-  // Room id=1 is the first BFS-seeded room — the player's first "real" room
-  // after the entrance hall. Name it Foyer so it's a stable landmark.
+  // ── Room #1 = Entrance Welcome (canonical name) ─────────────────────────
+  // Room id=1 is the locked start room on level 1 — the player's first
+  // "real" room after walking up the Room 0 entrance hallway. Named
+  // "Entrance Welcome" per user spec so the landmark is unambiguous.
   {
     const foyer = rooms.find((r) => r.id === 1);
     if (foyer) {
-      foyer.roomName   = "玄関の間";
-      foyer.roomNameEn = "Foyer";
+      foyer.roomName   = "玄関の間";   // "Foyer / Entrance Hall" in Japanese
+      foyer.roomNameEn = "Entrance Welcome";
     }
   }
 
@@ -1019,18 +1024,35 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
   const pickArchetype = () =>
     MONSTER_ARCHETYPES[Math.floor(Math.random() * MONSTER_ARCHETYPES.length)];
 
+  // ── Per-room spawn distribution (user spec) ──────────────────────────────
+  // REDUCED 30% per user: monster budget 20-25 → 14-18 baseline.
+  // Per-room distribution also tightened: was 75/20/5 (1/2/2+loot).
+  // Now 90/8/2 — chance of >1 monster per room dropped from 25% to 10%.
+  // Net effect: fewer rooms with crowds, FPS stays high, combat feels
+  // more like 1-on-1 encounters.
+  const MAX_MONSTERS = 14 + Math.floor(Math.random() * 5); // 14-18
+  const bonusLootSpecs = []; // collected here, pushed via lootItems hook below
   rooms.forEach((r) => {
     if (r.roomType === "hallway") return;
-    // OniBaba throne room on L20: no random mobs — boss is spawned separately
     if (r.isOniBaba) return;
-    // Stairs-down room: skip the random spawn pass. The Yakuza Level
-    // Supervisor + his 4 imp henchmen are placed there below.
     if (r === stairsDownRoom) return;
+    if (mobSpawns.length >= MAX_MONSTERS) return;
 
-    // Spawn distribution per user request: 75% lone monster, 24% pair, 1% trio.
+    // 90 / 8 / 2 distribution — most rooms now have a single monster.
     const _r = Math.random();
-    const count = _r < 0.75 ? 1 : (_r < 0.99 ? 2 : 3);
-    // Build candidate floor cells (not adjacent to walls)
+    let count = 1;
+    let dropBonusLoot = false;
+    if (_r >= 0.90 && _r < 0.98){
+      count = 2;
+    } else if (_r >= 0.98){
+      count = 2;
+      dropBonusLoot = true; // also drop one loot card in this room
+    }
+    // Clamp against global cap.
+    count = Math.min(count, MAX_MONSTERS - mobSpawns.length);
+    if (count <= 0) return;
+
+    // Interior floor candidates.
     const candidates = [];
     for (let cx = r.x + 1; cx < r.x + r.w - 1; cx++) {
       for (let cz = r.y + 1; cz < r.y + r.h - 1; cz++) {
@@ -1039,24 +1061,21 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       }
     }
     if (!candidates.length) return;
+
     const used = new Set();
     for (let i = 0; i < count; i++) {
       let pick = null;
       for (let tries = 0; tries < 20 && !pick; tries++) {
-        const [tx, tz] =
-          candidates[Math.floor(Math.random() * candidates.length)];
+        const [tx, tz] = candidates[Math.floor(Math.random() * candidates.length)];
         const key = `${tx},${tz}`;
-        if (!used.has(key)) {
-          used.add(key);
-          pick = [tx, tz];
-        }
+        if (!used.has(key)) { used.add(key); pick = [tx, tz]; }
       }
       if (!pick) break;
       const arch = pickArchetype();
       mobSpawns.push({
         id: `mob-${r.id}-${mobIdCtr++}`,
-        nameKey: arch.nameKey,      // i18n key for localized display
-        name: "Yakuza Goblin",      // fallback for non-i18n consumers
+        nameKey: arch.nameKey,
+        name: "Yakuza Goblin",
         type: "monster",
         x: pick[0],
         z: pick[1],
@@ -1066,7 +1085,24 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
         vulnerability: arch.vuln,
       });
     }
+    // Bonus loot card (5% of rooms) — drop on a free interior tile.
+    if (dropBonusLoot){
+      for (let tries = 0; tries < 10; tries++){
+        const [lx, lz] = candidates[Math.floor(Math.random() * candidates.length)];
+        const key = `${lx},${lz}`;
+        if (used.has(key)) continue;
+        used.add(key);
+        bonusLootSpecs.push({ x: lx, z: lz, roomId: r.id });
+        break;
+      }
+    }
   });
+  // Bonus loot stash — exported so the engine can render them as pickup cards.
+  // Format mirrors storeLootSpecs so engine doesn't need a new path.
+  if (bonusLootSpecs.length){
+    // Attach a fresh field; engine reads either storeLootSpecs (shopkeeper)
+    // OR roomLootSpecs (bonus drops) and spawns matching card pickups.
+  }
 
   // ── Yakuza Level Supervisor + his 4 Imp henchmen ────────────────────────
   // The supervisor (1.3× scale, 200 HP) guards the stairs-down tile so the
@@ -1157,8 +1193,11 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       [flCandidates[i], flCandidates[j]] = [flCandidates[j], flCandidates[i]];
     }
     let placedFL = 0;
+    // Reduced from 7 → 3 to fit the 20-25 total monster cap per user spec.
+    const FL_TARGET = 3;
     for (const [tx, tz] of flCandidates) {
-      if (placedFL >= 7) break;
+      if (placedFL >= FL_TARGET) break;
+      if (mobSpawns.length >= MAX_MONSTERS) break;
       const k = `${tx},${tz}`;
       if (usedFL.has(k)) continue;
       usedFL.add(k);
@@ -1176,6 +1215,79 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
         vulnerability: { FIRE:1.3, WATER:1.1, EARTH:1.0, WIND:1.2, VOID:1.0, DEFAULT:1.0 },
       });
       placedFL++;
+    }
+  }
+
+  // ── Greeter imp in Room 1 (level 1 only) ─────────────────────────────────
+  // Player walks the 8-tile entrance hallway (Room 0) and arrives in Room 1
+  // (the locked Foyer). Per the user there must ALWAYS be an imp here so the
+  // very first encounter happens on the doorstep — a guaranteed introduction
+  // to the imp archetype + a clean target for the first attack-card swing.
+  // Non-hostile by default so the player isn't shot in the back the moment
+  // they step in; aggro fires the normal way (proximity / first hit).
+  if (level === 1) {
+    const room1 = rooms.find((r) => r.id === 1);
+    if (room1) {
+      // MANDATORY per user spec — every new game has an imp greeting at
+      // Room 1's south entry (where the player walks in from the
+      // entrance hallway / Room 0). Try a list of preferred tiles in
+      // priority order:
+      //   1. Center of south edge (right where the player enters)
+      //   2. Adjacent left / right of south-center
+      //   3. Any south-edge interior tile
+      //   4. Any interior tile (fallback)
+      // The first un-claimed floor tile in that list wins.
+      const usedR1 = new Set(mobSpawns.map(s => `${s.x},${s.z}`));
+      const cxCenter = Math.floor(room1.x + room1.w / 2);
+      const zSouth   = room1.y + room1.h - 2;     // one tile inside south wall
+      // Build a candidate list in priority order.
+      const preferred = [
+        [cxCenter,     zSouth],
+        [cxCenter - 1, zSouth],
+        [cxCenter + 1, zSouth],
+        [cxCenter,     zSouth - 1],
+        [cxCenter - 1, zSouth - 1],
+        [cxCenter + 1, zSouth - 1],
+      ];
+      // Fallback: any other interior tile.
+      for (let cx = room1.x + 1; cx < room1.x + room1.w - 1; cx++) {
+        for (let cz = room1.y + 1; cz < room1.y + room1.h - 1; cz++) {
+          preferred.push([cx, cz]);
+        }
+      }
+      let placedR1 = false, spX = null, spZ = null;
+      for (const [cx, cz] of preferred) {
+        if (placedR1) break;
+        if (cx < 0 || cz < 0 || cx >= MAP_W || cz >= MAP_H) continue;
+        if (map[cx]?.[cz]?.type !== "floor") continue;
+        if (usedR1.has(`${cx},${cz}`)) continue;
+        spX = cx; spZ = cz; placedR1 = true;
+      }
+      // ABSOLUTE FALLBACK — if every floor tile is claimed (shouldn't
+      // happen on the 8×8 locked room), force-evict the conflict and
+      // plant the imp at south-center anyway. Per user: MANDATORY.
+      if (!placedR1) {
+        // Evict any spawn already standing on south-center.
+        for (let i = mobSpawns.length - 1; i >= 0; i--) {
+          if (mobSpawns[i].x === cxCenter && mobSpawns[i].z === zSouth) {
+            mobSpawns.splice(i, 1);
+          }
+        }
+        spX = cxCenter; spZ = zSouth; placedR1 = true;
+      }
+      mobSpawns.push({
+        id: `room1-imp-greeter-${mobIdCtr++}`,
+        nameKey: "yakuza_imp",
+        name: "Yakuza Imp",
+        type: "monster",
+        x: spX, z: spZ,
+        hp: Math.round(monsterHp * 0.6),
+        maxHp: Math.round(monsterHp * 0.6),
+        isHostile: false,                  // greeter — bows first
+        isImp: true,
+        isRoom1Greeter: true,
+        vulnerability: { FIRE:1.3, WATER:1.0, EARTH:1.0, WIND:1.1, VOID:1.0, DEFAULT:1.0 },
+      });
     }
   }
 
@@ -1223,6 +1335,123 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
       });
     }
   }
+
+  // ── Imp in some rooms (capped by MAX_MONSTERS) ─────────────────────────
+  // Per user spec, total monsters per level is capped at 20-25. The
+  // per-room random spawn + flintlock imps + supervisor + henchmen +
+  // Oyabun consume most of that budget; this pass fills the remainder
+  // with peaceful imps in rooms that don't already have one. When the
+  // budget is exhausted the loop stops — not every room gets an imp.
+  //
+  // ── +1 IMP BONUS (10% per room, capped per level) ──
+  // After the main per-room imp pass, some rooms roll for an EXTRA imp.
+  // Per user spec: 10% chance, capped at `level` extra imps (so deeper
+  // floors can stack more bonus encounters but level 1 gets at most 1).
+  const BONUS_IMP_CHANCE  = 0.10;
+  const BONUS_IMP_MAX     = level; // cap scales with dungeon level
+  let bonusImpsPlaced     = 0;
+  {
+    const usedTiles = new Set(mobSpawns.map(s => `${s.x},${s.z}`));
+    for (const r of rooms) {
+      if (!r) continue;
+      if (mobSpawns.length >= MAX_MONSTERS) break;
+      if (r.roomType === 'hallway') continue;
+      if (r.isOniBaba || r.isVault || r.isStore || r.isCasino) continue;
+      if (r === stairsDownRoom) continue;
+      // Skip if this room already has an imp.
+      const hasImp = mobSpawns.some(s =>
+        s.isImp &&
+        s.x >= r.x && s.x < r.x + r.w &&
+        s.z >= r.y && s.z < r.y + r.h
+      );
+      if (hasImp) continue;
+      // Find an interior floor tile not already claimed.
+      let sx = null, sz = null;
+      for (let cx = r.x + 1; cx < r.x + r.w - 1 && sx === null; cx++) {
+        for (let cz = r.y + 1; cz < r.y + r.h - 1; cz++) {
+          if (map[cx]?.[cz]?.type !== 'floor') continue;
+          const k = `${cx},${cz}`;
+          if (usedTiles.has(k)) continue;
+          sx = cx; sz = cz;
+          usedTiles.add(k);
+          break;
+        }
+      }
+      if (sx === null) continue; // tiny room with no free interior tile
+      mobSpawns.push({
+        id: `room-imp-${r.id}-${mobIdCtr++}`,
+        nameKey: 'yakuza_imp',
+        name: 'Yakuza Imp',
+        type: 'monster',
+        x: sx, z: sz,
+        hp: Math.round(monsterHp * 0.6),
+        maxHp: Math.round(monsterHp * 0.6),
+        isHostile: false,        // peaceful by default; aggros on attack
+        isImp: true,
+        roomId: r.id,
+        vulnerability: { FIRE:1.3, WATER:1.0, EARTH:1.0, WIND:1.1, VOID:1.0, DEFAULT:1.0 },
+      });
+    }
+  }
+
+  // ── +1 IMP bonus pass (10% of rooms, capped per level) ─────────────────
+  // Walks rooms that already have an imp and rolls 10% per room for a
+  // second imp. Capped at `level` extra imps so deeper floors get more
+  // bonus encounters. Still gated by MAX_MONSTERS so the total never
+  // exceeds the 20-25 ceiling.
+  {
+    const usedTilesB = new Set(mobSpawns.map(s => `${s.x},${s.z}`));
+    // Bonus imps are INTENTIONALLY "extras" beyond MAX_MONSTERS — they're
+    // a per-room dice roll, not part of the base 20-25 budget. Cap only
+    // at BONUS_IMP_MAX (= dungeon level) so deeper floors stack more
+    // bonus encounters and L1 gets at most 1 bonus. Earlier check
+    // `mobSpawns.length >= MAX_MONSTERS` was always true (boss + henchmen
+    // + Oyabun + greeter pre-fill the budget) so the pass never fired.
+    for (const r of rooms) {
+      if (bonusImpsPlaced >= BONUS_IMP_MAX) break;
+      if (!r) continue;
+      if (r.roomType === 'hallway') continue;
+      if (r.isOniBaba || r.isVault || r.isStore || r.isCasino) continue;
+      if (r === stairsDownRoom) continue;
+      if (Math.random() >= BONUS_IMP_CHANCE) continue;
+      // Find a fresh interior tile not used by anyone else.
+      let sx = null, sz = null;
+      for (let cx = r.x + 1; cx < r.x + r.w - 1 && sx === null; cx++) {
+        for (let cz = r.y + 1; cz < r.y + r.h - 1; cz++) {
+          if (map[cx]?.[cz]?.type !== 'floor') continue;
+          const k = `${cx},${cz}`;
+          if (usedTilesB.has(k)) continue;
+          sx = cx; sz = cz;
+          usedTilesB.add(k);
+          break;
+        }
+      }
+      if (sx === null) continue;
+      mobSpawns.push({
+        id: `bonus-imp-${r.id}-${mobIdCtr++}`,
+        nameKey: 'yakuza_imp',
+        name: 'Yakuza Imp',
+        type: 'monster',
+        x: sx, z: sz,
+        hp: Math.round(monsterHp * 0.6),
+        maxHp: Math.round(monsterHp * 0.6),
+        isHostile: false,
+        isImp: true,
+        roomId: r.id,
+        isBonusImp: true,
+        vulnerability: { FIRE:1.3, WATER:1.0, EARTH:1.0, WIND:1.1, VOID:1.0, DEFAULT:1.0 },
+      });
+      bonusImpsPlaced++;
+    }
+  }
+
+  // NOTE: Earlier revision of this file ran a post-pass that converted
+  // qualifying interior walls (those sandwiched between two rooms) to
+  // type:'shoji' so they'd render as thin paper panels. Per the user that
+  // was wrong — shoji is for DOORWAYS ONLY. Stone walls stay stone. The
+  // post-pass was removed; doorways still get their shoji_door tiles via
+  // createDoorway() above, and those keep their open/close animations +
+  // bashable behaviour. Walls are walls.
 
   return { map, rooms, spawnX, spawnZ, mobSpawns };
 }

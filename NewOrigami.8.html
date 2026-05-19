@@ -73,16 +73,91 @@
     /* Descent fade — covers the engine iframe during floor reload */
     #descent-fade{position:fixed;inset:0;z-index:9999;background:#000;opacity:0;pointer-events:none;transition:opacity .55s ease;display:flex;align-items:center;justify-content:center;color:rgba(200,169,110,.8);font:600 14px monospace;letter-spacing:3px}
     #descent-fade.active{opacity:1;pointer-events:auto}
+
+    /* ── Game Loading Modal ─────────────────────────────────────────────
+       Full-screen veil that shows during the engine+panels boot. Lists
+       sequenced load steps so the player sees what's happening instead
+       of staring at a black void for 2-5s. Each line lights up green
+       when the engine reports that subsystem ready. Auto-dismisses on
+       BOOT_COMPLETE. */
+    #boot-modal{
+      position:fixed; inset:0; z-index:99999;
+      background: radial-gradient(ellipse at center, #0a0d12 0%, #000 75%);
+      display:flex; align-items:center; justify-content:center;
+      opacity:1; pointer-events:auto;
+      transition: opacity 0.6s ease;
+      font-family:'Cinzel','Inter','Helvetica Neue',sans-serif;
+    }
+    #boot-modal.done{ opacity:0; pointer-events:none; }
+    #boot-card{
+      width: min(440px, 92vw);
+      padding: 28px 30px 24px;
+      background: linear-gradient(180deg, rgba(20,22,28,0.96), rgba(10,12,16,0.96));
+      border: 1px solid rgba(255,200,120,0.18);
+      border-radius: 16px;
+      box-shadow:
+        0 30px 80px rgba(0,0,0,0.85),
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        inset 0 -1px 0 rgba(0,0,0,0.75);
+      color: #d6dadf;
+    }
+    #boot-title{
+      font-size: 22px; font-weight: 900; letter-spacing: 4px;
+      color:#ffd9a3; text-align:center;
+      text-shadow: 0 0 14px rgba(255,170,80,0.6);
+      margin-bottom: 4px;
+    }
+    #boot-kanji{
+      font-family:'Yuji Mai','Noto Serif JP',serif;
+      text-align:center; font-size: 12px; letter-spacing: 6px;
+      color: rgba(255,210,170,0.55);
+      margin-bottom: 22px;
+    }
+    #boot-bar-track{
+      width:100%; height: 6px; border-radius: 4px;
+      background: rgba(0,0,0,0.6);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.6);
+      overflow: hidden; margin-bottom: 18px;
+    }
+    #boot-bar-fill{
+      height:100%; width:0%;
+      background: linear-gradient(90deg, #00ffc8, #00aaff);
+      transition: width 0.35s cubic-bezier(0.2, 0.85, 0.3, 1);
+      box-shadow: 0 0 12px rgba(0,200,255,0.55);
+    }
+    #boot-steps{ list-style:none; padding:0; margin:0; }
+    #boot-steps li{
+      font-family:'Inter','Helvetica Neue',sans-serif;
+      font-size: 12.5px; letter-spacing: 0.5px;
+      color: rgba(180,188,196,0.55);
+      padding: 5px 0; display:flex; align-items:center; gap:10px;
+      transition: color 0.25s ease;
+    }
+    #boot-steps li::before{
+      content:'○'; font-size: 10px; color: rgba(120,130,140,0.5);
+      width: 14px; display:inline-block; text-align:center;
+    }
+    #boot-steps li.done{ color: rgba(220,240,232,0.92); }
+    #boot-steps li.done::before{ content:'✓'; color:#7be0b8; text-shadow: 0 0 6px rgba(124,224,184,0.7); }
+    #boot-steps li.active{ color: #ffd9a3; }
+    #boot-steps li.active::before{ content:'◐'; color:#ffd9a3; animation: bootSpin 1.2s linear infinite; }
+    @keyframes bootSpin{ to{ transform: rotate(360deg); } }
+    #boot-tagline{
+      margin-top: 18px; text-align:center;
+      font-size: 10.5px; letter-spacing: 2px;
+      color: rgba(160,168,176,0.6);
+      font-family:'Inter',sans-serif;
+    }
   </style>
 </head>
 <body>
 
   <div id="fpv-viewport">
-    <iframe id="engine-iframe" src="NewOrigami.Engine8.html" allow="fullscreen"></iframe>
+    <iframe id="engine-iframe" src="NewOrigami.Engine8.html?v=38" allow="fullscreen"></iframe>
   </div>
 
   <div id="ui-viewport">
-    <iframe id="panels-iframe" src="NewOrigami.Panels.html?mode=dock&v=8"></iframe>
+    <iframe id="panels-iframe" src="NewOrigami.Panels.html?mode=dock&v=23"></iframe>
   </div>
 
   <div id="v8-header">
@@ -91,6 +166,97 @@
   </div>
   <div id="descent-fade"></div>
 
+  <!-- Game loading modal — sequenced boot indicator. Dismisses itself
+       when the engine reports BOOT_COMPLETE. Each <li data-step="..."> is
+       lit up by the message router below as subsystems come online. -->
+  <div id="boot-modal">
+    <div id="boot-card">
+      <div id="boot-title">ORIGAMI DUNGEON</div>
+      <div id="boot-kanji">折り紙</div>
+      <div id="boot-bar-track"><div id="boot-bar-fill"></div></div>
+      <ul id="boot-steps">
+        <li data-step="oni">Awakening Oni-Baba</li>
+        <li data-step="i18n">Loading Localization</li>
+        <li data-step="map">Generating Dungeon</li>
+        <li data-step="models">Loading 3D Models</li>
+        <li data-step="anims">Wiring Animations</li>
+        <li data-step="audio">Decoding Audio</li>
+        <li data-step="prewarm">Pre-warming Shaders</li>
+        <li data-step="loop">Starting Engine Loop</li>
+      </ul>
+      <div id="boot-tagline">A roguelike haiku, folded from paper.</div>
+    </div>
+  </div>
+  <script>
+    // ── Boot modal driver ────────────────────────────────────────────
+    // Steps light up green as engine / panels / OniBaba report their
+    // pieces ready. After all steps complete (or 8s timeout) the modal
+    // fades out and removes itself from layout.
+    (function(){
+      const stepsEl = document.getElementById('boot-steps');
+      const barFill = document.getElementById('boot-bar-fill');
+      const modal   = document.getElementById('boot-modal');
+      const steps   = Array.from(stepsEl.querySelectorAll('li'));
+      const total   = steps.length;
+      const STEP_ORDER = steps.map(li => li.dataset.step);
+      let nextIdx = 0;
+      // Mark current step active so the user sees motion immediately.
+      const markActive = () => {
+        steps.forEach((li, i) => {
+          li.classList.toggle('active', i === nextIdx);
+        });
+      };
+      const markStep = (name) => {
+        const idx = STEP_ORDER.indexOf(name);
+        if (idx < 0) return;
+        // Mark THIS step + everything before it as done.
+        for (let i = 0; i <= idx; i++){
+          steps[i].classList.remove('active');
+          steps[i].classList.add('done');
+        }
+        nextIdx = Math.min(total, idx + 1);
+        markActive();
+        const pct = Math.min(100, Math.round((nextIdx / total) * 100));
+        barFill.style.width = pct + '%';
+        if (nextIdx >= total) finish();
+      };
+      const finish = () => {
+        barFill.style.width = '100%';
+        // Hold a beat so the green sweep registers, then fade.
+        setTimeout(() => {
+          modal.classList.add('done');
+          setTimeout(() => { if (modal.parentNode) modal.parentNode.removeChild(modal); }, 700);
+        }, 250);
+      };
+      window.bootStep = markStep;
+      // Initial active mark.
+      markActive();
+      // Oni-Baba awakens via her own script load — mark immediately.
+      // (Her script tag executes right below this block.)
+      window.addEventListener('load', () => markStep('oni'));
+      // i18n is loaded synchronously before this block runs (script tag
+      // order in the body) — mark on next tick.
+      setTimeout(() => {
+        if (window.tLog) markStep('i18n');
+      }, 0);
+      // Router: listen for BOOT_PROGRESS messages from the engine iframe.
+      window.addEventListener('message', (e) => {
+        const d = e.data;
+        if (!d) return;
+        if (d.type === 'BOOT_PROGRESS' && d.step) markStep(d.step);
+        else if (d.type === 'BOOT_COMPLETE')      markStep('loop');
+      });
+      // Safety: force-dismiss after 12s if some step never fires.
+      setTimeout(() => {
+        if (!modal.classList.contains('done')) finish();
+      }, 12000);
+    })();
+  </script>
+
+  <!-- i18n must load BEFORE OniBaba8.js so window.tLog is available when
+       OniBaba's _t() resolves its first speech line. Without this the raw
+       "oni.speech" / "oni.room-flavour-N" keys leak into the event log. -->
+  <script src="js/data/i18n.js"></script>
   <script src="NewOrigami.OniBaba.js"></script>
   <script src="js/v8/OniBaba8.js"></script>
 
@@ -128,6 +294,7 @@
       switch(ev.type){
         // Engine → Panels
         case 'MONSTER_AI_THOUGHT':
+        case 'ONIBABA_BOTTLENECK':
         case 'PLAYER_ROT_REALTIME': case 'PLAYER_MOVE': case 'PLAYER_MOVE_STATE':
         case 'RADAR_UPDATE': case 'SYNC_STATS': case 'ADD_CARD': case 'UPDATE_LOOT_CARDS':
         case 'LOOT_CARDS': case 'SHOW_LOOT_UI': case 'SHOW_COMBAT': case 'HIDE_COMBAT':
@@ -178,6 +345,11 @@
         // Spirit hauntings — Oni-Baba assigns spirits of fallen goblins to
         // monsters on later floors. Engine boosts the matching monsters.
         case 'HAUNT_ASSIGNMENTS':
+        // ── Oni-Baba's hub outputs ──────────────────────────────────────
+        // Fog density, monster aggro, spawn pressure, torch flicker —
+        // engine applies each per-frame so her mood actually shapes the
+        // dungeon instead of just decorating the prognosis HUD.
+        case 'ONIBABA_OUTPUTS':
           to(fpv, ev); break;
 
         // T0.26 — Engine → Oni-Baba (already listens via window message)

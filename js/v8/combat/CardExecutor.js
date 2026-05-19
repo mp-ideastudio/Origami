@@ -94,7 +94,10 @@ export function getMissileTable(cardName) {
 /** Returns true if the card fires a projectile */
 export function isMissileCard(name) {
     const n = (name || '').toUpperCase();
-    return /LONG BOW|LONGBOW|SHORT BOW|SHORTBOW|BOW|SHURIKEN|CROSSBOW|BOLT|DAGGER|THROWING|PISTOL|GUN|FIREARM/.test(n);
+    // MAGIC MISSILE is the renamed PISTOL — it's a SHOT weapon (firearm-like)
+    // not a thrown weapon, so it must route through launchMissile() and
+    // receive the PISTOL damage table + shot sound.
+    return /LONG BOW|LONGBOW|SHORT BOW|SHORTBOW|BOW|SHURIKEN|CROSSBOW|BOLT|DAGGER|THROWING|PISTOL|GUN|FIREARM|MAGIC MISSILE|MISSILE/.test(n);
 }
 
 /** Returns true if the card specifically throws a shuriken */

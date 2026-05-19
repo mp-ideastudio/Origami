@@ -110,8 +110,193 @@ class OniBaba8 {
             },
             history: [],
         };
+
+        // ── Per-monster combat ledger ────────────────────────────────────────
+        // One entry per LIVE monster the engine has reported a combat event
+        // for. Used by the burst-aggregator (so 4 imp jabs collapse into ONE
+        // "Imp #2 peppered you 4× (28)" line) and the surface-decision filter
+        // (so routine hits stay OFF the log, while first-encounters / kills /
+        // backstabs / desperation tip get a single line).
+        //
+        // Schema: { name, attacks: [{t, kind, type, dmg, fromBehind}],
+        //           dealtTotal, takenTotal, firstSeenT, lastHitT,
+        //           pendingBurst: { count, dmgSum, lastT, timer },
+        //           introduced }
+        this.monsterLedger = {};
+        // Surfaced-event budget — collapses spam at the log layer too. Max
+        // one surfacing per (monsterId, reason) per 4s window.
+        this._surfaceWindow = {};
+        // The current floor's hostile encounter — used to limit "Yakuza Imp
+        // engages!" introductions to one per floor per monster archetype.
+        this._introducedNameKey = new Set();
+
         this._refreshCombatParams();
         console.log('🐉 Oni-Baba v8 awakens. All pipelines are HERS.');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // COMBAT LEDGER + EVENT FILTER
+    // ══════════════════════════════════════════════════════════════════════════
+    //
+    // Single entry point for every combat event the engine produces. The engine
+    // sends structured records here INSTEAD of dropping individual LOG_EVENT
+    // lines to the panels. Oni-Baba decides what surfaces:
+    //   • Routine hits → silenced (player sees floating damage numbers)
+    //   • First strike from a new monster → "Yakuza Imp engages!"
+    //   • Killing blow → "Yakuza Imp defeated."
+    //   • Backstab crits → "✦ Backstab! (24)"
+    //   • Player drops below 30% HP → "You bleed badly."
+    //   • Burst of 3+ hits in 4s from same monster → "Imp peppered you (3×7)"
+    //   • Boss enrage / mass-flee → kept (rare, high-signal)
+    //
+    // Reply with `_emit(reason, text, logType)` so we can budget per-monster
+    // surfacings (no flooding from the same source within 4s).
+    _onCombatEvent(d) {
+        if (!d || !d.kind) return;
+        const now = performance.now();
+        const id  = d.monId || d.targetId || null;
+        if (!id) return;
+        let m = this.monsterLedger[id];
+        if (!m) {
+            m = this.monsterLedger[id] = {
+                name:       d.monName || 'Goblin',
+                nameKey:    d.nameKey || null,
+                attacks:    [],
+                dealtTotal: 0,
+                takenTotal: 0,
+                firstSeenT: now,
+                lastHitT:   0,
+                pendingBurst: null,
+                introduced:   false,
+            };
+        }
+        if (d.monName && !m.name) m.name = d.monName;
+        const dmg = Math.max(0, d.damage|0);
+
+        if (d.kind === 'monster_hit_player') {
+            m.attacks.push({ t: now, kind: d.kind, type: d.attackType || 'melee', dmg, fromBehind: !!d.fromBehind });
+            m.dealtTotal += dmg;
+            m.lastHitT = now;
+            this._considerSurfaceMonsterHit(m, id, d, dmg, now);
+        } else if (d.kind === 'player_hit_monster') {
+            m.attacks.push({ t: now, kind: d.kind, type: d.attackType || 'melee', dmg });
+            m.takenTotal += dmg;
+            // Don't auto-surface — the floating damage numbers + HP bar tell the story.
+        } else if (d.kind === 'monster_killed') {
+            this._surfaceOnce(id, 'killed', `🗡 <b>${m.name}</b> defeated. <span style="opacity:0.6">(${m.takenTotal} total dmg)</span>`, 'combat', 4000);
+            // Cancel any pending burst — the kill announcement replaces it.
+            if (m.pendingBurst?.timer) { clearTimeout(m.pendingBurst.timer); m.pendingBurst = null; }
+            delete this.monsterLedger[id];
+        } else if (d.kind === 'monster_missed') {
+            // Routine miss → silent. Damage text already shows MISS.
+        }
+    }
+
+    // Decide whether a monster-hit-player event should surface to the log.
+    _considerSurfaceMonsterHit(m, id, d, dmg, now) {
+        // First strike from a not-yet-introduced archetype on this floor →
+        // single "<Name> engages!" line. Subsequent strikes from same
+        // archetype are silent (the player knows).
+        if (!m.introduced) {
+            m.introduced = true;
+            const archKey = m.nameKey || m.name;
+            if (!this._introducedNameKey.has(archKey)) {
+                this._introducedNameKey.add(archKey);
+                this._surfaceOnce(id, 'introduce', `⚔ <b>${m.name}</b> engages!`, 'combat', 999999);
+            }
+        }
+        // Backstab is independently surfaced by the panel's MONSTER_ATTACK
+        // handler — don't double-log.
+        if (d.fromBehind) return;
+        // Heavy hit (≥ 25% of player max in one shot) is interesting.
+        const pMax = this.player?.maxHp || 100;
+        if (dmg >= Math.ceil(pMax * 0.25)) {
+            this._surfaceOnce(id, 'heavy', `💥 <b>${m.name}</b> lands a heavy blow — <b>${dmg}</b>!`, 'damage', 2500);
+            return;
+        }
+        // Bleeding-out warning — fires ONCE when player crosses below 30% HP.
+        const pHpAfter = (this.player?.hp || pMax) - dmg;
+        const fracBefore = (this.player?.hp || pMax) / pMax;
+        const fracAfter  = pHpAfter / pMax;
+        if (fracBefore >= 0.30 && fracAfter < 0.30) {
+            this._surfaceOnce('player', 'bleed30', `🩸 You bleed badly.`, 'damage', 8000);
+        }
+        // Burst aggregator — collapse 3+ hits from the same monster within
+        // 4s into ONE "peppered you" line. Old implementation set a 700ms
+        // setTimeout PER HIT (clearing the previous) — with 4 monsters
+        // attacking concurrently, that's dozens of timers firing per
+        // second, all running on the same AI-event-loop frame. Now we just
+        // stamp the burst record; _tickBursts() (called from the existing
+        // self-tick loop, no extra timer) checks expiry once per frame.
+        if (!m.pendingBurst) {
+            m.pendingBurst = { count: 1, dmgSum: dmg, lastT: now };
+        } else {
+            m.pendingBurst.count  += 1;
+            m.pendingBurst.dmgSum += dmg;
+            m.pendingBurst.lastT   = now;
+        }
+    }
+
+    // Walk every monster's pending burst record and surface any that have
+    // gone quiet for >700ms. Also GC stale ledger entries that haven't
+    // received a hit in 60s — defends against ledger growth when a monster
+    // dies without firing the explicit monster_killed event (e.g. cleared
+    // via floor change, BoxGeometry fallback, etc.). Cap also enforced
+    // (max 64 entries) to make growth bounded under any pathological case.
+    _tickBursts() {
+        const now = performance.now();
+        const STALE_MS = 60000;
+        // SNAPSHOT keys before iteration — for-in with delete during
+        // iteration is technically unspecified behaviour and was a hidden
+        // GC source. The snapshot makes deletes safe.
+        const ids = Object.keys(this.monsterLedger);
+        for (let i = 0; i < ids.length; i++){
+            const id = ids[i];
+            const m = this.monsterLedger[id];
+            if (!m) { delete this.monsterLedger[id]; continue; }
+            // GC: nothing has hit in 60s → drop entry.
+            if (m.lastHitT && (now - m.lastHitT) > STALE_MS && !m.pendingBurst) {
+                delete this.monsterLedger[id];
+                continue;
+            }
+            const b = m.pendingBurst;
+            if (!b) continue;
+            if (now - b.lastT < 700) continue;
+            if (b.count >= 3) {
+                this._emit('combat', `🎯 <b>${m.name}</b> peppers you — <b>${b.count}×</b> for <b>${b.dmgSum}</b>.`);
+            }
+            m.pendingBurst = null;
+        }
+        // Hard cap — if ledger somehow grows past 64 entries, drop oldest.
+        const idsNow = Object.keys(this.monsterLedger);
+        if (idsNow.length > 64) {
+            idsNow.sort((a, b) => (this.monsterLedger[a]?.firstSeenT || 0) - (this.monsterLedger[b]?.firstSeenT || 0));
+            for (let i = 0; i < idsNow.length - 64; i++) delete this.monsterLedger[idsNow[i]];
+        }
+    }
+
+    // Emit a log line to the panels.
+    _emit(logType, text) {
+        if (!text) return;
+        this._post({ type: 'LOG_EVENT', logType, text });
+    }
+
+    // Throttle a specific (monsterId, reason) so the same beat doesn't spam.
+    _surfaceOnce(monId, reason, text, logType, windowMs) {
+        const k = `${monId}|${reason}`;
+        const now = performance.now();
+        const last = this._surfaceWindow[k] || 0;
+        if (now - last < (windowMs || 4000)) return;
+        this._surfaceWindow[k] = now;
+        this._emit(logType || 'combat', text);
+    }
+
+    // Floor change clears archetype introductions so each floor announces
+    // the same monster types fresh.
+    _resetCombatLedgerForFloor() {
+        this.monsterLedger    = {};
+        this._surfaceWindow   = {};
+        this._introducedNameKey.clear();
     }
 
     // Localized log fragment. Falls back to English key if i18n isn't loaded
@@ -399,26 +584,88 @@ class OniBaba8 {
         };
     }
 
+    /**
+     * Console diagnostic — call from devtools as:
+     *   oniBaba8.report()
+     * Pretty-prints the full perf snapshot AND the live hub state to the
+     * console so the user can paste it back for me to analyze. Augments
+     * reportPerformanceVerdict() with the live frame-rate, active hunter
+     * cap, panic state, mood, and ledger size — everything I'd otherwise
+     * have to guess at.
+     */
+    report() {
+        const v = this.reportPerformanceVerdict();
+        const ft = (typeof window !== 'undefined' && typeof window.rollingFt === 'number')
+            ? window.rollingFt : null;
+        const fps = ft ? Math.round(1000 / Math.max(1, ft)) : '?';
+        const panic = !!(typeof window !== 'undefined' && window._oniPanicMode);
+        const hub = (typeof window !== 'undefined' && window._oniHub) || {};
+        const ledgerSize = Object.keys(this.monsterLedger || {}).length;
+        const hostiles = (typeof window !== 'undefined' && window._eng8?.monsterWrappers)
+            ? window._eng8.monsterWrappers.filter(w => {
+                const u = w.userData;
+                return u && !u.isDead && (u.aiState === 'hostile' || u.aiState === 'chase');
+            }).length
+            : '?';
+        const lines = [
+            '════════════════════════════════════════════',
+            `🐉 ONI-BABA REPORT  ·  ${fps} fps  ·  ${ft ? ft.toFixed(1)+'ms' : '?'} per frame`,
+            '════════════════════════════════════════════',
+            `Mood:           ${this.mood}    karma=${this.karma}`,
+            `Panic Mode:     ${panic ? 'ENGAGED' : 'no'}`,
+            `Live hostiles:  ${hostiles}`,
+            `Ledger size:    ${ledgerSize} monsters tracked`,
+            `Hub broadcasts: fog=${(hub.fogDensity||0).toFixed(3)} flicker=${(hub.torchFlicker||0).toFixed(2)} aggro=${(hub.monsterAggro||0).toFixed(2)} spawn=${(hub.spawnPressure||0).toFixed(2)}`,
+            '',
+            v.verdict,
+            '',
+            'TOP 5 PHASES:',
+            ...v.ranked.slice(0, 5).map((r, i) =>
+                `  ${i+1}. ${r.label.padEnd(22)} ${(r.share*100).toFixed(1).padStart(5)}% · avg ${r.avgMs.toFixed(1)}ms · worst ${r.worstMs.toFixed(0)}ms · ${r.ticks} ticks`
+            ),
+            '',
+            v.worstSingleTickStall
+                ? `WORST STALL: ${v.worstSingleTickStall.label} = ${v.worstSingleTickStall.ms.toFixed(0)}ms`
+                : 'WORST STALL: none',
+            `Total stalls (>500ms): ${v.stalls}`,
+            '════════════════════════════════════════════',
+        ];
+        const out = lines.join('\n');
+        try { console.log(out); } catch(_){}
+        return out;
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // FUZZY LOGIC ENGINE
     // ══════════════════════════════════════════════════════════════════════════
 
     _selfTick() {
-        const step = 1000 / this._tickHz;
+        const baseStep = 1000 / this._tickHz;        // ~16.67ms @ 60Hz
+        const panicStep = 1000 / 15;                  // ~67ms @ 15Hz under panic
         const tick = () => {
             const now = performance.now();
-            const dt  = Math.min((now - this._lastTick) / 1000, 0.05);
+            const dt  = Math.min((now - this._lastTick) / 1000, 0.10);
             this._lastTick = now;
             this._fuzzyTick(dt);
+            // Engine sets window._oniPanicMode when frame time spikes; drop
+            // our own tick rate to 15Hz so the fuzzy compute doesn't compete
+            // with the engine for the main thread while it's recovering.
+            const step = (typeof window !== 'undefined' && window._oniPanicMode)
+                ? panicStep
+                : baseStep;
             setTimeout(tick, step);
         };
-        setTimeout(tick, step);
+        setTimeout(tick, baseStep);
     }
 
     _fuzzyTick(dt) {
         this.tickCount++;
         const s = this.sensors;
         const o = this.outputs;
+
+        // Burst aggregator — polled here (every ~16ms via _selfTick) instead
+        // of setting a setTimeout per combat hit. Cheap O(activeMonsters) scan.
+        this._tickBursts();
 
         // ── Sensor decay / drift ──────────────────────────────────────────────
         s.silence      = Math.min(1, s.silence + dt * 0.05);   // silence grows over time
@@ -462,17 +709,33 @@ class OniBaba8 {
             s.narrativeNeed = 0;
         }
 
-        // ── Push outputs to engine fog ────────────────────────────────────────
-        if (this.engine?.scene?.fog) {
-            this.engine.scene.fog.density = o.fogDensity;
+        // ── Push outputs to ENGINE (the hub) ─────────────────────────────────
+        // Throttle scales with render stress: at baseline 30 ticks (~500ms).
+        // When the engine is panicking, jump to 120 ticks (~2s) so Oni-Baba
+        // doesn't add to the bus load that's already choking the player.
+        const _panic = !!(typeof window !== 'undefined' && window._oniPanicMode);
+        const _outputTickStep = _panic ? 120 : 30;
+        if (this.tickCount % _outputTickStep === 0) {
+            this._post({
+                type: 'ONIBABA_OUTPUTS',
+                fogDensity:     o.fogDensity,
+                torchFlicker:   o.torchFlicker,
+                spawnPressure:  o.spawnPressure,
+                monsterAggro:   o.monsterAggro,
+                lootGenerosity: o.lootGenerosity,
+                musicTension:   o.musicTension,
+                realityDistort: o.realityDistort,
+                mood:           this.mood,
+                karma:          this.karma,
+            });
         }
 
         // ── Push output state to panels (orchestrator state readout) ──────────
-        if (this.tickCount % 60 === 0) {
+        // Same throttle: 60 ticks baseline, 240 ticks under panic.
+        const _stateTickStep = _panic ? 240 : 60;
+        if (this.tickCount % _stateTickStep === 0) {
             this._post({ type: 'ONIBABA_STATE', sensors: {...s}, outputs: {...o},
                 karma: this.karma, mood: this.mood });
-            // T0.26 — Periodic combat-param refresh so karma/hive drift keeps
-            // engine modifiers current even when mood doesn't transition.
             this._refreshCombatParams();
         }
     }
@@ -532,6 +795,10 @@ class OniBaba8 {
                 // monsters with returning grudge-spirits from prior floors.
                 // The engine listens for HAUNT_ASSIGNMENTS to apply.
                 this._currentFloor = d.floor;
+                // Clear the per-floor combat ledger so each floor's first
+                // encounter with a given archetype fires the introduction
+                // line again.
+                this._resetCombatLedgerForFloor();
                 // Wait a beat so monster spawns have time to register.
                 setTimeout(() => this._dispatchHaunts(d.floor), 1200);
                 break;
@@ -552,6 +819,24 @@ class OniBaba8 {
             // ── Constructor protocol — she narrates the build itself ─────────
             case 'CONSTRUCTOR_EVENT':
                 this._onConstructorEvent(d);
+                break;
+
+            // ── Structured combat pipeline ───────────────────────────────────
+            // The engine now packs every resolved monster→player hit into
+            // ONE MONSTER_ATTACK message (used by the panel for the backstab
+            // flash AND tagged with `kind:'monster_hit_player'` so this
+            // ledger can read it). Halves postMessage volume vs. the old
+            // dual MONSTER_ATTACK + COMBAT_EVENT scheme — material on
+            // multi-monster swarms where the bus was the bottleneck.
+            case 'MONSTER_ATTACK':
+                if (d.kind === 'monster_hit_player' && d.damage > 0) {
+                    this._onCombatEvent(d);
+                }
+                break;
+            // Legacy COMBAT_EVENT still accepted (kill notifications + any
+            // bespoke events from non-_applyPlayerDamage sites).
+            case 'COMBAT_EVENT':
+                this._onCombatEvent(d);
                 break;
 
             // ── T0.26 — Central combat brain hooks ───────────────────────────
@@ -667,8 +952,9 @@ class OniBaba8 {
         // Dodge check from hive mind
         const dodge = Math.min(0.5, this.hive.adaptationLevel / 200);
         if (Math.random() < dodge) {
-            this._post({ type: 'LOG_EVENT', logType: 'combat',
-                text: this._t('oni.hive-dodge', { atk }) });
+            // Surface the dodge only once every 6s — the "MONSTER DODGED"
+            // floating text on the FPV is the per-event signal.
+            this._surfaceOnce(id, 'hive-dodge', this._t('oni.hive-dodge', { atk }), 'combat', 6000);
             this._post({ type: 'COMBAT_UPDATE', targetId: id, action: 'dodged' });
             this._monsterRetaliate(id);
             return;
@@ -700,8 +986,10 @@ class OniBaba8 {
         const delay  = this.mood === 'enraged' ? 300 : 650;
         setTimeout(() => {
             if (this.monsters[id]?.hp > 0) {
-                this._post({ type: 'LOG_EVENT', logType: 'damage',
-                    text: this._t('oni.retaliate', { dmg }) });
+                // Retaliation damage shows as a red floating number on the
+                // FPV via the MONSTER_ATTACK flow + the ledger surfaces a
+                // burst/heavy summary when warranted. Drop the per-retaliate
+                // log line — it used to fire every ~600ms during a swarm.
                 this._post({ type: 'MONSTER_ATTACK', damage: dmg, targetId: id });
                 this.sensors.tension = Math.min(1, this.sensors.tension + 0.15);
             }
@@ -710,12 +998,21 @@ class OniBaba8 {
 
     _onMonsterDeath(data) {
         const id = data.targetId || data.id;
+        // Funnel through the structured combat pipeline so the kill notice +
+        // ledger cleanup happen exactly once, with the monster's running totals.
+        if (id) this._onCombatEvent({ kind: 'monster_killed', monId: id });
         if (id) delete this.monsters[id];
         this.karma = Math.max(-100, this.karma - 1);
         this.sensors.cruelty = Math.min(1, this.sensors.cruelty + 0.05);
         this.sensors.tension = Math.max(0, this.sensors.tension - 0.1);
-        this._post({ type: 'LOG_EVENT', logType: 'karma',
-            text: this._t('oni.kill-witness') });
+        // Oni-Baba's commentary on the kill is now surfaced only when she's
+        // moved enough to "want" to say something — controlled by the existing
+        // _speak() throttle. The old unconditional kill-witness line was the
+        // single noisiest source of event-log spam during a long crawl.
+        if (Math.random() < 0.18) {
+            this._post({ type: 'LOG_EVENT', logType: 'karma',
+                text: this._t('oni.kill-witness') });
+        }
         this._updateMood();
     }
 

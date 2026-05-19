@@ -149,6 +149,10 @@ window.OrigamiI18n = {
       gold_coin: { name: "GOLD COIN", desc: "Wealth.", attr: "+50 GOLD" },
       gold_coins: { name: "GOLD COINS", desc: "Wealth.", attr: "+50 GOLD" },
       pistol: { name: "MAGIC MISSILE", desc: "Arcane projectile.", attr: "20-60 DMG" },
+      // Alias under the new canonical name so id-derived lookups (cardId
+      // generated from the card title) hit the same record. Keeps the
+      // engine's PISTOL routine accessible while the UI presents MAGIC.
+      magic_missile: { name: "MAGIC MISSILE", desc: "Arcane projectile.", attr: "(DMG × 3DICE)" },
       dagger: { name: "DAGGER", desc: "Quick throw.", attr: "10-25 DMG" },
       crossbow: { name: "CROSSBOW", desc: "Steady aim.", attr: "21-42 DMG" },
       katana: { name: "KATANA", desc: "Cleave strike.", attr: "MELEE" },
@@ -351,6 +355,7 @@ window.OrigamiI18n = {
       gold_coin: { name: "金貨", desc: "富。", attr: "+50 ゴールド" },
       gold_coins: { name: "金貨", desc: "富。", attr: "+50 ゴールド" },
       pistol: { name: "魔法弾", desc: "秘術の飛び道具。", attr: "20-60 ダメージ" },
+      magic_missile: { name: "魔法弾", desc: "秘術の飛び道具。", attr: "(ダメージ × 3ダイス)" },
       dagger: { name: "短剣", desc: "素早い投げ。", attr: "10-25 ダメージ" },
       crossbow: { name: "弩", desc: "落ち着いた狙い。", attr: "21-42 ダメージ" },
       katana: { name: "刀", desc: "斬撃。", attr: "近接" },
