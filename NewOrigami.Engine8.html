@@ -4427,7 +4427,8 @@ function buildMonsterEntity(sp, goblin, animations){
                 // body when the player was tall. The fire animation
                 // already swings the arm at the player on each shot.
                 pistol.scale.setScalar(0.55);
-                pistol.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+                // X rotation flipped from -Math.PI / 2 to Math.PI / 2 to flip it right-side up
+                pistol.rotation.set(Math.PI / 2, 0, Math.PI / 2);
                 pistol.position.set(0.14, 0.02, 0.16);
                 // Muzzle anchor — barrel tip in local space (+X of pistol).
                 const muzzle = new THREE.Object3D();
