@@ -1,4 +1,5 @@
 # NewOrigami v8 — Live Status Dashboard
+
 *The single source of truth for slice progress.*
 *Companion: [V8_CONSTRUCTOR.md](V8_CONSTRUCTOR.md), [V8_BATTLEPLAN.md](V8_BATTLEPLAN.md)*
 
@@ -17,9 +18,9 @@
 | Blocked | 0 |
 | **Slice progress** | **~30%** |
 
-**Current task:** _T0.4 (Spell/Boulder Disposal)_
-**Last commit:** _T0.3 — feat(v8): T0.3 — implement SaveSystem and auto-save_
-**Last validated:** _T0.3 — 2026-05-18 — G-SMOKE ✅_
+**Current task:** *T0.4 (Spell/Boulder Disposal)*
+**Last commit:** *T0.3 — feat(v8): T0.3 — implement SaveSystem and auto-save*
+**Last validated:** *T0.3 — 2026-05-18 — G-SMOKE ✅*
 
 ---
 
@@ -45,19 +46,19 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 
 | ID | Task | Status | Deps | Commit |
 |---|---|:---:|---|---|
-| T0.0 | Validation Harness Bootstrap | ✅ | — | _git log_ |
-| T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | _see git log (T0.1.A–E)_ |
-| T0.2 | RAF tick try/catch | ✅ | T0.1 | _git log_ |
-| T0.3 | Save/Load | ✅ | T0.1 | _git log_ |
+| T0.0 | Validation Harness Bootstrap | ✅ | — | *git log* |
+| T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | *see git log (T0.1.A–E)* |
+| T0.2 | RAF tick try/catch | ✅ | T0.1 | *git log* |
+| T0.3 | Save/Load | ✅ | T0.1 | *git log* |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
 | T0.5 | Collision Substepping | 🔲 | T0.1 | — |
-| T0.6 | Monster Smart-Chase Pathfinding | ✅ | T0.0 | _git log_ |
-| T0.7 | Keyboard Card Cycling + Class Separator | ✅ | T0.0 | _git log_ |
-| T0.8 | Event Log Visibility Rules | ✅ | T0.0 | _git log_ |
-| T0.9 | PIP Cinematic Independence + Auto-Zoom | ✅ | T0.0 | _git log_ |
-| T0.10 | Monster Death Sequence (bow→fall→sink-fade) | ✅ | T0.0 | _git log_ |
-| T0.11 | Hostile Monster Indicator (red disc) | ✅ | T0.0 | _git log_ |
-| T0.12 | FPS Regression Investigation | ✅ | T0.0 | _git log_ |
+| T0.6 | Monster Smart-Chase Pathfinding | ✅ | T0.0 | *git log* |
+| T0.7 | Keyboard Card Cycling + Class Separator | ✅ | T0.0 | *git log* |
+| T0.8 | Event Log Visibility Rules | ✅ | T0.0 | *git log* |
+| T0.9 | PIP Cinematic Independence + Auto-Zoom | ✅ | T0.0 | *git log* |
+| T0.10 | Monster Death Sequence (bow→fall→sink-fade) | ✅ | T0.0 | *git log* |
+| T0.11 | Hostile Monster Indicator (red disc) | ✅ | T0.0 | *git log* |
+| T0.12 | FPS Regression Investigation | ✅ | T0.0 | *git log* |
 
 ### Phase 1 — Mushroom Garden
 
@@ -109,6 +110,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 Every validated gate goes here with timestamp + result. Newest first.
 
 ### 2026-05-13 — T0.1 Module Extraction (steps A–E, partial)
+
 - **G-MODULE**: ✅ — `npm run lint:imports` → `OK — 6 module(s) scanned, no cycles` (after step E)
 - **G-SMOKE**: ✅ — engine ready in 975ms, 0 uncaught errors over 30s observation window (after step E)
 - **Steps completed:** T0.1.A (PathFinder.js), T0.1.B (MapGen.js), T0.1.C (ProceduralTextures.js), T0.1.D (CardExecutor.js), T0.1.E (LootCardBuilder.js)
@@ -117,6 +119,7 @@ Every validated gate goes here with timestamp + result. Newest first.
 - **Status:** Partial — see Decision Log 2026-05-13 "T0.1 < 600 line target requires GameState.js"
 
 ### 2026-05-13 — T0.0 Validation Harness Bootstrap
+
 - **G-STATIC**: ✅ — all 5 npm scripts present in [package.json](package.json), all 5 script files in [scripts/](scripts/) created.
 - **G-MODULE**: ✅ — `npm run lint:imports` → `OK — 1 module(s) scanned, no cycles`.
 - **G-SMOKE**: ✅ — engine ready in 910ms, 0 uncaught errors over 30s observation window, Oni-Baba spoke her T0.0/announce line ("The constructor stirs. Task T0.0 — I am watching.").
@@ -128,7 +131,7 @@ Every validated gate goes here with timestamp + result. Newest first.
 
 Active blockers preventing forward progress. Each must have: task ID, failed gate, what was tried, what's needed.
 
-_None._
+*None.*
 
 ---
 
@@ -137,6 +140,7 @@ _None._
 Significant choices made during execution (model substitutions, scope changes, gate replacements). Newest first.
 
 ### 2026-05-13 — T0.1 < 600 line target requires GameState.js
+
 The spec requires Engine8.html < 600 lines. After extracting 5 pure-function modules (PathFinder, MapGen, ProceduralTextures, CardExecutor, LootCardBuilder), the file is at 5,007 lines. The remaining ~4,400 lines are all real-time simulation engine code that closes over shared mutable state: `scene`, `camera`, `px`, `pz`, `rot`, `map`, `monsterWrappers`, `mixers`, `DUNGEON_LEVEL`, etc. Every function in the remaining body reads from multiple module-level variables that change each RAF frame.
 
 True < 600 line extraction requires `js/v8/core/GameState.js` — a single mutable state object exported from a new module and passed by reference to each extracted system. Estimated refactoring scope: ~4 hours to create GameState, ~12 hours to thread it through 8 subsystems (Renderer, PlayerController, Clock, MapRenderer3D, PiPCamera, EntityManager, ProjectileSystem, MeleeSystem). This is a separate work session.
@@ -144,20 +148,26 @@ True < 600 line extraction requires `js/v8/core/GameState.js` — a single mutab
 **Decision:** Mark T0.1 as 🟡 in-progress (partial), not blocked. The extracted modules are working and tested. The < 600 target is noted as requiring GameState.js in the next session. All subsequent tasks (T0.2+) can proceed using the current Engine8.html — they reference specific functions/sections, not the overall line count.
 
 ### 2026-05-13 — Oni-Baba narrates the constructor (in-scope expansion of T0.0)
+
 The user instructed: "let Onibaba know what you are doing so she handles what she can." Added a `CONSTRUCTOR_EVENT` message type in [NewOrigami.8.html](NewOrigami.8.html) and a handler `_onConstructorEvent()` plus 5 new dialogue keys (`constructor_announce`, `constructor_validate`, `constructor_pass`, `constructor_fail`, `constructor_commit`) in [js/v8/OniBaba8.js](js/v8/OniBaba8.js). The smoke harness emits stage-tagged events so Oni-Baba narrates the build itself — visible both in the in-game LOG_EVENT panel and on the smoke test stdout. Bypasses her 4s `_speak()` throttle for diagnostic visibility. Scope was small and thematically fitting; recorded here as a decision rather than escalated to a new task.
 
 ### 2026-05-13 — G-SMOKE pass criterion = uncaught throws only (not console.error)
+
 Many prototype-era console.error/console.warn lines exist in the current codebase. The smoke pass bar is set to "no uncaught exceptions" (`page.on('pageerror')`) rather than "zero console errors". Tightens automatically when T0.2 wraps the RAF tick in try/catch and converts thrown errors into structured logs.
 
 ### 2026-05-13 — T0.12 root cause: PIP readback GPU stall + broken InstancedMesh merges
+
 Diagnosed via `scripts/probe-fps.js` (headless Chromium, captures console errors/warnings while loading the game). Found:
+
 1. **GPU stall on every PIP frame** — `renderer.readRenderTargetPixels()` at [Engine8.html:3771](NewOrigami.Engine8.html#L3771) triggers HIGH-severity OpenGL performance warnings. At the previous 20 Hz PIP rate this stalls ~10 ms/frame, costing roughly 12 frames/sec at 120fps target. Mitigated for now: PIP_RT_SIZE 320→192 (64% fewer bytes to read back) and PIP rate 20→10 Hz. Full fix (OffscreenCanvas + dedicated renderer, no readPixels) is T3.6.
 2. **mergeBufferGeometries failures** — at line 1813/1849/2090, when web/rafter/decor geometries are merged into instanced meshes, some had index attributes and others didn't, causing 2–4 merges per session to silently fail. Walls and webs would then fall back to one-draw-call-per-mesh (not instanced), tanking GPU efficiency. Fixed by normalizing index presence (`g.toNonIndexed()`) before every merge at all three call sites.
 
 ### 2026-05-13 — Headless Chromium cannot measure FPS reliably (T0.12 caveat)
+
 Even with `--disable-renderer-backgrounding --disable-background-timer-throttling --disable-backgrounding-occluded-windows` and `document.visibilityState === 'visible'`, Chromium in pure headless mode clamps `requestAnimationFrame` to ~1–2 Hz because there's no real display surface. The `probe-fps.js` script therefore exits 0 with a warning when no samples are collected; **the user must verify FPS recovery in a real browser session** (load NewOrigami.8.html, watch the engine HUD's `#hud-rt`). Acceptance bar: ≥ 80 fps after 5 s warmup on dev hardware.
 
 ### 2026-05-13 — G-SMOKE serves over local HTTP, not file://
+
 Chromium under file:// gives each iframe an opaque origin, breaking the parent ↔ Oni-Baba access pattern the game relies on. The harness now boots a 30-line static-file server on a random localhost port. Matches the user's actual serving path (HTTP), so the smoke test now reflects real conditions.
 
 ---

@@ -1456,6 +1456,7 @@
             100% { opacity:0; transform:translate(-50%, -50%) scale(3.15); } 
         }
         .yg-anim-trigger-3d { animation: cardLootAnim3D 1.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        .margin-top-12 { margin-top: 12px; }
     </style>
 </head>
 <body class="dark-mode focus-active">
@@ -1644,8 +1645,8 @@
                 margin: 0;
                 /* Frosted glass — low alpha + heavy blur. */
                 background: linear-gradient(180deg, rgba(10,14,22,0.42) 0%, rgba(6,10,16,0.48) 100%);
-                backdrop-filter: blur(10px) saturate(1.15);
                 -webkit-backdrop-filter: blur(10px) saturate(1.15);
+                backdrop-filter: blur(10px) saturate(1.15);
                 border-radius: 10px;
                 border: none;
                 /* Only a soft drop + a hair of top-edge highlight so the
@@ -1707,8 +1708,8 @@
                    collapsed strip stays at 36px (slim). */
                 height: 36px;
                 background: linear-gradient(180deg, rgba(10,14,22,0.28) 0%, rgba(6,10,16,0.32) 100%);
-                backdrop-filter: blur(8px) saturate(1.10);
                 -webkit-backdrop-filter: blur(8px) saturate(1.10);
+                backdrop-filter: blur(8px) saturate(1.10);
                 box-shadow:
                     0 6px 18px rgba(0,0,0,0.35),
                     inset 0 1px 0 rgba(255,255,255,0.05);
@@ -1771,7 +1772,7 @@
                 color: rgba(214,218,223,0.55);
                 font-family: 'Inter', sans-serif; font-weight: 600;
                 text-transform: uppercase;
-                cursor: pointer; user-select: none;
+                cursor: pointer; -webkit-user-select: none; user-select: none;
                 z-index: 8;
                 opacity: 0;
                 transition: opacity 0.2s ease, color 0.18s ease;
@@ -1779,7 +1780,7 @@
             #event-log-container.active #event-log-silent { opacity: 0.7; }
             #event-log-silent:hover { color: rgba(248,250,252,0.95); opacity: 1; }
             #event-log-silent input {
-                appearance: none; -webkit-appearance: none;
+                -webkit-appearance: none; appearance: none;
                 width: 11px; height: 11px;
                 border-radius: 3px;
                 background: linear-gradient(180deg, #1d1f24 0%, #0e1014 100%);
@@ -2652,6 +2653,7 @@
                 opacity: 0;
                 text-align: center;
                 line-height: 1.0;
+                -webkit-user-select: none;
                 user-select: none;
             }
             #behind-text .b-headline {
@@ -3031,7 +3033,7 @@
                     <span class="slider round"></span>
                 </label>
             </div>
-            <div class="settings-row" style="margin-top:12px;">
+            <div class="settings-row margin-top-12">
                 <span class="settings-label">Side Panels &amp; Event Log</span>
                 <button id="restore-panels-btn" class="settings-btn" type="button">Restore</button>
             </div>

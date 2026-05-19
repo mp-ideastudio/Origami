@@ -212,11 +212,13 @@
       transition:transform 0.15s ease, box-shadow 0.15s ease;
       box-shadow:0 0 0 2px rgba(124,224,184,0.25), 0 8px 24px rgba(0,0,0,0.55);
     }
+    #pip-fpv-canvas { opacity: 0; }
 
     /* Fullscreen Map Modal — opens on PIP click */
     #fs-map-overlay {
       position:fixed; inset:0; z-index:9999; display:none;
       background:radial-gradient(ellipse at center, rgba(20,18,14,0.95) 0%, rgba(8,6,4,0.98) 100%);
+      -webkit-backdrop-filter:blur(8px);
       backdrop-filter:blur(8px);
       align-items:center; justify-content:center;
       flex-direction:column; gap:18px;
@@ -665,7 +667,7 @@
   <!-- PIP cinematic cam frame: 2D map (FPV mode) + live FPV WebGL (topdown mode) -->
   <div id="pip-frame">
     <canvas id="pip-canvas"     width="320" height="320"></canvas>
-    <canvas id="pip-fpv-canvas" width="320" height="320" style="opacity:0"></canvas>
+    <canvas id="pip-fpv-canvas" width="320" height="320"></canvas>
     <div class="pip-overlay">
       <div class="pip-cinebar top"></div>
       <div class="pip-cinebar bottom"></div>
