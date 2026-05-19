@@ -10,7 +10,7 @@
 ## At a glance
 
 | | Count |
-|---|---:|
+| --- | ---: |
 | Total tasks | 33 |
 | Done | 10 |
 | In progress | 0 |
@@ -45,7 +45,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 ### Phase 0 — Foundation
 
 | ID | Task | Status | Deps | Commit |
-|---|---|:---:|---|---|
+| --- | --- | :---: | --- | --- |
 | T0.0 | Validation Harness Bootstrap | ✅ | — | *git log* |
 | T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | *see git log (T0.1.A–E)* |
 | T0.2 | RAF tick try/catch | ✅ | T0.1 | *git log* |
@@ -63,7 +63,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 ### Phase 1 — Mushroom Garden
 
 | ID | Task | Status | Deps | Commit |
-|---|---|:---:|---|---|
+| --- | --- | :---: | --- | --- |
 | T1.1 | Floor 1 Hand-Authored Layout | 🔲 | T0.1, T0.3 | — |
 | T1.2 | Mercy Scroll UI | 🔲 | T0.3 | — |
 | T1.3 | Spare Feedback VFX | 🔲 | T0.1 | — |
@@ -73,7 +73,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 ### Phase 2 — Oni Shrine
 
 | ID | Task | Status | Deps | Commit |
-|---|---|:---:|---|---|
+| --- | --- | :---: | --- | --- |
 | T2.1 | AudioSystem | 🔲 | T0.1 | — |
 | T2.2 | Rigged GLB Monsters | 🔲 | T0.1 | — |
 | T2.3 | MVP Fuzzy Orchestrator | 🔲 | T0.1, T2.1 | — |
@@ -84,7 +84,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 ### Phase 3 — Folded Throne
 
 | ID | Task | Status | Deps | Commit |
-|---|---|:---:|---|---|
+| --- | --- | :---: | --- | --- |
 | T3.1 | Fold Transition Shader | 🔲 | T0.1 | — |
 | T3.2 | Three-Phase Boss Encounter | 🔲 | T2.2, T2.3, T3.1 | — |
 | T3.3 | LLMBridge | 🔲 | T2.3, T3.2 | — |
@@ -95,7 +95,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 ### Phase 4 — Polish & Ship
 
 | ID | Task | Status | Deps | Commit |
-|---|---|:---:|---|---|
+| --- | --- | :---: | --- | --- |
 | T4.1 | Mobile Touch Pass | 🔲 | all Phase 1–3 | — |
 | T4.2 | Card Hand + Cooldowns | 🔲 | T0.1 | — |
 | T4.3 | Auto-Walk to Decision | 🔲 | T0.1 | — |
@@ -187,4 +187,4 @@ Chromium under file:// gives each iframe an opaque origin, breaking the parent �
 
 ---
 
-*Last updated: 2026-05-13 by initial scaffold*
+Last updated: 2026-05-13 by initial scaffold
