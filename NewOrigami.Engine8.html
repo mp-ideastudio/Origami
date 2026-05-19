@@ -3617,10 +3617,7 @@ const _targetReticle = (() => {
     const outer = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.055, 16, 128), baseMat);
     outer.rotation.x = -Math.PI / 2;
     g.add(outer);
-    // Inner ring — slightly smaller, counter-rotates
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.035, 14, 96), softMat);
-    inner.rotation.x = -Math.PI / 2;
-    g.add(inner);
+    // Inner ring — removed so the selector is only on the outside of the monster circle
     // Four cardinal tick marks — small flat spikes on the outer arc
     const ticks = [];
     for (let i = 0; i < 4; i++){
@@ -3634,24 +3631,12 @@ const _targetReticle = (() => {
         g.add(t);
         ticks.push(t);
     }
-    // Flat center crosshair — two thin bars laid on the ground (no floaty jewel)
-    const jewel = new THREE.Group();
-    const barGeo = new THREE.BoxGeometry(0.32, 0.014, 0.06);
-    const barMat = new THREE.MeshBasicMaterial({
-        color: RED, transparent: true, opacity: 0.95,
-        blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const barA = new THREE.Mesh(barGeo, barMat);
-    const barB = new THREE.Mesh(barGeo, barMat);
-    barB.rotation.y = Math.PI / 2;
-    barA.position.y = 0.006;
-    barB.position.y = 0.006;
-    jewel.add(barA); jewel.add(barB);
-    g.add(jewel);
+    // Flat center crosshair — removed so status underneath is visible
+    
     // No PointLight on the reticle — was bleeding red onto the pedestal +
     // floor and reading as a glossy reflective platform under the monster.
     // The additive torus + cross bars already pop against the dark floor.
-    g.userData = { outer, inner, ticks, jewel, jewelBars: [barA, barB] };
+    g.userData = { outer, ticks };
     g.layers.set(0); // main FPV
     g.layers.enable(1);
     scene.add(g);
@@ -4426,9 +4411,10 @@ function buildMonsterEntity(sp, goblin, animations){
                 // auto-aim was tilting the pistol DOWN through the imp's
                 // body when the player was tall. The fire animation
                 // already swings the arm at the player on each shot.
-                pistol.scale.setScalar(0.55);
-                // X rotation flipped from -Math.PI / 2 to Math.PI / 2 to flip it right-side up
-                pistol.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+                // Thicker by 300% on Y and Z so it doesn't look like a thin stick
+                pistol.scale.set(0.55, 1.65, 1.65);
+                // Adjusted rotation to fix it pointing down and being upside down
+                pistol.rotation.set(-Math.PI / 2, 0, 0);
                 pistol.position.set(0.14, 0.02, 0.16);
                 // Muzzle anchor — barrel tip in local space (+X of pistol).
                 const muzzle = new THREE.Object3D();
@@ -19674,26 +19660,12 @@ function loop(){
                 ud.outer.rotation.z =  rt * 0.6 * spinMul;
                 ud.outer.material.opacity = 0.95 * opacMul;
             }
-            if (ud.inner){
-                ud.inner.rotation.z = -rt * 1.4 * spinMul;
-                ud.inner.material.opacity = 0.70 * opacMul;
-            }
             for (let i = 0; i < ud.ticks.length; i++){
                 const a = (i * Math.PI/2) + rt * 0.35 * spinMul;
                 const t = ud.ticks[i];
                 t.position.set(Math.cos(a) * 1.05, 0.005, Math.sin(a) * 1.05);
                 t.rotation.y = -a;
                 t.material.opacity = 0.95 * opacMul;
-            }
-            // Flat crosshair pulse: stays on the ground, no Y bounce
-            if (ud.jewel){
-                const p = 1 + Math.sin(rt * (reticleLocked ? 4.2 : 1.8)) * 0.10;
-                ud.jewel.scale.setScalar(p);
-                ud.jewel.position.y = 0.006;
-                ud.jewel.rotation.y = rt * 1.0 * spinMul;
-                if (ud.jewelBars){
-                    for (const b of ud.jewelBars) b.material.opacity = 0.95 * opacMul;
-                }
             }
             if (ud.reticleLight){
                 ud.reticleLight.intensity = (reticleLocked ? 1.1 : 0.5) + Math.sin(rt * 3.6) * 0.3 * opacMul;
