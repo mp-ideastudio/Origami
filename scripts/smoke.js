@@ -77,9 +77,9 @@ function startServer() {
         });
 
         // Track Oni-Baba's narration so a human reading smoke output sees her
-        page.on('console', m => {
+        page.on('console', m => { if (m.type() === 'error') console.log("PAGE ERROR:", m.text()); 
             const txt = m.text();
-            if (txt.startsWith('🐉')) oniBabaLines.push(txt);
+            console.log("PAGE LOG:", txt);
         });
 
         // Track uncaught errors from any iframe
@@ -121,7 +121,7 @@ function startServer() {
     } catch (e) {
         if (browser) await browser.close().catch(() => {});
         if (server) await new Promise(r => server.close(r));
-        console.error(`[smoke] HARNESS ERROR: ${e.message}`);
+        if (uncaught.length) console.error(`[smoke] Uncaught:`, uncaught); console.error(`[smoke] HARNESS ERROR: ${e.message}`);
         process.exit(2);
     }
 
