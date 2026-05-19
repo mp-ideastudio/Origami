@@ -733,6 +733,8 @@ import {
     getCardThemeColor, getCardEdgeColor,
     buildLegacyCardCanvas, buildLegacyLootIcon
 } from './js/v8/entities/LootCardBuilder.js';
+import SaveSystem from './js/v8/core/SaveSystem.js';
+window.SaveSystem = SaveSystem;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAP_W = 128, MAP_H = 128, GRID = 2;
@@ -766,8 +768,21 @@ const _urlFloor = (() => {
 })();
 let DUNGEON_LEVEL = _urlFloor;
 
+window._autoSaveLoad = SaveSystem.load();
+if (window._autoSaveLoad && window._autoSaveLoad.floor) {
+    DUNGEON_LEVEL = window._autoSaveLoad.floor;
+    console.log("[save] Rehydrated slot0 auto-save state for floor", DUNGEON_LEVEL);
+}
+
 // Thin wrapper preserving the original call signature (no MAP_W/H args).
-function generateCastleMap(){ return generateDungeonMap(DUNGEON_LEVEL, MAP_W, MAP_H); }
+function generateCastleMap(){ 
+    if (window._autoSaveLoad && window._autoSaveLoad.mapSeed) {
+        window._currentMapSeed = window._autoSaveLoad.mapSeed;
+    } else {
+        window._currentMapSeed = Math.random();
+    }
+    return generateDungeonMap(DUNGEON_LEVEL, MAP_W, MAP_H, window._currentMapSeed); 
+}
 
 const {map,rooms,spawnX,spawnZ,mobSpawns} = generateCastleMap();
 try { window.parent.postMessage({ type:'BOOT_PROGRESS', step:'map' }, '*'); } catch(_){}
@@ -2921,6 +2936,12 @@ if (window._pendingLoadPos){
     if (typeof _p.pz  === 'number') pz  = _p.pz;
     if (typeof _p.rot === 'number') rot = _p.rot;
     delete window._pendingLoadPos;
+}
+
+if (window._autoSaveLoad) {
+    if (typeof window._autoSaveLoad.px === 'number') px = window._autoSaveLoad.px;
+    if (typeof window._autoSaveLoad.pz === 'number') pz = window._autoSaveLoad.pz;
+    if (typeof window._autoSaveLoad.rot === 'number') rot = window._autoSaveLoad.rot;
 }
 
 // ── HARDCODE RULE: NEW GAME ON LEVEL 1 ALWAYS STARTS IN ROOM 0 HALLWAY ──
@@ -10897,14 +10918,15 @@ let _savedMonsterStates = null;
 // side once she's available (see ENGINE8_READY hook below).
 try {
     const _saved = JSON.parse(sessionStorage.getItem('origami.v8.descent') || 'null');
-    if (_saved && _saved.floor === DUNGEON_LEVEL) {
-        if (typeof _saved.maxHp === 'number') playerMaxHp = _saved.maxHp;
-        if (typeof _saved.hp === 'number')    playerHp    = Math.max(1, Math.min(playerMaxHp, _saved.hp));
+    const _state = window._autoSaveLoad || _saved;
+    if (_state && _state.floor === DUNGEON_LEVEL) {
+        if (typeof _state.maxHp === 'number') playerMaxHp = _state.maxHp;
+        if (typeof _state.hp === 'number')    playerHp    = Math.max(1, Math.min(playerMaxHp, _state.hp));
         // Push restored karma into Oni-Baba once she's bound
-        if (typeof _saved.karma === 'number') {
+        if (typeof _state.karma === 'number') {
             const applyKarma = () => {
                 const ob = window.parent?.oniBaba8 || window.oniBaba8;
-                if (ob) { ob.karma = _saved.karma; if (typeof ob._updateMood === 'function') ob._updateMood(); }
+                if (ob) { ob.karma = _state.karma; if (typeof ob._updateMood === 'function') ob._updateMood(); }
             };
             applyKarma();
             setTimeout(applyKarma, 200); // retry once after Oni-Baba is bound
@@ -11001,6 +11023,27 @@ function _broadcastSaveList(){
     const manifest = _readSaveManifest();
     window.parent.postMessage({type:'SAVE_LIST', saves: manifest.saves}, '*');
 }
+
+function _performAutoSave() {
+    const ob = window.parent?.oniBaba8 || window.oniBaba8;
+    const activeMonsters = [];
+    if (typeof monsterWrappers !== 'undefined') {
+        for (const w of monsterWrappers) {
+            if (w.userData && !w.userData.isDead) activeMonsters.push(w.userData.id);
+        }
+    }
+    SaveSystem.save({
+        floor: DUNGEON_LEVEL,
+        px, pz, rot,
+        hp: playerHp,
+        karma: ob?.karma ?? 0,
+        deck: [], // Engine doesn't have deck
+        mapSeed: window._currentMapSeed,
+        monstersAlive: activeMonsters
+    });
+}
+window.addEventListener('beforeunload', _performAutoSave);
+let _autoSaveTickTimer = 30.0;
 
 // ── Restore from a Load payload (run during boot, before player vars are
 // fully initialized below — but they're declared with `let` above so we can
@@ -18333,6 +18376,13 @@ function loop(){
     if(now<hitStopUntil) return; // Hit-stop pause
     const raw=Math.min((now-lastT)/1000,0.05);
     const dt=raw; lastT=now;
+
+    _autoSaveTickTimer -= raw;
+    if (_autoSaveTickTimer <= 0) {
+        _autoSaveTickTimer = 30.0;
+        _performAutoSave();
+    }
+
     // Hard pause — render the current scene state and bail out before
     // any time-dependent work. `lastT` is updated above so when we
     // resume, the first un-paused frame doesn't see a giant dt.
@@ -18910,6 +18960,15 @@ function loop(){
             const nextFloor = Math.min(7, DUNGEON_LEVEL + 1);
             // Persist HP/karma so they survive the reload
             try {
+                SaveSystem.save({
+                    floor: nextFloor,
+                    px: null, pz: null, rot: null, // Force spawn at stairs on next load
+                    hp: playerHp,
+                    karma: (window.parent?.oniBaba8?.karma ?? window.oniBaba8?.karma ?? 0),
+                    deck: [],
+                    mapSeed: Math.random(),
+                    monstersAlive: []
+                });
                 sessionStorage.setItem('origami.v8.descent', JSON.stringify({
                     floor: nextFloor,
                     hp: playerHp,

@@ -16,7 +16,17 @@
  * @param {number} MAP_H - Map height in grid cells
  * @returns {{ map, rooms, spawnX, spawnZ, mobSpawns }}
  */
-export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
+export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128, mapSeed = Math.random()) {
+  const _originalMathRandom = Math.random;
+  let _s = Math.floor(mapSeed * 2147483647);
+  if (_s === 0) _s = 1;
+  Math.random = () => {
+    let t = _s += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  try {
   level = Math.max(1, Math.min(20, level)); // Support levels 1-20
   const map = Array.from({ length: MAP_W }, () =>
     Array.from({ length: MAP_H }, () => ({ type: "wall" })),
@@ -1454,6 +1464,9 @@ export function generateDungeonMap(level = 1, MAP_W = 128, MAP_H = 128) {
   // bashable behaviour. Walls are walls.
 
   return { map, rooms, spawnX, spawnZ, mobSpawns };
+  } finally {
+    Math.random = _originalMathRandom;
+  }
 }
 
 export default generateDungeonMap;

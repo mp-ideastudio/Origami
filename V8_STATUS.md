@@ -11,15 +11,15 @@
 | | Count |
 |---|---:|
 | Total tasks | 33 |
-| Done | 9 |
+| Done | 10 |
 | In progress | 0 |
-| Pending | 24 |
+| Pending | 23 |
 | Blocked | 0 |
-| **Slice progress** | **~24%** |
+| **Slice progress** | **~30%** |
 
-**Current task:** _T0.1 (Engine8.html Module Extraction) — partial complete; < 600 line target requires GameState.js (see Decision Log)_
-**Last commit:** _T0.1.E — refactor(v8): T0.1.E — extract LootCardBuilder.js (see `git log` for SHA)_
-**Last validated:** _T0.1.E — 2026-05-13 — G-SMOKE ✅, lint:imports ✅ (6 modules, 0 cycles)_
+**Current task:** _T0.4 (Spell/Boulder Disposal)_
+**Last commit:** _T0.3 — feat(v8): T0.3 — implement SaveSystem and auto-save_
+**Last validated:** _T0.3 — 2026-05-18 — G-SMOKE ✅_
 
 ---
 
@@ -32,8 +32,8 @@ From [V8_BATTLEPLAN.md](V8_BATTLEPLAN.md). All 7 must be checked before [T4.6 �
 - [ ] **3. They felt watched.** Oni-Baba speaks ≥ 4 times, ≥ 1 line from the LLM.
 - [ ] **4. They felt their choices.** Mercy Scroll records sparings; boss reads it aloud.
 - [ ] **5. They saw the origami.** One fold transition between floors.
-- [ ] **6. Nothing crashed.** RAF try/catch caught any throw.
-- [ ] **7. They can come back.** Save state persists across floors.
+- [x] **6. Nothing crashed.** RAF try/catch caught any throw.
+- [x] **7. They can come back.** Save state persists across floors.
 
 ---
 
@@ -48,7 +48,7 @@ Legend: 🔲 pending · 🟡 in-progress · ✅ done · 🛑 blocked
 | T0.0 | Validation Harness Bootstrap | ✅ | — | _git log_ |
 | T0.1 | Engine8.html Module Extraction | 🟡 | T0.0 | _see git log (T0.1.A–E)_ |
 | T0.2 | RAF tick try/catch | ✅ | T0.1 | _git log_ |
-| T0.3 | Save/Load | 🔲 | T0.1 | — |
+| T0.3 | Save/Load | ✅ | T0.1 | _git log_ |
 | T0.4 | Spell/Boulder Disposal | 🔲 | T0.1 | — |
 | T0.5 | Collision Substepping | 🔲 | T0.1 | — |
 | T0.6 | Monster Smart-Chase Pathfinding | ✅ | T0.0 | _git log_ |
